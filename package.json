@@ -15,6 +15,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "framer-motion": "^12.23.24",
     "livekit-server-sdk": "^2.4.3",
     "next": "14.0.0",
     "react": "^18.0.0",
