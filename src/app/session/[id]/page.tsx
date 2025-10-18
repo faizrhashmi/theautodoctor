@@ -36,9 +36,6 @@ export default function Pricing() {
   return (
     <section className="container py-20">
       <div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
         className="text-center mb-12"
       >
         <h1 className="h-section">Transparent Luxury Pricing</h1>
@@ -49,7 +46,6 @@ export default function Pricing() {
         {plans.map((p) => (
           <div
             key={p.name}
-            whileHover={{ y: -4 }}
             className="relative card-lux pt-10"
           >
             {p.popular && <div className="ribbon">Most Popular</div>}
