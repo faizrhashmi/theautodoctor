@@ -17,10 +17,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Header */}
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
           <nav className="container h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">AD</span>
-              <span>AutoDoctor</span>
-            </Link>
+           <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
+  <img
+    src="/favicon.ico"
+    alt="AskAutoDoctor Logo"
+    className="h-8 w-8 rounded-md"
+  />
+  <span className="text-gray-900 hover:text-blue-600 transition-colors">
+    AskAutoDoctor
+  </span>
+</Link>
+
 
             <div className="hidden md:flex items-center gap-6 text-sm">
               <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
