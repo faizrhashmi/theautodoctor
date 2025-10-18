@@ -32,7 +32,7 @@ export default function BookPage() {
 
   return (
     <section className="container py-20">
-      <div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-8">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-8">
         <h1 className="h-section">Book a Session</h1>
         <p className="text-white/70 mt-2">Select a service and a time. Youâ€™ll check out securely with Stripe.</p>
 
@@ -73,3 +73,4 @@ export default function BookPage() {
     </section>
   )
 }
+
