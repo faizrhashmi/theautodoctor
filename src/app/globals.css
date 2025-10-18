@@ -1,44 +1,112 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  font-family: 'Inter', sans-serif;
-}
+/* Inter – premium sans */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* Professional color scheme */
+/* Font Awesome (for trust badges, etc.) */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --secondary: #64748b;
-  --accent: #f59e0b;
+  /* Luxury palette */
+  --lux-navy: #0a1833;       /* deep navy */
+  --lux-ink:  #0f223f;       /* darker blue */
+  --lux-mid:  #102a4a;
+  --lux-gold: #d4af37;       /* metallic gold */
+  --lux-gold-2: #c59b2e;     /* hover gold */
+  --lux-steel: #e2e8f0;      /* soft steel border */
+  --lux-glass: rgba(255,255,255,0.07);
+  --lux-white: #f8fafc;
+
+  /* Gradients */
+  --grad-hero: radial-gradient(1100px 700px at 10% -10%, rgba(212,175,55,0.12), transparent 55%),
+               radial-gradient(900px 600px at 120% 10%, rgba(68,120,255,0.08), transparent 60%),
+               linear-gradient(160deg, #07142a 0%, #0a1833 40%, #0f223f 100%);
+  --grad-card: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
 }
 
-/* Improved buttons */
+/* Base */
+html, body {
+  height: 100%;
+}
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+  color: var(--lux-white);
+  background: linear-gradient(180deg, #061126 0%, #091933 100%);
+}
+
+/* Containers */
+.container {
+  @apply mx-auto px-6 max-w-7xl;
+}
+
+/* Glass morphism helpers */
+.glass {
+  background: var(--lux-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.glass-soft {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Luxury cards */
+.card-lux {
+  background: var(--grad-card);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  @apply rounded-2xl p-6;
+}
+
+/* Buttons */
+.btn {
+  @apply inline-flex items-center justify-center font-semibold rounded-xl px-6 py-3 transition-transform duration-300;
+}
 .btn-primary {
-  background: var(--primary);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  color: #0b1226;
+  background: linear-gradient(120deg, #d4af37 0%, #ffdf80 100%);
+  box-shadow: 0 10px 20px rgba(212,175,55,0.25);
+}
+.btn-primary:hover { transform: translateY(-2px) scale(1.01); }
+.btn-outline {
+  color: var(--lux-white);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.03);
+}
+.btn-outline:hover { border-color: rgba(255,255,255,0.35); }
+
+/* Ribbons for pricing */
+.ribbon {
+  position: absolute; top: -12px; right: -12px;
+  background: linear-gradient(120deg, #d4af37, #f3d569);
+  color: #0b1226; font-weight: 800; letter-spacing: .02em;
+  padding: .4rem .8rem; border-radius: .5rem;
+  box-shadow: 0 12px 28px rgba(212,175,55,.25);
 }
 
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+/* Trusted badge ring */
+.badge-ring {
+  @apply rounded-full border;
+  border-color: rgba(255,255,255,0.25);
+  box-shadow: inset 0 0 0 6px rgba(212,175,55,0.08);
 }
 
-/* Card improvements */
-.service-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
+/* Section headings */
+.h-section {
+  @apply text-3xl md:text-4xl font-extrabold tracking-tight;
 }
 
-.service-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+/* Subtle divider */
+.hr-soft {
+  border: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
 }
+
+/* Page transitions (Framer Motion will add transforms) */
+.page-fade { opacity: 0; transform: translateY(10px); }
+.page-fade-active { opacity: 1; transform: translateY(0); transition: opacity .5s ease, transform .5s ease; }
