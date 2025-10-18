@@ -1,47 +1,70 @@
 // app/layout.tsx
-import './globals.css'
-import Link from 'next/link'
-import { Inter } from 'next/font/google'
+import type { ReactNode } from 'react';
+import './globals.css';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Inter } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'AskAutoDoctor',
-  description: 'Certified mechanics on demand — online diagnostics & inspections across Ontario.',
-  icons: {
-    icon: '/favicon.ico',                // ✅ Favicon
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',      // ✅ If you have it
-  },
-}
+  description:
+    'Certified mechanics on demand — online diagnostics & inspections across Ontario.',
+  // No need to specify icons when using /app/icon.png and /app/apple-icon.png
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* ✅ Responsive Header */}
-        <header className="bg-white border-b shadow-sm fixed w-full z-50">
-          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
+        {/* ===== HEADER ===== */}
+        <header className="fixed inset-x-0 top-0 z-50 bg-white/90 backdrop-blur border-b">
+          <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 items-center justify-between">
               {/* Logo */}
-              <Link href="/" className="flex items-center space-x-2 text-xl font-bold text-gray-900">
-                <img src="/logo.svg" alt="Logo" className="h-6 w-6" />
-                <span>AskAutoDoctor</span>
-              </Link>
+             <Link
+  href="/"
+  className="flex items-center gap-2 text-xl font-bold text-gray-900"
+>
+  <Image
+    src="/logo.png"   // ✅ now served from /public
+    alt="AskAutoDoctor"
+    width={28}
+    height={28}
+    priority
+  />
+  <span>AskAutoDoctor</span>
+</Link>
+
 
               {/* Desktop Nav */}
-              <nav className="hidden md:flex space-x-6 items-center">
-                <Link href="/" className="hover:text-blue-600">Home</Link>
-                <Link href="/pricing" className="hover:text-blue-600">Pricing</Link>
-                <Link href="/book" className="hover:text-blue-600">Book</Link>
-                <Link href="/book">
-                  <span className="ml-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
-                    🚗 Book Now
-                  </span>
+              <nav className="hidden md:flex items-center gap-6">
+                <Link href="/about" className="text-gray-700 hover:text-blue-600">
+                  About
+                </Link>
+                <Link
+                  href="/knowledge-base"
+                  className="text-gray-700 hover:text-blue-600"
+                >
+                  Knowledge Base
+                </Link>
+                <Link href="/pricing" className="text-gray-700 hover:text-blue-600">
+                  Pricing
+                </Link>
+                <Link href="/contact" className="text-gray-700 hover:text-blue-600">
+                  Contact
+                </Link>
+
+                <Link
+                  href="/book"
+                  className="ml-2 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 transition"
+                >
+                  🚗 Book Now
                 </Link>
               </nav>
 
-              {/* Mobile */}
+              {/* Mobile menu trigger */}
               <div className="md:hidden">
                 <MobileMenu />
               </div>
@@ -49,28 +72,57 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
+        {/* Push content below the fixed header */}
         <main className="pt-16">{children}</main>
       </body>
     </html>
-  )
+  );
 }
 
 function MobileMenu() {
   return (
     <details className="relative">
-      <summary className="cursor-pointer list-none">
-        <svg className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+      <summary className="cursor-pointer list-none p-2" aria-label="Open menu">
+        <svg
+          className="h-6 w-6 text-gray-800"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
         </svg>
       </summary>
-      <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md py-2 z-50">
-        <Link href="/" className="block px-4 py-2 hover:bg-gray-100">Home</Link>
-        <Link href="/pricing" className="block px-4 py-2 hover:bg-gray-100">Pricing</Link>
-        <Link href="/book" className="block px-4 py-2 hover:bg-gray-100">Book</Link>
-        <Link href="/book" className="block px-4 py-2 text-blue-600 font-semibold hover:bg-blue-50">
+
+      <div className="absolute right-0 mt-2 w-56 rounded-lg border bg-white shadow-md py-2 z-50">
+        <Link href="/about" className="block px-4 py-2 hover:bg-gray-100">
+          About
+        </Link>
+        <Link
+          href="/knowledge-base"
+          className="block px-4 py-2 hover:bg-gray-100"
+        >
+          Knowledge Base
+        </Link>
+        <Link href="/pricing" className="block px-4 py-2 hover:bg-gray-100">
+          Pricing
+        </Link>
+        <Link href="/contact" className="block px-4 py-2 hover:bg-gray-100">
+          Contact
+        </Link>
+        <div className="my-2 border-t" />
+        <Link
+          href="/book"
+          className="block px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50"
+        >
           🚗 Book Now
         </Link>
       </div>
     </details>
-  )
+  );
 }
