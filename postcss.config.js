@@ -1,10 +1,8 @@
-# create/overwrite if needed
-cat > postcss.config.js << 'EOF'
+// postcss.config.js
 module.exports = {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
   },
 };
-EOF
-git add postcss.config.js
+
