@@ -1,80 +1,78 @@
-import type { Metadata, Viewport } from 'next'
+// app/layout.tsx
 import './globals.css'
 import Link from 'next/link'
+import { Inter } from 'next/font/google'
 
-// ✅ Mobile scaling and viewport configuration
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  viewportFit: 'cover',
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata = {
+  title: 'AskAutoDoctor',
+  description: 'Certified mechanics on demand — online diagnostics & inspections across Ontario.',
 }
 
-// ✅ Metadata for SEO
-export const metadata: Metadata = {
-  title: 'Ask Auto Doctor – Expert Mechanics On Demand',
-  description:
-    'Instant video consultations with certified mechanics. Diagnose issues, get repair advice, and pre-purchase inspections from anywhere.',
-}
-
-// ✅ Root layout component
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="font-sans bg-white text-gray-900 overflow-x-hidden">
-        {/* ===== Header ===== */}
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
-          <nav className="container h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-            {/* Logo + Brand */}
-            <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
-              <img
-                src="/favicon.ico"
-                alt="AskAutoDoctor Logo"
-                className="h-8 w-8 rounded-md"
-              />
-              <span className="text-gray-900 hover:text-blue-600 transition-colors">
-                AskAutoDoctor
-              </span>
-            </Link>
+      <head>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charSet="utf-8" />
+  <title>AskAutoDoctor</title>
+  <meta name="description" content="Certified mechanics on demand — online diagnostics & inspections across Ontario." />
+</head>
+      <body className={inter.className}>
+        {/* ✅ Responsive Header */}
+        <header className="bg-white border-b shadow-sm fixed w-full z-50">
+          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              {/* Logo */}
+              <Link href="/" className="flex items-center space-x-2 text-xl font-bold text-gray-900">
+                <img src="/logo.svg" alt="Logo" className="h-6 w-6" />
+                <span>AskAutoDoctor</span>
+              </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6 text-sm">
-              <Link href="/" className="hover:text-blue-600 transition-colors">
-                Home
-              </Link>
-              <Link href="/pricing" className="hover:text-blue-600 transition-colors">
-                Pricing
-              </Link>
-              <Link href="/book" className="hover:text-blue-600 transition-colors">
-                Book
-              </Link>
-              <Link
-                href="/book"
-                className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 transition-colors"
-              >
-                Book Now
-              </Link>
-            </div>
-          </nav>
-        </header>
+              {/* Desktop Nav */}
+              <nav className="hidden md:flex space-x-6 items-center">
+                <Link href="/" className="hover:text-blue-600">Home</Link>
+                <Link href="/pricing" className="hover:text-blue-600">Pricing</Link>
+                <Link href="/booking" className="hover:text-blue-600">Book</Link>
+                <Link href="/booking">
+                  <span className="ml-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+                    🚗 Book Now
+                  </span>
+                </Link>
+              </nav>
 
-        {/* ===== Main Content ===== */}
-        <main className="min-h-screen">{children}</main>
-
-        {/* ===== Footer ===== */}
-        <footer className="border-t border-gray-100 py-10 mt-20">
-          <div className="container text-sm text-gray-500 flex flex-col md:flex-row items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <p>© {new Date().getFullYear()} Ask Auto Doctor. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              <Link href="/pricing" className="hover:text-gray-700">
-                Pricing
-              </Link>
-              <Link href="/book" className="hover:text-gray-700">
-                Book a Consultation
-              </Link>
+              {/* Mobile */}
+              <div className="md:hidden">
+                <MobileMenu />
+              </div>
             </div>
           </div>
-        </footer>
+        </header>
+
+        <main className="pt-16">{children}</main>
       </body>
     </html>
+  )
+}
+
+function MobileMenu() {
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none">
+        <svg className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </summary>
+      <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md py-2 z-50">
+        <Link href="/" className="block px-4 py-2 hover:bg-gray-100">Home</Link>
+        <Link href="/pricing" className="block px-4 py-2 hover:bg-gray-100">Pricing</Link>
+        <Link href="/booking" className="block px-4 py-2 hover:bg-gray-100">Book</Link>
+        <Link href="/booking" className="block px-4 py-2 text-blue-600 font-semibold hover:bg-blue-50">
+          🚗 Book Now
+        </Link>
+      </div>
+    </details>
   )
 }
