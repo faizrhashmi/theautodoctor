@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "../../lib/supabase"
 
 type Service = { id:number; code:string; name:string; price_cents:number; duration_min:number }
 type Slot = { id:number; start_at:string; end_at:string }
