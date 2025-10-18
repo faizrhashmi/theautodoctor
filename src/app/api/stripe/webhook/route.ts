@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 export async function POST(req: NextRequest) {
   const raw = await req.text()
   const sig = req.headers.get('stripe-signature')!
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-06-20' })
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
   let event: Stripe.Event
 
   try {
@@ -31,4 +31,3 @@ export async function POST(req: NextRequest) {
   return new Response('ok', { status: 200 })
 }
 
-export const config = { api: { bodyParser: false } } as any
