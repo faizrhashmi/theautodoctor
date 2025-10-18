@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+﻿import { NextRequest } from 'next/server'
 import { AccessToken } from 'livekit-server-sdk'
 
 export async function GET(req: NextRequest) {

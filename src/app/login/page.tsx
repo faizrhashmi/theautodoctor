@@ -1,8 +1,7 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { motion } from 'framer-motion'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,9 +24,9 @@ export default function LoginPage() {
 
   return (
     <section className="container py-20">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto glass rounded-2xl p-8">
+      <div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-lg mx-auto glass rounded-2xl p-8">
         <h1 className="h-section">Login</h1>
-        <p className="text-white/70 mt-2">We’ll email you a secure sign-in link.</p>
+        <p className="text-white/70 mt-2">Weâ€™ll email you a secure sign-in link.</p>
 
         {sent ? (
           <div className="card-lux mt-6">
@@ -45,7 +44,7 @@ export default function LoginPage() {
               className="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 outline-none focus:border-[--lux-gold]"
             />
             <button className="btn btn-primary w-full" disabled={loading}>
-              {loading ? 'Sending…' : 'Send magic link'}
+              {loading ? 'Sendingâ€¦' : 'Send magic link'}
             </button>
           </form>
         )}
@@ -53,7 +52,7 @@ export default function LoginPage() {
         <div className="text-white/60 text-xs mt-4">
           By continuing you agree to our terms & privacy.
         </div>
-      </motion.div>
+      </div>
     </section>
   )
 }

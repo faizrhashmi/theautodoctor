@@ -1,7 +1,6 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 
 const SERVICES = [
   { id: 'quick', label: 'Quick Consult (15m)', amount: 2500 },
@@ -16,7 +15,7 @@ export default function BookPage() {
   async function handleCheckout() {
     try {
       setLoading(true)
-      // Keep your existing API route intact – adjust payload to your current handler
+      // Keep your existing API route intact â€“ adjust payload to your current handler
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,9 +32,9 @@ export default function BookPage() {
 
   return (
     <section className="container py-20">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-8">
+      <div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-8">
         <h1 className="h-section">Book a Session</h1>
-        <p className="text-white/70 mt-2">Select a service and a time. You’ll check out securely with Stripe.</p>
+        <p className="text-white/70 mt-2">Select a service and a time. Youâ€™ll check out securely with Stripe.</p>
 
         <div className="grid md:grid-cols-2 gap-8 mt-8">
           <div className="space-y-3">
@@ -62,15 +61,15 @@ export default function BookPage() {
               disabled={loading}
               className="btn btn-primary mt-6 w-full"
             >
-              {loading ? 'Starting checkout…' : 'Continue to Stripe'}
+              {loading ? 'Starting checkoutâ€¦' : 'Continue to Stripe'}
             </button>
 
             <div className="text-white/60 text-xs mt-3">
-              Payments: Stripe • Video: LiveKit • Auth: Supabase
+              Payments: Stripe â€¢ Video: LiveKit â€¢ Auth: Supabase
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   )
 }

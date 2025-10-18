@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from "react"
 import { supabase } from "../../lib/supabase"
 
@@ -52,7 +52,7 @@ export default function Book() {
             onChange={e=>setSlotId(Number(e.target.value))}>
             <option value="">Select...</option>
             {slots.map(sl=><option key={sl.id} value={sl.id}>
-              {new Date(sl.start_at).toLocaleString()} – {new Date(sl.end_at).toLocaleTimeString()}
+              {new Date(sl.start_at).toLocaleString()} â€“ {new Date(sl.end_at).toLocaleTimeString()}
             </option>)}
           </select>
         </div>

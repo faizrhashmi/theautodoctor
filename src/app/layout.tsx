@@ -1,127 +1,98 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 
+/*
+ * Site metadata
+ *
+ * Define the default title and description for the site.  These values will
+ * populate the `<title>` tag and meta description automatically when the
+ * application is built with Next.js.
+ */
 export const metadata: Metadata = {
-  title: 'AutoDoctor • Premium Auto Consultations',
+  title: 'AutoDoctor - Expert Auto Mechanics On Demand',
   description:
-    'Luxury, on-demand auto diagnostics and pre-purchase inspections. Certified experts • Live video • Secure checkout.',
+    'Get instant video consultations with certified mechanics. Diagnose issues, get repair advice, and pre‑purchase inspections from anywhere.',
 }
 
+/*
+ * Root layout component
+ *
+ * Wraps all pages with common elements like the navigation bar at the top
+ * and the footer at the bottom.  The `children` prop represents the
+ * content of each page.  Using flexbox ensures the footer stays at the
+ * bottom on short pages.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <NavBar />
-        {/* Smooth page transition container */}
-        <motion.main
-          className="flex-1 pt-20"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
+        <Navbar />
+        <main className="flex-grow pt-16">
           {children}
-        </motion.main>
+        </main>
         <Footer />
       </body>
     </html>
   )
 }
 
-/** Glass morphism, luxury header with subtle glow */
-function NavBar() {
+/*
+ * Navigation bar
+ *
+ * Provides links to the main pages of the site and a prominent call‑to‑action
+ * button.  The bar is sticky and slightly translucent, giving the site a
+ * modern feel while staying out of the way of content.
+ */
+function Navbar() {
   return (
-    <div className="fixed z-50 top-0 inset-x-0">
-      <div className="container">
-        <nav className="mt-4 glass rounded-2xl px-6 py-3 flex items-center justify-between shadow-xl">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-[radial-gradient(circle_at_30%_30%,#ffdf80,transparent_45%),_var(--grad-card)] border border-white/20 flex items-center justify-center">
-              <span className="font-black text-[--lux-ink]">AD</span>
-            </div>
-            <div>
-              <p className="text-lg font-extrabold leading-5">AutoDoctor</p>
-              <p className="text-xs text-white/60 group-hover:text-white/80 transition">Premium Consultations</p>
-            </div>
-          </Link>
-
-          <div className="hidden md:flex items-center gap-6">
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/pricing">Pricing</NavLink>
-            <NavLink href="/book">Book</NavLink>
-            <NavLink href="/login">Login</NavLink>
-            <Link href="/book" className="btn btn-primary">Book Now</Link>
+    <nav className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      <div className="container flex items-center justify-between py-4">
+        <div className="flex items-center space-x-2">
+          <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-sm">AD</span>
           </div>
-        </nav>
+          <span className="text-xl font-bold text-gray-900">AutoDoctor</span>
+        </div>
+        <div className="flex items-center space-x-6">
+          <Link href="/" className="text-gray-600 hover:text-gray-900 font-medium">
+            Home
+          </Link>
+          <Link href="/pricing" className="text-gray-600 hover:text-gray-900 font-medium">
+            Pricing
+          </Link>
+          <Link href="/book" className="btn-primary">
+            Book Now
+          </Link>
+        </div>
       </div>
-    </div>
+    </nav>
   )
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="text-white/80 hover:text-white transition relative">
-      <span className="after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 hover:after:w-full after:bg-[--lux-gold] after:transition-all">
-        {children}
-      </span>
-    </Link>
-  )
-}
-
-/** Professional footer with social links */
+/*
+ * Footer component
+ *
+ * Displays the site’s logo, copyright, tagline and a contact link.  The
+ * footer uses a dark background to clearly separate it from the page content.
+ */
 function Footer() {
   return (
-    <footer className="mt-24 border-t border-white/10">
-      <div className="container py-12">
-        <div className="grid md:grid-cols-4 gap-10">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[radial-gradient(circle_at_30%_30%,#ffdf80,transparent_45%),_var(--grad-card)] border border-white/20 flex items-center justify-center">
-                <span className="font-black text-[--lux-ink]">AD</span>
-              </div>
-              <div>
-                <div className="font-extrabold">AutoDoctor</div>
-                <div className="text-white/60 text-sm">Premium Auto Consultations</div>
-              </div>
-            </div>
-            <p className="text-white/70 mt-4 text-sm">
-              Certified experts • Video diagnostics • Pre-purchase inspections.
-            </p>
+    <footer className="bg-gray-900 text-white py-12 mt-auto">
+      <div className="container text-center">
+        <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-xs">AD</span>
           </div>
-
-          <div>
-            <h4 className="font-bold mb-3">Company</h4>
-            <ul className="space-y-2 text-white/80 text-sm">
-              <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
-              <li><Link href="/book" className="hover:text-white">Book a Session</Link></li>
-              <li><Link href="/login" className="hover:text-white">Login</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-3">Trust & Safety</h4>
-            <ul className="space-y-2 text-white/80 text-sm">
-              <li>Secure Stripe Checkout</li>
-              <li>LiveKit HD Video</li>
-              <li>Supabase Authentication</li>
-              <li>Encrypted Data at Rest</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-3">Connect</h4>
-            <div className="flex items-center gap-3">
-              <a aria-label="Instagram" className="badge-ring p-2 hover:text-[--lux-gold]" href="https://instagram.com" target="_blank"><i className="fab fa-instagram"></i></a>
-              <a aria-label="Twitter/X" className="badge-ring p-2 hover:text-[--lux-gold]" href="https://x.com" target="_blank"><i className="fab fa-x-twitter"></i></a>
-              <a aria-label="LinkedIn" className="badge-ring p-2 hover:text-[--lux-gold]" href="https://linkedin.com" target="_blank"><i className="fab fa-linkedin-in"></i></a>
-              <a aria-label="YouTube" className="badge-ring p-2 hover:text-[--lux-gold]" href="https://youtube.com" target="_blank"><i className="fab fa-youtube"></i></a>
-            </div>
-            <p className="text-white/70 text-sm mt-3">support@askautodoctor.com</p>
-          </div>
+          <h3 className="text-xl font-bold">AutoDoctor</h3>
         </div>
-
-        <hr className="hr-soft my-8" />
-        <div className="text-white/60 text-sm">© {new Date().getFullYear()} AutoDoctor. All rights reserved.</div>
+        <p>&copy; {new Date().getFullYear()} AutoDoctor. All rights reserved.</p>
+        <p className="text-gray-400 mt-2">Professional auto consultations made simple</p>
+        <div className="mt-4 text-gray-400">
+          <p>
+            Contact: <a href="mailto:support@askautodoctor.com" className="hover:text-white">support@askautodoctor.com</a>
+          </p>
+        </div>
       </div>
     </footer>
   )
