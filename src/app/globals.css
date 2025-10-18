@@ -2,93 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import the Inter font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* Import FontAwesome icons.  These classes power the icons used in the pages */
-@import '@fortawesome/fontawesome-free/css/all.min.css';
-
-/*
- * Base styles
- *
- * Set sensible defaults for the overall site.  A soft grey background paired
- * with dark text makes for comfortable reading.  The Inter typeface adds a
- * modern, professional feel.
- */
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f9fafb; /* light grey background */
-  color: #1f2937; /* slate‑900 from Tailwind for readable text */
-}
-
-/*
- * Colour palette variables
- *
- * Define a handful of custom properties up front so that colours can be
- * referenced consistently throughout the styles.  These match the palette
- * used in the design of the pages (primary blues, subtle greys and a
- * warm accent colour).
- */
+/* --- Base polish --- */
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1e40af;
-  --secondary: #64748b;
-  --accent: #fbbf24;
+  color-scheme: light;
 }
 
-/*
- * Button styles
- *
- * Reusable button classes for primary and secondary call‑to‑action buttons.
- * Buttons use rounded corners and subtle transitions for a polished feel.
- */
-.btn-primary {
-  background-color: var(--primary);
-  color: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  display: inline-block;
-  transition: all 0.3s ease;
+html, body {
+  height: 100%;
 }
 
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+body {
+  @apply bg-white text-gray-900 antialiased;
 }
 
-.btn-secondary {
-  background-color: #ffffff;
-  border: 2px solid var(--primary);
-  color: var(--primary);
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  display: inline-block;
-  transition: all 0.3s ease;
+/* Better focus rings */
+:focus-visible {
+  outline: 2px solid rgb(59 130 246); /* tailwind blue-500 */
+  outline-offset: 2px;
 }
 
-.btn-secondary:hover {
-  background-color: var(--primary);
-  color: #ffffff;
-}
-
-/*
- * Card component
- *
- * A reusable card style used throughout the site for feature blocks and
- * pricing tiers.  Cards lift on hover to give a sense of interactivity.
- */
-.card {
-  background-color: #ffffff;
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+/* Container helper */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
