@@ -8,18 +8,16 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata = {
   title: 'AskAutoDoctor',
   description: 'Certified mechanics on demand — online diagnostics & inspections across Ontario.',
+  icons: {
+    icon: '/favicon.ico',                // ✅ Favicon
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',      // ✅ If you have it
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-  <link rel="icon" href="/favicon.ico" sizes="any" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta charSet="utf-8" />
-  <title>AskAutoDoctor</title>
-  <meta name="description" content="Certified mechanics on demand — online diagnostics & inspections across Ontario." />
-</head>
       <body className={inter.className}>
         {/* ✅ Responsive Header */}
         <header className="bg-white border-b shadow-sm fixed w-full z-50">
