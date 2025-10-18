@@ -41,17 +41,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== HOW IT WORKS ===== */}
+      {/* ===== HOW IT WORKS FOR CUSTOMERS ===== */}
       <section className="bg-gray-100 py-20 px-4">
-        <div className="container max-w-screen-xl mx-auto text-center space-y-10">
+        <div className="container max-w-screen-xl mx-auto text-center space-y-12">
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-gray-900">How AskAutoDoctor Works</h2>
+            <h2 className="text-3xl font-bold text-gray-900">How It Works</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              See how certified mechanics across Ontario help you diagnose and inspect your car remotely.
+              Get expert automotive help in just a few steps — all online, all from licensed professionals.
             </p>
           </div>
 
-          {/* Red Seal */}
+          <div className="grid md:grid-cols-3 gap-8 text-left max-w-6xl mx-auto">
+            {[
+              ['📝', '1. Create an Account', 'Sign up or log in to access our mechanic network.'],
+              ['🚗', '2. Submit Your Vehicle Info', 'Tell us about your vehicle and describe the issue. Upload photos if needed.'],
+              ['📄', '3. Agree to Waiver', 'Confirm you understand this is a remote consultation for educational purposes.'],
+              ['💳', '4. Make a Payment', 'Pay securely to confirm your booking.'],
+              ['📞', '5. Connect with a Mechanic', 'A certified mechanic will contact you for a live video consultation.'],
+              ['✅', '6. Get Expert Advice', 'Receive real-time guidance on diagnostics, repairs, or inspections.'],
+            ].map(([icon, title, desc]) => (
+              <div key={title} className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
+                <div className="text-3xl mb-4">{icon}</div>
+                <h3 className="text-lg font-semibold mb-2">{title}</h3>
+                <p className="text-gray-600">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== RED SEAL + VIDEO ===== */}
+      <section className="bg-white py-20 px-4">
+        <div className="container max-w-screen-xl mx-auto text-center space-y-10">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <img
               src="/red-seal.png"
@@ -80,16 +101,16 @@ export default function Home() {
       </section>
 
       {/* ===== WHY US SECTION ===== */}
-      <section className="bg-white py-20">
+      <section className="bg-gray-100 py-20">
         <div className="container max-w-screen-xl mx-auto px-4 text-center space-y-6">
           <h2 className="text-3xl font-bold text-gray-900">Why AskAutoDoctor?</h2>
           <div className="grid gap-8 md:grid-cols-3">
             {[
               ['📹', 'Video Consults', 'Talk to real mechanics face-to-face from your driveway.'],
-              ['🚘', 'Vehicle Inspections', 'Pre-purchase or post-problem — we help you stay safe.'],
+              ['🚘', 'Pre-purchase Advice', 'Pre-purchase or post-problem — we help you stay safe.'],
               ['💬', 'Instant Booking', 'Choose a time and connect within minutes.'],
             ].map(([icon, title, desc]) => (
-              <div key={title} className="bg-gray-50 p-8 rounded-xl shadow-md border hover:shadow-xl transition">
+              <div key={title} className="bg-white p-8 rounded-xl shadow-md border hover:shadow-xl transition">
                 <div className="text-4xl mb-4">{icon}</div>
                 <h3 className="text-xl font-semibold mb-2">{title}</h3>
                 <p className="text-gray-600">{desc}</p>
