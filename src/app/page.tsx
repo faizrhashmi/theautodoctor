@@ -5,16 +5,23 @@ import Link from 'next/link'
 export default function Home() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white">
-      {/* ===== HERO SECTION ===== */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-[90vh] px-4 sm:px-6 lg:px-8 text-center">
+      {/* ===== HERO SECTION WITH BACKGROUND IMAGE ===== */}
+      <section
+        className="relative bg-cover bg-center bg-no-repeat text-white overflow-hidden"
+        style={{ backgroundImage: "url('/hero-bg.jpg')" }}
+      >
+        {/* Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 opacity-75 z-0" />
+
+        {/* Hero Content */}
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-[90vh] px-4 sm:px-6 lg:px-8 text-center space-y-8">
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight max-w-3xl">
             Expert Mechanics <span className="block text-blue-400">Available on Demand</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-200 mt-6 max-w-2xl">
+          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto">
             Live video consultations with certified mechanics. Diagnose issues or inspect before buying — all online.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             <Link href="/booking" className="bg-blue-600 px-6 py-3 rounded-xl text-white font-semibold hover:bg-blue-700 transition-all">
               🚗 Book Now
             </Link>
