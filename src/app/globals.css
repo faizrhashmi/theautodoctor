@@ -2,7 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- Base polish --- */
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+/* Custom animations */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-gradient {
+  animation: gradient 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 6s ease-in-out 2s infinite;
+}
+
+/* Base styles */
 :root {
   color-scheme: light;
 }
@@ -17,7 +44,7 @@ body {
 
 /* Better focus rings */
 :focus-visible {
-  outline: 2px solid rgb(59 130 246); /* tailwind blue-500 */
+  outline: 2px solid rgb(59 130 246);
   outline-offset: 2px;
 }
 
