@@ -33,8 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <nav className="hidden md:flex space-x-6 items-center">
                 <Link href="/" className="hover:text-blue-600">Home</Link>
                 <Link href="/pricing" className="hover:text-blue-600">Pricing</Link>
-                <Link href="/booking" className="hover:text-blue-600">Book</Link>
-                <Link href="/booking">
+                <Link href="/book" className="hover:text-blue-600">Book</Link>
+                <Link href="/book">
                   <span className="ml-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
                     🚗 Book Now
                   </span>
@@ -66,8 +66,8 @@ function MobileMenu() {
       <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-md py-2 z-50">
         <Link href="/" className="block px-4 py-2 hover:bg-gray-100">Home</Link>
         <Link href="/pricing" className="block px-4 py-2 hover:bg-gray-100">Pricing</Link>
-        <Link href="/booking" className="block px-4 py-2 hover:bg-gray-100">Book</Link>
-        <Link href="/booking" className="block px-4 py-2 text-blue-600 font-semibold hover:bg-blue-50">
+        <Link href="/book" className="block px-4 py-2 hover:bg-gray-100">Book</Link>
+        <Link href="/book" className="block px-4 py-2 text-blue-600 font-semibold hover:bg-blue-50">
           🚗 Book Now
         </Link>
       </div>

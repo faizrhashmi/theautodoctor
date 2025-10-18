@@ -2,6 +2,77 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRef, useState } from 'react';
+
+/** Fancy overlay video component with 16:9 ratio preserved */
+function VideoWithOverlay() {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handlePlayClick = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    // If user clicks, browsers allow audio playback
+    v.play().then(() => setIsPlaying(true)).catch(() => {
+      // Fallback: if play fails, try muted autoplay (rare with user gesture)
+      v.muted = true;
+      v.play().then(() => setIsPlaying(true)).catch(() => {});
+    });
+  };
+
+  return (
+    <div className="relative w-full overflow-hidden rounded-xl shadow-xl bg-black aspect-[16/9]">
+      <video
+        ref={videoRef}
+        src="/promo.mp4"
+        controls
+        preload="metadata"
+        playsInline
+        // poster="/video-poster.jpg"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        className="absolute inset-0 h-full w-full object-contain"
+      />
+
+      {/* Gradient edge glow */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-transparent to-cyan-500/10" />
+
+      {/* Fancy Play Button Overlay (hidden when playing) */}
+      {!isPlaying && (
+        <>
+          {/* subtle dark veil */}
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+          <button
+            type="button"
+            aria-label="Play video"
+            onClick={handlePlayClick}
+            className="group absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          >
+            <span className="relative inline-flex items-center justify-center">
+              {/* outer pulse ring */}
+              <span className="absolute inline-flex h-24 w-24 rounded-full bg-blue-500/20 blur-[2px] group-hover:bg-blue-500/30 transition"></span>
+              {/* ring border */}
+              <span className="absolute h-24 w-24 rounded-full ring-2 ring-white/60 group-hover:ring-white transition"></span>
+              {/* inner button */}
+              <span className="relative inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-blue-700 shadow-lg group-hover:scale-105 transition-transform">
+                {/* play icon */}
+                <svg
+                  width="26"
+                  height="26"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="ml-1"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+            </span>
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -30,7 +101,7 @@ export default function Home() {
             Live video consultations with certified mechanics. Diagnose issues or inspect before buying — all online.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/booking" className="bg-blue-600 px-6 py-3 rounded-xl text-white font-semibold hover:bg-blue-700 transition-all">
+            <Link href="/book" className="bg-blue-600 px-6 py-3 rounded-xl text-white font-semibold hover:bg-blue-700 transition-all">
               🚗 Book Now
             </Link>
             <Link href="/auth/mechanic-signup" className="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition-all">
@@ -64,7 +135,7 @@ export default function Home() {
               ['📝', '1. Create an Account', 'Sign up or log in to access our mechanic network.'],
               ['🚗', '2. Submit Your Vehicle Info', 'Tell us about your vehicle and describe the issue. Upload photos if needed.'],
               ['📄', '3. Agree to Waiver', 'Confirm you understand this is a remote consultation for educational purposes.'],
-              ['💳', '4. Make a Payment', 'Pay securely to confirm your booking.'],
+              ['💳', '4. Make a Payment', 'Pay securely to confirm your book.'],
               ['📞', '5. Connect with a Mechanic', 'A certified mechanic will contact you for a live video consultation.'],
               ['✅', '6. Get Expert Advice', 'Receive real-time guidance on diagnostics, repairs, or inspections.'],
             ].map(([icon, title, desc]) => (
@@ -78,10 +149,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== RED SEAL + VIDEO ===== */}
+      {/* ===== RED SEAL + VIDEO WITH SIDE "HOW IT WORKS" ===== */}
       <section className="bg-white py-20 px-4">
-        <div className="container max-w-screen-xl mx-auto text-center space-y-10">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+        <div className="container max-w-screen-xl mx-auto">
+          {/* Top line: badge + blurb */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-center sm:text-left mb-12">
             <Image
               src="/red-seal.png"
               alt="Ontario Red Seal"
@@ -89,20 +161,44 @@ export default function Home() {
               height={80}
               className="h-16 sm:h-20 object-contain"
             />
-            <p className="text-sm sm:text-base text-gray-700 max-w-md">
+            <p className="text-sm sm:text-base text-gray-700 max-w-2xl">
               All our mechanics are certified with the <strong>Red Seal Program</strong> in Ontario, ensuring high-quality, licensed automotive advice.
             </p>
           </div>
 
-          {/* ===== MP4 VIDEO EMBED (LOCAL FILE) ===== */}
-          <div className="relative w-full max-w-4xl mx-auto overflow-hidden rounded-xl shadow-xl bg-black">
-            <video
-              src="/promo.mp4"   // <-- Place promo.mp4 in /public
-              controls
-              preload="metadata"
-              playsInline
-              className="w-full h-auto rounded-xl"
-            />
+          {/* Two-column layout: Video (left) + How it works (right) */}
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Video with fancy play overlay */}
+            <VideoWithOverlay />
+
+            {/* How it works (side of the video) */}
+            <div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
+                See how AskAutoDoctor works
+              </h3>
+              <ul className="space-y-4 text-slate-700">
+                {[
+                  'Book a time and describe your issue — we match you with a qualified mechanic.',
+                  'Join a secure video call from your phone or laptop for guided diagnostics.',
+                  'Get a written summary, next steps, and estimates you can trust.',
+                  'Optionally book follow-up sessions for deeper troubleshooting.',
+                ].map((line) => (
+                  <li key={line} className="flex gap-3">
+                    <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-6">
+                <Link
+                  href="/book"
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold shadow hover:bg-blue-700 transition"
+                >
+                  Start now
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -115,7 +211,7 @@ export default function Home() {
             {[
               ['📹', 'Video Consults', 'Talk to real mechanics face-to-face from your driveway.'],
               ['🚘', 'Pre-purchase Advice', 'Pre-purchase or post-problem — we help you stay safe.'],
-              ['💬', 'Instant Booking', 'Choose a time and connect within minutes.'],
+              ['💬', 'Instant book', 'Choose a time and connect within minutes.'],
             ].map(([icon, title, desc]) => (
               <div key={title} className="bg-white p-8 rounded-xl shadow-md border hover:shadow-xl transition">
                 <div className="text-4xl mb-4">{icon}</div>
@@ -146,7 +242,7 @@ export default function Home() {
       {/* ===== MOBILE STICKY CTA ===== */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <Link
-          href="/booking"
+          href="/book"
           className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl font-semibold hover:bg-blue-700 transition-all"
         >
           🚗 Book Consultation
