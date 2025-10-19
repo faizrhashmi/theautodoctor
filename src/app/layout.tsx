@@ -1,3 +1,9 @@
+// src/app/layout.tsx
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
+// ...rest of your root layout code
 // app/layout.tsx
 import type { ReactNode } from 'react';
 import './globals.css';
