@@ -1,33 +1,27 @@
-﻿import Stripe from 'stripe'
-import { NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
-  const raw = await req.text()
-  const sig = req.headers.get('stripe-signature')!
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' })
-  let event: Stripe.Event
+  const sig = req.headers.get('stripe-signature');
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  try {
-    event = stripe.webhooks.constructEvent(raw, sig, process.env.STRIPE_WEBHOOK_SECRET!)
-  } catch (err:any) {
-    return new Response(`Webhook Error: ${err.message}`, { status: 400 })
+  if (!sig || !webhookSecret) {
+    return NextResponse.json({ error: 'Missing webhook secret or signature' }, { status: 400 });
   }
 
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+  const buf = Buffer.from(await req.arrayBuffer());
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+  } catch (err: any) {
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
 
   if (event.type === 'checkout.session.completed') {
-    const s = event.data.object as Stripe.Checkout.Session
-    const bookingId = s.metadata?.booking_id
-    if (bookingId) {
-      const { data: bookings } = await supabase.from('bookings').select('id, start_at').eq('id', bookingId)
-      if (bookings?.length) {
-        await supabase.from('bookings').update({ status: 'paid' }).eq('id', bookingId)
-        await supabase.from('slots').update({ status:'booked', held_until: null }).eq('start_at', bookings[0].start_at)
-      }
-    }
+    const session = event.data.object as any;
+    // TODO: attach to Supabase (client_reference_id is intake_id)
   }
 
-  return new Response('ok', { status: 200 })
+  return NextResponse.json({ received: true });
 }
-
