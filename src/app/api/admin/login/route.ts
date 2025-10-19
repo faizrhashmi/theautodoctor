@@ -15,6 +15,7 @@ export async function POST(req: Request) {
       sameSite: 'lax',
       maxAge: 60 * 60 * 8, // 8 hours
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.askautodoctor.com' : undefined,
     })
     return res
   } catch {
