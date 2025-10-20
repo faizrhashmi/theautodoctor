@@ -7,7 +7,7 @@ const PLANS = [
   {
     name: 'Quick Chat',
     icon: MessageSquare,
-    price: '$24.99',
+    price: '$9.99',
     duration: '15 minutes',
     description: 'Text-based consultation for quick questions',
     features: [
@@ -23,7 +23,7 @@ const PLANS = [
   {
     name: 'Standard Video',
     icon: Video,
-    price: '$49.99',
+    price: '$29.99',
     duration: '30 minutes',
     description: 'Live video session with a certified mechanic',
     features: [
@@ -40,7 +40,7 @@ const PLANS = [
   {
     name: 'Full Diagnostic',
     icon: FileSearch,
-    price: '$99.99',
+    price: '$49.99',
     duration: '60 minutes',
     description: 'Comprehensive diagnostic session with report',
     features: [

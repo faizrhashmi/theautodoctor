@@ -136,18 +136,18 @@ export default function HowItWorks() {
                   <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors">
                     <MessageCircle className="w-6 h-6 text-blue-500 mb-2" />
                     <h4 className="font-bold text-gray-900 mb-1">Quick Chat</h4>
-                    <p className="text-sm text-gray-600">15 min • $24.99</p>
+                    <p className="text-sm text-gray-600">15 min • $9.99</p>
                   </div>
                   <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50">
                     <Video className="w-6 h-6 text-green-600 mb-2" />
                     <h4 className="font-bold text-gray-900 mb-1">Standard Video</h4>
-                    <p className="text-sm text-gray-600">30 min • $49.99</p>
+                    <p className="text-sm text-gray-600">30 min • $29.99</p>
                     <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Popular</span>
                   </div>
                   <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors">
                     <ClipboardList className="w-6 h-6 text-purple-500 mb-2" />
                     <h4 className="font-bold text-gray-900 mb-1">Full Diagnostic</h4>
-                    <p className="text-sm text-gray-600">60 min • $99.99</p>
+                    <p className="text-sm text-gray-600">60 min • $49.99</p>
                   </div>
                 </div>
               </div>
