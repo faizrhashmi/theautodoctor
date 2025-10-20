@@ -1,75 +1,122 @@
 'use client'
 
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import { ArrowLeft, Camera, Info, Mic, MicOff, PhoneOff, Share2, Video } from 'lucide-react'
 import Link from 'next/link'
+import SessionTimer from '@/components/session/SessionTimer'
+import FileSharePanel from '@/components/session/FileSharePanel'
+import SessionExtensionPanel from '@/components/session/SessionExtensionPanel'
+import WaitingRoom from '@/components/session/WaitingRoom'
+import type { SessionQueueItem } from '@/types/session'
 
-type Plan = {
-  name: string
-  price: string
-  duration: string
-  features: string[]
-  popular?: boolean
+const MOCK_SESSION: SessionQueueItem = {
+  id: 'queue-1',
+  vehicle: '2020 Audi Q5',
+  customerName: 'You',
+  mechanicName: 'Jamie Carter',
+  scheduledStart: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
+  scheduledEnd: new Date(Date.now() + 32 * 60 * 1000).toISOString(),
+  status: 'waiting',
+  concernSummary: 'Check engine light + rough idle',
+  waiverAccepted: true,
+  extensionBalance: 0,
+  queuePosition: 1,
+  waitingSince: new Date().toISOString()
 }
 
-const plans: Plan[] = [
-  {
-    name: 'Quick Consult',
-    price: '$25',
-    duration: '15 min',
-    features: ['Rapid triage', 'Troubleshooting steps', 'Follow-up notes'],
-  },
-  {
-    name: 'Standard Consult',
-    price: '$45',
-    duration: '30 min',
-    features: ['Detailed diagnosis', 'Repair guidance', 'Parts suggestions', 'Priority support'],
-    popular: true,
-  },
-  {
-    name: 'Pre-Purchase Inspection',
-    price: '$90',
-    duration: '60 min',
-    features: ['Comprehensive checklist', 'History review', 'Negotiation tips', 'Written report'],
-  },
-]
+export default function SessionWorkspacePage() {
+  const params = useParams<{ id: string }>()
+  const [micEnabled, setMicEnabled] = useState(true)
+  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [showWaitingRoom, setShowWaitingRoom] = useState(MOCK_SESSION.status !== 'live')
 
-export default function Pricing() {
   return (
-    <section className="container py-20">
-      <div
-        className="text-center mb-12"
-      >
-        <h1 className="h-section">Transparent Luxury Pricing</h1>
-        <p className="text-white/70 mt-2">No surprises. Session length is guaranteed and secured via Stripe.</p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        {plans.map((p) => (
-          <div
-            key={p.name}
-            className="relative card-lux pt-10"
-          >
-            {p.popular && <div className="ribbon">Most Popular</div>}
-            <div className="text-xl font-extrabold">{p.name}</div>
-            <div className="mt-1 text-4xl font-black">{p.price}</div>
-            <div className="text-white/60">/ {p.duration}</div>
-
-            <ul className="mt-6 space-y-3 text-white/80">
-              {p.features.map((f) => (
-                <li key={f} className="flex items-center gap-3">
-                  <i className="fas fa-check text-[--lux-gold]" /> <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Link href="/start" className="btn btn-primary mt-8 w-full text-center">Book {p.name}</Link>
+    <div className="min-h-screen bg-slate-900 text-white">
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-slate-950/50 px-6 py-4 backdrop-blur">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" /> Back to dashboard
+          </Link>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-blue-300">Session #{params.id}</p>
+            <h1 className="text-xl font-semibold">Certified mechanic: {MOCK_SESSION.mechanicName}</h1>
           </div>
-        ))}
-      </div>
+        </div>
+        <SessionTimer endsAt={MOCK_SESSION.scheduledEnd} startsAt={MOCK_SESSION.scheduledStart} />
+      </header>
 
-      <div className="glass mt-12 rounded-2xl p-6 text-sm text-white/70">
-        <div className="font-semibold text-white mb-2">What’s included</div>
-        Secure payment via Stripe • Email confirmations via Resend • HD live call via LiveKit • Magic-link login via Supabase
-      </div>
-    </section>
+      <main className="grid gap-6 px-6 py-6 xl:grid-cols-[3fr,2fr]">
+        <section className="space-y-4">
+          {showWaitingRoom ? (
+            <div className="space-y-4">
+              <WaitingRoom session={MOCK_SESSION} />
+              <button
+                type="button"
+                onClick={() => setShowWaitingRoom(false)}
+                className="w-full rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
+              >
+                Join session workspace
+              </button>
+            </div>
+          ) : (
+            <div className="relative aspect-video w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-700/30 via-slate-900 to-slate-950" />
+              <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 text-center">
+                <Video className="h-12 w-12 text-blue-300" />
+                <p className="text-lg font-semibold">Connecting you to your mechanicâ€¦</p>
+                <p className="text-sm text-slate-300">Video powered by LiveKit with HD streaming.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-200">
+              <Info className="h-4 w-4" />
+              Session tips
+            </div>
+            <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <li>â€¢ Have your VIN or license plate ready.</li>
+              <li>â€¢ Prop your phone to show the engine bay hands-free.</li>
+              <li>â€¢ Upload diagnostic scans through the file panel.</li>
+            </ul>
+          </div>
+        </section>
+
+        <aside className="space-y-4">
+          <div className="grid gap-3 rounded-3xl border border-slate-800 bg-slate-950/60 p-4 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setMicEnabled((value) => !value)}
+              className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold shadow transition ${
+                micEnabled ? 'border-blue-500 bg-blue-500/10 text-blue-200' : 'border-slate-800 bg-slate-900 text-slate-400'
+              }`}
+            >
+              {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+              {micEnabled ? 'Mute microphone' : 'Unmute microphone'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCameraEnabled((value) => !value)}
+              className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold shadow transition ${
+                cameraEnabled ? 'border-blue-500 bg-blue-500/10 text-blue-200' : 'border-slate-800 bg-slate-900 text-slate-400'
+              }`}
+            >
+              <Camera className="h-4 w-4" />
+              {cameraEnabled ? 'Stop camera' : 'Start camera'}
+            </button>
+            <button className="flex items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-300 shadow transition hover:border-blue-500 hover:text-white">
+              <Share2 className="h-4 w-4" /> Share screen
+            </button>
+            <button className="col-span-full flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-red-600">
+              <PhoneOff className="h-4 w-4" /> Leave session
+            </button>
+          </div>
+
+          <FileSharePanel />
+          <SessionExtensionPanel />
+        </aside>
+      </main>
+    </div>
   )
 }

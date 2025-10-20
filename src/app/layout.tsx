@@ -9,6 +9,7 @@ import './globals.css';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Inter } from 'next/font/google';
+import ChatBubble from '@/components/chat/ChatBubble';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -41,17 +42,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
               {/* Desktop Nav */}
               <nav className="hidden items-center gap-6 md:flex">
-                <Link href="/about" className="text-gray-700 transition hover:text-blue-600">
-                  About
+                <Link href="/" className="text-gray-700 transition hover:text-blue-600">
+                  Home
                 </Link>
-                <Link href="/knowledge-base" className="text-gray-700 transition hover:text-blue-600">
-                  Knowledge Base
+                <Link href="/how-it-works" className="text-gray-700 transition hover:text-blue-600">
+                  How It Works
                 </Link>
-                <Link href="/pricing" className="text-gray-700 transition hover:text-blue-600">
-                  Pricing
+                <Link href="/services-pricing" className="text-gray-700 transition hover:text-blue-600">
+                  Services & Pricing
                 </Link>
-                <Link href="/contact" className="text-gray-700 transition hover:text-blue-600">
-                  Contact
+                <Link href="/waiver" className="text-gray-700 transition hover:text-blue-600">
+                  Waiver
+                </Link>
+                <Link
+                  href="/mechanic/login"
+                  className="text-gray-700 transition hover:text-blue-600"
+                >
+                  Mechanics
                 </Link>
                 <Link
                   href="/start"
@@ -71,6 +78,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         {/* Push content below the fixed header */}
         <main className="pt-16">{children}</main>
+        <ChatBubble />
       </body>
     </html>
   );
@@ -96,17 +104,20 @@ function MobileMenu() {
       </summary>
 
       <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border bg-white py-2 shadow-md">
-        <Link href="/about" className="block px-4 py-2 hover:bg-gray-100">
-          About
+        <Link href="/" className="block px-4 py-2 hover:bg-gray-100">
+          Home
         </Link>
-        <Link href="/knowledge-base" className="block px-4 py-2 hover:bg-gray-100">
-          Knowledge Base
+        <Link href="/how-it-works" className="block px-4 py-2 hover:bg-gray-100">
+          How It Works
         </Link>
-        <Link href="/pricing" className="block px-4 py-2 hover:bg-gray-100">
-          Pricing
+        <Link href="/services-pricing" className="block px-4 py-2 hover:bg-gray-100">
+          Services & Pricing
         </Link>
-        <Link href="/contact" className="block px-4 py-2 hover:bg-gray-100">
-          Contact
+        <Link href="/waiver" className="block px-4 py-2 hover:bg-gray-100">
+          Waiver
+        </Link>
+        <Link href="/mechanic/login" className="block px-4 py-2 hover:bg-gray-100">
+          Mechanics
         </Link>
         <div className="my-2 border-t" />
         <Link href="/start" className="block px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50">
