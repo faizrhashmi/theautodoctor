@@ -41,39 +41,45 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <span>AskAutoDoctor</span>
               </Link>
 
-              {/* Desktop Nav */}
-              <nav className="hidden items-center gap-6 md:flex">
-                <Link href="/" className="text-gray-700 transition hover:text-blue-600">
-                  Home
-                </Link>
-                <Link href="/how-it-works" className="text-gray-700 transition hover:text-blue-600">
-                  How It Works
-                </Link>
-                <Link href="/services-pricing" className="text-gray-700 transition hover:text-blue-600">
-                  Services & Pricing
-                </Link>
-                <Link href="/knowledge-base" className="text-gray-700 transition hover:text-blue-600">
-                  Knowledge Base
-                </Link>
-                <Link href="/contact" className="text-gray-700 transition hover:text-blue-600">
-                  Contact
-                </Link>
-                <Link href="/waiver" className="text-gray-700 transition hover:text-blue-600">
-                  Waiver
-                </Link>
-                <Link
-                  href="/mechanic/login"
-                  className="text-gray-700 transition hover:text-blue-600"
-                >
-                  Mechanics
-                </Link>
-                <Link
-                  href="/signup"
-                  className="ml-2 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-blue-700"
-                >
-                  🚗 Sign Up
-                </Link>
-              </nav>
+              {/* Desktop: hamburger menu that unfolds on hover */}
+              <div className="hidden md:flex items-center">
+                <div className="relative group">
+                  <button
+                    aria-label="Open menu"
+                    className="flex items-center gap-2 rounded-md p-2 hover:bg-gray-100 transition"
+                  >
+                    <svg className="h-6 w-6 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    <span className="sr-only">Open menu</span>
+                  </button>
+
+                  <div className="absolute right-0 top-full z-50 w-56 rounded-lg border bg-white py-2 shadow-md opacity-0 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:translate-y-0 group-focus-within:pointer-events-auto transition-all">
+                    <Link href="/" className="block px-4 py-2 hover:bg-gray-100">
+                      Home
+                    </Link>
+                    <Link href="/how-it-works" className="block px-4 py-2 hover:bg-gray-100">
+                      How It Works
+                    </Link>
+                    <Link href="/services-pricing" className="block px-4 py-2 hover:bg-gray-100">
+                      Services & Pricing
+                    </Link>
+                    <Link href="/knowledge-base" className="block px-4 py-2 hover:bg-gray-100">
+                      Knowledge Base
+                    </Link>
+                    <Link href="/contact" className="block px-4 py-2 hover:bg-gray-100">
+                      Contact
+                    </Link>
+                    <Link href="/mechanic/login" className="block px-4 py-2 hover:bg-gray-100">
+                      Mechanics
+                    </Link>
+                    <div className="my-2 border-t" />
+                    <Link href="/signup" className="block px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50">
+                      🚗 Book Now
+                    </Link>
+                  </div>
+                </div>
+              </div>
 
               {/* Mobile menu trigger */}
               <div className="md:hidden">
@@ -127,9 +133,7 @@ function MobileMenu() {
         <Link href="/contact" className="block px-4 py-2 hover:bg-gray-100">
           Contact
         </Link>
-        <Link href="/waiver" className="block px-4 py-2 hover:bg-gray-100">
-          Waiver
-        </Link>
+        {/* Waiver link intentionally removed */}
         <Link href="/mechanic/login" className="block px-4 py-2 hover:bg-gray-100">
           Mechanics
         </Link>
