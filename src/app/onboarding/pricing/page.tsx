@@ -26,7 +26,9 @@ export default async function PricingSelectionPage() {
     .eq('id', user.id)
     .maybeSingle();
 
-  if (profile?.preferred_plan) {
+  // Allow users on the free tier to access the pricing page so they can upgrade later.
+  // Only redirect users who already have a paid plan back to signup.
+  if (profile?.preferred_plan && profile.preferred_plan !== 'free') {
     redirect('/signup');
   }
 

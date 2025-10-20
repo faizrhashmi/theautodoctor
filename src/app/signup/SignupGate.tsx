@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import WaiverModal from "@/components/customer/WaiverModal";
 
 type Mode = "signup" | "login";
 
@@ -51,6 +52,8 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [publicAvailability, setPublicAvailability] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showWaiver, setShowWaiver] = useState(false);
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
   const redirectURL = useMemo(() => {
@@ -69,9 +72,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     if (!form.fullName.trim()) return false;
     if (!form.phone.trim()) return false;
     if (!isAdult(form.dateOfBirth)) return false;
-    if (!form.consent) return false;
+    if (!waiverAccepted) return false;
     return true;
-  }, [form]);
+  }, [form, waiverAccepted]);
 
   useEffect(() => {
     setError(null);
@@ -82,7 +85,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!formIsValid) {
-      setError("Please complete all required fields, confirm you are 18 or older, and accept the consent notice.");
+      setError("Please complete all required fields, confirm you are 18 or older, and accept the Terms of Service.");
       return;
     }
 
@@ -141,7 +144,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     if (redirectTo) {
       router.replace(redirectTo);
     } else {
-      router.replace("/signup");
+      router.replace("/customer/dashboard");
     }
     setLoading(false);
   }
@@ -281,17 +284,22 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           />
         </div>
         {mode === "signup" && (
-          <label className="flex items-start gap-2 text-xs text-slate-600">
-            <input
-              type="checkbox"
-              checked={form.consent}
-              onChange={(e) => setForm((prev) => ({ ...prev, consent: e.target.checked }))}
-              className="mt-1"
-            />
-            <span>
-              I consent to receive booking confirmations, reminders, and follow-up messages about my session. I confirm that I am at least 18 years old.
-            </span>
-          </label>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs text-blue-900">
+              {waiverAccepted ? (
+                <span className="font-semibold">✓ Terms of Service & Waiver accepted (18+)</span>
+              ) : (
+                <span>You must review and accept our Terms of Service & Waiver (18+)</span>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowWaiver(true)}
+              className="mt-2 w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+            >
+              {waiverAccepted ? "Review Terms Again" : "Review & Accept Terms (Required)"}
+            </button>
+          </div>
         )}
         <button
           type="submit"
@@ -329,6 +337,18 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       <p className="mt-6 text-xs text-slate-500">
         We will email you a confirmation link. You must verify your email before selecting a session.
       </p>
+
+      <WaiverModal
+        isOpen={showWaiver}
+        onAccept={() => {
+          setWaiverAccepted(true);
+          setShowWaiver(false);
+        }}
+        onDecline={() => {
+          setWaiverAccepted(false);
+          setShowWaiver(false);
+        }}
+      />
     </div>
   );
 }

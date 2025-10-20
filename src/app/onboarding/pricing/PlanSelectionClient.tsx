@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
 
 const TIERS = [
   {
@@ -69,6 +70,7 @@ export default function PlanSelectionClient({ email }: { email: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   async function handleSelect(planId: (typeof TIERS)[number]['id']) {
     if (submitting) return;
@@ -103,6 +105,22 @@ export default function PlanSelectionClient({ email }: { email: string }) {
         <p className="mt-2 text-blue-100">
           Your selection unlocks scheduling and payment options inside the dashboard. You can switch plans before paying.
         </p>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (err) {
+                // ignore
+              }
+              router.push('/signup');
+            }}
+            className="text-xs font-semibold text-white/90 underline"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       {error && (

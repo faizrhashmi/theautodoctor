@@ -87,8 +87,21 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     redirect('/onboarding/pricing');
   }
 
+  // If the user is on the free tier, allow them to continue to onboarding/pricing
+  // or follow an explicit redirect query (for example when they click "Upgrade").
+  // Only send them to the dashboard by default when there's no other destination.
   if (profile.preferred_plan === 'free') {
-    redirect('/customer/dashboard');
+    if (redirectTo) {
+      // Prevent redirect loops back into signup/onboarding
+      if (redirectTo.startsWith('/signup') || redirectTo.startsWith('/onboarding')) {
+        // Let them continue to onboarding pricing to upgrade
+      } else {
+        redirect(redirectTo);
+      }
+    } else {
+      // No explicit redirect, allow user to reach onboarding if needed. Default to pricing.
+      redirect('/onboarding/pricing');
+    }
   }
 
   return (
