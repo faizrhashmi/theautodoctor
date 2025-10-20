@@ -11,3 +11,21 @@ Get-ChildItem -Recurse | Out-String -Width 4096 | Set-Clipboard
 
 tree /a /f | clip
 
+
+cd "C:\Users\Faiz Hashmi\theautodoctor"
+
+5) Update your local repo to the new main
+# Make sure you're not sitting on the old branch
+git checkout main
+
+# Pull the merged code
+git pull --rebase origin main
+
+# Install any new deps
+npm install
+
+# Clear Next.js cache (prevents old UI sticking around)
+if (Test-Path .next) { Remove-Item .next -Recurse -Force }
+
+# Run locally
+npm run dev
