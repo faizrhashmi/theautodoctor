@@ -17,6 +17,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "lucide-react": "^0.460.0",
     "autoprefixer": "^10.4.16",
     "livekit-client": "^2.15.11",
     "livekit-server-sdk": "^2.14.0",

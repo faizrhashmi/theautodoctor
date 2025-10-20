@@ -1,23 +1,32 @@
-import { NextResponse } from 'next/server'
+// src/app/api/admin/logout/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import type { Database } from '@/types/supabase';
 
-function clearCookie(res: NextResponse) {
-  res.cookies.set('aad_admin', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // set false on localhost if needed
-    expires: new Date(0),
-    path: '/',
-  })
-  return res
-}
+export async function POST(req: NextRequest) {
+  try {
+    const res = NextResponse.json({ ok: true });
 
-// Hitting the URL directly in the browser? Redirect to /admin/login
-export async function GET(req: Request) {
-  const res = NextResponse.redirect(new URL('/admin/login', req.url))
-  return clearCookie(res)
-}
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get: (name) => req.cookies.get(name)?.value,
+          set: (name, value, options) => {
+            res.cookies.set({ name, value, ...options });
+          },
+          remove: (name, options) => {
+            res.cookies.set({ name, value: '', maxAge: 0, ...options });
+          },
+        },
+      }
+    );
 
-// Called from a client fetch() in your Logout button
-export async function POST() {
-  const res = NextResponse.json({ ok: true })
-  return clearCookie(res)
+    await supabase.auth.signOut();
+    return res;
+  } catch (e: any) {
+    console.error('POST /api/admin/logout error:', e?.message || e);
+    return NextResponse.json({ error: 'Logout failed' }, { status: 500 });
+  }
 }

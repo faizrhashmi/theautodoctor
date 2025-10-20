@@ -1,0 +1,13 @@
+npx tsc --noEmit
+
+(command  check for errors before rendering)
+
+ tree /F > folder_tree.txt 
+Get-Location
+
+Get-ChildItem -Path "C:\Users\Faiz Hashmi\theautodoctor" -Recurse -Directory | Select-Object -ExpandProperty Name | Set-Clipboard
+
+Get-ChildItem -Recurse | Out-String -Width 4096 | Set-Clipboard
+
+tree /a /f | clip
+

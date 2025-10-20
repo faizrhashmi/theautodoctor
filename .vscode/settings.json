@@ -1,0 +1,19 @@
+{
+  // Auto-approve all session requests
+  "github.copilot.chat.auth": "auto",
+  "github.copilot.chat.experimental.autoApproveLogin": true,
+  "github.copilot.chat.experimental.autoApproveSession": true,
+  "github.copilot.chat.experimental.session.autoApprove": true,
+
+  // Enable all Copilot features
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.inlineSuggest.enable": true,
+
+  // Enable Copilot for all file types
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": true
+  }
+}

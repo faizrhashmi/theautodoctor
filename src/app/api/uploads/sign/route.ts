@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
 
   // Create a signed upload URL (valid for 10 minutes)
   // Requires Supabase JS v2+
-  const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path, 600);
+  const { data, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data) {
     return bad(error?.message || 'Failed to create signed URL', 500);
   }
 
   return NextResponse.json({
     signedUrl: data.signedUrl,
+    token: data.token,
     path: `${BUCKET}/${path}`,
     contentType: contentType || 'application/octet-stream',
     expiresIn: 600,

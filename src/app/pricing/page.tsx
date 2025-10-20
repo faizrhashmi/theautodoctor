@@ -1,95 +1,182 @@
-import Link from "next/link";
+import Link from 'next/link'
+import ServiceCards from '@/components/ui/ServiceCards'
+import { Shield, Clock, MessageCircle, Check, HelpCircle, ArrowRight } from 'lucide-react'
 
 export const metadata = {
-  title: "Pricing | AskAutoDoctor",
-  description: "Ontario launch pricing for AskAutoDoctor — try your first mechanic consultation free, then pay-as-you-go with low, transparent rates.",
-};
+  title: 'Services & Pricing | AskAutoDoctor',
+  description:
+    'Transparent pricing for virtual mechanic consultations. Choose from text chat, video calls, or comprehensive diagnostic sessions.',
+}
 
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top,white,transparent_60%)]" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 lg:py-28">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white/90 shadow-sm backdrop-blur">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-              Ontario Launch • Limited-Time Offer
-            </span>
-            <h1 className="mt-6 text-4xl font-bold leading-tight text-white sm:text-5xl">
-              First Session <span className="text-emerald-300">FREE</span>
-              <span className="block text-white/90">Then simple, pay-as-you-go pricing.</span>
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg text-white/80">
-              Talk to a certified mechanic without leaving home. If you’re not satisfied, it’s on us — 100% money-back guarantee.
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-blue-600 to-blue-700 text-white py-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            Services & Pricing
+          </h1>
+          <p className="text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto">
+            Transparent pricing. Professional service. No hidden fees. Choose the plan that fits your needs.
+          </p>
+        </div>
+      </section>
+
+      {/* Service Cards */}
+      <ServiceCards />
+
+      {/* Comparison Table */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Compare Plans
+            </h2>
+            <p className="text-xl text-gray-600">
+              All plans include certified mechanics and professional service
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/intake?plan=trial" className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600">Start free session</Link>
-              <Link href="/how-it-works" className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-base font-semibold text-white hover:bg-white/10">See how it works</Link>
-            </div>
-            <p className="mt-4 text-sm text-white/70">No credit card required for the free session.</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <tr>
+                  <th className="px-6 py-4 text-left font-semibold">Feature</th>
+                  <th className="px-6 py-4 text-center font-semibold">Quick Chat</th>
+                  <th className="px-6 py-4 text-center font-semibold">Standard Video</th>
+                  <th className="px-6 py-4 text-center font-semibold">Full Diagnostic</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {[
+                  { feature: 'Session Duration', chat: '15 min', video: '30 min', diagnostic: '60 min' },
+                  { feature: 'Certified Mechanic', chat: true, video: true, diagnostic: true },
+                  { feature: 'Text Chat', chat: true, video: true, diagnostic: true },
+                  { feature: 'Live Video Call', chat: false, video: true, diagnostic: true },
+                  { feature: 'Screen Sharing', chat: false, video: true, diagnostic: true },
+                  { feature: 'Photo Sharing', chat: true, video: true, diagnostic: true },
+                  { feature: 'Session Transcript', chat: true, video: true, diagnostic: true },
+                  { feature: 'Video Recording', chat: false, video: true, diagnostic: true },
+                  { feature: 'Written Report', chat: false, video: false, diagnostic: true },
+                  { feature: 'Repair Estimates', chat: false, video: true, diagnostic: true },
+                  { feature: 'Follow-up Support', chat: false, video: false, diagnostic: true },
+                  { feature: 'Priority Scheduling', chat: false, video: false, diagnostic: true },
+                ].map((row, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-6 py-4 font-medium text-gray-900">{row.feature}</td>
+                    <td className="px-6 py-4 text-center">
+                      {typeof row.chat === 'boolean' ? (
+                        row.chat ? (
+                          <Check className="w-5 h-5 text-green-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )
+                      ) : (
+                        <span className="text-gray-700">{row.chat}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {typeof row.video === 'boolean' ? (
+                        row.video ? (
+                          <Check className="w-5 h-5 text-green-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )
+                      ) : (
+                        <span className="text-gray-700">{row.video}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {typeof row.diagnostic === 'boolean' ? (
+                        row.diagnostic ? (
+                          <Check className="w-5 h-5 text-green-500 mx-auto" />
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )
+                      ) : (
+                        <span className="text-gray-700">{row.diagnostic}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Pay as you go</h2>
-          <p className="mt-3 text-slate-600">Transparent, flat pricing — way less than a dealership visit.</p>
-        </div>
-
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="group relative flex flex-col rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:shadow-lg">
-            <div className="absolute -top-3 right-4 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 shadow">Best for First-Timers</div>
-            <h3 className="text-lg font-semibold">First Consultation</h3>
-            <p className="mt-1 text-sm text-slate-600">Try it risk-free.</p>
-            <div className="mt-4 text-3xl font-bold">FREE<span className="text-base font-medium text-slate-500"> / $1</span></div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li>• 5–10 min live triage</li>
-              <li>• Real mechanic, not AI</li>
-              <li>• Clear next steps</li>
-            </ul>
-            <Link href="/intake?plan=trial" className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Start free</Link>
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <HelpCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Frequently Asked Questions
+            </h2>
           </div>
 
-          <div className="relative flex flex-col rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:shadow-lg">
-            <h3 className="text-lg font-semibold">Quick Chat</h3>
-            <p className="mt-1 text-sm text-slate-600">10 minutes text + photos</p>
-            <div className="mt-4 text-3xl font-bold">$9.99</div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li>• Instant advice + DIY tips</li>
-              <li>• Parts guidance & cost ballpark</li>
-              <li>• 24h follow-up</li>
-            </ul>
-            <Link href="/intake?plan=chat10" className="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Choose Quick Chat</Link>
-          </div>
-
-          <div className="relative flex flex-col rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:shadow-lg">
-            <div className="absolute -top-3 right-4 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 shadow">Most Popular</div>
-            <h3 className="text-lg font-semibold">Video Call (15 min)</h3>
-            <p className="mt-1 text-sm text-slate-600">Show us the sound, leak, or dash lights</p>
-            <div className="mt-4 text-3xl font-bold">$29.99</div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li>• Real-time troubleshooting</li>
-              <li>• Safety & drivability check</li>
-              <li>• Next-step plan you can keep</li>
-            </ul>
-            <Link href="/intake?plan=video15" className="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Choose Video Call</Link>
-          </div>
-
-          <div className="relative flex flex-col rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:shadow-lg">
-            <h3 className="text-lg font-semibold">Diagnostic / Estimate</h3>
-            <p className="mt-1 text-sm text-slate-600">Upload codes, symptoms & quotes</p>
-            <div className="mt-4 text-3xl font-bold">$49–$79</div>
-            <ul className="mt-4 space-y-2 text-sm text-slate-700">
-              <li>• Mechanic-written estimate</li>
-              <li>• Parts + labour breakdown</li>
-              <li>• Save vs. dealership pricing</li>
-            </ul>
-            <Link href="/intake?plan=diagnostic" className="mt-6 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Choose Diagnostic</Link>
+          <div className="space-y-6">
+            {[
+              {
+                question: 'How quickly can I connect with a mechanic?',
+                answer: 'Most customers connect within 5 minutes. Our mechanics are available 24/7 to help you.',
+              },
+              {
+                question: 'Are all mechanics certified?',
+                answer: 'Yes! All our mechanics are Red Seal certified with years of professional automotive experience.',
+              },
+              {
+                question: 'What if I need more time?',
+                answer: 'You can extend your session or book a follow-up appointment. We\'re here to help until your issue is resolved.',
+              },
+              {
+                question: 'Do you offer refunds?',
+                answer: 'Yes, we offer a money-back guarantee if you\'re not satisfied with the service. Contact us within 24 hours of your session.',
+              },
+              {
+                question: 'Can I get help for any type of vehicle?',
+                answer: 'We cover most cars, trucks, and SUVs. Our mechanics have experience with domestic and foreign vehicles.',
+              },
+              {
+                question: 'Is this a replacement for in-person repairs?',
+                answer: 'No, our service provides expert diagnosis and guidance. You\'ll still need a local mechanic for hands-on repairs, but we\'ll help you understand what needs to be done.',
+              },
+            ].map((faq, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  {faq.question}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
-    </main>
-  );
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Get Expert Help?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Book your session now and get professional automotive advice within minutes
+          </p>
+          <Link
+            href="/start"
+            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105"
+          >
+            Book Now
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+          <p className="mt-6 text-blue-200 text-sm">
+            No commitment required • Cancel anytime • Money-back guarantee
+          </p>
+        </div>
+      </section>
+    </div>
+  )
 }

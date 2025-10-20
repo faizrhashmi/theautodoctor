@@ -58,5 +58,7 @@ export async function POST(req: NextRequest) {
   if (plan === 'trial' || plan === 'free' || plan === 'trial-free') {
     return NextResponse.json({ redirect: `/start?trial=1&intake_id=${encodeURIComponent(intakeId!)}` });
   }
-  return NextResponse.json({ redirect: `/api/checkout?plan=${encodeURIComponent(plan)}&intake_id=${encodeURIComponent(intakeId!)}` });
+  return NextResponse.json({
+    redirect: `/api/checkout/create-session?plan=${encodeURIComponent(plan)}&intake_id=${encodeURIComponent(intakeId!)}`,
+  });
 }

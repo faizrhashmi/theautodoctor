@@ -1,259 +1,286 @@
-'use client';
-
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRef, useState } from 'react';
-
-/** Fancy overlay video component with 16:9 ratio preserved */
-function VideoWithOverlay() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handlePlayClick = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    // If user clicks, browsers allow audio playback
-    v.play().then(() => setIsPlaying(true)).catch(() => {
-      // Fallback: if play fails, try muted autoplay (rare with user gesture)
-      v.muted = true;
-      v.play().then(() => setIsPlaying(true)).catch(() => {});
-    });
-  };
-
-  return (
-    <div className="relative w-full overflow-hidden rounded-xl shadow-xl bg-black aspect-[16/9]">
-      <video
-        ref={videoRef}
-        src="/promo.mp4"
-        controls
-        preload="metadata"
-        playsInline
-        // poster="/video-poster.jpg"
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        className="absolute inset-0 h-full w-full object-contain"
-      />
-
-      {/* Gradient edge glow */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-transparent to-cyan-500/10" />
-
-      {/* Fancy Play Button Overlay (hidden when playing) */}
-      {!isPlaying && (
-        <>
-          {/* subtle dark veil */}
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-          <button
-            type="button"
-            aria-label="Play video"
-            onClick={handlePlayClick}
-            className="group absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          >
-            <span className="relative inline-flex items-center justify-center">
-              {/* outer pulse ring */}
-              <span className="absolute inline-flex h-24 w-24 rounded-full bg-blue-500/20 blur-[2px] group-hover:bg-blue-500/30 transition"></span>
-              {/* ring border */}
-              <span className="absolute h-24 w-24 rounded-full ring-2 ring-white/60 group-hover:ring-white transition"></span>
-              {/* inner button */}
-              <span className="relative inline-flex h-20 w-20 items-center justify-center rounded-full bg-white text-blue-700 shadow-lg group-hover:scale-105 transition-transform">
-                {/* play icon */}
-                <svg
-                  width="26"
-                  height="26"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="ml-1"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </span>
-            </span>
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
+import Link from 'next/link'
+import {
+  Car,
+  Shield,
+  Clock,
+  Award,
+  Star,
+  CheckCircle2,
+  ArrowRight,
+  MessageCircle,
+  Video,
+  Phone
+} from 'lucide-react'
+import ProcessSteps from '@/components/ui/ProcessSteps'
+import ServiceCards from '@/components/ui/ServiceCards'
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white">
-      {/* ===== HERO SECTION WITH FLUID BACKGROUND IMAGE ===== */}
-      <section className="relative w-full h-screen bg-slate-900 overflow-hidden">
-        {/* Background image — no crop, stretches to fill */}
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/hero-bg.jpg"
-            alt="AskAutoDoctor Hero Background"
-            fill
-            priority
-            className="w-full h-full object-fill"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 opacity-75" />
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }} />
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 sm:px-6 lg:px-8 text-center text-white space-y-8">
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight max-w-3xl">
-            Expert Mechanics <span className="block text-blue-400">Available on Demand</span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-200 max-w-2xl mx-auto">
-            Live video consultations with certified mechanics. Diagnose issues or inspect before buying — all online.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/book" className="bg-blue-600 px-6 py-3 rounded-xl text-white font-semibold hover:bg-blue-700 transition-all">
-              🚗 Book Now
-            </Link>
-            <Link href="/auth/mechanic-signup" className="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition-all">
-              🛠️ Join as a Mechanic
-            </Link>
-          </div>
-        </div>
-
-        {/* SVG WAVE */}
-        <div className="absolute bottom-0 left-0 w-full leading-[0] z-0">
-          <svg className="relative block w-full h-[100px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
-            <path d="M0,0V46.29C47.79,68.49,103.59,78.46,158,74.29C228.36,68.92,294.33,41,364.8,36.81C438.64,32.43,512.34,53.67,583,72.05C652.27,90.05,721.3,96.93,792.4,85.13C828.55,79.13,862.25,67.29,896.85,55.79C989.49,25,1113,-14.29,1200,52.47V0Z" fill="white" opacity="0.25" />
-            <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05C99.41,111.27,165,111,224.58,91.58C255.73,81.43,284.67,65.51,314.25,51.78C355.17,32.78,398.98,5.78,445.08,2.11C481.34,-0.74,515.98,11.53,543.68,33.67C575.45,59.06,606,95.67,647.31,106.67C687.75,117.46,728.66,100.98,766.44,83.39C804.22,65.8,841.16,47.8,882.92,43.75C942.65,37.9,996.2,66.63,1051.82,82.59C1082.02,91.25,1110.82,88.76,1138.91,75.09C1161.34,64.2,1186.91,48.16,1199.56,25.85V0Z" fill="white" opacity="0.5" />
-            <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57C518.83,34.93,560.06,22.45,603.44,16.11C662.44,7.48,715.92,28.35,769,51.51C827.93,77.22,886,95.24,951.2,90C1037.73,83,1123.66,44.29,1200,5.19V0Z" fill="white" />
-          </svg>
-        </div>
-      </section>
-
-      {/* ===== HOW IT WORKS FOR CUSTOMERS ===== */}
-      <section className="bg-gray-100 py-20 px-4">
-        <div className="container max-w-screen-xl mx-auto text-center space-y-12">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-gray-900">How It Works</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Get expert automotive help in just a few steps — all online, all from licensed professionals.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 text-left max-w-6xl mx-auto">
-            {[
-              ['📝', '1. Create an Account', 'Sign up or log in to access our mechanic network.'],
-              ['🚗', '2. Submit Your Vehicle Info', 'Tell us about your vehicle and describe the issue. Upload photos if needed.'],
-              ['📄', '3. Agree to Waiver', 'Confirm you understand this is a remote consultation for educational purposes.'],
-              ['💳', '4. Make a Payment', 'Pay securely to confirm your book.'],
-              ['📞', '5. Connect with a Mechanic', 'A certified mechanic will contact you for a live video consultation.'],
-              ['✅', '6. Get Expert Advice', 'Receive real-time guidance on diagnostics, repairs, or inspections.'],
-            ].map(([icon, title, desc]) => (
-              <div key={title} className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition">
-                <div className="text-3xl mb-4">{icon}</div>
-                <h3 className="text-lg font-semibold mb-2">{title}</h3>
-                <p className="text-gray-600">{desc}</p>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Hero content */}
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 bg-blue-800/50 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-400/30">
+                <Award className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-medium">Certified Red Seal Mechanics</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ===== RED SEAL + VIDEO WITH SIDE "HOW IT WORKS" ===== */}
-      <section className="bg-white py-20 px-4">
-        <div className="container max-w-screen-xl mx-auto">
-          {/* Top line: badge + blurb */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-center sm:text-left mb-12">
-            <Image
-              src="/red-seal.png"
-              alt="Ontario Red Seal"
-              width={80}
-              height={80}
-              className="h-16 sm:h-20 object-contain"
-            />
-            <p className="text-sm sm:text-base text-gray-700 max-w-2xl">
-              All our mechanics are certified with the <strong>Red Seal Program</strong> in Ontario, ensuring high-quality, licensed automotive advice.
-            </p>
-          </div>
+              <h1 className="text-5xl md:text-6xl font-bold leading-tight">
+                Expert Auto Help,
+                <span className="block text-blue-300">Right From Your Driveway</span>
+              </h1>
 
-          {/* Two-column layout: Video (left) + How it works (right) */}
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            {/* Video with fancy play overlay */}
-            <VideoWithOverlay />
+              <p className="text-xl text-blue-100 leading-relaxed">
+                Connect instantly with certified mechanics through text, video, or comprehensive diagnostic sessions. Get professional automotive advice without leaving home.
+              </p>
 
-            {/* How it works (side of the video) */}
-            <div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
-                See how AskAutoDoctor works
-              </h3>
-              <ul className="space-y-4 text-slate-700">
-                {[
-                  'Book a time and describe your issue — we match you with a qualified mechanic.',
-                  'Join a secure video call from your phone or laptop for guided diagnostics.',
-                  'Get a written summary, next steps, and estimates you can trust.',
-                  'Optionally book follow-up sessions for deeper troubleshooting.',
-                ].map((line) => (
-                  <li key={line} className="flex gap-3">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
+              {/* Trust indicators */}
+              <div className="flex flex-wrap items-center gap-6 pt-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="w-10 h-10 rounded-full bg-blue-700 border-2 border-white flex items-center justify-center text-sm font-bold">
+                        {i === 1 ? '👨‍🔧' : i === 2 ? '👩‍🔧' : i === 3 ? '🧑‍🔧' : '👨‍🔧'}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      ))}
+                    </div>
+                    <p className="text-blue-200">500+ sessions completed</p>
+                  </div>
+                </div>
+              </div>
 
-              <div className="mt-6">
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <Link
-                  href="/book"
-                  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-white font-semibold shadow hover:bg-blue-700 transition"
+                  href="/start"
+                  className="group bg-white text-blue-900 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
                 >
-                  Start now
+                  Book a Session
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
+                <Link
+                  href="/how-it-works"
+                  className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                >
+                  How It Works
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: Visual elements */}
+            <div className="relative hidden lg:block">
+              <div className="relative">
+                {/* Floating cards */}
+                <div className="absolute -top-4 -right-4 bg-white text-gray-900 p-4 rounded-xl shadow-2xl animate-bounce" style={{ animationDuration: '3s' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-3 rounded-lg">
+                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold">Fast Response</p>
+                      <p className="text-sm text-gray-600">Average 5 min wait</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="absolute -bottom-8 -left-4 bg-white text-gray-900 p-4 rounded-xl shadow-2xl" style={{ animation: 'bounce 3s infinite 1.5s' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 p-3 rounded-lg">
+                      <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold">100% Certified</p>
+                      <p className="text-sm text-gray-600">Red Seal licensed</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main illustration placeholder */}
+                <div className="bg-blue-800/30 backdrop-blur-sm rounded-2xl p-8 border-2 border-blue-400/30">
+                  <Car className="w-full h-64 text-blue-300" />
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Wave divider */}
+        <div className="absolute bottom-0 left-0 w-full">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-16 md:h-24">
+            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="white" opacity="1" />
+          </svg>
+        </div>
       </section>
 
-      {/* ===== WHY US SECTION ===== */}
-      <section className="bg-gray-100 py-20">
-        <div className="container max-w-screen-xl mx-auto px-4 text-center space-y-6">
-          <h2 className="text-3xl font-bold text-gray-900">Why AskAutoDoctor?</h2>
-          <div className="grid gap-8 md:grid-cols-3">
+      {/* Quick Stats */}
+      <section className="py-12 bg-gray-50 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              ['📹', 'Video Consults', 'Talk to real mechanics face-to-face from your driveway.'],
-              ['🚘', 'Pre-purchase Advice', 'Pre-purchase or post-problem — we help you stay safe.'],
-              ['💬', 'Instant book', 'Choose a time and connect within minutes.'],
-            ].map(([icon, title, desc]) => (
-              <div key={title} className="bg-white p-8 rounded-xl shadow-md border hover:shadow-xl transition">
-                <div className="text-4xl mb-4">{icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{title}</h3>
-                <p className="text-gray-600">{desc}</p>
+              { number: '500+', label: 'Sessions Completed' },
+              { number: '50+', label: 'Certified Mechanics' },
+              { number: '5 min', label: 'Average Wait Time' },
+              { number: '4.9/5', label: 'Customer Rating' },
+            ].map((stat) => (
+              <div key={stat.label} className="space-y-2">
+                <p className="text-4xl font-bold text-blue-600">{stat.number}</p>
+                <p className="text-gray-600 font-medium">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ===== MECHANIC CTA ===== */}
-      <section className="bg-blue-600 pt-20 pb-24 text-white">
-        <div className="container max-w-screen-xl mx-auto px-4 text-center space-y-6">
-          <h2 className="text-3xl font-bold">Are You a Certified Mechanic?</h2>
-          <p className="max-w-xl mx-auto text-lg">
-            Earn by helping car owners across Ontario. Set your availability, consult remotely, and get paid directly.
-          </p>
-          <Link
-            href="/auth/mechanic-signup"
-            className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition"
-          >
-            🛠️ Sign Up as a Mechanic
-          </Link>
+      {/* How It Works */}
+      <ProcessSteps />
+
+      {/* Services & Pricing */}
+      <ServiceCards />
+
+      {/* Why Choose Us */}
+      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Why Choose AskAutoDoctor?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Professional automotive expertise at your fingertips
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Shield,
+                title: 'Certified Experts',
+                description: 'All mechanics are Red Seal certified with years of professional experience',
+                color: 'from-blue-500 to-blue-600',
+              },
+              {
+                icon: Clock,
+                title: 'Available 24/7',
+                description: 'Get help whenever you need it, day or night, weekends and holidays',
+                color: 'from-green-500 to-green-600',
+              },
+              {
+                icon: MessageCircle,
+                title: 'Flexible Options',
+                description: 'Choose text chat, video call, or comprehensive diagnostic sessions',
+                color: 'from-purple-500 to-purple-600',
+              },
+            ].map((feature) => {
+              const Icon = feature.icon
+              return (
+                <div
+                  key={feature.title}
+                  className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-200"
+                >
+                  <div className={`bg-gradient-to-r ${feature.color} w-14 h-14 rounded-lg flex items-center justify-center mb-6`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </section>
 
-      {/* ===== MOBILE STICKY CTA ===== */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 md:hidden">
-        <Link
-          href="/book"
-          className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl font-semibold hover:bg-blue-700 transition-all"
-        >
-          🚗 Book Consultation
-        </Link>
-      </div>
+      {/* Final CTA */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Get Expert Help?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Join hundreds of satisfied customers who trust AskAutoDoctor for their automotive needs
+          </p>
+          <Link
+            href="/start"
+            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105"
+          >
+            Book Your Session Now
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+          <p className="mt-6 text-blue-200 text-sm">
+            No commitment required • Cancel anytime • Money-back guarantee
+          </p>
+        </div>
+      </section>
 
-      {/* ===== FOOTER ===== */}
-      <footer className="bg-gray-100 py-10 text-center text-sm text-gray-600 px-4">
-        <p>© {new Date().getFullYear()} AskAutoDoctor. All rights reserved.</p>
-        <p className="mt-2">This service is for educational purposes only. Not a substitute for in-person diagnostics.</p>
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Car className="w-6 h-6 text-blue-400" />
+                <span className="text-white font-bold text-lg">AskAutoDoctor</span>
+              </div>
+              <p className="text-sm">
+                Professional automotive expertise, delivered remotely.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Services</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Quick Chat</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Video Session</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Full Diagnostic</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/customer/login" className="hover:text-white transition-colors">Sign In</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-white font-semibold mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>1-800-AUTO-DOC</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>support@askautodoctor.com</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 text-center text-sm">
+            <p>© {new Date().getFullYear()} AskAutoDoctor. All rights reserved.</p>
+            <p className="mt-2 text-gray-500">
+              This service is for educational purposes only. Not a substitute for in-person diagnostics.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }

@@ -1,24 +1,35 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function AdminLogoutPage() {
-  const router = useRouter()
+export default function AdminLogout() {
+  const router = useRouter();
 
   useEffect(() => {
-    ;(async () => {
+    async function logout() {
       try {
-        await fetch('/api/admin/logout', { method: 'POST' })
-      } finally {
-        router.replace('/admin/login')
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+        });
+        
+        // Redirect to login page after logout
+        window.location.href = '/admin/login';
+      } catch (error) {
+        console.error('Logout error:', error);
+        window.location.href = '/admin/login';
       }
-    })()
-  }, [router])
+    }
+
+    logout();
+  }, [router]);
 
   return (
-    <main className="mx-auto max-w-sm px-6 py-20 text-center">
-      <p className="text-sm text-slate-600">Signing you out…</p>
-    </main>
-  )
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">Logging out...</h1>
+        <p className="mt-2 text-slate-600">Please wait while we sign you out.</p>
+      </div>
+    </div>
+  );
 }

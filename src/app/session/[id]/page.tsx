@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import Link from 'next/link'
 
@@ -61,14 +61,14 @@ export default function Pricing() {
               ))}
             </ul>
 
-            <Link href="/book" className="btn btn-primary mt-8 w-full text-center">Book {p.name}</Link>
+            <Link href="/start" className="btn btn-primary mt-8 w-full text-center">Book {p.name}</Link>
           </div>
         ))}
       </div>
 
       <div className="glass mt-12 rounded-2xl p-6 text-sm text-white/70">
-        <div className="font-semibold text-white mb-2">Whatâ€™s included</div>
-        Secure payment via Stripe â€¢ Email confirmations via Resend â€¢ HD live call via LiveKit â€¢ Magic-link login via Supabase
+        <div className="font-semibold text-white mb-2">What’s included</div>
+        Secure payment via Stripe • Email confirmations via Resend • HD live call via LiveKit • Magic-link login via Supabase
       </div>
     </section>
   )

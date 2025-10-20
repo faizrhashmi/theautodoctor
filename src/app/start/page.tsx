@@ -1,69 +1,54 @@
-'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+﻿import { getSupabaseServer } from "@/lib/supabaseServer";
+import SignupGate from "./SignupGate";
+import OnboardingFlow from "./OnboardingFlow";
 
-export default function Start() {
-  const router = useRouter();
-  const sp = useSearchParams();
-  const sessionId = sp.get('session_id');
-  const isTrial = sp.get('trial') === '1';
-  const intakeId = sp.get('intake_id') || '';
+export const dynamic = "force-dynamic";
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default async function StartPage() {
+  const supabase = getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  async function beginPaid() {
-    if (!sessionId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/session/start?session_id=${encodeURIComponent(sessionId)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Unable to start session');
-      router.push(`/video?token=${encodeURIComponent(data.token)}&room=${encodeURIComponent(data.room)}`);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <h1 className="text-3xl font-semibold text-slate-900">Get matched with a certified mechanic in minutes</h1>
+            <p className="mt-3 text-slate-600">
+              Create an account or sign in with Google to save your vehicle details, book a consultation, and access live support.
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-slate-600">
+              <li>- Secure sign-in with email or Google</li>
+              <li>- Choose the session that fits your needs</li>
+              <li>- See real-time mechanic availability before you begin</li>
+            </ul>
+            <div className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              <p className="font-semibold">Mechanics standing by</p>
+              <p className="mt-1">Live availability refreshes every few minutes. Sign up to see who is online right now.</p>
+            </div>
+          </div>
+          <SignupGate />
+        </div>
+      </div>
+    );
   }
 
-  async function beginTrial() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/livekit/token?identity=trial-${intakeId}&room=aad-${Date.now()}`);
-      const data = await res.json();
-      router.push(`/video?token=${encodeURIComponent(data.token)}&room=${encodeURIComponent(data.room)}`);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("preferred_plan, last_selected_slot, full_name, phone, vehicle_hint")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-20">
-      <h1 className="text-3xl font-bold">Start your session</h1>
-      {!isTrial && !sessionId ? (
-        <p className="mt-2 text-slate-600">Missing <code>session_id</code>. Please start from your Thank‑you page after checkout.</p>
-      ) : (
-        <>
-          <p className="mt-2 text-slate-600">We’ll open your private room now.</p>
-          <div className="mt-6 flex items-center gap-3">
-            {isTrial ? (
-              <button onClick={beginTrial} disabled={loading} className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
-                {loading ? 'Preparing…' : 'Enter room (trial)'}
-              </button>
-            ) : (
-              <button onClick={beginPaid} disabled={loading} className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
-                {loading ? 'Preparing…' : 'Enter room'}
-              </button>
-            )}
-          </div>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        </>
-      )}
-    </main>
+    <OnboardingFlow
+      email={user.email ?? ""}
+      initialPlan={profile?.preferred_plan ?? null}
+      initialSlot={profile?.last_selected_slot ?? null}
+      initialFullName={profile?.full_name ?? null}
+      initialPhone={profile?.phone ?? null}
+      initialVehicle={profile?.vehicle_hint ?? null}
+    />
   );
 }

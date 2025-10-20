@@ -1,76 +1,73 @@
-﻿'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 
-const SERVICES = [
-  { id: 'quick', label: 'Quick Consult (15m)', amount: 2500 },
-  { id: 'standard', label: 'Standard Consult (30m)', amount: 4500 },
-  { id: 'ppi', label: 'Pre-Purchase Inspection (60m)', amount: 9000 },
-]
+const SERVICE_OPTIONS = [
+  { id: 'quick', label: 'Quick Chat (10 min)', priceCents: 999 },
+  { id: 'standard', label: 'Live Video (15 min)', priceCents: 2999 },
+  { id: 'inspection', label: 'Diagnostic Session', priceCents: 4999 },
+];
+
+const formatAmount = (cents: number) =>
+  new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 
 export default function BookPage() {
-  const [service, setService] = useState(SERVICES[1].id)
-  const [loading, setLoading] = useState(false)
+  const [service, setService] = useState(SERVICE_OPTIONS[0].id);
+  const [loading, setLoading] = useState(false);
 
-  async function handleCheckout() {
-    try {
-      setLoading(true)
-      // Keep your existing API route intact â€“ adjust payload to your current handler
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service }),
-      })
-      const { url } = await res.json()
-      window.location.href = url
-    } catch (e) {
-      console.error(e)
-      setLoading(false)
-      alert('Unable to start checkout. Please try again.')
-    }
+  function handleCheckout() {
+    setLoading(true);
+    window.location.href = `/api/checkout/create-session?plan=${service}`;
   }
 
   return (
     <section className="container py-20">
-      <div className="glass rounded-2xl p-8">
-        <h1 className="h-section">Book a Session</h1>
-        <p className="text-white/70 mt-2">Select a service and a time. Youâ€™ll check out securely with Stripe.</p>
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-8 shadow-sm backdrop-blur">
+        <h1 className="text-2xl font-semibold text-slate-900">Book a Session</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Select a plan and you will finish payment through Stripe. Pricing shown in CAD.
+        </p>
 
-        <div className="grid md:grid-cols-2 gap-8 mt-8">
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="space-y-3">
-            {SERVICES.map((s) => (
-              <label key={s.id} className={`card-lux flex items-center justify-between cursor-pointer ${service === s.id ? 'ring-2 ring-[--lux-gold]' : ''}`}>
-                <div className="font-semibold">{s.label}</div>
+            {SERVICE_OPTIONS.map((option) => (
+              <label
+                key={option.id}
+                className={`flex items-center justify-between rounded-xl border p-4 transition ${
+                  service === option.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
+                }`}
+              >
+                <div>
+                  <div className="font-medium text-slate-900">{option.label}</div>
+                  <div className="text-sm text-slate-600">{formatAmount(option.priceCents)}</div>
+                </div>
                 <input
                   type="radio"
                   name="service"
-                  className="accent-[--lux-gold]"
-                  checked={service === s.id}
-                  onChange={() => setService(s.id)}
+                  className="h-4 w-4 accent-blue-600"
+                  checked={service === option.id}
+                  onChange={() => setService(option.id)}
                 />
               </label>
             ))}
           </div>
 
-          <div className="card-lux">
-            <div className="font-semibold">Summary</div>
-            <p className="text-white/70 text-sm mt-1">You will be able to pick a date/time during the checkout flow.</p>
-
+          <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="text-sm font-medium text-slate-900">Summary</div>
+            <p className="mt-2 text-sm text-slate-600">
+              We will guide you through selecting a time after checkout.
+            </p>
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="btn btn-primary mt-6 w-full"
+              className="mt-6 inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Starting checkoutâ€¦' : 'Continue to Stripe'}
+              {loading ? 'Redirecting...' : 'Continue to Stripe'}
             </button>
-
-            <div className="text-white/60 text-xs mt-3">
-              Payments: Stripe â€¢ Video: LiveKit â€¢ Auth: Supabase
-            </div>
+            <div className="mt-3 text-xs text-slate-500">Stripe secured checkout. Cancel anytime before payment.</div>
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
-

@@ -1,68 +1,79 @@
-'use client';
+// src/app/admin/login/page.tsx
+import Link from 'next/link'
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+export const metadata = {
+  title: 'Admin Login — AskAutoDoctor',
+  description: 'Sign in to the AskAutoDoctor admin dashboard.',
+}
 
-export default function AdminLogin() {
-  const [pwd, setPwd] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const sp = useSearchParams();
-  const next = sp.get('next') || '/admin/intakes';
+type SearchParams = Promise<{ error?: string; next?: string }>
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Invalid password');
-      }
-
-      router.push(next);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+export default async function AdminLoginPage(props: { searchParams: SearchParams }) {
+  const { error, next } = await props.searchParams
+  // Redirect to the actual admin intakes page that exists
+  const redirect = next && next.startsWith('/admin') ? next : '/admin/intakes'
 
   return (
-    <main className="mx-auto max-w-sm px-6 py-20">
-      <h1 className="text-2xl font-bold">Admin Login</h1>
-      <p className="mt-1 text-slate-600">Enter the dashboard password to continue.</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow border border-slate-100 p-8">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-semibold text-slate-900">Admin Panel</h1>
+          <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
+        </div>
 
-      <form onSubmit={submit} className="mt-6 grid gap-3">
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">Password</span>
-        <input
-            type="password"
-            className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
-            value={pwd}
-            onChange={(e) => setPwd(e.target.value)}
-            placeholder="Enter password"
-            required
-          />
-        </label>
+        {error && (
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {decodeURIComponent(error)}
+          </div>
+        )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <form action="/api/admin/login" method="POST" className="space-y-4">
+          <input type="hidden" name="redirect" value={redirect} />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-        >
-          {loading ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-    </main>
-  );
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              placeholder="admin@yourdomain.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-white font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+          >
+            Sign in
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/" className="text-sm text-slate-600 hover:text-slate-900">
+            ← Back to site
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
 }

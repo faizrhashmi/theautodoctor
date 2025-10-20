@@ -1,27 +1,53 @@
-import crypto from 'crypto';
+// src/lib/auth.ts
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
+import { NextResponse } from 'next/server'
+import { getSupabaseServer } from './supabaseServer'
 
-const ITER = 120000;
-const KEYLEN = 64;
-const DIGEST = 'sha512';
+export async function ensureAdmin() {
+  const supabase = getSupabaseServer()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+
+  if (error || !user) {
+    return { ok: false as const, status: 401, res: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  // Check role in profiles
+  const { data: profile, error: pErr } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (pErr || !profile || profile.role !== 'admin') {
+    return { ok: false as const, status: 403, res: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+
+  return { ok: true as const, user }
+}
+
+const KEY_LENGTH = 64
 
 export function hashPassword(password: string) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, ITER, KEYLEN, DIGEST).toString('hex');
-  return `pbkdf2$${DIGEST}$${ITER}$${salt}$${hash}`;
+  const salt = randomBytes(16).toString('hex')
+  const derived = scryptSync(password, salt, KEY_LENGTH).toString('hex')
+  return `${salt}:${derived}`
 }
 
-export function verifyPassword(password: string, stored: string) {
-  try {
-    const [scheme, digest, iterStr, salt, hash] = stored.split('$');
-    if (scheme !== 'pbkdf2') return false;
-    const iter = parseInt(iterStr, 10);
-    const test = crypto.pbkdf2Sync(password, salt, iter, Buffer.from(hash, 'hex').length, digest).toString('hex');
-    return crypto.timingSafeEqual(Buffer.from(test, 'hex'), Buffer.from(hash, 'hex'));
-  } catch {
-    return false;
-  }
+export function verifyPassword(password: string, encoded: string) {
+  if (!encoded) return false
+  const [salt, storedHash] = encoded.split(':')
+  if (!salt || !storedHash) return false
+
+  const derived = scryptSync(password, salt, KEY_LENGTH)
+  const expected = Buffer.from(storedHash, 'hex')
+
+  if (expected.length !== derived.length) return false
+  return timingSafeEqual(expected, derived)
 }
 
-export function makeSessionToken() {
-  return crypto.randomBytes(24).toString('hex');
+export function makeSessionToken(bytes = 32) {
+  return randomBytes(bytes).toString('hex')
 }
