@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import Link from 'next/link'
+import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,6 +99,17 @@ export default async function CustomerDashboardPage() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-6 flex">
+          <MechanicPresenceIndicator
+            variant="light"
+            loadingText="Checking live mechanic availability…"
+            zeroText="Our mechanics are currently offline. We'll let you know as soon as someone is live."
+            formatOnlineText={(count) =>
+              `🟢 ${count} mechanic${count === 1 ? '' : 's'} available to help right now`
+            }
+            className="flex w-full items-center justify-center sm:w-auto sm:justify-start"
+          />
+        </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Column */}
           <div className="space-y-6 lg:col-span-2">
