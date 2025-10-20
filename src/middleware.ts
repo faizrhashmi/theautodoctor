@@ -5,25 +5,24 @@ import { createServerClient } from '@supabase/ssr'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+const CUSTOMER_PROTECTED_PREFIXES = [
+  '/customer/dashboard',
+  '/customer/schedule',
+  '/dashboard',
+  '/session',
+  '/video',
+  '/chat',
+]
+
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public/admin login paths and API routes
-  const publicPaths = [
-    '/admin/login',
-    '/api/admin/login',
-    '/customer', // Allow all customer routes (they have their own auth)
-    '/api/customer', // Allow customer API routes
-    '/_next',
-    '/favicon.ico',
-  ]
-
-  if (publicPaths.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next()
-  }
-
-  // Only guard /admin routes
-  if (!pathname.startsWith('/admin')) {
+  // Allow static assets immediately
+  if (pathname.startsWith('/_next') || pathname === '/favicon.ico') {
     return NextResponse.next()
   }
 
@@ -46,38 +45,60 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (matchesPrefix(pathname, '/admin')) {
+    if (!user) {
+      const loginUrl = new URL('/admin/login', request.url)
+      const next = pathname === '/admin' ? '/admin/intakes' : pathname
+      loginUrl.searchParams.set('next', next)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    return response
+  }
+
+  const requiresCustomerAuth = CUSTOMER_PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))
+
+  if (!requiresCustomerAuth) {
+    return response
+  }
+
   if (!user) {
-    const loginUrl = new URL('/admin/login', request.url)
-    // If trying to access /admin root, redirect to /admin/intakes after login
-    const next = pathname === '/admin' ? '/admin/intakes' : pathname
-    loginUrl.searchParams.set('next', next)
+    const loginUrl = new URL('/customer/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Optional: Check if user has admin role
-  // TODO: Set up profiles table with admin roles
-  // For now, allow any authenticated user to access admin panel
-
-  /*
-  try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (!profile || profile.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-  } catch (error) {
-    console.error('Error checking profile:', error)
-    return NextResponse.redirect(new URL('/admin/login', request.url))
+  if (!user.email_confirmed_at) {
+    return NextResponse.redirect(new URL('/customer/verify-email', request.url))
   }
-  */
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, email_verified')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profile?.role && profile.role !== 'customer') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (profile?.email_verified === false) {
+    return NextResponse.redirect(new URL('/customer/verify-email', request.url))
+  }
 
   return response
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/customer/dashboard',
+    '/customer/dashboard/:path*',
+    '/customer/schedule',
+    '/customer/schedule/:path*',
+    '/dashboard/:path*',
+    '/session/:path*',
+    '/video/:path*',
+    '/chat/:path*',
+  ],
 }
