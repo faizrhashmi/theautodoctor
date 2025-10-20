@@ -16,7 +16,6 @@ import SiteFooter from '@/components/layout/SiteFooter';
 const inter = Inter({ subsets: ['latin'] });
 
 const NAV_ITEMS = [
-  { label: 'Home', href: '/' },
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'Services & Pricing', href: '/pricing' },
   { label: 'Knowledge Base', href: '/knowledge-base' },
@@ -43,7 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <span>AskAutoDoctor</span>
             </Link>
 
-            <nav className="hidden flex-1 items-center justify-center gap-8 md:flex">
+            <nav className="hidden md:flex flex-1 items-center justify-end gap-8">
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
@@ -58,14 +57,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
             <div className="ml-auto flex items-center gap-3 md:gap-4">
               <Link
-                href="/customer/login"
-                className="hidden text-sm font-medium text-slate-300 transition hover:text-white md:inline-flex"
-              >
-                Sign In
-              </Link>
-              <Link
                 href="/signup"
-                className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-blue-400 hover:via-indigo-400 hover:to-purple-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+                className="group ml-6 md:ml-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-blue-400 hover:via-indigo-400 hover:to-purple-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
               >
                 Book Now
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -118,13 +111,7 @@ function MobileMenu() {
             </Link>
           ))}
         </div>
-        <div className="mt-3 grid gap-2">
-          <Link
-            href="/customer/login"
-            className="inline-flex items-center justify-center rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/35 hover:text-white"
-          >
-            Sign In
-          </Link>
+          <div className="mt-3 grid gap-2">
           <Link
             href="/signup"
             className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-blue-400 hover:via-indigo-400 hover:to-purple-400"

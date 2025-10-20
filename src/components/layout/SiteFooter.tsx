@@ -17,7 +17,7 @@ const SOCIAL_ICONS = [
 
 export default function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-slate-950 text-slate-200">
+    <footer id="site-footer" className="border-t border-slate-200 bg-slate-950 text-slate-200">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <div>
