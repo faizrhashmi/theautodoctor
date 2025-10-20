@@ -60,7 +60,7 @@ export default function AboutPage() {
                 </p>
                 <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
                   <Link
-                    href="/start"
+                    href="/signup"
                     className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   >
                     Get Help Now
@@ -214,7 +214,7 @@ export default function AboutPage() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
               <Link
-                href="/start"
+                href="/signup"
                 className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-slate-100"
               >
                 Start a Session

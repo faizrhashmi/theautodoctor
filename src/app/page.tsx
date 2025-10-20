@@ -70,7 +70,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Link
-                href="/start"
+                href="/signup"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
               >
                 Book your session
@@ -189,7 +189,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/start"
+                href="/signup"
                 className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
               >
                 Book now

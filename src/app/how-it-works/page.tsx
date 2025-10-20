@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
           <p className="mt-2 text-sm text-blue-100">Hop into a session within minutes or explore the mechanic dashboard first.</p>
           <div className="mt-6 flex flex-col gap-4 sm:flex-row">
             <Link
-              href="/start"
+              href="/signup"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
             >
               Book a session

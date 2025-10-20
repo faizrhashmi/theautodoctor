@@ -126,7 +126,7 @@ export default function ServiceCards() {
 
                   {/* CTA Button */}
                   <Link
-                    href="/start"
+                    href="/signup"
                     className={`block text-center py-3 px-6 rounded-lg font-semibold transition-all ${
                       plan.popular
                         ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl'

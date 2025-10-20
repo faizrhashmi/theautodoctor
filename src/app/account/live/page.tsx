@@ -11,7 +11,7 @@ export default async function LiveSupportPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/start')
+    redirect('/signup')
   }
 
   return (
@@ -45,7 +45,7 @@ export default async function LiveSupportPage() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/start"
+              href="/signup"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
               Change appointment
