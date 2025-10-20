@@ -1,0 +1,227 @@
+.rbc-calendar {
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #d9e2f3;
+  overflow: hidden;
+  box-shadow: 0 20px 45px -24px rgba(15, 34, 58, 0.35);
+}
+
+.rbc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(180deg, #eef2ff 0%, #dbeafe 100%);
+  border-bottom: 1px solid #c7d2fe;
+}
+
+.rbc-toolbar-label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rbc-btn-group {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.rbc-btn {
+  background: white;
+  border: 1px solid #cbd5f5;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.08);
+}
+
+.rbc-btn:hover,
+.rbc-btn:focus {
+  background-color: #1d4ed8;
+  color: white;
+  border-color: #1d4ed8;
+}
+
+.rbc-view-container {
+  padding: 1rem 1.5rem 1.5rem;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.75) 100%);
+}
+
+.rbc-month-view,
+.rbc-week-view,
+.rbc-day-view {
+  background-color: white;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.rbc-month-row,
+.rbc-time-content {
+  display: grid;
+}
+
+.rbc-month-row {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.rbc-month-cell {
+  min-height: 120px;
+  padding: 0.75rem;
+  border-right: 1px solid #e2e8f0;
+  background: white;
+  transition: background 0.15s ease;
+}
+
+.rbc-month-cell:hover {
+  background: #eef2ff;
+}
+
+.rbc-date-cell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.rbc-off-range .rbc-date-cell {
+  color: #94a3b8;
+}
+
+.rbc-event,
+.rbc-selected-slot {
+  border-radius: 0.75rem;
+  padding: 0.45rem 0.5rem;
+  background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+  box-shadow: 0 12px 24px -12px rgba(37, 99, 235, 0.45);
+}
+
+.rbc-event + .rbc-event {
+  margin-top: 0.35rem;
+}
+
+.rbc-time-view {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+}
+
+.rbc-time-gutter {
+  border-right: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 0.5rem;
+}
+
+.rbc-time-gutter .rbc-time-slot {
+  height: 48px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.rbc-time-columns {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: white;
+}
+
+.rbc-day-column {
+  border-right: 1px solid #e2e8f0;
+  min-height: calc(48px * 24);
+  position: relative;
+}
+
+.rbc-day-column:last-child {
+  border-right: none;
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #f1f5f9;
+  height: 48px;
+}
+
+.rbc-time-slot:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.rbc-day-slot .rbc-event {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  box-shadow: 0 12px 24px -12px rgba(59, 130, 246, 0.55);
+}
+
+.rbc-day-header {
+  padding: 0.75rem;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.rbc-day-headers {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid #e2e8f0;
+  background: white;
+}
+
+.rbc-today {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.rbc-agenda-view {
+  padding: 1rem 0;
+}
+
+.rbc-agenda-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rbc-agenda-table th,
+.rbc-agenda-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.rbc-agenda-date-cell {
+  color: #334155;
+  font-weight: 600;
+}
+
+.rbc-agenda-time-cell {
+  color: #475569;
+}
+
+.rbc-agenda-event-cell {
+  color: #1e293b;
+}
+
+.rbc-current-time-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ef4444;
+  z-index: 2;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+}

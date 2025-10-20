@@ -154,6 +154,8 @@ export type Database = {
           intake_id: string | null
           customer_user_id: string | null
           metadata: Json
+          scheduled_start: string | null
+          scheduled_end: string | null
         }
         Insert: {
           id?: string
@@ -166,6 +168,8 @@ export type Database = {
           intake_id?: string | null
           customer_user_id?: string | null
           metadata?: Json
+          scheduled_start?: string | null
+          scheduled_end?: string | null
         }
         Update: {
           id?: string
@@ -178,6 +182,8 @@ export type Database = {
           intake_id?: string | null
           customer_user_id?: string | null
           metadata?: Json
+          scheduled_start?: string | null
+          scheduled_end?: string | null
         }
         Relationships: []
       }
