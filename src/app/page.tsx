@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, CalendarClock, CheckCircle2, Shield, Wrench, Gauge, MessageSquare, Video, FileText, Users } from 'lucide-react'
+import { OFFERINGS, VALUE_ADDS } from './services-pricing/page'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
 const SERVICE_PACKAGES = [
@@ -177,22 +178,22 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <span className="rounded-full bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-200">Services & pricing</span>
           <h2 className="mt-4 text-3xl font-bold">Choose the right support package</h2>
           <p className="mt-2 text-sm text-slate-300">Transparent pricing, session timers, and optional extensions billed automatically.</p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {SERVICE_PACKAGES.map((service) => (
-            <div key={service.title} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <h3 className="text-xl font-semibold text-white">{service.title}</h3>
-              <p className="mt-2 text-sm text-slate-300">{service.description}</p>
-              <div className="mt-6 text-3xl font-bold text-white">{service.price}</div>
-              <p className="text-xs uppercase tracking-wide text-blue-200">{service.duration}</p>
+        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {OFFERINGS.map((offering) => (
+            <article key={offering.name} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <h3 className="text-xl font-semibold text-white">{offering.name}</h3>
+              <p className="mt-2 text-sm text-slate-300">{offering.description}</p>
+              <div className="mt-6 text-3xl font-bold text-white">{offering.price}</div>
+              <p className="text-xs uppercase tracking-wide text-blue-200">{offering.duration}</p>
               <ul className="mt-6 space-y-2 text-sm text-slate-300">
-                {service.highlights.map((highlight) => (
-                  <li key={highlight}>• {highlight}</li>
+                {offering.features.map((feature) => (
+                  <li key={feature}>• {feature}</li>
                 ))}
               </ul>
               <Link
@@ -201,8 +202,25 @@ export default function Home() {
               >
                 Book now
               </Link>
-            </div>
+            </article>
           ))}
+        </div>
+
+        <div className="mt-16 rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
+          <h2 className="text-2xl font-bold text-white">What makes AskAutoDoctor sessions different?</h2>
+          <p className="mt-2 text-sm text-slate-300">We built a digital service bay that mirrors the tools and trust of an in-person shop.</p>
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            {VALUE_ADDS.map((value) => {
+              const Icon = value.icon
+              return (
+                <div key={value.title} className="rounded-2xl border border-white/10 bg-slate-900/80 p-5">
+                  <Icon className="h-6 w-6 text-blue-300" />
+                  <h3 className="mt-4 text-lg font-semibold text-white">{value.title}</h3>
+                  <p className="mt-2 text-sm text-slate-300">{value.description}</p>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </section>
 

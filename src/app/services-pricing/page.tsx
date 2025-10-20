@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, CheckCircle2, FileText, Gauge, MessageCircle, Timer } from 'lucide-react'
 
-const OFFERINGS = [
+export const OFFERINGS = [
   {
     name: 'Free Session',
     price: '$0',
@@ -32,7 +32,7 @@ const OFFERINGS = [
   }
 ]
 
-const VALUE_ADDS = [
+export const VALUE_ADDS = [
   {
     title: 'Integrated session timer',
     description: 'Real-time countdown with warnings at 5 minutes and 60 seconds remaining.',
