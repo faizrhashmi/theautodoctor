@@ -7,7 +7,9 @@ const MOCK_FILES: SessionFile[] = [
     fileName: 'diagnostic-report.pdf',
     fileSize: 1024 * 250,
     uploadedAt: new Date().toISOString(),
-    uploadedBy: 'Brandon Lee'
+    uploadedBy: 'Brandon Lee',
+    url: 'https://example.com/diagnostic-report.pdf',
+    storagePath: 'session-files/demo/diagnostic-report.pdf'
   }
 ]
 
@@ -27,7 +29,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
     fileName: formData.get('filename')?.toString() ?? 'upload.bin',
     fileSize: file.size,
     uploadedAt: new Date().toISOString(),
-    uploadedBy: formData.get('uploadedBy')?.toString() ?? 'Unknown'
+    uploadedBy: formData.get('uploadedBy')?.toString() ?? 'Unknown',
+    storagePath: formData.get('storagePath')?.toString() ?? undefined,
+    url: formData.get('url')?.toString() ?? undefined
   }
 
   return NextResponse.json({ sessionId: params.id, file: uploaded }, { status: 201 })
