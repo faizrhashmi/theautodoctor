@@ -55,6 +55,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Link href="/knowledge-base" className="text-gray-700 transition hover:text-blue-600">
                   Knowledge Base
                 </Link>
+                <Link href="/contact" className="text-gray-700 transition hover:text-blue-600">
+                  Contact
+                </Link>
                 <Link href="/waiver" className="text-gray-700 transition hover:text-blue-600">
                   Waiver
                 </Link>
@@ -120,6 +123,9 @@ function MobileMenu() {
         </Link>
         <Link href="/knowledge-base" className="block px-4 py-2 hover:bg-gray-100">
           Knowledge Base
+        </Link>
+        <Link href="/contact" className="block px-4 py-2 hover:bg-gray-100">
+          Contact
         </Link>
         <Link href="/waiver" className="block px-4 py-2 hover:bg-gray-100">
           Waiver

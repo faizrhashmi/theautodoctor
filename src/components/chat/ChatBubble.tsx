@@ -19,8 +19,10 @@ export default function ChatBubble() {
         className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-blue-600 px-5 py-3 text-white shadow-xl transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
           isOpen && !isMinimized ? 'hidden sm:flex' : ''
         }`}
+        aria-label="Chat with Support"
+        title="Chat with Support"
       >
-        <MessageCircle className="h-5 w-5" />
+        <MessageCircle className="h-5 w-5" aria-hidden="true" />
         <span className="hidden text-sm font-semibold sm:inline">Chat with Support</span>
       </button>
 

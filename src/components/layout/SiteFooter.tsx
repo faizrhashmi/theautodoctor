@@ -9,10 +9,10 @@ const NAV_LINKS = [
   { href: '/waiver', label: 'Waiver' }
 ]
 
-const SOCIAL_LINKS = [
-  { href: '#', label: 'Facebook', Icon: Facebook },
-  { href: '#', label: 'Twitter', Icon: Twitter },
-  { href: '#', label: 'Instagram', Icon: Instagram }
+const SOCIAL_ICONS = [
+  { label: 'Facebook', Icon: Facebook },
+  { label: 'Twitter', Icon: Twitter },
+  { label: 'Instagram', Icon: Instagram }
 ]
 
 export default function SiteFooter() {
@@ -42,15 +42,15 @@ export default function SiteFooter() {
             Follow along as we roll out new features for real-time diagnostics, scheduling and support.
           </p>
           <div className="flex items-center gap-3">
-            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-              <Link
+            {SOCIAL_ICONS.map(({ label, Icon }) => (
+              <span
                 key={label}
-                href={href}
-                aria-label={label}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
+                title={`${label} coming soon`}
+                aria-label={`${label} icon (coming soon)`}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
               >
-                <Icon className="h-5 w-5" />
-              </Link>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
             ))}
           </div>
           <p className="text-[11px] uppercase tracking-[0.25em] text-slate-500">More socials coming soon</p>
