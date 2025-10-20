@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Calendar, Views, dateFnsLocalizer, type SlotInfo, type View } from 'react-big-calendar'
 import { addMinutes, format, parse, startOfWeek, getDay } from 'date-fns'
 import { PRICING, type PlanKey } from '@/config/pricing'
-import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 type SchedulingEvent = {
   id: string
