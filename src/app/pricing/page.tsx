@@ -169,7 +169,7 @@ export default function PricingPage() {
             href="/start"
             className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105"
           >
-            Book Now
+            Sign Up
             <ArrowRight className="w-5 h-5" />
           </Link>
           <p className="mt-6 text-blue-200 text-sm">
