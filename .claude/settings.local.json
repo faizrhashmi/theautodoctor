@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(npm run dev)",
-      "Bash(where stripe)"
+      "Bash(where stripe)",
+      "Bash(git restore src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)",
+      "Bash(git log --all --pretty=format: --name-only --diff-filter=D)",
+      "Bash(git checkout HEAD -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)",
+      "Bash(git checkout 12799f2 -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)",
+      "Bash(git log --all --pretty=format:\"%H %s\" --name-status)",
+      "Bash(git log --all --pretty=format:\"%H\" --diff-filter=A -- src/app/waiver/page.tsx)",
+      "Bash(git checkout 50d2e20 -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)"
     ],
     "deny": [],
     "ask": []
