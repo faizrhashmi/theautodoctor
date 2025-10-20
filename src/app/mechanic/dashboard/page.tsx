@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   CalendarClock,
@@ -12,10 +12,16 @@ import {
   TimerReset
 } from 'lucide-react'
 import SessionSummaryCard from '@/components/session/SessionSummaryCard'
-import type { MechanicAvailabilityBlock, SessionQueueItem, SessionSummary } from '@/types/session'
+import type {
+  MechanicAvailabilityBlock,
+  SessionQueueItem,
+  SessionRequest,
+  SessionSummary,
+} from '@/types/session'
 import { createClient } from '@/lib/supabase'
 import type { MechanicPresencePayload } from '@/types/presence'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
 
 const MOCK_QUEUE: SessionQueueItem[] = [
   {
@@ -70,10 +76,13 @@ const MOCK_HISTORY: SessionSummary[] = [
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
+
 export default function MechanicDashboardPage() {
   const [search, setSearch] = useState('')
   const supabase = useMemo(() => createClient(), [])
   const channelRef = useRef<RealtimeChannel | null>(null)
+  const requestsChannelRef = useRef<RealtimeChannel | null>(null)
   const [mechanicId, setMechanicId] = useState<string | null>(null)
   const [mechanicName, setMechanicName] = useState<string>('Mechanic')
   const [authChecked, setAuthChecked] = useState(false)
@@ -81,6 +90,94 @@ export default function MechanicDashboardPage() {
   const [isOnline, setIsOnline] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
   const [presenceError, setPresenceError] = useState<string | null>(null)
+  const [incomingRequests, setIncomingRequests] = useState<SessionRequest[]>([])
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false)
+  const [requestsError, setRequestsError] = useState<string | null>(null)
+  const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
+
+  const mapRowToRequest = useCallback(
+    (row: SessionRequestRow): SessionRequest => ({
+      id: row.id,
+      customerId: row.customer_id,
+      customerName: row.customer_name ?? 'Customer',
+      customerEmail: row.customer_email ?? undefined,
+      sessionType: row.session_type,
+      planCode: row.plan_code,
+      status: row.status,
+      createdAt: row.created_at,
+      acceptedAt: row.accepted_at ?? undefined,
+      mechanicId: row.mechanic_id ?? undefined,
+    }),
+    []
+  )
+
+  const upsertRequest = useCallback(
+    (row: SessionRequestRow) => {
+      setIncomingRequests((prev) => {
+        if (row.status !== 'pending') {
+          return prev.filter((item) => item.id !== row.id)
+        }
+
+        const mapped = mapRowToRequest(row)
+        const existingIndex = prev.findIndex((item) => item.id === row.id)
+        const next = existingIndex >= 0 ? [...prev] : [...prev, mapped]
+
+        if (existingIndex >= 0) {
+          next[existingIndex] = mapped
+        } else {
+          next[next.length - 1] = mapped
+        }
+
+        return next.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      })
+    },
+    [mapRowToRequest]
+  )
+
+  const removeRequest = useCallback((id: string) => {
+    setIncomingRequests((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  const formatRequestAge = useCallback((iso: string) => {
+    const created = new Date(iso).getTime()
+    const diffMs = Date.now() - created
+
+    if (!Number.isFinite(diffMs) || diffMs < 0) {
+      return 'just now'
+    }
+
+    const minutes = Math.round(diffMs / 60000)
+    if (minutes < 1) return 'just now'
+    if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`
+
+    const hours = Math.round(minutes / 60)
+    if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`
+
+    const days = Math.round(hours / 24)
+    return `${days} day${days === 1 ? '' : 's'} ago`
+  }, [])
+
+  const describePlan = useCallback(
+    (planCode: string, sessionType: SessionRequest['sessionType']) => {
+      switch (planCode) {
+        case 'chat10':
+          return 'Quick Chat (30 min chat)'
+        case 'video15':
+          return 'Standard Video (45 min)'
+        case 'diagnostic':
+          return 'Full Diagnostic (60 min)'
+        default:
+          return sessionType === 'chat'
+            ? 'Chat consultation'
+            : sessionType === 'video'
+            ? 'Video session'
+            : 'Diagnostic session'
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     let active = true
@@ -143,6 +240,14 @@ export default function MechanicDashboardPage() {
       }
       setChannelReady(false)
       setIsOnline(false)
+      if (requestsChannelRef.current) {
+        void requestsChannelRef.current.unsubscribe()
+        supabase.removeChannel(requestsChannelRef.current)
+        requestsChannelRef.current = null
+      }
+      setIncomingRequests([])
+      setIsLoadingRequests(false)
+      setRequestsError(null)
       return
     }
 
@@ -172,6 +277,96 @@ export default function MechanicDashboardPage() {
       setIsOnline(false)
     }
   }, [mechanicId, supabase])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!mechanicId) {
+      return
+    }
+
+    if (requestsChannelRef.current) {
+      void requestsChannelRef.current.unsubscribe()
+      supabase.removeChannel(requestsChannelRef.current)
+      requestsChannelRef.current = null
+    }
+
+    setIsLoadingRequests(true)
+    setRequestsError(null)
+
+    supabase
+      .from('session_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return
+
+        if (error) {
+          console.error('Failed to load session requests', error)
+          setRequestsError('Unable to load incoming requests right now.')
+          setIncomingRequests([])
+        } else if (data) {
+          setIncomingRequests(
+            data
+              .map(mapRowToRequest)
+              .sort(
+                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              )
+          )
+          setRequestsError(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingRequests(false)
+        }
+      })
+
+    const channel = supabase
+      .channel('session_requests_feed', { config: { broadcast: { self: false } } })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_requests' }, (payload) => {
+        const row = payload.new as SessionRequestRow | null
+        if (row) {
+          upsertRequest(row)
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'session_requests' }, (payload) => {
+        const row = payload.new as SessionRequestRow | null
+        if (row) {
+          upsertRequest(row)
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'session_requests' }, (payload) => {
+        const row = payload.old as SessionRequestRow | undefined
+        if (row?.id) {
+          removeRequest(row.id)
+        }
+      })
+      .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
+        const id = typeof payload?.id === 'string' ? payload.id : null
+        if (id) removeRequest(id)
+      })
+      .on('broadcast', { event: 'request_cancelled' }, ({ payload }) => {
+        const id = typeof payload?.id === 'string' ? payload.id : null
+        if (id) removeRequest(id)
+      })
+
+    channel.subscribe((status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setRequestsError('Realtime updates unavailable. Refresh to see new requests.')
+      }
+    })
+
+    requestsChannelRef.current = channel
+
+    return () => {
+      cancelled = true
+      void channel.unsubscribe()
+      supabase.removeChannel(channel)
+      requestsChannelRef.current = null
+    }
+  }, [mechanicId, supabase, mapRowToRequest, removeRequest, upsertRequest])
 
   useEffect(() => {
     if (!isOnline) return
@@ -225,6 +420,47 @@ export default function MechanicDashboardPage() {
       setPresenceError(message)
     } finally {
       setIsToggling(false)
+    }
+  }
+
+  const acceptRequest = async (requestId: string) => {
+    if (!mechanicId) {
+      setRequestsError('Log in as a mechanic to accept requests.')
+      return
+    }
+
+    setAcceptingRequestId(requestId)
+    setRequestsError(null)
+
+    try {
+      const response = await fetch(`/api/mechanics/requests/${requestId}/accept`, {
+        method: 'POST'
+      })
+
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        const message =
+          (payload && typeof payload === 'object' && 'error' in payload && typeof (payload as any).error === 'string'
+            ? (payload as any).error
+            : null) ||
+          (response.status === 409
+            ? 'Another mechanic already accepted this request.'
+            : 'Unable to accept this request right now.')
+        throw new Error(message)
+      }
+
+      if (payload && typeof payload === 'object' && 'request' in payload) {
+        const acceptedId = (payload as { request?: { id?: string } }).request?.id
+        if (acceptedId) {
+          removeRequest(acceptedId)
+        }
+      }
+    } catch (error) {
+      console.error('Accept request failed', error)
+      setRequestsError(error instanceof Error ? error.message : 'Unable to accept this request right now.')
+    } finally {
+      setAcceptingRequestId(null)
     }
   }
 
@@ -304,6 +540,78 @@ export default function MechanicDashboardPage() {
 
       <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
         <section className="space-y-6">
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Incoming Requests</h2>
+              {isLoadingRequests && (
+                <span className="text-xs text-slate-500">Checking for new alerts…</span>
+              )}
+            </div>
+            {requestsError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {requestsError}
+              </div>
+            )}
+            {incomingRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                {isLoadingRequests
+                  ? 'Looking for active customer requests…'
+                  : 'No pending requests at the moment. Stay online to be first in line!'}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {incomingRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{request.customerName}</p>
+                        <p className="text-xs text-slate-500">
+                          {describePlan(request.planCode, request.sessionType)}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Requested {formatRequestAge(request.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            request.sessionType === 'chat'
+                              ? 'bg-blue-100 text-blue-700'
+                              : request.sessionType === 'video'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {request.sessionType === 'chat'
+                            ? 'Quick Chat'
+                            : request.sessionType === 'video'
+                            ? 'Video Call'
+                            : 'Diagnostic'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => acceptRequest(request.id)}
+                          disabled={acceptingRequestId === request.id}
+                          className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                        >
+                          {acceptingRequestId === request.id ? 'Accepting…' : 'Accept Request'}
+                        </button>
+                      </div>
+                    </div>
+                    {request.customerEmail && (
+                      <p className="mt-3 text-xs text-slate-500">
+                        Email: <span className="font-medium text-slate-600">{request.customerEmail}</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-slate-900">Live queue</h2>

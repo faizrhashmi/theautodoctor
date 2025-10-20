@@ -18,6 +18,21 @@ export interface SessionQueueItem extends SessionSummary {
   waitingSince?: string
 }
 
+export type SessionRequestStatus = 'pending' | 'accepted' | 'cancelled'
+
+export interface SessionRequest {
+  id: string
+  customerId: string
+  customerName: string
+  customerEmail?: string
+  sessionType: 'chat' | 'video' | 'diagnostic'
+  planCode: string
+  status: SessionRequestStatus
+  createdAt: string
+  acceptedAt?: string
+  mechanicId?: string
+}
+
 export interface MechanicAvailabilityBlock {
   id: string
   weekday: number

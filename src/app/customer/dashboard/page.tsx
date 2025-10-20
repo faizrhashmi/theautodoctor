@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import Link from 'next/link'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
+import RequestMechanicButton from '@/components/customer/RequestMechanicButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -188,6 +189,21 @@ export default async function CustomerDashboardPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-6">
               <h3 className="mb-4 text-sm font-semibold text-slate-900">Quick Actions</h3>
               <div className="space-y-3">
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
+                      <span className="text-lg">⚡</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">Need help right now?</p>
+                      <p className="text-xs text-slate-600">
+                        Send a real-time alert to our mechanics and start a Quick Chat as soon as someone accepts.
+                      </p>
+                      <RequestMechanicButton className="mt-3" />
+                    </div>
+                  </div>
+                </div>
+
                 <Link
                   href="/pricing"
                   className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 transition hover:bg-slate-50"
