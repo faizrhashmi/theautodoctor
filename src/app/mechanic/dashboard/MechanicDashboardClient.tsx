@@ -224,12 +224,14 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     setIsLoadingRequests(true)
     setRequestsError(null)
 
-    supabase
-      .from('session_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-      .then(({ data, error }) => {
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('session_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true })
+
         if (cancelled || !isMountedRef.current) return
 
         if (error) {
@@ -243,12 +245,12 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
           )
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled && isMountedRef.current) {
           setIsLoadingRequests(false)
         }
-      })
+      }
+    })()
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })

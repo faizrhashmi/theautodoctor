@@ -49,7 +49,7 @@ export default async function CustomerDashboardPage() {
     redirect('/onboarding/pricing')
   }
 
-  const { data: sessionParticipants } = await supabase
+  const { data: sessionParticipants, error: sessionParticipantsError } = await supabase
     .from('session_participants')
     .select(`
       session_id,
@@ -69,8 +69,12 @@ export default async function CustomerDashboardPage() {
     .eq('user_id', user.id)
     .eq('role', 'customer')
 
+  if (sessionParticipantsError) {
+    console.error('Unable to load session participants for dashboard', sessionParticipantsError)
+  }
+
   const sessions = (sessionParticipants ?? [])
-    .map((row) => row.sessions)
+    .map((row: any) => row.sessions)
     .filter(Boolean) as Session[]
 
   const sessionIds = sessions.map((session) => session.id)
@@ -86,7 +90,7 @@ export default async function CustomerDashboardPage() {
       .order('created_at', { ascending: false })
 
     if (!filesError) {
-      fileRows = filesData ?? []
+      fileRows = (filesData ?? []) as SessionFile[]
     } else {
       console.error('Unable to load session files for dashboard', filesError)
     }
@@ -109,7 +113,7 @@ export default async function CustomerDashboardPage() {
       .in('id', relatedProfileIds)
 
     if (!profilesError) {
-      relatedProfiles = profilesData ?? []
+      relatedProfiles = (profilesData ?? []) as Profile[]
     }
   }
 

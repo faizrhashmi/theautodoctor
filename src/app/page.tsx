@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, CalendarClock, CheckCircle2, Shield, Wrench, Gauge, MessageSquare, Video, FileText, Users } from 'lucide-react'
-import { OFFERINGS, VALUE_ADDS } from './services-pricing/page'
+import { OFFERINGS, VALUE_ADDS } from '@/lib/pricing'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
 const SERVICE_PACKAGES = [
