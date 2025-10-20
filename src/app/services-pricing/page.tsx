@@ -3,25 +3,32 @@ import { ArrowRight, CheckCircle2, FileText, Gauge, MessageCircle, Timer } from 
 
 const OFFERINGS = [
   {
-    name: 'Quick Consult',
-    price: '$29',
-    duration: '15 minutes',
-    description: 'Get instant answers, repair triage, and a checklist for your next steps.',
-    features: ['Live messaging + video', 'Digital notes within 30 minutes', 'Optional extension billing']
+    name: 'Free Session',
+    price: '$0',
+    duration: 'Up to 5 minutes',
+    description: 'Sample AskAutoDoctor with a short text-only conversation.',
+    features: ['Chat with a certified mechanic', 'Share one photo or video clip', 'Quick go/no-go advice']
+  },
+  {
+    name: 'Quick Chat',
+    price: '$9.99',
+    duration: '30 minutes',
+    description: 'Fast text triage when you need reassurance or a second opinion.',
+    features: ['Private text workspace', 'Send photos, videos, and scan data', 'Action plan before chat ends']
+  },
+  {
+    name: 'Standard Video',
+    price: '$29.99',
+    duration: '45 minutes',
+    description: 'Live video session to troubleshoot, inspect, and plan next steps.',
+    features: ['HD video & screen sharing', 'Guided inspections & documentation', 'Session recording link']
   },
   {
     name: 'Full Diagnostic',
-    price: '$69',
-    duration: '45 minutes',
-    description: 'Ideal for recurring issues, engine codes, and pre-purchase inspections.',
-    features: ['Guided inspections', 'Parts & tool recommendations', 'HD session recording']
-  },
-  {
-    name: 'Premium Inspection',
-    price: '$119',
-    duration: '75 minutes',
-    description: 'Perfect for complex drivability concerns with multiple follow-ups.',
-    features: ['Extended session time', 'Shared file vault', 'Post-call support for 72h']
+    price: '$49.99',
+    duration: '60 minutes',
+    description: 'Deep dive consultation with written summary and repair roadmap.',
+    features: ['Senior mechanic lead', 'Multiple issues covered in one call', 'Detailed follow-up report']
   }
 ]
 
@@ -67,7 +74,7 @@ export default function ServicesPricingPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <section className="grid gap-6 md:grid-cols-3">
+        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {OFFERINGS.map((offering) => (
             <article key={offering.name} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
               <h2 className="text-xl font-semibold text-white">{offering.name}</h2>

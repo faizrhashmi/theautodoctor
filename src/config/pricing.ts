@@ -4,6 +4,7 @@ export const PLAN_ALIASES: Record<string, PlanKey> = {
   quick: 'chat10',
   standard: 'video15',
   inspection: 'diagnostic',
+  diagnostic: 'diagnostic',
 };
 
 const STRIPE_IDS: Record<PlanKey, string | undefined> = {
@@ -38,38 +39,38 @@ type PlanConfig = {
 
 export const PRICING: Record<PlanKey, PlanConfig> = {
   chat10: {
-    name: 'Quick Chat (10 min)',
+    name: 'Quick Chat (30 min)',
     priceCents: 999,
     stripePriceId: STRIPE_IDS.chat10!,
-    description: 'Private 1:1 text chat with a certified mechanic.',
+    description: 'Text-based consult for fast reassurance and triage.',
     features: [
-      '10 minutes private chat',
-      'Red Seal/ASE certified mechanic',
-      'Unbiased, no upsells',
+      '30 minutes of private chat',
+      'Share photos, videos, and scan data',
+      'Action plan before the chat ends',
     ],
     fulfillment: 'chat',
   },
   video15: {
-    name: 'Live Video (15 min)',
+    name: 'Standard Video (45 min)',
     priceCents: 2999,
     stripePriceId: STRIPE_IDS.video15!,
-    description: 'Face-to-face video consult for faster troubleshooting.',
+    description: 'Live video walkthrough to diagnose complex issues.',
     features: [
-      '15 minutes live video',
-      'Show sounds, leaks, codes live',
-      'Action plan on the spot',
+      '45 minute HD video call',
+      'Screen sharing and guided inspections',
+      'Recording link after the session',
     ],
     fulfillment: 'video',
   },
   diagnostic: {
-    name: 'Diagnostic Session',
+    name: 'Full Diagnostic (60 min)',
     priceCents: 4999,
     stripePriceId: STRIPE_IDS.diagnostic!,
-    description: 'Deeper diagnostic + summary and next steps.',
+    description: 'Comprehensive diagnostic session with written summary.',
     features: [
-      'Structured diagnostic flow',
-      'Follow-up summary',
-      'Repair readiness checklist',
+      '60 minute deep-dive with a senior mechanic',
+      'Multi-system troubleshooting in one visit',
+      'Detailed follow-up report with next steps',
     ],
     fulfillment: 'diagnostic',
   },

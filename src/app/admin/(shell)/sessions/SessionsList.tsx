@@ -206,9 +206,9 @@ function SessionCard({
   }
 
   const planNames: Record<string, string> = {
-    chat10: 'Quick Chat',
-    video15: 'Video Call',
-    diagnostic: 'Diagnostic',
+    chat10: 'Quick Chat (30 min chat)',
+    video15: 'Standard Video (45 min)',
+    diagnostic: 'Full Diagnostic (60 min)',
   }
 
   const planLabel = planNames[session.plan] || session.plan

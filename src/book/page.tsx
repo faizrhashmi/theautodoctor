@@ -3,9 +3,9 @@
 import { useState } from 'react';
 
 const SERVICE_OPTIONS = [
-  { id: 'quick', label: 'Quick Chat (10 min)', priceCents: 999 },
-  { id: 'standard', label: 'Live Video (15 min)', priceCents: 2999 },
-  { id: 'inspection', label: 'Diagnostic Session', priceCents: 4999 },
+  { id: 'quick', label: 'Quick Chat (30 min)', priceCents: 999 },
+  { id: 'standard', label: 'Standard Video (45 min)', priceCents: 2999 },
+  { id: 'diagnostic', label: 'Full Diagnostic (60 min)', priceCents: 4999 },
 ];
 
 const formatAmount = (cents: number) =>

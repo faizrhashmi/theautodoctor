@@ -26,24 +26,31 @@ type LiveAvailability = {
 const PLAN_OPTIONS: PlanOption[] = [
   {
     id: "quick",
-    name: "Quick Triage (15 min)",
-    price: "$35",
-    description: "Fast guidance for warning lights and simple issues.",
-    perks: ["Live video with certified mechanic", "Action plan & next steps", "Recording sent afterwards"],
+    name: "Quick Chat (30 min)",
+    price: "$9.99",
+    description: "Text-only consult for fast reassurance or second opinions.",
+    perks: ["Private chat workspace", "Share photos and scan data", "Action plan before chat ends"],
   },
   {
     id: "standard",
-    name: "Standard Consultation (30 min)",
-    price: "$59",
-    description: "Deep dive diagnostics and repair estimates.",
-    perks: ["Pre-appointment review of your notes", "Live video with screen share", "Written summary & repair plan"],
+    name: "Standard Video (45 min)",
+    price: "$29.99",
+    description: "Live video walkthrough with a certified mechanic.",
+    perks: ["HD video + screen sharing", "Guided inspection checklist", "Session recording included"],
   },
   {
-    id: "inspection",
-    name: "Remote Inspection (45 min)",
-    price: "$89",
-    description: "Pre-purchase or remote inspection with documentation.",
-    perks: ["Live inspection checklist", "Documentation you can share or print", "Follow-up questions included"],
+    id: "diagnostic",
+    name: "Full Diagnostic (60 min)",
+    price: "$49.99",
+    description: "Deep dive session with written diagnostic roadmap.",
+    perks: ["Senior mechanic lead", "Covers multiple systems", "Detailed follow-up summary"],
+  },
+  {
+    id: "free",
+    name: "Free Session (5 min chat)",
+    price: "$0",
+    description: "Introductory chat to sample AskAutoDoctor.",
+    perks: ["Text chat only", "Share one photo or clip", "Quick go/no-go advice"],
   },
 ];
 
@@ -198,6 +205,10 @@ export default function OnboardingFlow({
       setSelectedDate(null);
       setSelectedTime(null);
       setAppointmentConfirmed(false);
+      if (option.id === "free") {
+        router.push('/customer/dashboard');
+        return;
+      }
     } catch (err: any) {
       setPlanError(err?.message || "Unable to save your plan. Please try again.");
     } finally {
@@ -366,7 +377,7 @@ export default function OnboardingFlow({
                     Update details
                   </button>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {PLAN_OPTIONS.map((option) => (
                     <button
                       key={option.id}
