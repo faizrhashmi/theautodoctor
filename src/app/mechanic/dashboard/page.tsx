@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   CalendarClock,
@@ -13,6 +13,9 @@ import {
 } from 'lucide-react'
 import SessionSummaryCard from '@/components/session/SessionSummaryCard'
 import type { MechanicAvailabilityBlock, SessionQueueItem, SessionSummary } from '@/types/session'
+import { createClient } from '@/lib/supabase'
+import type { MechanicPresencePayload } from '@/types/presence'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const MOCK_QUEUE: SessionQueueItem[] = [
   {
@@ -69,6 +72,161 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 
 export default function MechanicDashboardPage() {
   const [search, setSearch] = useState('')
+  const supabase = useMemo(() => createClient(), [])
+  const channelRef = useRef<RealtimeChannel | null>(null)
+  const [mechanicId, setMechanicId] = useState<string | null>(null)
+  const [mechanicName, setMechanicName] = useState<string>('Mechanic')
+  const [authChecked, setAuthChecked] = useState(false)
+  const [channelReady, setChannelReady] = useState(false)
+  const [isOnline, setIsOnline] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
+  const [presenceError, setPresenceError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadMechanic() {
+      try {
+        const {
+          data: { user },
+          error
+        } = await supabase.auth.getUser()
+
+        if (!active) return
+
+        if (error) {
+          if (error.message === 'Auth session missing') {
+            setPresenceError('Log in to broadcast your availability to customers.')
+          } else {
+            setPresenceError('Unable to verify your mechanic session right now.')
+          }
+          return
+        }
+
+        if (user?.user_metadata?.role === 'mechanic') {
+          setMechanicId(user.id)
+          setMechanicName(
+            user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
+              user.email ||
+              'Mechanic'
+          )
+          setPresenceError(null)
+        } else if (user) {
+          setPresenceError('Presence tracking is limited to mechanic accounts.')
+        } else {
+          setPresenceError('Log in to broadcast your availability to customers.')
+        }
+      } catch (error) {
+        if (!active) return
+        setPresenceError('Unable to verify your mechanic session right now.')
+      } finally {
+        if (active) {
+          setAuthChecked(true)
+        }
+      }
+    }
+
+    loadMechanic()
+
+    return () => {
+      active = false
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    if (!mechanicId) {
+      if (channelRef.current) {
+        channelRef.current.untrack()
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+      setChannelReady(false)
+      setIsOnline(false)
+      return
+    }
+
+    const channel = supabase.channel('online_mechanics', {
+      config: { presence: { key: mechanicId } }
+    })
+
+    channelRef.current = channel
+    setPresenceError(null)
+    setChannelReady(false)
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        setChannelReady(true)
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setPresenceError('Unable to connect to realtime presence. Please refresh and try again.')
+        setChannelReady(false)
+        setIsOnline(false)
+      }
+    })
+
+    return () => {
+      channel.untrack()
+      supabase.removeChannel(channel)
+      channelRef.current = null
+      setChannelReady(false)
+      setIsOnline(false)
+    }
+  }, [mechanicId, supabase])
+
+  useEffect(() => {
+    if (!isOnline) return
+
+    const handleBeforeUnload = () => {
+      channelRef.current?.untrack()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [isOnline])
+
+  const toggleOnlineStatus = async () => {
+    if (!mechanicId) {
+      setPresenceError('Log in to manage your availability.')
+      return
+    }
+
+    const channel = channelRef.current
+
+    if (!channel || !channelReady) {
+      setPresenceError('Connecting to realtime presence… please try again in a moment.')
+      return
+    }
+
+    setIsToggling(true)
+    setPresenceError(null)
+
+    try {
+      if (isOnline) {
+        const { error } = await channel.untrack()
+        if (error) throw error
+        setIsOnline(false)
+      } else {
+        const payload: MechanicPresencePayload = {
+          user_id: mechanicId,
+          status: 'online',
+          name: mechanicName
+        }
+        const { error } = await channel.track(payload)
+        if (error) throw error
+        setIsOnline(true)
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Something went wrong while updating your availability.'
+      setPresenceError(message)
+    } finally {
+      setIsToggling(false)
+    }
+  }
 
   const filteredQueue = useMemo(() => {
     return MOCK_QUEUE.filter((item) => item.customerName.toLowerCase().includes(search.toLowerCase()))
@@ -82,7 +240,51 @@ export default function MechanicDashboardPage() {
           <h1 className="text-3xl font-bold text-slate-900">Session Queue & Schedule</h1>
           <p className="text-sm text-slate-500">Stay on top of your live calls, upcoming bookings, and availability.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-stretch gap-3 sm:items-end">
+          <div
+            className={`flex flex-col items-stretch gap-2 rounded-3xl border px-4 py-3 text-sm shadow-sm sm:flex-row sm:items-center ${
+              isOnline
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-slate-200 bg-white text-slate-700'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  isOnline ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.2)]' : 'bg-slate-300'
+                }`}
+              />
+              <span className="font-semibold">
+                {isOnline ? 'You are visible to customers' : 'You are currently offline'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleOnlineStatus}
+              disabled={isToggling || !channelReady || !mechanicId}
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition ${
+                isOnline
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400'
+              }`}
+            >
+              {isToggling
+                ? 'Updating…'
+                : isOnline
+                ? 'Go offline'
+                : mechanicId
+                ? channelReady
+                  ? 'Go online'
+                  : 'Connecting…'
+                : 'Log in first'}
+            </button>
+          </div>
+          {!authChecked && (
+            <p className="text-xs text-slate-500">Checking your mechanic credentials…</p>
+          )}
+          {presenceError && (
+            <p className="text-xs font-medium text-rose-600">{presenceError}</p>
+          )}
           <Link
             href="/mechanic/availability"
             className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"

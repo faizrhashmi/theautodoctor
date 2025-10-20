@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight, CalendarClock, CheckCircle2, Shield, Wrench, Gauge, MessageSquare, Video, FileText, Users } from 'lucide-react'
+import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
 const SERVICE_PACKAGES = [
   {
@@ -83,6 +84,12 @@ export default function Home() {
                 Explore the process
               </Link>
             </div>
+            <MechanicPresenceIndicator
+              variant="dark"
+              className="max-w-fit"
+              zeroText="Our mechanics are offline right now—leave your details and we'll notify you."
+              loadingText="Checking which mechanics are live…"
+            />
             <div className="grid gap-4 text-sm text-slate-300 sm:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
                 <p className="text-2xl font-bold text-white">500+</p>
