@@ -153,9 +153,21 @@ export type Database = {
           stripe_session_id: string
           intake_id: string | null
           customer_user_id: string | null
+          mechanic_id: string | null
           metadata: Json
           scheduled_start: string | null
           scheduled_end: string | null
+          scheduled_for: string | null
+          started_at: string | null
+          ended_at: string | null
+          duration_minutes: number | null
+          waiver_accepted: boolean | null
+          waiver_accepted_at: string | null
+          waiver_ip_address: string | null
+          vehicle_info: Json | null
+          session_notes: string | null
+          rating: number | null
+          review: string | null
         }
         Insert: {
           id?: string
@@ -167,9 +179,21 @@ export type Database = {
           stripe_session_id: string
           intake_id?: string | null
           customer_user_id?: string | null
+          mechanic_id?: string | null
           metadata?: Json
           scheduled_start?: string | null
           scheduled_end?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          ended_at?: string | null
+          duration_minutes?: number | null
+          waiver_accepted?: boolean | null
+          waiver_accepted_at?: string | null
+          waiver_ip_address?: string | null
+          vehicle_info?: Json | null
+          session_notes?: string | null
+          rating?: number | null
+          review?: string | null
         }
         Update: {
           id?: string
@@ -181,9 +205,21 @@ export type Database = {
           stripe_session_id?: string
           intake_id?: string | null
           customer_user_id?: string | null
+          mechanic_id?: string | null
           metadata?: Json
           scheduled_start?: string | null
           scheduled_end?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          ended_at?: string | null
+          duration_minutes?: number | null
+          waiver_accepted?: boolean | null
+          waiver_accepted_at?: string | null
+          waiver_ip_address?: string | null
+          vehicle_info?: Json | null
+          session_notes?: string | null
+          rating?: number | null
+          review?: string | null
         }
         Relationships: []
       }
@@ -331,6 +367,46 @@ export type Database = {
           password_hash?: string
         }
         Relationships: []
+      }
+      mechanic_availability: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          mechanic_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          is_available: boolean | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          mechanic_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          is_available?: boolean | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          mechanic_id?: string
+          day_of_week?: number
+          start_time?: string
+          end_time?: string
+          is_available?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'mechanic_availability_mechanic_id_fkey'
+            columns: ['mechanic_id']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
       }
       mechanic_sessions: {
         Row: {
