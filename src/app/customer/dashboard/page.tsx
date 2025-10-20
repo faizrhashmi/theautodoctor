@@ -18,9 +18,13 @@ export default async function CustomerDashboardPage() {
   // Get profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, phone, vehicle_info, email_verified')
+    .select('full_name, phone, vehicle_info, email_verified, preferred_plan')
     .eq('id', user.id)
     .single()
+
+  if (user.email_confirmed_at && !profile?.preferred_plan) {
+    redirect('/onboarding/pricing')
+  }
 
   // Get user's sessions (chat/video)
   const { data: sessionParticipants } = await supabase
@@ -145,7 +149,11 @@ export default async function CustomerDashboardPage() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-slate-900">
-                            {session.plan === 'chat10' ? 'Quick Chat' : session.plan === 'video15' ? 'Video Call' : 'Diagnostic'}
+                            {session.plan === 'chat10'
+                              ? 'Quick Chat (30 min chat)'
+                              : session.plan === 'video15'
+                              ? 'Standard Video (45 min)'
+                              : 'Full Diagnostic (60 min)'}
                           </p>
                           <p className="text-xs text-slate-500">
                             {new Date(session.created_at).toLocaleDateString()}
@@ -241,7 +249,12 @@ export default async function CustomerDashboardPage() {
 function SessionCard({ session }: { session: any }) {
   const route = session.type === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`
   const typeColor = session.type === 'chat' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-  const planName = session.plan === 'chat10' ? 'Quick Chat (10 min)' : session.plan === 'video15' ? 'Live Video (15 min)' : 'Diagnostic Session'
+  const planName =
+    session.plan === 'chat10'
+      ? 'Quick Chat (30 min chat)'
+      : session.plan === 'video15'
+      ? 'Standard Video (45 min)'
+      : 'Full Diagnostic (60 min)'
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

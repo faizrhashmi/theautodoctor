@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import SignupGate from './SignupGate';
 import OnboardingFlow from './OnboardingFlow';
 import { getSupabaseServer } from '@/lib/supabaseServer';
@@ -81,6 +82,14 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     .select('preferred_plan, last_selected_slot, full_name, phone, vehicle_hint')
     .eq('id', user.id)
     .maybeSingle();
+
+  if (!profile?.preferred_plan) {
+    redirect('/onboarding/pricing');
+  }
+
+  if (profile.preferred_plan === 'free') {
+    redirect('/customer/dashboard');
+  }
 
   return (
     <OnboardingFlow

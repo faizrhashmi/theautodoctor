@@ -45,9 +45,10 @@ const STATUS_OPTIONS: Intake['status'][] = [
 
 const PLAN_OPTIONS = [
   { value: '', label: 'All plans' },
-  { value: 'quick', label: 'Quick Triage (15m)' },
-  { value: 'standard', label: 'Standard (30m)' },
-  { value: 'inspection', label: 'Remote Inspection' },
+  { value: 'free', label: 'Free Session (5m chat)' },
+  { value: 'quick', label: 'Quick Chat (30m chat)' },
+  { value: 'standard', label: 'Standard Video (45m)' },
+  { value: 'diagnostic', label: 'Full Diagnostic (60m)' },
   { value: 'membership', label: 'Membership' },
 ];
 

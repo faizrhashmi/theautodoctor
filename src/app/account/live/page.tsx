@@ -14,6 +14,16 @@ export default async function LiveSupportPage() {
     redirect('/signup')
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('preferred_plan')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (user.email_confirmed_at && !profile?.preferred_plan) {
+    redirect('/onboarding/pricing')
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-4xl px-4 py-12">
