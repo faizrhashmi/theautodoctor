@@ -13,6 +13,7 @@ export default function AuthConfirmPage() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const next = searchParams.get("next");
 
     async function exchange() {
       if (!code) {
@@ -44,8 +45,10 @@ export default function AuthConfirmPage() {
       }).catch(() => {});
 
       setStatus("success");
-      setMessage("Email confirmed! Redirecting you to finish booking...");
-      setTimeout(() => router.replace("/start"), 1200);
+      setMessage("Email confirmed! Redirecting you to choose your package...");
+      setTimeout(() => {
+        router.replace(next ?? "/signup");
+      }, 1200);
     }
 
     exchange();

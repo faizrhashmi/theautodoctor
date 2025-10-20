@@ -76,10 +76,10 @@ export default function VerifyEmailPage() {
           </div>
 
           <Link
-            href="/customer/login"
+            href="/signup"
             className="block rounded-lg bg-blue-600 px-4 py-3 text-center font-semibold text-white transition hover:bg-blue-700"
           >
-            Go to Login
+            Go to unified signup
           </Link>
         </div>
       </div>

@@ -28,11 +28,11 @@ export default async function ThankYou({ searchParams }: { searchParams: { sessi
 
       <div className="mt-6 flex justify-center gap-3">
         {sessionId ? (
-          <Link href={`/start?session_id=${encodeURIComponent(sessionId)}`} className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700">
+          <Link href={`/signup?session_id=${encodeURIComponent(sessionId)}`} className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700">
             Start session now
           </Link>
         ) : (
-          <Link href="/start" className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700">Start now</Link>
+          <Link href="/signup" className="rounded-xl bg-emerald-600 px-5 py-2.5 font-semibold text-white hover:bg-emerald-700">Start now</Link>
         )}
         <Link href="/" className="rounded-xl border px-5 py-2.5 font-semibold text-slate-700 hover:bg-slate-50">Back home</Link>
       </div>

@@ -80,7 +80,7 @@ export default function ServicesPricingPage() {
                 ))}
               </ul>
               <Link
-                href="/start"
+                href="/signup"
                 className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
               >
                 Book now

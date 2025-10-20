@@ -35,7 +35,11 @@ function isAdult(value: string): boolean {
   return age >= 18;
 }
 
-export default function SignupGate() {
+interface SignupGateProps {
+  redirectTo?: string | null;
+}
+
+export default function SignupGate({ redirectTo }: SignupGateProps) {
   const router = useRouter();
   const supabase = createClient();
   const [mode, setMode] = useState<Mode>("signup");
@@ -49,7 +53,17 @@ export default function SignupGate() {
   const [error, setError] = useState<string | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-  const redirectURL = `${origin}/auth/confirm`;
+  const redirectURL = useMemo(() => {
+    try {
+      const url = new URL("/auth/confirm", origin);
+      if (redirectTo) {
+        url.searchParams.set("next", redirectTo);
+      }
+      return url.toString();
+    } catch (error) {
+      return `${origin}/auth/confirm`;
+    }
+  }, [origin, redirectTo]);
 
   const formIsValid = useMemo(() => {
     if (!form.fullName.trim()) return false;
@@ -58,20 +72,6 @@ export default function SignupGate() {
     if (!form.consent) return false;
     return true;
   }, [form]);
-
-  async function upsertProfile(plan?: string | null) {
-    await fetch("/api/customer/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        plan: plan ?? null,
-        fullName: form.fullName.trim() || null,
-        phone: form.phone.trim() || null,
-        vehicle: form.vehicle.trim() || null,
-        dateOfBirth: form.dateOfBirth || null,
-      }),
-    }).catch(() => {});
-  }
 
   useEffect(() => {
     setError(null);
@@ -120,7 +120,7 @@ export default function SignupGate() {
     setError(null);
     setMessage(null);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -131,17 +131,28 @@ export default function SignupGate() {
       return;
     }
 
-    await upsertProfile();
-    router.refresh();
+    if (data?.user && !data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setError("Please confirm your email before logging in.");
+      setLoading(false);
+      return;
+    }
+
+    if (redirectTo) {
+      router.replace(redirectTo);
+    } else {
+      router.replace("/signup");
+    }
+    setLoading(false);
   }
 
-  async function handleGoogle() {
+  async function handleOAuth(provider: "google" | "facebook" | "apple") {
     setError(null);
     setMessage(null);
     setLoading(true);
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: { redirectTo: redirectURL },
     });
 
@@ -150,6 +161,12 @@ export default function SignupGate() {
       setLoading(false);
     }
   }
+
+  const oauthButtons: Array<{ id: "google" | "facebook" | "apple"; label: string }> = [
+    { id: "google", label: "Continue with Google" },
+    { id: "facebook", label: "Continue with Facebook" },
+    { id: "apple", label: "Continue with Apple" },
+  ];
 
   async function handlePublicAvailability() {
     setCheckingAvailability(true);
@@ -286,13 +303,16 @@ export default function SignupGate() {
       </form>
 
       <div className="mt-4 space-y-3">
-        <button
-          onClick={handleGoogle}
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-        >
-          <span>Continue with Google</span>
-        </button>
+        {oauthButtons.map((button) => (
+          <button
+            key={button.id}
+            onClick={() => handleOAuth(button.id)}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          >
+            <span>{button.label}</span>
+          </button>
+        ))}
         <button
           onClick={handlePublicAvailability}
           disabled={checkingAvailability}

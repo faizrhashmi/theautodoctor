@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   Mechanics
                 </Link>
                 <Link
-                  href="/start"
+                  href="/signup"
                   className="ml-2 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-blue-700"
                 >
                   🚗 Sign Up
@@ -128,7 +128,7 @@ function MobileMenu() {
           Mechanics
         </Link>
         <div className="my-2 border-t" />
-        <Link href="/start" className="block px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50">
+        <Link href="/signup" className="block px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50">
           🚗 Book Now
         </Link>
       </div>

@@ -24,7 +24,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
   }
 
   if (!user) {
-    redirect(`/start?redirect=/chat/${sessionId}`)
+    redirect(`/signup?redirect=/chat/${sessionId}`)
   }
 
   const { data: session, error: sessionError } = await supabase
