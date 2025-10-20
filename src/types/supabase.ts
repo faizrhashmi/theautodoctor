@@ -16,6 +16,48 @@ export type SessionParticipantRole = 'customer' | 'mechanic'
 export type Database = {
   public: {
     Tables: {
+      contact_requests: {
+        Row: {
+          id: string
+          created_at: string
+          name: string
+          email: string
+          reason: string
+          subject: string
+          message: string
+          attachment_path: string | null
+          attachment_url: string | null
+          status: string
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          name: string
+          email: string
+          reason: string
+          subject: string
+          message: string
+          attachment_path?: string | null
+          attachment_url?: string | null
+          status?: string
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          name?: string
+          email?: string
+          reason?: string
+          subject?: string
+          message?: string
+          attachment_path?: string | null
+          attachment_url?: string | null
+          status?: string
+          metadata?: Json
+        }
+        Relationships: []
+      }
       intakes: {
         Row: {
           id: string

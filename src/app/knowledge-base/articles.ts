@@ -4,12 +4,24 @@ export type KnowledgeBaseArticle = {
   description: string
   category: 'Guides' | 'Account' | 'Sessions'
   readingTime: string
+  author: string
+  publishedAt: string
+  updatedAt?: string
+  heroImage?: {
+    src: string
+    alt: string
+    credit?: string
+  }
   sections: Array<{
     heading: string
     body: string[]
     list?: string[]
   }>
   takeaways: string[]
+  resources?: Array<{
+    label: string
+    href: string
+  }>
 }
 
 export const KNOWLEDGE_BASE_ARTICLES: KnowledgeBaseArticle[] = [
@@ -20,6 +32,14 @@ export const KNOWLEDGE_BASE_ARTICLES: KnowledgeBaseArticle[] = [
       'Make the most of your time with a mechanic by gathering the right info, capturing the best visuals and testing before the call.',
     category: 'Guides',
     readingTime: '6 min read',
+    author: 'AskAutoDoctor Support Team',
+    publishedAt: '2024-10-12',
+    updatedAt: '2025-02-01',
+    heroImage: {
+      src: '/hero-bg.jpg',
+      alt: 'Customer preparing their vehicle for a virtual diagnostic session',
+      credit: 'Photo by AskAutoDoctor crew'
+    },
     sections: [
       {
         heading: '1. Capture What You Hear, See or Smell',
@@ -57,7 +77,8 @@ export const KNOWLEDGE_BASE_ARTICLES: KnowledgeBaseArticle[] = [
         heading: '5. Share Files Ahead of Time',
         body: [
           'Upload photos, PDFs or scanner reports in your dashboard before the session. Your mechanic reviews everything in advance so you can dive straight into next steps instead of searching for files live.'
-        ]
+        ],
+        list: ['Upload files to your AskAutoDoctor dashboard', 'Label each file with the system or symptom it covers', 'Bring any outstanding questions you want answered live']
       }
     ],
     takeaways: [
@@ -65,6 +86,10 @@ export const KNOWLEDGE_BASE_ARTICLES: KnowledgeBaseArticle[] = [
       'Keep maintenance history close so nothing gets missed.',
       'Test and prep your space to avoid troubleshooting delays.',
       'Upload files early so your mechanic can hit the ground running.'
+    ],
+    resources: [
+      { label: 'Booking checklist', href: '/how-it-works' },
+      { label: 'Upload files in your dashboard', href: '/dashboard' }
     ]
   }
 ]
