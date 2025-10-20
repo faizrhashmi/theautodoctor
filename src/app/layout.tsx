@@ -10,6 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Inter } from 'next/font/google';
 import ChatBubble from '@/components/chat/ChatBubble';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -51,6 +52,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <Link href="/services-pricing" className="text-gray-700 transition hover:text-blue-600">
                   Services & Pricing
                 </Link>
+                <Link href="/knowledge-base" className="text-gray-700 transition hover:text-blue-600">
+                  Knowledge Base
+                </Link>
                 <Link href="/waiver" className="text-gray-700 transition hover:text-blue-600">
                   Waiver
                 </Link>
@@ -78,6 +82,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         {/* Push content below the fixed header */}
         <main className="pt-16">{children}</main>
+        <SiteFooter />
         <ChatBubble />
       </body>
     </html>
@@ -112,6 +117,9 @@ function MobileMenu() {
         </Link>
         <Link href="/services-pricing" className="block px-4 py-2 hover:bg-gray-100">
           Services & Pricing
+        </Link>
+        <Link href="/knowledge-base" className="block px-4 py-2 hover:bg-gray-100">
+          Knowledge Base
         </Link>
         <Link href="/waiver" className="block px-4 py-2 hover:bg-gray-100">
           Waiver
