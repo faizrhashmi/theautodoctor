@@ -21,7 +21,7 @@ export default function ChatBubble() {
         }`}
       >
         <MessageCircle className="h-5 w-5" />
-        <span className="hidden text-sm font-semibold sm:inline">Chat with us</span>
+        <span className="hidden text-sm font-semibold sm:inline">Chat with Support</span>
       </button>
 
       <FloatingChatPopup
