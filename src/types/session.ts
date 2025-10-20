@@ -47,6 +47,8 @@ export interface SessionFile {
   fileSize: number
   uploadedAt: string
   uploadedBy: string
+  url?: string
+  storagePath?: string
 }
 
 export interface SessionExtensionRequest {

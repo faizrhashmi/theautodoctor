@@ -1,21 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
-import { AccessToken } from "livekit-server-sdk";
+import { NextRequest, NextResponse } from 'next/server'
+import { AccessToken } from 'livekit-server-sdk'
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const identity = url.searchParams.get("identity") || "guest";
-  const roomName = url.searchParams.get("room") || `aad-${Date.now()}`;
+interface TokenRequestPayload {
+  room?: string | null
+  identity?: string | null
+  metadata?: string | null
+}
 
-  const apiKey = process.env.LIVEKIT_API_KEY!;
-  const apiSecret = process.env.LIVEKIT_API_SECRET!;
+function missingEnv() {
+  return !process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.LIVEKIT_URL
+}
 
-  if (!apiKey || !apiSecret) {
-    return NextResponse.json({ error: "LiveKit env not set" }, { status: 500 });
+async function buildTokenResponse(room: string | null, identity: string | null, metadata?: string | null) {
+  if (!room || !identity) {
+    return NextResponse.json({ error: 'room and identity are required' }, { status: 400 })
   }
 
-  const at = new AccessToken(apiKey, apiSecret, { identity });
-  at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
-  const token = await at.toJwt();
+  if (missingEnv()) {
+    return NextResponse.json({ error: 'LiveKit server credentials are not configured' }, { status: 500 })
+  }
 
-  return NextResponse.json({ token, room: roomName });
+  const accessToken = new AccessToken(process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!, {
+    identity,
+    metadata: metadata ?? undefined,
+  })
+
+  accessToken.addGrant({
+    room,
+    roomJoin: true,
+    canPublish: true,
+    canSubscribe: true,
+    canPublishData: true,
+  })
+
+  const token = await accessToken.toJwt()
+
+  return NextResponse.json({ token, room, serverUrl: process.env.LIVEKIT_URL })
+}
+
+export async function POST(req: NextRequest) {
+  const payload: TokenRequestPayload = await req.json().catch(() => ({}))
+  return buildTokenResponse(payload.room ?? null, payload.identity ?? null, payload.metadata ?? null)
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const room = searchParams.get('room')
+  const identity = searchParams.get('identity')
+  const metadata = searchParams.get('metadata')
+  return buildTokenResponse(room, identity, metadata)
 }
