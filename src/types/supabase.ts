@@ -187,6 +187,70 @@ export type Database = {
         }
         Relationships: []
       }
+      session_requests: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          customer_id: string
+          mechanic_id: string | null
+          session_type: SessionType
+          plan_code: string
+          status: 'pending' | 'accepted' | 'cancelled'
+          customer_name: string | null
+          customer_email: string | null
+          notes: string | null
+          accepted_at: string | null
+          notification_sent_at: string | null
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          customer_id: string
+          mechanic_id?: string | null
+          session_type: SessionType
+          plan_code: string
+          status?: 'pending' | 'accepted' | 'cancelled'
+          customer_name?: string | null
+          customer_email?: string | null
+          notes?: string | null
+          accepted_at?: string | null
+          notification_sent_at?: string | null
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          customer_id?: string
+          mechanic_id?: string | null
+          session_type?: SessionType
+          plan_code?: string
+          status?: 'pending' | 'accepted' | 'cancelled'
+          customer_name?: string | null
+          customer_email?: string | null
+          notes?: string | null
+          accepted_at?: string | null
+          notification_sent_at?: string | null
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'session_requests_customer_id_fkey'
+            columns: ['customer_id']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'session_requests_mechanic_id_fkey'
+            columns: ['mechanic_id']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       session_participants: {
         Row: {
           id: string
