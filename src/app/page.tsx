@@ -1,206 +1,168 @@
 import Link from 'next/link'
-import {
-  Car,
-  Shield,
-  Clock,
-  Award,
-  Star,
-  CheckCircle2,
-  ArrowRight,
-  MessageCircle,
-  Video,
-  Phone
-} from 'lucide-react'
-import ProcessSteps from '@/components/ui/ProcessSteps'
-import ServiceCards from '@/components/ui/ServiceCards'
+import { ArrowRight, CalendarClock, CheckCircle2, Shield, Wrench, Gauge, MessageSquare, Video, FileText, Users } from 'lucide-react'
+
+const SERVICE_PACKAGES = [
+  {
+    title: 'Rapid Video Diagnostics',
+    price: '$49',
+    duration: '30 minutes',
+    description: 'Ideal for light diagnostics, maintenance questions, and quick inspections.',
+    highlights: ['Live HD video call', 'Mechanic summary email', 'Follow-up chat access']
+  },
+  {
+    title: 'Deep Dive Inspection',
+    price: '$89',
+    duration: '60 minutes',
+    description: 'Perfect for complex issues, code scans, and pre-purchase checks.',
+    highlights: ['Step-by-step repair plan', 'Parts and tool list', 'Priority booking']
+  },
+  {
+    title: 'Shop Support Retainer',
+    price: '$199',
+    duration: 'Monthly',
+    description: 'For independent shops needing expert backup on-demand.',
+    highlights: ['Unlimited quick chats', 'Shared file vault', 'Dedicated mechanic team']
+  }
+]
+
+const PROCESS_STEPS = [
+  {
+    title: 'Book & share vehicle details',
+    description: 'Select a time, describe the issue, and upload any photos or diagnostics.',
+    icon: CalendarClock
+  },
+  {
+    title: 'Join the virtual service bay',
+    description: 'Connect with a certified Red Seal mechanic inside our HD video workspace.',
+    icon: Video
+  },
+  {
+    title: 'Get actionable next steps',
+    description: 'Receive a written summary, recommended repairs, and parts list in minutes.',
+    icon: FileText
+  }
+]
+
+const TRUST_POINTS = [
+  { title: 'Red Seal Certified', description: 'All AskAutoDoctor mechanics are licensed across Canada.', icon: Shield },
+  { title: 'Supabase Security', description: 'Secure login, file storage, and session management powered by Supabase.', icon: CheckCircle2 },
+  { title: 'LiveKit HD Sessions', description: 'Crystal-clear video and audio with integrated timers and extensions.', icon: Video }
+]
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }} />
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.4),_transparent_60%)]" />
         </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Hero content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 bg-blue-800/50 backdrop-blur-sm px-4 py-2 rounded-full border border-blue-400/30">
-                <Award className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm font-medium">Certified Red Seal Mechanics</span>
-              </div>
-
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                Expert Auto Help,
-                <span className="block text-blue-300">Right From Your Driveway</span>
-              </h1>
-
-              <p className="text-xl text-blue-100 leading-relaxed">
-                Connect instantly with certified mechanics through text, video, or comprehensive diagnostic sessions. Get professional automotive advice without leaving home.
-              </p>
-
-              {/* Trust indicators */}
-              <div className="flex flex-wrap items-center gap-6 pt-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="w-10 h-10 rounded-full bg-blue-700 border-2 border-white flex items-center justify-center text-sm font-bold">
-                        {i === 1 ? '👨‍🔧' : i === 2 ? '👩‍🔧' : i === 3 ? '🧑‍🔧' : '👨‍🔧'}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-sm">
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <p className="text-blue-200">500+ sessions completed</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link
-                  href="/start"
-                  className="group bg-white text-blue-900 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
-                >
-                  Book a Session
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  href="/how-it-works"
-                  className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-                >
-                  How It Works
-                </Link>
-              </div>
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-12 px-4 py-24 sm:px-6 lg:px-8 lg:flex-row lg:items-center">
+          <div className="flex-1 space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-200">
+              <Shield className="h-4 w-4" /> Certified Virtual Garage
             </div>
-
-            {/* Right: Visual elements */}
-            <div className="relative hidden lg:block">
-              <div className="relative">
-                {/* Floating cards */}
-                <div className="absolute -top-4 -right-4 bg-white text-gray-900 p-4 rounded-xl shadow-2xl animate-bounce" style={{ animationDuration: '3s' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-green-100 p-3 rounded-lg">
-                      <CheckCircle2 className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold">Fast Response</p>
-                      <p className="text-sm text-gray-600">Average 5 min wait</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute -bottom-8 -left-4 bg-white text-gray-900 p-4 rounded-xl shadow-2xl" style={{ animation: 'bounce 3s infinite 1.5s' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 p-3 rounded-lg">
-                      <Shield className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold">100% Certified</p>
-                      <p className="text-sm text-gray-600">Red Seal licensed</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Main illustration placeholder */}
-                <div className="bg-blue-800/30 backdrop-blur-sm rounded-2xl p-8 border-2 border-blue-400/30">
-                  <Car className="w-full h-64 text-blue-300" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 w-full">
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-16 md:h-24">
-            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" fill="white" opacity="1" />
-          </svg>
-        </div>
-      </section>
-
-      {/* Quick Stats */}
-      <section className="py-12 bg-gray-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { number: '500+', label: 'Sessions Completed' },
-              { number: '50+', label: 'Certified Mechanics' },
-              { number: '5 min', label: 'Average Wait Time' },
-              { number: '4.9/5', label: 'Customer Rating' },
-            ].map((stat) => (
-              <div key={stat.label} className="space-y-2">
-                <p className="text-4xl font-bold text-blue-600">{stat.number}</p>
-                <p className="text-gray-600 font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <ProcessSteps />
-
-      {/* Services & Pricing */}
-      <ServiceCards />
-
-      {/* Why Choose Us */}
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose AskAutoDoctor?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Professional automotive expertise at your fingertips
+            <h1 className="text-4xl font-bold leading-tight md:text-6xl">
+              Precision automotive diagnostics
+              <span className="block text-blue-300">without leaving your driveway</span>
+            </h1>
+            <p className="max-w-xl text-lg text-slate-300">
+              Connect instantly with Red Seal mechanics for expert repair guidance, inspections, and troubleshooting. Each session includes a digital waiver, live session timer, and file sharing workspace.
             </p>
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <Link
+                href="/start"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
+              >
+                Book your session
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-blue-300/40 px-6 py-3 text-sm font-semibold text-blue-100 transition hover:border-blue-200 hover:text-white"
+              >
+                Explore the process
+              </Link>
+            </div>
+            <div className="grid gap-4 text-sm text-slate-300 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-white">500+</p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">Sessions completed</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-white">4.9/5</p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">Average rating</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-white">Ontario</p>
+                <p className="text-xs uppercase tracking-wide text-blue-200">Province-wide coverage</p>
+              </div>
+            </div>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Shield,
-                title: 'Certified Experts',
-                description: 'All mechanics are Red Seal certified with years of professional experience',
-                color: 'from-blue-500 to-blue-600',
-              },
-              {
-                icon: Clock,
-                title: 'Available 24/7',
-                description: 'Get help whenever you need it, day or night, weekends and holidays',
-                color: 'from-green-500 to-green-600',
-              },
-              {
-                icon: MessageCircle,
-                title: 'Flexible Options',
-                description: 'Choose text chat, video call, or comprehensive diagnostic sessions',
-                color: 'from-purple-500 to-purple-600',
-              },
-            ].map((feature) => {
-              const Icon = feature.icon
-              return (
-                <div
-                  key={feature.title}
-                  className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-200"
-                >
-                  <div className={`bg-gradient-to-r ${feature.color} w-14 h-14 rounded-lg flex items-center justify-center mb-6`}>
-                    <Icon className="w-7 h-7 text-white" />
+          <div className="flex-1">
+            <div className="relative rounded-3xl border border-blue-500/30 bg-white/5 p-6 shadow-2xl backdrop-blur">
+              <div className="absolute -top-6 left-6 flex items-center gap-2 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold uppercase text-emerald-100">
+                <Gauge className="h-3.5 w-3.5" /> Live session workspace
+              </div>
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                  <p className="text-xs uppercase text-blue-200">Session timer</p>
+                  <p className="text-2xl font-bold text-white">24:18</p>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full w-3/4 rounded-full bg-blue-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
-                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                  <p className="text-xs uppercase text-blue-200">Mechanic</p>
+                  <p className="text-lg font-semibold text-white">Jamie Carter</p>
+                  <p className="text-sm text-slate-300">Red Seal • Electrical specialist</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4">
+                  <p className="text-xs uppercase text-blue-200">Shared files</p>
+                  <ul className="mt-2 space-y-2 text-sm text-slate-300">
+                    <li>• 2020_Audi_Q5_codes.png</li>
+                    <li>• spark_plug_invoice.pdf</li>
+                    <li>• idle_video.mov</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-6 md:grid-cols-3">
+          {TRUST_POINTS.map((point) => {
+            const Icon = point.icon
+            return (
+              <div key={point.title} className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur transition hover:border-blue-400/40">
+                <Icon className="h-8 w-8 text-blue-300" />
+                <h3 className="mt-4 text-xl font-semibold text-white">{point.title}</h3>
+                <p className="mt-2 text-sm text-slate-300">{point.description}</p>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="bg-slate-950/60">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <span className="rounded-full bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-200">3 step workflow</span>
+            <h2 className="mt-4 text-3xl font-bold">How AskAutoDoctor works</h2>
+            <p className="mt-2 text-sm text-slate-300">Every session runs through our secure workspace for predictable, professional support.</p>
+          </div>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {PROCESS_STEPS.map((step, index) => {
+              const Icon = step.icon
+              return (
+                <div key={step.title} className="relative rounded-3xl border border-white/10 bg-white/5 p-6 text-left backdrop-blur">
+                  <span className="absolute -top-4 left-6 flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <Icon className="h-6 w-6 text-blue-300" />
+                  <h3 className="mt-4 text-xl font-semibold text-white">{step.title}</h3>
+                  <p className="mt-2 text-sm text-slate-300">{step.description}</p>
                 </div>
               )
             })}
@@ -208,76 +170,103 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to Get Expert Help?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join hundreds of satisfied customers who trust AskAutoDoctor for their automotive needs
-          </p>
-          <Link
-            href="/start"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:scale-105"
-          >
-            Book Your Session Now
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-          <p className="mt-6 text-blue-200 text-sm">
-            No commitment required • Cancel anytime • Money-back guarantee
-          </p>
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <span className="rounded-full bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-200">Services & pricing</span>
+          <h2 className="mt-4 text-3xl font-bold">Choose the right support package</h2>
+          <p className="mt-2 text-sm text-slate-300">Transparent pricing, session timers, and optional extensions billed automatically.</p>
+        </div>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          {SERVICE_PACKAGES.map((service) => (
+            <div key={service.title} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <h3 className="text-xl font-semibold text-white">{service.title}</h3>
+              <p className="mt-2 text-sm text-slate-300">{service.description}</p>
+              <div className="mt-6 text-3xl font-bold text-white">{service.price}</div>
+              <p className="text-xs uppercase tracking-wide text-blue-200">{service.duration}</p>
+              <ul className="mt-6 space-y-2 text-sm text-slate-300">
+                {service.highlights.map((highlight) => (
+                  <li key={highlight}>• {highlight}</li>
+                ))}
+              </ul>
+              <Link
+                href="/start"
+                className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
+              >
+                Book now
+              </Link>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+      <section className="bg-slate-950/60">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-10 md:grid-cols-[3fr,2fr]">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Car className="w-6 h-6 text-blue-400" />
-                <span className="text-white font-bold text-lg">AskAutoDoctor</span>
-              </div>
-              <p className="text-sm">
-                Professional automotive expertise, delivered remotely.
+              <span className="rounded-full bg-blue-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-blue-200">Built for professionals</span>
+              <h2 className="mt-4 text-3xl font-bold">Mechanics dashboard & availability control</h2>
+              <p className="mt-3 text-sm text-slate-300">
+                Manage live queues, control availability, extend sessions with Stripe payments, and deliver polished summaries from a single pane of glass.
               </p>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Services</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/pricing" className="hover:text-white transition-colors">Quick Chat</Link></li>
-                <li><Link href="/pricing" className="hover:text-white transition-colors">Video Session</Link></li>
-                <li><Link href="/pricing" className="hover:text-white transition-colors">Full Diagnostic</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
-                <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href="/customer/login" className="hover:text-white transition-colors">Sign In</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <span>1-800-AUTO-DOC</span>
+              <ul className="mt-6 grid gap-4 text-sm text-slate-300 sm:grid-cols-2">
+                <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <Users className="h-5 w-5 text-blue-300" />
+                  <p className="mt-2 font-semibold text-white">Session queue management</p>
+                  <p>Prioritise waiting customers and launch the video workspace instantly.</p>
                 </li>
-                <li className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>support@askautodoctor.com</span>
+                <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <MessageSquare className="h-5 w-5 text-blue-300" />
+                  <p className="mt-2 font-semibold text-white">Floating support chat</p>
+                  <p>Minimize, reopen, or close conversations without leaving the page.</p>
+                </li>
+                <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <Wrench className="h-5 w-5 text-blue-300" />
+                  <p className="mt-2 font-semibold text-white">File & waiver automation</p>
+                  <p>Secure digital waivers and synced file sharing keep paperwork tidy.</p>
+                </li>
+                <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <Gauge className="h-5 w-5 text-blue-300" />
+                  <p className="mt-2 font-semibold text-white">Availability controls</p>
+                  <p>Define weekly blocks and publish to the booking calendar in seconds.</p>
                 </li>
               </ul>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <div className="rounded-2xl border border-blue-400/30 bg-slate-900/70 p-5">
+                <p className="text-xs uppercase text-blue-200">Next in queue</p>
+                <p className="text-lg font-semibold text-white">2020 Audi Q5 • Brandon L.</p>
+                <p className="text-sm text-slate-300">Check engine light diagnostics • 10 mins until start</p>
+                <div className="mt-4 flex items-center gap-3 text-sm text-slate-300">
+                  <CalendarClock className="h-4 w-4 text-blue-300" /> 3:30 PM EST
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+                <p className="text-xs uppercase text-blue-200">Availability snapshot</p>
+                <p className="mt-2 text-sm text-slate-300">Mon • Wed • Fri • 9AM – 6PM</p>
+                <p className="text-xs text-slate-400">Automatically syncs to Supabase calendars.</p>
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-900/70 p-5">
+                <p className="text-xs uppercase text-blue-200">Session extensions</p>
+                <p className="mt-2 text-sm text-slate-300">Request additional time, approve, and charge through Stripe instantly.</p>
+              </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>© {new Date().getFullYear()} AskAutoDoctor. All rights reserved.</p>
-            <p className="mt-2 text-gray-500">
-              This service is for educational purposes only. Not a substitute for in-person diagnostics.
-            </p>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-slate-950/70">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} AskAutoDoctor. All rights reserved.</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/waiver" className="hover:text-white">
+              Waiver
+            </Link>
+            <Link href="/services-pricing" className="hover:text-white">
+              Services & Pricing
+            </Link>
+            <Link href="/mechanic/login" className="hover:text-white">
+              For Mechanics
+            </Link>
           </div>
         </div>
       </footer>
