@@ -356,6 +356,61 @@ export type Database = {
         }
         Relationships: []
       }
+      session_files: {
+        Row: {
+          id: string
+          created_at: string
+          session_id: string
+          uploaded_by: string
+          file_name: string
+          file_size: number
+          file_type: string
+          storage_path: string
+          file_url: string | null
+          description: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          session_id: string
+          uploaded_by: string
+          file_name: string
+          file_size: number
+          file_type: string
+          storage_path: string
+          file_url?: string | null
+          description?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          session_id?: string
+          uploaded_by?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          storage_path?: string
+          file_url?: string | null
+          description?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'session_files_session_id_fkey'
+            columns: ['session_id']
+            referencedRelation: 'sessions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'session_files_uploaded_by_fkey'
+            columns: ['uploaded_by']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       chat_messages: {
         Row: {
           id: string
@@ -600,3 +655,4 @@ export type Session = Tables<'sessions'>
 export type SessionParticipant = Tables<'session_participants'>
 export type ChatMessage = Tables<'chat_messages'>
 export type Profile = Tables<'profiles'>
+export type SessionFile = Tables<'session_files'>
