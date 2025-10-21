@@ -20,24 +20,24 @@ export default function WaiverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-slate-900 px-4 py-16 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-slate-900 to-slate-900 px-4 py-16 text-white">
       <div className="mx-auto flex max-w-4xl flex-col gap-10">
         <header className="text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-orange-100">
             <ShieldCheck className="h-4 w-4" /> Digital waiver
           </span>
           <h1 className="mt-4 text-4xl font-bold">Professional Automotive Consultation Agreement</h1>
-          <p className="mt-3 text-sm text-blue-100">
+          <p className="mt-3 text-sm text-orange-100">
             Please review the following terms before joining your live session. Signing electronically keeps both you and your mechanic covered.
           </p>
         </header>
 
         <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
-          <h2 className="text-lg font-semibold text-blue-100">Terms of service</h2>
-          <ul className="space-y-3 text-sm text-blue-50">
+          <h2 className="text-lg font-semibold text-orange-100">Terms of service</h2>
+          <ul className="space-y-3 text-sm text-orange-50">
             {AGREEMENT_POINTS.map((point) => (
               <li key={point} className="flex gap-3">
-                <Check className="mt-1 h-4 w-4 text-blue-300" />
+                <Check className="mt-1 h-4 w-4 text-orange-300" />
                 <span>{point}</span>
               </li>
             ))}
@@ -45,25 +45,25 @@ export default function WaiverPage() {
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
-          <h2 className="text-lg font-semibold text-blue-100">Sign & confirm</h2>
-          <p className="mt-2 text-sm text-blue-100">
+          <h2 className="text-lg font-semibold text-orange-100">Sign & confirm</h2>
+          <p className="mt-2 text-sm text-orange-100">
             By signing you acknowledge that you are 18+ and authorized to request automotive guidance for the listed vehicle.
           </p>
 
-          <label className="mt-6 block text-sm text-blue-50">Full name (signature)</label>
+          <label className="mt-6 block text-sm text-orange-50">Full name (signature)</label>
           <input
             value={signature}
             onChange={(event) => setSignature(event.target.value)}
             placeholder="Type your full name"
-            className="mt-2 w-full rounded-2xl border border-blue-300/40 bg-white/10 px-4 py-3 text-base text-white placeholder:text-blue-200 focus:border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-200/40"
+            className="mt-2 w-full rounded-2xl border border-orange-300/40 bg-white/10 px-4 py-3 text-base text-white placeholder:text-orange-200 focus:border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-200/40"
           />
 
-          <label className="mt-6 flex items-center gap-3 text-sm text-blue-50">
+          <label className="mt-6 flex items-center gap-3 text-sm text-orange-50">
             <input
               type="checkbox"
               checked={accepted}
               onChange={(event) => setAccepted(event.target.checked)}
-              className="h-5 w-5 rounded border border-blue-300/40 bg-blue-900/40"
+              className="h-5 w-5 rounded border border-orange-300/40 bg-orange-900/40"
             />
             I agree to the Professional Automotive Consultation Agreement.
           </label>
@@ -72,7 +72,7 @@ export default function WaiverPage() {
             type="button"
             onClick={submitWaiver}
             disabled={!accepted || !signature}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-blue-500/50"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-orange-500/50"
           >
             <FileSignature className="h-4 w-4" />
             {submitted ? 'Waiver saved' : 'Sign agreement'}

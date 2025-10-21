@@ -22,8 +22,14 @@ export default function AuthConfirmPage() {
         return;
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      console.log("Attempting to exchange code:", code);
+
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+      console.log("Exchange result:", { data, error });
+
       if (error) {
+        console.error("Exchange error:", error);
         setStatus("error");
         setMessage(error.message || "We couldn't confirm your email. Please try again.");
         return;
@@ -74,7 +80,7 @@ export default function AuthConfirmPage() {
             <p>Try opening the confirmation link from the same device you used to sign up.</p>
             <p>
               Still stuck?{" "}
-              <a href="mailto:support@askautodoctor.com" className="text-blue-600 hover:underline">
+              <a href="mailto:support@askautodoctor.com" className="text-orange-600 hover:underline">
                 Contact support
               </a>
               .

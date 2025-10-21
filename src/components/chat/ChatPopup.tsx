@@ -206,7 +206,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
       <div className="fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsMinimized(false)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transition-all"
+          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transition-all"
         >
           <User className="w-5 h-5" />
           <span className="font-medium">Chat Session</span>
@@ -222,7 +222,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[600px] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-xl flex items-center justify-between">
+        <div className="bg-gradient-to-r from-orange-600 to-red-700 text-white p-4 rounded-t-xl flex items-center justify-between">
           <div className="flex-1">
             <h2 className="text-lg font-bold">Mechanic Chat Session</h2>
             <p className="text-sm text-blue-100">
@@ -234,14 +234,14 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMinimized(true)}
-              className="p-2 hover:bg-blue-600 rounded-lg transition-colors"
+              className="p-2 hover:bg-orange-600 rounded-lg transition-colors"
               title="Minimize"
             >
               <Minimize2 className="w-5 h-5" />
             </button>
             <button
               onClick={handleEndSession}
-              className="p-2 hover:bg-blue-600 rounded-lg transition-colors"
+              className="p-2 hover:bg-orange-600 rounded-lg transition-colors"
               title="End session"
             >
               <X className="w-5 h-5" />
@@ -275,7 +275,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
                   <div
                     className={`rounded-lg px-4 py-2 ${
                       isMe
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-orange-600 text-white'
                         : 'bg-white text-gray-800 border border-gray-200'
                     }`}
                   >
@@ -289,7 +289,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`text-xs underline flex items-center gap-1 ${
-                              isMe ? 'text-blue-100' : 'text-blue-600'
+                              isMe ? 'text-blue-100' : 'text-orange-600'
                             }`}
                           >
                             <Paperclip className="w-3 h-3" />
@@ -330,13 +330,13 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               disabled={sending}
             />
             <button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Send className="w-4 h-4" />
               Send

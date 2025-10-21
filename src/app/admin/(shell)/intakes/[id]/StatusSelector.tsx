@@ -62,7 +62,7 @@ export function StatusSelector({ intakeId, currentStatus }: StatusSelectorProps)
       value={status}
       onChange={(e) => handleStatusChange(e.target.value)}
       disabled={loading}
-      className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+      className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
     >
       {STATUS_OPTIONS.map((option) => (
         <option key={option.value} value={option.value}>

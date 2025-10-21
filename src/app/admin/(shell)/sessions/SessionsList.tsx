@@ -251,7 +251,7 @@ function SessionCard({
             type="button"
             onClick={() => onJoin(session.id, session.type)}
             disabled={isJoining}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isJoining ? 'Joining...' : 'Join session'}
           </button>

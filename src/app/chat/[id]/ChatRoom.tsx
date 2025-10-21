@@ -161,7 +161,7 @@ export default function ChatRoom({
                 <div key={message.id} className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}>
                   <div
                     className={`max-w-xs rounded-2xl px-4 py-2 text-sm shadow-sm sm:max-w-md ${
-                      isSelf ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-900'
+                      isSelf ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-900'
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -191,7 +191,7 @@ export default function ChatRoom({
             placeholder="Type your question or update. Press Enter to send, Shift+Enter for a new line."
             rows={3}
             maxLength={1000}
-            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-orange-500 focus:ring-2 focus:ring-blue-200"
             disabled={sending}
           />
           <div className="mt-2 flex items-center justify-between">
@@ -199,7 +199,7 @@ export default function ChatRoom({
             <button
               type="submit"
               disabled={sending || !input.trim()}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {sending ? 'Sending...' : 'Send'}
             </button>

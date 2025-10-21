@@ -1,49 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, X } from 'lucide-react'
 import FloatingChatPopup from './FloatingChatPopup'
 
 export default function ChatBubble() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
+
+  const toggleChat = () => setIsOpen(!isOpen)
 
   return (
     <>
       <button
         type="button"
-        onClick={() => {
-          setIsOpen(true)
-          setIsMinimized(false)
-        }}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-blue-600 px-5 py-3 text-white shadow-xl transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
-          isOpen && !isMinimized ? 'hidden sm:flex' : ''
-        }`}
-        aria-label="Chat with Support"
-        title="Chat with Support"
+        onClick={toggleChat}
+        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 text-white shadow-xl transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+        aria-label={isOpen ? "Close chat" : "Chat with Support"}
+        title={isOpen ? "Close chat" : "Chat with Support"}
       >
-        <MessageCircle className="h-5 w-5" aria-hidden="true" />
-        <span className="hidden text-sm font-semibold sm:inline">Chat with Support</span>
+        {isOpen ? (
+          <X className="h-6 w-6" aria-hidden="true" />
+        ) : (
+          <MessageCircle className="h-6 w-6" aria-hidden="true" />
+        )}
       </button>
 
       <FloatingChatPopup
-        isOpen={isOpen && !isMinimized}
-        onClose={() => {
-          setIsOpen(false)
-          setIsMinimized(false)
-        }}
-        onMinimize={() => setIsMinimized(true)}
+        isOpen={isOpen}
+        onClose={toggleChat}
+        onMinimize={toggleChat}
       />
-
-      {isMinimized && (
-        <button
-          type="button"
-          onClick={() => setIsMinimized(false)}
-          className="fixed bottom-6 right-6 z-50 rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow-lg"
-        >
-          Reopen chat
-        </button>
-      )}
     </>
   )
 }

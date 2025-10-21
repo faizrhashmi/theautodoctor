@@ -45,7 +45,7 @@ export default function SessionTimer({ endsAt, startsAt, onExpire }: SessionTime
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-        <div className={`rounded-full p-2 ${warningLevel === 'danger' ? 'bg-red-100 text-red-600' : warningLevel === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+        <div className={`rounded-full p-2 ${warningLevel === 'danger' ? 'bg-red-100 text-red-600' : warningLevel === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-orange-600'}`}>
           <Clock className="h-5 w-5" />
         </div>
         <div>
@@ -63,7 +63,7 @@ export default function SessionTimer({ endsAt, startsAt, onExpire }: SessionTime
       <div className="px-4 py-3">
         <div className="relative h-2 overflow-hidden rounded-full bg-slate-100">
           <div
-            className={`h-full rounded-full transition-all ${warningLevel === 'danger' ? 'bg-red-500' : warningLevel === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`}
+            className={`h-full rounded-full transition-all ${warningLevel === 'danger' ? 'bg-red-500' : warningLevel === 'warning' ? 'bg-amber-500' : 'bg-orange-500'}`}
             style={{ width: `${progress * 100}%` }}
           />
         </div>

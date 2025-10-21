@@ -38,7 +38,7 @@ export default function MechanicSessionCompletePage() {
               <h2 className="text-lg font-semibold text-slate-900">Mechanic checklist</h2>
               <ul className="mt-4 space-y-3 text-sm text-slate-600">
                 <li className="flex gap-2">
-                  <ClipboardList className="mt-0.5 h-4 w-4 text-blue-500" />
+                  <ClipboardList className="mt-0.5 h-4 w-4 text-orange-500" />
                   <span>Submit diagnosis summary and action plan.</span>
                 </li>
                 <li className="flex gap-2">
@@ -55,10 +55,10 @@ export default function MechanicSessionCompletePage() {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">Next actions</h2>
               <div className="mt-4 space-y-3">
-                <button className="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                <button className="w-full rounded-full bg-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700">
                   Send summary to customer
                 </button>
-                <button className="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-600">
+                <button className="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-orange-600">
                   Start next session
                 </button>
               </div>

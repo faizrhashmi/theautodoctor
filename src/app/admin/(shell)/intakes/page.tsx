@@ -298,7 +298,7 @@ export default function AdminIntakesPage() {
               </button>
               <Link
                 href="/admin"
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700"
               >
                 Admin Home
               </Link>
@@ -319,7 +319,7 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               placeholder="e.g., John / 647- / WDB..."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -331,7 +331,7 @@ export default function AdminIntakesPage() {
                 setPlan(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               {PLAN_OPTIONS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -349,7 +349,7 @@ export default function AdminIntakesPage() {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               <option value="">All statuses</option>
               {STATUS_OPTIONS.map((s) => (
@@ -369,7 +369,7 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               placeholder="VIN (partial ok)"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -383,7 +383,7 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               max={toISODate(new Date())}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -397,7 +397,7 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               max={toISODate(new Date())}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -465,7 +465,7 @@ export default function AdminIntakesPage() {
                     <td className="whitespace-nowrap">
                       <Link 
                         href={`/admin/intakes/${r.id}/details`}
-                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        className="font-medium text-orange-600 hover:text-blue-800 hover:underline"
                       >
                         {r.name || r.customer_name || '-'}
                       </Link>
@@ -500,7 +500,7 @@ export default function AdminIntakesPage() {
                           onChange={(e) =>
                             updateStatus(r.id, e.target.value as Intake['status'])
                           }
-                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                         >
                           {STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s}>

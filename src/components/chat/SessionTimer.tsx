@@ -71,13 +71,13 @@ export default function SessionTimer({ sessionType, startedAt, onSessionEnd }: S
           {isWarning ? (
             <AlertCircle className="w-4 h-4 text-orange-500 animate-pulse" />
           ) : (
-            <Clock className="w-4 h-4 text-blue-500" />
+            <Clock className="w-4 h-4 text-orange-500" />
           )}
           <span className="text-sm font-medium text-gray-700">
             {SESSION_LABELS[sessionType]}
           </span>
         </div>
-        <span className={`text-lg font-bold tabular-nums ${isWarning ? 'text-orange-600' : 'text-blue-600'}`}>
+        <span className={`text-lg font-bold tabular-nums ${isWarning ? 'text-orange-600' : 'text-orange-600'}`}>
           {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
@@ -86,7 +86,7 @@ export default function SessionTimer({ sessionType, startedAt, onSessionEnd }: S
       <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-1000 ease-linear ${
-            isWarning ? 'bg-orange-500' : 'bg-blue-500'
+            isWarning ? 'bg-orange-500' : 'bg-orange-500'
           }`}
           style={{ width: `${progressPercentage}%` }}
         />

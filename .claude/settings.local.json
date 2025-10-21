@@ -9,7 +9,12 @@
       "Bash(git checkout 12799f2 -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)",
       "Bash(git log --all --pretty=format:\"%H %s\" --name-status)",
       "Bash(git log --all --pretty=format:\"%H\" --diff-filter=A -- src/app/waiver/page.tsx)",
-      "Bash(git checkout 50d2e20 -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)"
+      "Bash(git checkout 50d2e20 -- src/app/book/page.tsx src/app/customer/login/page.tsx src/app/customer/signup/page.tsx src/app/login/page.tsx src/app/mechanic/login/page.tsx src/app/mechanic/signup/page.tsx src/app/pricing/page.tsx src/app/start/page.tsx src/app/waiver/page.tsx)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"(Get-Content ''src/app/customer/dashboard/page.tsx'' -Raw) -replace ''<span className=\"\"\"text-base text-green-300\"\"\">.*?</span>'',''<ClipboardList className=\"\"\"h-5 w-5 text-green-300\"\"\" />'' | Set-Content ''src/app/customer/dashboard/page.tsx'' -NoNewline\")",
+      "Bash(dir:*)",
+      "Bash(xargs sed:*)"
     ],
     "deny": [],
     "ask": []

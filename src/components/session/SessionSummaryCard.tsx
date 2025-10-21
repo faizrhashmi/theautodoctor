@@ -45,7 +45,7 @@ export default function SessionSummaryCard({ summary, className = '', variant = 
 
       <dl className={`mt-6 grid gap-4 text-sm ${baseColors.subtle} sm:grid-cols-2`}>
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-orange-600">
             <UserRound className="h-5 w-5" />
           </span>
           <div>

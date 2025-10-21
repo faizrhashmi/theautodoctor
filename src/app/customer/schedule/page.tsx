@@ -57,7 +57,7 @@ export default async function CustomerSchedulePage() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-blue-600">Live session scheduling</p>
+            <p className="text-sm font-medium uppercase tracking-wide text-orange-600">Live session scheduling</p>
             <h1 className="mt-2 text-3xl font-semibold text-slate-900">Book your live mechanic session</h1>
             <p className="mt-3 max-w-2xl text-sm text-slate-600">
               Choose a time that works for you. We&apos;ll confirm with the next available certified mechanic and email you the joining details.

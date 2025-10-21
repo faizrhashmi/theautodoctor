@@ -62,7 +62,7 @@ export default async function LiveSupportPage() {
             </Link>
             <a
               href="mailto:support@askautodoctor.com"
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-orange-600 hover:underline"
             >
               Need to reschedule? Contact support
             </a>

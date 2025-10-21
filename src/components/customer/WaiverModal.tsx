@@ -159,7 +159,7 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
               <h3 className="mb-2 font-semibold text-slate-900">10. Contact Us</h3>
               <p>
                 Questions about these terms? Contact us at:{' '}
-                <a href="mailto:legal@askautodoctor.com" className="text-blue-600 hover:underline">
+                <a href="mailto:legal@askautodoctor.com" className="text-orange-600 hover:underline">
                   legal@askautodoctor.com
                 </a>
               </p>
@@ -194,7 +194,7 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
             <button
               onClick={onAccept}
               disabled={!hasScrolled}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex-1 rounded-lg bg-orange-600 px-4 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               I Accept (18+)
             </button>

@@ -78,21 +78,21 @@ export default function MechanicDashboardPage() {
     <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-8">
       <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-blue-600">Mechanic Workspace</p>
+          <p className="text-xs uppercase tracking-widest text-orange-600">Mechanic Workspace</p>
           <h1 className="text-3xl font-bold text-slate-900">Session Queue & Schedule</h1>
           <p className="text-sm text-slate-500">Stay on top of your live calls, upcoming bookings, and availability.</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/mechanic/availability"
-            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"
+            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-300 hover:text-orange-600"
           >
             <CalendarDays className="h-4 w-4" />
             Manage availability
           </Link>
           <Link
             href="/mechanic/session/queue-1"
-            className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-orange-700"
           >
             <PlayCircle className="h-4 w-4" />
             Join next session
@@ -111,7 +111,7 @@ export default function MechanicDashboardPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search customers"
-                  className="w-full rounded-full border border-slate-200 px-10 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-full border border-slate-200 px-10 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function MechanicDashboardPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
-                      <CalendarClock className="h-4 w-4 text-blue-500" />
+                      <CalendarClock className="h-4 w-4 text-orange-500" />
                       <span>{new Date(item.scheduledStart).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export default function MechanicDashboardPage() {
                   </div>
                   <Link
                     href={`/mechanic/session/${item.id}`}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
                   >
                     Open workspace
                   </Link>
@@ -160,7 +160,7 @@ export default function MechanicDashboardPage() {
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Recent sessions</h2>
-              <Link href="/mechanic/summaries" className="text-sm font-semibold text-blue-600">
+              <Link href="/mechanic/summaries" className="text-sm font-semibold text-orange-600">
                 View all
               </Link>
             </div>
@@ -198,7 +198,7 @@ export default function MechanicDashboardPage() {
             </ul>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-blue-600 to-blue-500 p-6 text-white shadow-lg">
+          <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-orange-600 to-red-600 p-6 text-white shadow-lg">
             <h2 className="text-lg font-semibold">Digital waivers ready</h2>
             <p className="mt-1 text-sm text-blue-100">
               Customers sign automatically before joining so you can focus on diagnostics.

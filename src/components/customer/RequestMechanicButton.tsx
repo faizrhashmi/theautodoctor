@@ -56,7 +56,7 @@ export default function RequestMechanicButton({
         className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
           status === 'success'
             ? 'bg-green-600 hover:bg-green-600 disabled:bg-green-500'
-            : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
+            : 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400'
         }`}
       >
         {status === 'loading' ? 'Sending…' : status === 'success' ? 'Request Sent' : label}

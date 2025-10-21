@@ -132,7 +132,7 @@ export default async function IntakeDeletionLogPage() {
                         <td className="text-slate-600">{summary}</td>
                         <td className="text-slate-600">
                           <details className="group">
-                            <summary className="cursor-pointer text-xs font-medium text-blue-600 group-open:text-blue-700">
+                            <summary className="cursor-pointer text-xs font-medium text-orange-600 group-open:text-blue-700">
                               View JSON
                             </summary>
                             <pre className="mt-2 max-h-64 overflow-auto rounded border border-slate-200 bg-slate-50 p-3 text-xs">

@@ -42,7 +42,7 @@ export default function MechanicSignup() {
         <button onClick={submit} disabled={loading} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
           {loading ? 'Creating...' : 'Create account'}
         </button>
-        <p className="text-sm text-slate-600">Already have an account? <a className="text-blue-600 hover:underline" href="/mechanic/login">Log in</a></p>
+        <p className="text-sm text-slate-600">Already have an account? <a className="text-orange-600 hover:underline" href="/mechanic/login">Log in</a></p>
       </div>
     </main>
   );

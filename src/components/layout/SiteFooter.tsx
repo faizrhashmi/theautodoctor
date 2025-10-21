@@ -21,7 +21,7 @@ export default function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-blue-300">AskAutoDoctor</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-orange-300">AskAutoDoctor</p>
             <p className="mt-3 max-w-xl text-sm text-slate-400">
               Certified mechanics on demand. Book live diagnostics, share files and chat with experts to get honest advice before
               you visit a shop.

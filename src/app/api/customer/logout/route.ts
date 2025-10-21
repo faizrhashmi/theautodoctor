@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ success: true })
+    const redirectUrl = new URL('/customer/login', req.nextUrl.origin)
+    return NextResponse.redirect(redirectUrl, 303)
   } catch (error: any) {
     console.error('[logout] Unexpected error:', error)
     return NextResponse.json(

@@ -138,7 +138,7 @@ async function FileLinks({ files }: { files: string[] | null }) {
   const links = await Promise.all(files.map(async f => ({ name: f.split('/').pop() || 'file', url: await getSignedUrl(f) })));
   return (
     <div className="flex flex-col gap-1">
-      {links.map((f, i) => f.url ? <a key={i} href={f.url} target="_blank" className="text-blue-600 hover:underline">{f.name}</a> : <span key={i} className="text-slate-500">{f.name}</span>)}
+      {links.map((f, i) => f.url ? <a key={i} href={f.url} target="_blank" className="text-orange-600 hover:underline">{f.name}</a> : <span key={i} className="text-slate-500">{f.name}</span>)}
     </div>
   );
 }

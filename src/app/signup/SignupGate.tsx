@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
@@ -8,19 +9,19 @@ import WaiverModal from "@/components/customer/WaiverModal";
 type Mode = "signup" | "login";
 
 type SignupFormState = {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   vehicle: string;
   dateOfBirth: string;
-  consent: boolean;
 };
 
 const EMPTY_FORM: SignupFormState = {
-  fullName: "",
+  firstName: "",
+  lastName: "",
   phone: "",
   vehicle: "",
   dateOfBirth: "",
-  consent: false,
 };
 
 function isAdult(value: string): boolean {
@@ -36,6 +37,17 @@ function isAdult(value: string): boolean {
   return age >= 18;
 }
 
+function hasOnlyLetters(value: string): boolean {
+  return /^[a-zA-Z\s'-]+$/.test(value);
+}
+
+function isValidPassword(password: string): boolean {
+  if (password.length < 8) return false;
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  return hasLetter && hasNumber;
+}
+
 interface SignupGateProps {
   redirectTo?: string | null;
 }
@@ -43,7 +55,7 @@ interface SignupGateProps {
 export default function SignupGate({ redirectTo }: SignupGateProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [mode, setMode] = useState<Mode>("signup");
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [form, setForm] = useState<SignupFormState>(EMPTY_FORM);
@@ -54,38 +66,122 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [error, setError] = useState<string | null>(null);
   const [showWaiver, setShowWaiver] = useState(false);
   const [waiverAccepted, setWaiverAccepted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
   const redirectURL = useMemo(() => {
     try {
-      const url = new URL("/auth/confirm", origin);
+      const url = new URL("/auth/callback", origin);
       if (redirectTo) {
         url.searchParams.set("next", redirectTo);
       }
       return url.toString();
     } catch (error) {
-      return `${origin}/auth/confirm`;
+      return `${origin}/auth/callback`;
     }
   }, [origin, redirectTo]);
 
+  const requiredFieldsFilled = useMemo(() => {
+    if (mode === "login") return true;
+    return !!(
+      form.firstName.trim() &&
+      form.lastName.trim() &&
+      form.phone.trim() &&
+      form.dateOfBirth &&
+      email.trim() &&
+      password
+    );
+  }, [mode, form, email, password]);
+
   const formIsValid = useMemo(() => {
-    if (!form.fullName.trim()) return false;
+    if (mode === "login") return true;
+    if (!form.firstName.trim() || !hasOnlyLetters(form.firstName)) return false;
+    if (!form.lastName.trim() || !hasOnlyLetters(form.lastName)) return false;
     if (!form.phone.trim()) return false;
     if (!isAdult(form.dateOfBirth)) return false;
+    if (!email.trim()) return false;
+    if (!isValidPassword(password)) return false;
     if (!waiverAccepted) return false;
     return true;
-  }, [form, waiverAccepted]);
+  }, [mode, form, email, password, waiverAccepted]);
 
   useEffect(() => {
     setError(null);
     setMessage(null);
     setPublicAvailability(null);
+    setFieldErrors({});
   }, [mode]);
+
+  const validateField = (name: string, value: string) => {
+    const errors: Record<string, string> = { ...fieldErrors };
+
+    if (name === "firstName" || name === "lastName") {
+      if (value && !hasOnlyLetters(value)) {
+        errors[name] = "Only letters, spaces, hyphens and apostrophes allowed";
+      } else {
+        delete errors[name];
+      }
+    }
+
+    if (name === "password") {
+      if (value && !isValidPassword(value)) {
+        errors[name] = "Minimum 8 characters with letters and numbers";
+      } else {
+        delete errors[name];
+      }
+    }
+
+    if (name === "dateOfBirth") {
+      if (value && !isAdult(value)) {
+        errors[name] = "You must be 18 or older";
+      } else {
+        delete errors[name];
+      }
+    }
+
+    setFieldErrors(errors);
+  };
 
   async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    console.log("Form validation state:", {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      phone: form.phone,
+      dateOfBirth: form.dateOfBirth,
+      email: email,
+      password: password.length,
+      waiverAccepted: waiverAccepted,
+      formIsValid: formIsValid,
+    });
+
     if (!formIsValid) {
-      setError("Please complete all required fields, confirm you are 18 or older, and accept the Terms of Service.");
+      const validationErrors = [];
+      if (!form.firstName.trim() || !hasOnlyLetters(form.firstName)) {
+        validationErrors.push("First name must contain only letters");
+      }
+      if (!form.lastName.trim() || !hasOnlyLetters(form.lastName)) {
+        validationErrors.push("Last name must contain only letters");
+      }
+      if (!form.phone.trim()) {
+        validationErrors.push("Phone number is required");
+      }
+      if (!isAdult(form.dateOfBirth)) {
+        validationErrors.push("You must be 18 or older");
+      }
+      if (!email.trim()) {
+        validationErrors.push("Email is required");
+      }
+      if (!isValidPassword(password)) {
+        validationErrors.push("Password must be at least 8 characters with letters and numbers");
+      }
+      if (!waiverAccepted) {
+        validationErrors.push("You must accept the Terms of Service");
+      }
+
+      setError(validationErrors.join(". ") + ".");
+      console.error("Validation errors:", validationErrors);
       return;
     }
 
@@ -93,13 +189,17 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     setError(null);
     setMessage(null);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`;
+
+    console.log("Attempting signup with:", { email, fullName, phone: form.phone });
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           role: "customer",
-          full_name: form.fullName.trim(),
+          full_name: fullName,
           phone: form.phone.trim(),
           vehicle_hint: form.vehicle.trim(),
           date_of_birth: form.dateOfBirth,
@@ -109,12 +209,17 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     });
 
     setLoading(false);
+
+    console.log("Signup response:", { data, error: signUpError });
+
     if (signUpError) {
       setError(signUpError.message);
+      console.error("Signup error:", signUpError);
       return;
     }
 
-    setMessage("Check your inbox to confirm your email. After confirming, return here to log in.");
+    setMessage("✓ Account created! Check your inbox to confirm your email. After confirming, you'll be redirected to the customer dashboard.");
+    console.log("Signup successful! User should check email.");
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -165,10 +270,10 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     }
   }
 
-  const oauthButtons: Array<{ id: "google" | "facebook" | "apple"; label: string }> = [
-    { id: "google", label: "Continue with Google" },
-    { id: "facebook", label: "Continue with Facebook" },
-    { id: "apple", label: "Continue with Apple" },
+  const oauthButtons: Array<{ id: "google" | "facebook" | "apple"; label: string; icon: string }> = [
+    { id: "google", label: "Continue with Google", icon: "https://www.google.com/favicon.ico" },
+    { id: "facebook", label: "Continue with Facebook", icon: "https://www.facebook.com/favicon.ico" },
+    { id: "apple", label: "Continue with Apple", icon: "https://www.apple.com/favicon.ico" },
   ];
 
   async function handlePublicAvailability() {
@@ -191,152 +296,288 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setMode("signup")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-            mode === "signup" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-          }`}
-          type="button"
-        >
-          Sign up
-        </button>
-        <button
-          onClick={() => setMode("login")}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-            mode === "login" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-          }`}
-          type="button"
-        >
-          Log in
-        </button>
+    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white">
+          {mode === "login" ? "Welcome Back" : "Create Account"}
+        </h2>
+        <p className="mt-2 text-sm text-slate-400">
+          {mode === "login"
+            ? "Sign in to access your diagnostic sessions"
+            : "Get started with your first auto diagnostic session"}
+        </p>
       </div>
 
-      <form onSubmit={mode === "signup" ? handleSignup : handleLogin} className="space-y-4">
+      {/* OAuth Buttons - Only show in Login mode */}
+      {mode === "login" && (
+        <>
+          <div className="mb-6 space-y-3">
+            {oauthButtons.map((button) => (
+              <button
+                key={button.id}
+                onClick={() => handleOAuth(button.id)}
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:border-white/20 disabled:opacity-60"
+              >
+                <img src={button.icon} alt={button.id} className="h-5 w-5" />
+                <span>{button.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs font-semibold text-slate-400">OR USE EMAIL</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={mode === "signup" ? handleSignup : handleLogin} className="space-y-5">
         {mode === "signup" && (
           <>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-slate-600">Full name</label>
+                <label className="block text-sm font-medium text-slate-200">
+                  First name <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  value={form.fullName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={form.firstName}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, firstName: e.target.value }));
+                    validateField("firstName", e.target.value);
+                  }}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  placeholder="John"
                 />
+                {fieldErrors.firstName && (
+                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.firstName}</p>
+                )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600">Phone number</label>
+                <label className="block text-sm font-medium text-slate-200">
+                  Last name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.lastName}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, lastName: e.target.value }));
+                    validateField("lastName", e.target.value);
+                  }}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  placeholder="Doe"
+                />
+                {fieldErrors.lastName && (
+                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-200">
+                  Phone number <span className="text-rose-400">*</span>
+                </label>
                 <input
                   type="tel"
                   required
                   value={form.phone}
                   onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
                   placeholder="e.g. 416-555-0123"
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-200">
+                  Date of birth <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={form.dateOfBirth}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, dateOfBirth: e.target.value }));
+                    validateField("dateOfBirth", e.target.value);
+                  }}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                />
+                {fieldErrors.dateOfBirth && (
+                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.dateOfBirth}</p>
+                )}
+              </div>
             </div>
+
             <div>
-              <label className="block text-xs font-medium text-slate-600">Date of birth</label>
-              <input
-                type="date"
-                required
-                value={form.dateOfBirth}
-                onChange={(e) => setForm((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-slate-500">You must be 18 or older to use AskAutoDoctor.</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600">Vehicle (optional)</label>
+              <label className="block text-sm font-medium text-slate-200">
+                Vehicle <span className="text-xs text-slate-400">(optional)</span>
+              </label>
               <input
                 type="text"
                 value={form.vehicle}
                 onChange={(e) => setForm((prev) => ({ ...prev, vehicle: e.target.value }))}
-                placeholder="Year / Make / Model"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="2020 Honda Civic"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
               />
             </div>
           </>
         )}
+
         <div>
-          <label className="block text-xs font-medium text-slate-600">Email</label>
+          <label className="block text-sm font-medium text-slate-200">
+            Email {mode === "signup" && <span className="text-rose-400">*</span>}
+          </label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="you@example.com"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
           />
         </div>
+
         <div>
-          <label className="block text-xs font-medium text-slate-600">Password</label>
+          <label className="block text-sm font-medium text-slate-200">
+            Password {mode === "signup" && <span className="text-rose-400">*</span>}
+          </label>
           <input
             type="password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (mode === "signup") {
+                validateField("password", e.target.value);
+              }
+            }}
+            minLength={mode === "signup" ? 8 : 6}
+            placeholder={mode === "signup" ? "Minimum 8 characters" : "Enter password"}
+            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
           />
+          {mode === "signup" && (
+            <>
+              {fieldErrors.password && (
+                <p className="mt-1 text-xs text-rose-400">{fieldErrors.password}</p>
+              )}
+              {!fieldErrors.password && password && (
+                <p className="mt-1 text-xs text-emerald-400">✓ Password meets requirements</p>
+              )}
+            </>
+          )}
         </div>
+
+        {mode === "login" && (
+          <div className="flex justify-end text-sm">
+            <Link href="/customer/forgot-password" className="font-semibold text-orange-200 transition hover:text-white">
+              Forgot password?
+            </Link>
+          </div>
+        )}
+
         {mode === "signup" && (
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs text-blue-900">
+          <div
+            className={`rounded-xl border p-5 transition ${
+              requiredFieldsFilled
+                ? "border-orange-400/30 bg-orange-500/10"
+                : "border-white/5 bg-white/5 opacity-50"
+            }`}
+          >
+            <p className="text-sm font-medium text-slate-200">
               {waiverAccepted ? (
-                <span className="font-semibold">✓ Terms of Service & Waiver accepted (18+)</span>
+                <span className="text-emerald-400">✓ Terms of Service & Waiver accepted (18+)</span>
               ) : (
-                <span>You must review and accept our Terms of Service & Waiver (18+)</span>
+                <span className="text-slate-300">Review and accept our Terms of Service & Waiver (18+)</span>
               )}
             </p>
             <button
               type="button"
               onClick={() => setShowWaiver(true)}
-              className="mt-2 w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+              disabled={!requiredFieldsFilled}
+              className={`mt-3 w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                requiredFieldsFilled
+                  ? "bg-orange-500 text-white hover:bg-orange-600"
+                  : "cursor-not-allowed bg-slate-700 text-slate-400"
+              }`}
             >
               {waiverAccepted ? "Review Terms Again" : "Review & Accept Terms (Required)"}
             </button>
+            {!requiredFieldsFilled && (
+              <p className="mt-2 text-xs text-slate-400">
+                Fill in all required fields above to review the waiver
+              </p>
+            )}
           </div>
         )}
+
         <button
           type="submit"
           disabled={loading || (mode === "signup" && !formIsValid)}
-          className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Processing..." : mode === "signup" ? "Create account" : "Log in"}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : mode === "signup" ? (
+            "Create Account"
+          ) : (
+            "Sign In"
+          )}
         </button>
       </form>
 
-      <div className="mt-4 space-y-3">
-        {oauthButtons.map((button) => (
-          <button
-            key={button.id}
-            onClick={() => handleOAuth(button.id)}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-          >
-            <span>{button.label}</span>
-          </button>
-        ))}
+      {mode === "signup" && (
         <button
           onClick={handlePublicAvailability}
           disabled={checkingAvailability}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+          className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:border-white/20 disabled:opacity-60"
         >
           {checkingAvailability ? "Checking availability..." : "See how many mechanics are online"}
         </button>
+      )}
+
+      {publicAvailability && (
+        <p className="mt-4 rounded-xl border border-orange-400/20 bg-orange-500/10 p-3 text-xs text-orange-200">
+          {publicAvailability}
+        </p>
+      )}
+      {error && (
+        <p className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-300">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+          {message}
+        </p>
+      )}
+
+      {mode === "signup" && (
+        <p className="mt-6 text-center text-xs text-slate-400">
+          We will email you a confirmation link. You must verify your email before selecting a session.
+        </p>
+      )}
+
+      <div className="mt-6 text-center">
+        <p className="text-sm text-slate-400">
+          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setMode(mode === "login" ? "signup" : "login")}
+            className="font-semibold text-orange-400 transition hover:text-orange-300 hover:underline"
+          >
+            {mode === "login" ? "Create account" : "Sign in"}
+          </button>
+        </p>
       </div>
-
-      {publicAvailability && <p className="mt-4 text-xs text-slate-500">{publicAvailability}</p>}
-      {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
-      {message && <p className="mt-4 text-sm text-emerald-600">{message}</p>}
-
-      <p className="mt-6 text-xs text-slate-500">
-        We will email you a confirmation link. You must verify your email before selecting a session.
-      </p>
 
       <WaiverModal
         isOpen={showWaiver}

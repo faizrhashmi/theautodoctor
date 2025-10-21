@@ -230,7 +230,7 @@ export default function ChatRoom({
       <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-600">
               <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -268,7 +268,7 @@ export default function ChatRoom({
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                  <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-8 w-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -294,7 +294,7 @@ export default function ChatRoom({
                     {/* Avatar */}
                     <div
                       className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                        isSelf ? 'bg-blue-600' : 'bg-slate-600'
+                        isSelf ? 'bg-orange-600' : 'bg-slate-600'
                       } text-xs font-semibold text-white`}
                     >
                       {isSelf ? (isMechanic ? 'M' : 'Y') : isMechanic ? 'C' : 'M'}
@@ -305,7 +305,7 @@ export default function ChatRoom({
                       <div
                         className={`rounded-2xl px-4 py-3 shadow-sm ${
                           isSelf
-                            ? 'rounded-tr-sm bg-blue-600 text-white'
+                            ? 'rounded-tr-sm bg-orange-600 text-white'
                             : 'rounded-tl-sm bg-slate-100 text-slate-900'
                         }`}
                       >
@@ -324,7 +324,7 @@ export default function ChatRoom({
                                 rel="noopener noreferrer"
                                 className={`flex items-center gap-2 rounded-lg border p-2 text-xs transition hover:bg-opacity-10 ${
                                   isSelf
-                                    ? 'border-blue-400 bg-blue-500 bg-opacity-20 hover:bg-blue-400'
+                                    ? 'border-orange-400 bg-orange-500 bg-opacity-20 hover:bg-orange-400'
                                     : 'border-slate-300 bg-white hover:bg-slate-50'
                                 }`}
                               >
@@ -416,7 +416,7 @@ export default function ChatRoom({
                 placeholder="Type your message... (Shift+Enter for new line)"
                 rows={3}
                 maxLength={2000}
-                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-blue-100"
                 disabled={sending || uploading}
               />
               <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
@@ -438,7 +438,7 @@ export default function ChatRoom({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sending || uploading}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Attach file"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -453,7 +453,7 @@ export default function ChatRoom({
               <button
                 type="submit"
                 disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-600 text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Send message"
               >
                 {sending || uploading ? (

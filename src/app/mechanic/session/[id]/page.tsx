@@ -51,7 +51,7 @@ export default function MechanicSessionPage() {
             <ArrowLeft className="h-4 w-4" /> Back to dashboard
           </Link>
           <div>
-            <p className="text-xs uppercase tracking-widest text-blue-300">Live Session</p>
+            <p className="text-xs uppercase tracking-widest text-orange-300">Live Session</p>
             <h1 className="text-xl font-semibold">{session.vehicle} • {session.customerName}</h1>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function MechanicSessionPage() {
               <button
                 type="button"
                 onClick={() => setShowWaitingRoom(false)}
-                className="w-full rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-400"
+                className="w-full rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-orange-400"
               >
                 Enter live workspace
               </button>
@@ -77,7 +77,7 @@ export default function MechanicSessionPage() {
             <div className="relative aspect-video w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-lg">
               <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950" />
               <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 text-center">
-                <Camera className="h-12 w-12 text-blue-400" />
+                <Camera className="h-12 w-12 text-orange-400" />
                 <p className="text-lg font-semibold">Live video stream placeholder</p>
                 <p className="text-sm text-slate-400">Connects to LiveKit in production.</p>
               </div>
@@ -140,7 +140,7 @@ function VideoControlButton({ icon: Icon, label, active, onClick }: VideoControl
       type="button"
       onClick={onClick}
       className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold shadow transition ${
-        active ? 'border-blue-500 bg-blue-500/10 text-blue-200' : 'border-slate-800 bg-slate-900 text-slate-400'
+        active ? 'border-orange-500 bg-orange-500/10 text-orange-200' : 'border-slate-800 bg-slate-900 text-slate-400'
       }`}
     >
       <Icon className="h-4 w-4" />

@@ -51,7 +51,7 @@ export default function MechanicAvailabilityPage() {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12 sm:px-8">
       <header className="mb-10 flex flex-col gap-2">
-        <p className="text-xs uppercase tracking-widest text-blue-600">Availability</p>
+        <p className="text-xs uppercase tracking-widest text-orange-600">Availability</p>
         <h1 className="text-3xl font-bold text-slate-900">Control when customers can book you</h1>
         <p className="text-sm text-slate-500">
           Adjust your weekly schedule. Deactivating a block removes it from the booking calendar instantly.
@@ -68,7 +68,7 @@ export default function MechanicAvailabilityPage() {
             <button
               type="button"
               onClick={addBlock}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-300 hover:text-orange-600"
             >
               <Plus className="h-4 w-4" />
               Add block
@@ -89,7 +89,7 @@ export default function MechanicAvailabilityPage() {
                     <select
                       value={block.weekday}
                       onChange={(event) => updateBlock(block.id, 'weekday', event.target.value)}
-                      className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-blue-300 focus:outline-none"
+                      className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-orange-300 focus:outline-none"
                     >
                       {WEEKDAYS.map((day, index) => (
                         <option key={day} value={index}>
@@ -102,14 +102,14 @@ export default function MechanicAvailabilityPage() {
                     type="time"
                     value={block.startTime}
                     onChange={(event) => updateBlock(block.id, 'startTime', event.target.value)}
-                    className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-blue-300 focus:outline-none"
+                    className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-orange-300 focus:outline-none"
                   />
                   <span className="text-xs uppercase">to</span>
                   <input
                     type="time"
                     value={block.endTime}
                     onChange={(event) => updateBlock(block.id, 'endTime', event.target.value)}
-                    className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-blue-300 focus:outline-none"
+                    className="rounded-full border border-transparent bg-white/80 px-3 py-1 text-sm text-slate-700 focus:border-orange-300 focus:outline-none"
                   />
                 </div>
 
@@ -121,7 +121,7 @@ export default function MechanicAvailabilityPage() {
                   >
                     {block.isActive ? (
                       <>
-                        <ToggleRight className="h-5 w-5 text-blue-500" /> Active
+                        <ToggleRight className="h-5 w-5 text-orange-500" /> Active
                       </>
                     ) : (
                       <>
@@ -152,13 +152,13 @@ export default function MechanicAvailabilityPage() {
             <button
               type="button"
               onClick={saveAvailability}
-              className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
             >
               <Save className="h-4 w-4" />
               {isSaving ? 'Saving…' : 'Save changes'}
             </button>
             {isSaving ? (
-              <span className="inline-flex items-center gap-2 text-sm text-blue-600">
+              <span className="inline-flex items-center gap-2 text-sm text-orange-600">
                 <Check className="h-4 w-4" />
                 Availability synced
               </span>

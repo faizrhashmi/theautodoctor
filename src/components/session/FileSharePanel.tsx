@@ -113,10 +113,10 @@ export default function FileSharePanel({
           className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 px-4 py-8 text-center transition ${
             uploading
               ? 'cursor-not-allowed bg-slate-100 text-slate-400'
-              : 'cursor-pointer bg-slate-50 hover:border-blue-400 hover:bg-blue-50'
+              : 'cursor-pointer bg-slate-50 hover:border-orange-400 hover:bg-blue-50'
           }`}
         >
-          <CloudUpload className="h-8 w-8 text-blue-500" />
+          <CloudUpload className="h-8 w-8 text-orange-500" />
           <div>
             <p className="text-sm font-semibold text-slate-900">
               {uploading ? 'Uploading…' : 'Drag & drop files or click to upload'}
@@ -143,7 +143,7 @@ export default function FileSharePanel({
               className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm shadow-sm"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-orange-600">
                   <File className="h-5 w-5" />
                 </span>
                 <div>
@@ -153,7 +153,7 @@ export default function FileSharePanel({
                         href={file.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="transition hover:text-blue-600 hover:underline"
+                        className="transition hover:text-orange-600 hover:underline"
                       >
                         {file.fileName}
                       </a>

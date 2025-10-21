@@ -36,49 +36,45 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred')
+    } catch (err) {
+      setError((err as Error)?.message || 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
-            <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h1 className="mt-6 text-3xl font-bold text-slate-900">Reset Password</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Enter your email and we'll send you a reset link
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12 sm:px-8">
+      <div className="w-full max-w-md rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur lg:p-10">
+        <div className="text-center space-y-4">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Account recovery</span>
+          <h1 className="text-3xl font-semibold text-white md:text-4xl">Reset Password</h1>
+          <p className="text-sm text-slate-300">
+            Enter your email and we'll send you a link to choose a new password.
           </p>
         </div>
 
         {success ? (
-          <div className="mt-8 rounded-2xl bg-white p-8 shadow-sm">
-            <div className="rounded-lg bg-green-50 p-4">
-              <div className="flex items-start gap-3">
-                <svg className="h-6 w-6 flex-shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mt-8 space-y-6 rounded-2xl border border-white/10 bg-slate-950/40 p-8 shadow-lg backdrop-blur">
+            <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-4">
+              <div className="flex items-start gap-3 text-sm text-emerald-100">
+                <svg className="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-green-900">Check your email</h3>
-                  <p className="mt-1 text-sm text-green-700">
-                    We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to reset your password.
+                <div>
+                  <h3 className="font-semibold text-white">Check your email</h3>
+                  <p className="mt-1">
+                    We sent a password reset link to <span className="font-semibold text-white">{email}</span>. It expires in 30 minutes.
                   </p>
                 </div>
               </div>
             </div>
 
-            <p className="mt-6 text-center text-sm text-slate-600">
+            <p className="text-center text-sm text-slate-300">
               Didn't receive the email?{' '}
               <button
                 onClick={() => setSuccess(false)}
-                className="font-semibold text-blue-600 hover:text-blue-700"
+                className="font-semibold text-orange-200 transition hover:text-white"
               >
                 Try again
               </button>
@@ -86,21 +82,21 @@ export default function ForgotPasswordPage() {
 
             <Link
               href="/customer/login"
-              className="mt-4 block text-center text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="block text-center text-sm font-semibold text-orange-200 transition hover:text-white"
             >
-              ← Back to login
+              Back to login
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-6 rounded-2xl bg-white p-8 shadow-sm">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6 rounded-2xl border border-white/10 bg-slate-950/40 p-8 shadow-lg backdrop-blur">
             {error && (
-              <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+              <div className="rounded-lg border border-rose-400/40 bg-rose-500/10 p-4 text-sm text-rose-100">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-200">
                 Email Address
               </label>
               <input
@@ -108,8 +104,8 @@ export default function ForgotPasswordPage() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                placeholder="john@example.com"
+                className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
+                placeholder="name@example.com"
                 required
               />
             </div>
@@ -117,14 +113,14 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? 'Sending…' : 'Send Reset Link'}
             </button>
 
-            <p className="text-center text-sm text-slate-600">
+            <p className="text-center text-sm text-slate-300">
               Remember your password?{' '}
-              <Link href="/customer/login" className="font-semibold text-blue-600 hover:text-blue-700">
+              <Link href="/customer/login" className="font-semibold text-orange-200 transition hover:text-white">
                 Sign In
               </Link>
             </p>

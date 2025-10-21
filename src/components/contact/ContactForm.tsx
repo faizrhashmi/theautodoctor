@@ -168,7 +168,7 @@ export default function ContactForm() {
             name="name"
             type="text"
             autoComplete="name"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               fieldErrors.name ? 'border-red-500' : 'border-slate-200'
             }`}
             aria-invalid={Boolean(fieldErrors.name)}
@@ -190,7 +190,7 @@ export default function ContactForm() {
             name="email"
             type="email"
             autoComplete="email"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               fieldErrors.email ? 'border-red-500' : 'border-slate-200'
             }`}
             aria-invalid={Boolean(fieldErrors.email)}
@@ -213,7 +213,7 @@ export default function ContactForm() {
             id="reason"
             name="reason"
             defaultValue=""
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               fieldErrors.reason ? 'border-red-500' : 'border-slate-200'
             }`}
             aria-invalid={Boolean(fieldErrors.reason)}
@@ -243,7 +243,7 @@ export default function ContactForm() {
             id="subject"
             name="subject"
             type="text"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               fieldErrors.subject ? 'border-red-500' : 'border-slate-200'
             }`}
             aria-invalid={Boolean(fieldErrors.subject)}
@@ -265,7 +265,7 @@ export default function ContactForm() {
           id="message"
           name="message"
           rows={6}
-          className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
+          className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
             fieldErrors.message ? 'border-red-500' : 'border-slate-200'
           }`}
           aria-invalid={Boolean(fieldErrors.message)}
@@ -321,7 +321,7 @@ export default function ContactForm() {
 
       <button
         type="submit"
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow transition hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:bg-blue-400"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white shadow transition hover:bg-orange-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:bg-orange-400"
         disabled={isSubmitting}
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}

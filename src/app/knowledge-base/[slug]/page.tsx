@@ -40,7 +40,7 @@ export default function KnowledgeBaseArticlePage({ params }: PageProps) {
 
   return (
     <article className="bg-slate-50">
-      <div className="border-b border-slate-200 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 text-white">
+      <div className="border-b border-slate-200 bg-gradient-to-br from-orange-600 via-blue-700 to-slate-900 text-white">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <Link
             href="/knowledge-base"
@@ -55,7 +55,7 @@ export default function KnowledgeBaseArticlePage({ params }: PageProps) {
           </p>
           <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">{article.title}</h1>
           <p className="mt-4 max-w-3xl text-sm text-blue-100 sm:text-base">{article.description}</p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3 text-xs uppercase tracking-[0.3em] text-blue-200">
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3 text-xs uppercase tracking-[0.3em] text-orange-200">
             <span className="inline-flex items-center gap-2 normal-case tracking-normal text-blue-100">
               <UserRound className="h-3.5 w-3.5" />
               {article.author}
@@ -108,7 +108,7 @@ export default function KnowledgeBaseArticlePage({ params }: PageProps) {
                 <ul className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
                   {section.list.map((item) => (
                     <li key={item} className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 text-blue-600" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 text-orange-600" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -124,7 +124,7 @@ export default function KnowledgeBaseArticlePage({ params }: PageProps) {
             <ul className="mt-4 grid gap-3 text-sm text-blue-900 sm:grid-cols-2">
               {article.takeaways.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-blue-600" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-orange-600" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -138,7 +138,7 @@ export default function KnowledgeBaseArticlePage({ params }: PageProps) {
                 {article.resources.map((resource) => (
                   <li key={resource.href}>
                     <Link href={resource.href} className="inline-flex items-center gap-2 transition hover:text-blue-900">
-                      <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                      <CheckCircle2 className="h-4 w-4 text-orange-500" />
                       <span>{resource.label}</span>
                     </Link>
                   </li>

@@ -28,8 +28,8 @@ export default function WaitingRoom({ session }: WaitingRoomProps) {
       <div className="flex flex-col gap-6 text-center sm:text-left">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-center gap-3 sm:justify-start">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Waiting Room</p>
+            <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">Waiting Room</p>
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Your mechanic will join shortly</h2>
           <p className="text-sm text-slate-600">
@@ -39,7 +39,7 @@ export default function WaitingRoom({ session }: WaitingRoomProps) {
 
         <div className="grid gap-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 sm:grid-cols-3">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 text-orange-600">
               <CalendarClock className="h-5 w-5" />
             </span>
             <div className="text-left">

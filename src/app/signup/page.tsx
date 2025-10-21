@@ -25,32 +25,96 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto grid max-w-5xl gap-8 px-4 py-12 md:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-              Unified signup hub
-            </span>
-            <h1 className="mt-4 text-3xl font-semibold text-slate-900">
-              Create your account or continue with a social login
-            </h1>
-            <p className="mt-3 text-slate-600">
-              AskAutoDoctor connects you with certified mechanics for diagnostics and inspections across Ontario. Use one
-              secure page to create your account, verify your email, and unlock live booking options.
-            </p>
-            <ul className="mt-6 space-y-3 text-sm text-slate-600">
-              <li>• Sign up with email and password or continue with Google, Facebook, or Apple</li>
-              <li>• Verified email required before selecting your pricing package</li>
-              <li>• Live availability updates once your account is confirmed</li>
-            </ul>
-            <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-              <p className="font-semibold">Verified customers get priority access</p>
-              <p className="mt-1">
-                Confirm your email after signup and you will be redirected to choose the session that fits your vehicle issue.
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-16 lg:items-start">
+            {/* Left Side - Branding & Benefits */}
+            <div className="flex flex-col justify-start lg:sticky lg:top-12">
+              <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300 w-fit border border-orange-500/20">
+                <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                </svg>
+                Certified Auto Diagnostics
+              </div>
+
+              <h1 className="mt-6 text-4xl font-bold text-white md:text-5xl lg:text-6xl">
+                Get Expert Help
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-400 to-orange-500">
+                  For Your Vehicle
+                </span>
+              </h1>
+
+              <p className="mt-6 text-lg text-slate-300 leading-relaxed">
+                Connect with ASE-certified mechanics instantly. Get professional diagnostics,
+                troubleshooting, and repair guidance from the comfort of your home.
               </p>
+
+              <div className="mt-10 space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600">
+                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Live Video Diagnostics</h3>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Show your mechanic the problem in real-time via HD video call
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-red-800 border border-red-500/30">
+                    <img
+                      src="https://www.red-seal.ca/images/redsealmapleleafbilingual-eng.png"
+                      alt="Red Seal"
+                      className="h-7 w-7 object-contain"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Red Seal Certified Mechanics</h3>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Every mechanic holds Red Seal certification for quality assurance
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
+                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Save Time & Money</h3>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Get answers instantly without driving to a shop
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-10 rounded-2xl border border-orange-400/20 bg-gradient-to-br from-orange-500/10 to-red-500/10 p-6 backdrop-blur">
+                <div className="flex items-center gap-3">
+                  <svg className="h-8 w-8 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-orange-200">100% Satisfaction Guarantee</p>
+                    <p className="mt-1 text-sm text-slate-300">
+                      Not satisfied? Get a full refund, no questions asked.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Login/Signup Form */}
+            <div className="flex items-start justify-center lg:pt-0">
+              <SignupGate redirectTo={redirectTo} />
             </div>
           </div>
-          <SignupGate redirectTo={redirectTo} />
         </div>
       </div>
     );
@@ -67,7 +131,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           </p>
           <p className="mt-4 text-sm text-slate-600">
             Need a new link? Open the original email or contact
-            <a href="mailto:support@askautodoctor.com" className="ml-1 text-blue-600 hover:underline">
+            <a href="mailto:support@askautodoctor.com" className="ml-1 text-orange-600 hover:underline">
               support@askautodoctor.com
             </a>
             .

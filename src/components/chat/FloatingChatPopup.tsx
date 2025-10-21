@@ -49,7 +49,7 @@ export default function FloatingChatPopup({ isOpen, onClose, onMinimize }: Float
 
   return (
     <div className="fixed bottom-24 right-6 z-[60] w-[min(360px,90vw)] rounded-2xl border border-slate-200 bg-white shadow-2xl">
-      <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-blue-600 px-4 py-3 text-white">
+      <header className="flex items-center justify-between gap-3 rounded-t-2xl bg-orange-600 px-4 py-3 text-white">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wide text-blue-100">Live Support</p>
           <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function FloatingChatPopup({ isOpen, onClose, onMinimize }: Float
             <div key={message.id} className={`flex ${message.author === 'customer' ? 'justify-end' : 'justify-start'}`}>
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
-                  message.author === 'customer' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
+                  message.author === 'customer' ? 'bg-orange-600 text-white' : 'bg-slate-100 text-slate-800'
                 }`}
               >
                 <p>{message.body}</p>
@@ -116,7 +116,7 @@ export default function FloatingChatPopup({ isOpen, onClose, onMinimize }: Float
         <footer className="border-t border-slate-200 p-3">
           <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-400">
             <span>Encrypted messaging</span>
-            <button type="button" className="flex items-center gap-1 text-blue-600">
+            <button type="button" className="flex items-center gap-1 text-orange-600">
               <ArrowDownToLine className="h-3 w-3" />
               Save transcript
             </button>
@@ -131,13 +131,13 @@ export default function FloatingChatPopup({ isOpen, onClose, onMinimize }: Float
                   sendMessage()
                 }
               }}
-              className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
               placeholder="Type a message"
             />
             <button
               type="button"
               onClick={sendMessage}
-              className="flex items-center justify-center rounded-xl bg-blue-600 p-2 text-white shadow-sm transition hover:bg-blue-700"
+              className="flex items-center justify-center rounded-xl bg-orange-600 p-2 text-white shadow-sm transition hover:bg-orange-700"
             >
               <Send className="h-4 w-4" />
             </button>

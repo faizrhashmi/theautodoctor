@@ -148,7 +148,7 @@ export default function CustomerSignupPage() {
       <div className="mx-auto max-w-md">
         {/* Logo/Header */}
         <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-600">
             <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -194,7 +194,7 @@ export default function CustomerSignupPage() {
               value={formData.fullName}
               onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
               className={`mt-1 block w-full rounded-lg border px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${
-                errors.fullName ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-200'
+                errors.fullName ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-orange-500 focus:ring-blue-200'
               }`}
               placeholder="John Doe"
             />
@@ -212,7 +212,7 @@ export default function CustomerSignupPage() {
               value={formData.email}
               onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
               className={`mt-1 block w-full rounded-lg border px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${
-                errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-200'
+                errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-orange-500 focus:ring-blue-200'
               }`}
               placeholder="john@example.com"
             />
@@ -230,7 +230,7 @@ export default function CustomerSignupPage() {
               value={formData.phone}
               onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
               className={`mt-1 block w-full rounded-lg border px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${
-                errors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-200'
+                errors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-orange-500 focus:ring-blue-200'
               }`}
               placeholder="+1 (555) 123-4567"
             />
@@ -248,7 +248,7 @@ export default function CustomerSignupPage() {
               value={formData.password}
               onChange={(e) => handlePasswordChange(e.target.value)}
               className={`mt-1 block w-full rounded-lg border px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${
-                errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-200'
+                errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-orange-500 focus:ring-blue-200'
               }`}
               placeholder="••••••••"
             />
@@ -283,7 +283,7 @@ export default function CustomerSignupPage() {
               value={formData.confirmPassword}
               onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
               className={`mt-1 block w-full rounded-lg border px-4 py-3 text-slate-900 outline-none transition focus:ring-2 ${
-                errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-blue-500 focus:ring-blue-200'
+                errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-slate-300 focus:border-orange-500 focus:ring-blue-200'
               }`}
               placeholder="••••••••"
             />
@@ -298,21 +298,21 @@ export default function CustomerSignupPage() {
                 type="text"
                 value={formData.vehicleMake}
                 onChange={(e) => setFormData((prev) => ({ ...prev, vehicleMake: e.target.value }))}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-blue-200"
                 placeholder="Make"
               />
               <input
                 type="text"
                 value={formData.vehicleModel}
                 onChange={(e) => setFormData((prev) => ({ ...prev, vehicleModel: e.target.value }))}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-blue-200"
                 placeholder="Model"
               />
               <input
                 type="text"
                 value={formData.vehicleYear}
                 onChange={(e) => setFormData((prev) => ({ ...prev, vehicleYear: e.target.value }))}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-blue-200"
                 placeholder="Year"
               />
             </div>
@@ -327,7 +327,7 @@ export default function CustomerSignupPage() {
                   type="checkbox"
                   checked={formData.is18Plus}
                   readOnly
-                  className="mt-1 h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  className="mt-1 h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="flex-1">
                   <span className="text-sm font-medium text-slate-900">I confirm I am 18 years or older *</span>
@@ -346,7 +346,7 @@ export default function CustomerSignupPage() {
               className={`w-full rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                 waiverAccepted
                   ? 'border-green-500 bg-green-50 text-green-700'
-                  : 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  : 'border-orange-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
               }`}
             >
               {waiverAccepted ? '✓ Terms & Waiver Accepted' : 'Read & Accept Terms & Waiver *'}
@@ -360,7 +360,7 @@ export default function CustomerSignupPage() {
           <button
             type="submit"
             disabled={loading || !waiverAccepted}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-orange-600 px-4 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -382,7 +382,7 @@ export default function CustomerSignupPage() {
           {/* Login Link */}
           <p className="text-center text-sm text-slate-600">
             Already have an account?{' '}
-            <Link href="/customer/login" className="font-semibold text-blue-600 hover:text-blue-700">
+            <Link href="/customer/login" className="font-semibold text-orange-600 hover:text-blue-700">
               Sign In
             </Link>
           </p>

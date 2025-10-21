@@ -7,7 +7,7 @@ const STEPS = [
     icon: ClipboardList,
     title: 'Describe Your Issue',
     description: 'Tell us about your vehicle problem through our simple intake form',
-    color: 'from-blue-500 to-blue-600',
+    color: 'from-orange-500 to-red-600',
   },
   {
     icon: CreditCard,
@@ -57,7 +57,7 @@ export default function ProcessSteps() {
 
                 <div className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-200">
                   {/* Step number */}
-                  <div className="absolute -top-4 -left-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                  <div className="absolute -top-4 -left-4 bg-gradient-to-r from-orange-600 to-red-700 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                     {index + 1}
                   </div>
 

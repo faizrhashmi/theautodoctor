@@ -43,10 +43,10 @@ export default function SessionExtensionPanel({
               key={option}
               type="button"
               onClick={() => setSelectedMinutes(option)}
-              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`rounded-xl border px-4 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
                 selectedMinutes === option
-                  ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300'
+                  ? 'border-orange-500 bg-blue-50 text-blue-700 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-orange-300'
               }`}
             >
               {option} minutes
@@ -67,7 +67,7 @@ export default function SessionExtensionPanel({
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-blue-300"
         >
           <span>{isSubmitting ? 'Processing…' : `Request ${selectedMinutes} minutes`}</span>
           <ArrowRight className="h-4 w-4" />

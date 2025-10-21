@@ -17,14 +17,14 @@ const SUPPORT_HOURS = [
 export default function ContactPage() {
   return (
     <div className="bg-slate-50">
-      <section className="border-b border-slate-200 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 text-white">
+      <section className="border-b border-slate-200 bg-gradient-to-br from-orange-600 via-red-700 to-slate-900 text-white">
         <div className="mx-auto max-w-5xl px-6 py-16">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-blue-100">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-orange-100">
             <Headset className="h-3.5 w-3.5" />
             Support Team
           </p>
           <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">Contact Us</h1>
-          <p className="mt-4 max-w-2xl text-sm text-blue-100 sm:text-base">
+          <p className="mt-4 max-w-2xl text-sm text-orange-100 sm:text-base">
             We are here to help with booking questions, technical support and account updates. Complete the form and a specialist will follow up shortly.
           </p>
         </div>
@@ -42,8 +42,8 @@ export default function ContactPage() {
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-3xl border border-blue-100 bg-blue-50 p-6 text-sm text-blue-900">
-            <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-blue-700">
+          <div className="rounded-3xl border border-orange-100 bg-orange-50 p-6 text-sm text-orange-900">
+            <h3 className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.25em] text-orange-700">
               <Clock className="h-4 w-4" />
               Support hours
             </h3>
@@ -55,7 +55,7 @@ export default function ContactPage() {
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-xs text-blue-800">
+            <p className="mt-4 text-xs text-orange-800">
               Outside of live hours we monitor incoming requests and reply first thing next business day.
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function ContactPage() {
             <div className="mt-4 space-y-3">
               <p>
                 Email us at
-                <a href="mailto:support@theautodoctor.com" className="ml-1 font-medium text-blue-700 hover:text-blue-900">
+                <a href="mailto:support@theautodoctor.com" className="ml-1 font-medium text-orange-700 hover:text-orange-900">
                   support@theautodoctor.com
                 </a>
               </p>

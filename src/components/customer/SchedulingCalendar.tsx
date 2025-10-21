@@ -247,7 +247,7 @@ export function SchedulingCalendar({ initialEvents, plan }: SchedulingCalendarPr
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-400"
                 onClick={handleCreateBooking}
                 disabled={isSubmitting}
               >

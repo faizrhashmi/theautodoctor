@@ -75,7 +75,7 @@ export function SessionFileList({ files, compact = false, currentUserId }: Props
             rel={file.signedUrl ? 'noreferrer' : undefined}
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition ${
               file.signedUrl
-                ? 'border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600'
+                ? 'border-slate-200 text-slate-600 hover:border-blue-200 hover:text-orange-600'
                 : 'border-slate-100 text-slate-400'
             }`}
           >
@@ -115,7 +115,7 @@ export function SessionFileList({ files, compact = false, currentUserId }: Props
             rel={file.signedUrl ? 'noreferrer' : undefined}
             className={`inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-semibold transition ${
               file.signedUrl
-                ? 'border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600'
+                ? 'border-slate-200 text-slate-600 hover:border-blue-200 hover:text-orange-600'
                 : 'border-slate-100 text-slate-400'
             }`}
           >

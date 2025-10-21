@@ -8,11 +8,22 @@ interface TokenRequestPayload {
 }
 
 function missingEnv() {
-  return !process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.LIVEKIT_URL
+  const hasKey = !!process.env.LIVEKIT_API_KEY
+  const hasSecret = !!process.env.LIVEKIT_API_SECRET
+
+  if (!hasKey || !hasSecret) {
+    console.error('LiveKit configuration check:', {
+      hasKey,
+      hasSecret,
+    })
+    return true
+  }
+  return false
 }
 
 async function buildTokenResponse(room: string | null, identity: string | null, metadata?: string | null) {
   if (!room || !identity) {
+    console.error('Missing room or identity:', { room, identity })
     return NextResponse.json({ error: 'room and identity are required' }, { status: 400 })
   }
 
@@ -20,22 +31,32 @@ async function buildTokenResponse(room: string | null, identity: string | null, 
     return NextResponse.json({ error: 'LiveKit server credentials are not configured' }, { status: 500 })
   }
 
-  const accessToken = new AccessToken(process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!, {
-    identity,
-    metadata: metadata ?? undefined,
-  })
+  try {
+    const accessToken = new AccessToken(process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!, {
+      identity,
+      metadata: metadata ?? undefined,
+    })
 
-  accessToken.addGrant({
-    room,
-    roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
-    canPublishData: true,
-  })
+    accessToken.addGrant({
+      room,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    })
 
-  const token = await accessToken.toJwt()
+    const token = await accessToken.toJwt()
 
-  return NextResponse.json({ token, room, serverUrl: process.env.LIVEKIT_URL })
+    const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || process.env.LIVEKIT_URL || 'wss://myautodoctorca-oe6r6oqr.livekit.cloud'
+
+    return NextResponse.json({ token, room, serverUrl })
+  } catch (error) {
+    console.error('Error generating LiveKit token:', error)
+    return NextResponse.json({
+      error: 'Failed to generate access token',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {

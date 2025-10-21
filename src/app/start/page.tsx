@@ -1,6 +1,6 @@
 ﻿import { getSupabaseServer } from "@/lib/supabaseServer";
-import SignupGate from "./SignupGate";
-import OnboardingFlow from "./OnboardingFlow";
+import SignupGate from "../signup/SignupGate";
+import OnboardingFlow from "../signup/OnboardingFlow";
 
 export const dynamic = "force-dynamic";
 

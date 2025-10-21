@@ -1,11 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+
+import { createServerClient } from '@supabase/ssr';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import type { Database, Json } from '@/types/supabase';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
 export async function POST(req: NextRequest) {
+  const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return req.cookies.get(name)?.value;
+      },
+      set() {},
+      remove() {},
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+
   let body: any;
   try {
     body = await req.json();
@@ -56,7 +77,60 @@ export async function POST(req: NextRequest) {
   }
 
   if (plan === 'trial' || plan === 'free' || plan === 'trial-free') {
-    return NextResponse.json({ redirect: `/start?trial=1&intake_id=${encodeURIComponent(intakeId!)}` });
+    let sessionId: string | null = null;
+
+    if (supabaseAdmin && intakeId) {
+      const metadata: Record<string, Json> = {
+        intake_id: intakeId,
+        source: 'intake',
+        plan,
+      };
+
+      const freeSessionKey = `free_${intakeId}_${randomUUID()}`
+
+      const { data: sessionInsert, error: sessionError } = await supabaseAdmin
+        .from('sessions')
+        .insert({
+          type: 'chat',
+          status: 'pending',
+          plan,
+          intake_id: intakeId,
+          customer_user_id: user?.id ?? null,
+          metadata,
+          stripe_session_id: freeSessionKey,
+        })
+        .select('id')
+        .single();
+
+      if (sessionError) {
+        return NextResponse.json({ error: sessionError.message }, { status: 500 });
+      }
+
+      sessionId = sessionInsert.id;
+
+      if (user?.id) {
+        const { error: participantError } = await supabaseAdmin
+          .from('session_participants')
+          .upsert(
+            { session_id: sessionId, user_id: user.id, role: 'customer' },
+            { onConflict: 'session_id,user_id' },
+          );
+
+        if (participantError) {
+          return NextResponse.json({ error: participantError.message }, { status: 500 });
+        }
+      }
+    }
+
+    const thankYouUrl = new URL('/thank-you', req.nextUrl.origin);
+    thankYouUrl.searchParams.set('plan', plan);
+    if (intakeId) thankYouUrl.searchParams.set('intake_id', intakeId);
+    if (sessionId) {
+      thankYouUrl.searchParams.set('session', sessionId);
+      thankYouUrl.searchParams.set('type', 'chat');
+    }
+
+    return NextResponse.json({ redirect: `${thankYouUrl.pathname}${thankYouUrl.search}` });
   }
   return NextResponse.json({
     redirect: `/api/checkout/create-session?plan=${encodeURIComponent(plan)}&intake_id=${encodeURIComponent(intakeId!)}`,

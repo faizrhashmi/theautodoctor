@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
 
   if (typeof body.plan === 'string') {
     update.preferred_plan = body.plan
+    console.log('Setting preferred_plan to:', body.plan)
   }
 
   const fullNameInput =
@@ -71,14 +72,19 @@ export async function POST(request: NextRequest) {
     update.date_of_birth = String(user.user_metadata.date_of_birth)
   }
 
-  const { error } = await supabaseAdmin
+  console.log('Upserting profile with data:', update)
+
+  const { error, data } = await supabaseAdmin
     .from('profiles')
     .upsert(update, { onConflict: 'id' })
+    .select()
 
   if (error) {
     console.error('profiles upsert failed', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  console.log('Profile upsert successful:', data)
 
   return NextResponse.json({ ok: true })
 }

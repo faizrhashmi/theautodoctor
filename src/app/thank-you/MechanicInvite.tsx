@@ -7,9 +7,28 @@ export default function MechanicInvite({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     async function run() {
-      const res = await fetch(`/api/session/invite?session_id=${encodeURIComponent(sessionId)}`);
-      const data = await res.json();
-      setLink(data.inviteUrl || '');
+      try {
+        const res = await fetch(`/api/session/invite?session_id=${encodeURIComponent(sessionId)}`);
+
+        if (!res.ok) {
+          console.error('Failed to generate invite link:', res.status, res.statusText);
+          setLink('');
+          return;
+        }
+
+        const text = await res.text();
+        if (!text) {
+          console.error('Empty response from invite API');
+          setLink('');
+          return;
+        }
+
+        const data = JSON.parse(text);
+        setLink(data.inviteUrl || '');
+      } catch (error) {
+        console.error('Error generating invite link:', error);
+        setLink('');
+      }
     }
     run();
   }, [sessionId]);

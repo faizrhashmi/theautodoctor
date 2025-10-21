@@ -37,9 +37,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* ===== HEADER ===== */}
         <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-screen-xl items-center px-4 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-100 transition hover:text-white">
-              <Image src="/logo.png" alt="AskAutoDoctor" width={30} height={30} priority />
-              <span>AskAutoDoctor</span>
+                        <Link href="/" className="flex items-center gap-3 group">
+              <Image src="/logo.svg" alt="AskAutoDoctor" width={36} height={36} priority className="transition-transform group-hover:scale-110" />
+              <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">AskAutoDoctor</span>
             </Link>
 
             <nav className="hidden md:flex flex-1 items-center justify-end gap-8">
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   className="group relative text-sm font-medium text-slate-300 transition hover:text-white"
                 >
                   {item.label}
-                  <span className="pointer-events-none absolute inset-x-0 -bottom-1 h-px scale-x-0 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                  <span className="pointer-events-none absolute inset-x-0 -bottom-1 h-px scale-x-0 bg-gradient-to-r from-orange-400 via-red-500 to-indigo-500 transition-transform duration-300 ease-out group-hover:scale-x-100" />
                 </Link>
               ))}
             </nav>
@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="ml-auto flex items-center gap-3 md:gap-4">
               <Link
                 href="/signup"
-                className="group ml-6 md:ml-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-blue-400 hover:via-indigo-400 hover:to-purple-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+                className="group ml-6 md:ml-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
               >
                 Book Now
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -114,7 +114,7 @@ function MobileMenu() {
           <div className="mt-3 grid gap-2">
           <Link
             href="/signup"
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-blue-400 hover:via-indigo-400 hover:to-purple-400"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400"
           >
             Book Now
           </Link>

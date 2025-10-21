@@ -32,7 +32,7 @@ export default function StatusActions({ id, initial }: { id: string; initial: st
           onClick={() => setTo(s)}
           disabled={loading || status === s}
           className={`rounded-xl border px-3 py-2 text-sm capitalize ${
-            status === s ? 'bg-blue-600 text-white' : 'hover:bg-slate-50'
+            status === s ? 'bg-orange-600 text-white' : 'hover:bg-slate-50'
           }`}
         >
           {s.replace('_',' ')}

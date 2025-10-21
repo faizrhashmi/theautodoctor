@@ -224,14 +224,15 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     setIsLoadingRequests(true)
     setRequestsError(null)
 
-    ;(async () => {
-      try {
-        const { data, error } = await supabase
-          .from('session_requests')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: true })
-
+    // supabase client returns a PromiseLike; wrap with Promise.resolve so .finally is available to TypeScript
+    Promise.resolve(
+      supabase
+        .from('session_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+    )
+      .then(({ data, error }) => {
         if (cancelled || !isMountedRef.current) return
 
         if (error) {
@@ -245,12 +246,12 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
           )
         }
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled && isMountedRef.current) {
           setIsLoadingRequests(false)
         }
-      }
-    })()
+      })
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })
@@ -539,7 +540,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-8">
       <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-blue-600">Mechanic Workspace</p>
+          <p className="text-xs uppercase tracking-widest text-orange-600">Mechanic Workspace</p>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard overview</h1>
           <p className="text-sm text-slate-500">Manage your availability, pick up live requests, and review your earnings.</p>
         </div>
@@ -568,7 +569,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
               className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition ${
                 isOnline
                   ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400'
+                  : 'bg-orange-600 text-white hover:bg-orange-700 disabled:bg-orange-400'
               }`}
             >
               {isToggling ? 'Updating…' : isOnline ? 'Go offline' : channelReady ? 'Go online' : 'Connecting…'}
@@ -619,7 +620,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
                         type="button"
                         onClick={() => acceptRequest(item.id)}
                         disabled={acceptingRequestId === item.id}
-                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-blue-400"
+                        className="inline-flex items-center justify-center rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:bg-orange-400"
                       >
                         {acceptingRequestId === item.id ? 'Accepting…' : 'Accept request'}
                       </button>
@@ -710,7 +711,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
                     </div>
                     <Link
                       href={`/mechanic/session/${session.id}`}
-                      className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                      className="inline-flex items-center justify-center rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
                     >
                       Open details
                     </Link>
@@ -781,7 +782,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Weekly availability</h2>
-              <Link href="/mechanic/availability" className="text-sm font-semibold text-blue-600">
+              <Link href="/mechanic/availability" className="text-sm font-semibold text-orange-600">
                 Manage
               </Link>
             </div>
@@ -824,7 +825,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
             )}
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-blue-600 to-blue-500 p-6 text-white shadow-lg">
+          <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-orange-600 to-red-600 p-6 text-white shadow-lg">
             <h2 className="text-lg font-semibold">Digital waivers ready</h2>
             <p className="mt-1 text-sm text-blue-100">
               Customers sign automatically before joining so you can focus on diagnostics.

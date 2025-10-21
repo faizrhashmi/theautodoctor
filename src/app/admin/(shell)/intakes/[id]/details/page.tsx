@@ -186,7 +186,7 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-center font-medium text-white hover:bg-blue-700"
+                      className="flex-1 rounded-lg bg-orange-600 px-3 py-2 text-center font-medium text-white hover:bg-orange-700"
                     >
                       View
                     </a>

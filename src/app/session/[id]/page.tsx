@@ -347,7 +347,7 @@ export default function SessionWorkspacePage() {
             <ArrowLeft className="h-4 w-4" /> Back to dashboard
           </Link>
           <div>
-            <p className="text-xs uppercase tracking-widest text-blue-300">Session #{sessionId}</p>
+            <p className="text-xs uppercase tracking-widest text-orange-300">Session #{sessionId}</p>
             <h1 className="text-xl font-semibold">
               Certified mechanic: {session?.mechanicName ?? 'Loading…'}
             </h1>
@@ -415,7 +415,7 @@ export default function SessionWorkspacePage() {
           )}
 
           <div className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 shadow-lg">
-            <div className="flex items-center gap-2 text-sm text-blue-200">
+            <div className="flex items-center gap-2 text-sm text-orange-200">
               <AlertCircle className="h-4 w-4" />
               Session tips
             </div>
@@ -483,7 +483,7 @@ function SessionMediaGrid() {
   if (tracks.length === 0) {
     return (
       <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 bg-gradient-to-br from-slate-900 via-slate-950 to-black text-center text-sm text-slate-300">
-        <Video className="h-10 w-10 text-blue-300" />
+        <Video className="h-10 w-10 text-orange-300" />
         <p>Connecting your video session…</p>
       </div>
     )
@@ -555,7 +555,7 @@ function ParticipantStatusCard({ label, participant, expectedName }: Participant
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${
-            hasParticipant && micEnabled ? 'bg-blue-500/10 text-blue-200' : 'bg-slate-800 text-slate-400'
+            hasParticipant && micEnabled ? 'bg-orange-500/10 text-orange-200' : 'bg-slate-800 text-slate-400'
           }`}
         >
           {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
@@ -563,7 +563,7 @@ function ParticipantStatusCard({ label, participant, expectedName }: Participant
         </span>
         <span
           className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${
-            hasParticipant && cameraEnabled ? 'bg-blue-500/10 text-blue-200' : 'bg-slate-800 text-slate-400'
+            hasParticipant && cameraEnabled ? 'bg-orange-500/10 text-orange-200' : 'bg-slate-800 text-slate-400'
           }`}
         >
           {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}

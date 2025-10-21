@@ -112,7 +112,7 @@ export default function CheckoutSuccessPage() {
                 : 'Almost done! We are taking you to your session now.'}
             </p>
             <div className="mt-6 flex justify-center">
-              <span className="h-10 w-10 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+              <span className="h-10 w-10 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
             </div>
           </>
         ) : (
@@ -126,11 +126,11 @@ export default function CheckoutSuccessPage() {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
               >
                 Try again
               </button>
-              <a href="/signup" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+              <a href="/signup" className="text-sm font-medium text-orange-600 hover:text-blue-700">
                 Back to start
               </a>
             </div>

@@ -18,7 +18,7 @@ const PLANS = [
       'Chat transcript emailed',
     ],
     popular: false,
-    color: 'from-blue-500 to-blue-600',
+    color: 'from-orange-500 to-red-600',
   },
   {
     name: 'Standard Video',
@@ -79,7 +79,7 @@ export default function ServiceCards() {
                 className={`relative bg-white rounded-2xl shadow-xl border-2 transition-all duration-300 hover:scale-105 ${
                   plan.popular
                     ? 'border-green-500 shadow-green-200'
-                    : 'border-gray-200 hover:border-blue-300'
+                    : 'border-gray-200 hover:border-orange-300'
                 }`}
               >
                 {/* Popular badge */}
@@ -130,7 +130,7 @@ export default function ServiceCards() {
                     className={`block text-center py-3 px-6 rounded-lg font-semibold transition-all ${
                       plan.popular
                         ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl'
-                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white'
+                        : 'bg-gradient-to-r from-orange-600 to-red-700 hover:from-blue-700 hover:to-blue-800 text-white'
                     }`}
                   >
                     Get Started
