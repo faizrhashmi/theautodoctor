@@ -28,7 +28,10 @@ const PLAN_KEYS: PlanKey[] = ['chat10', 'video15', 'diagnostic']
 const SESSION_STATUS_VALUES: SessionStatus[] = ['scheduled', 'waiting', 'live', 'completed', 'cancelled']
 
 type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
-type SessionRow = Database['public']['Tables']['sessions']['Row']
+type SessionRow = Pick<
+  Database['public']['Tables']['sessions']['Row'],
+  'id' | 'status' | 'plan' | 'type' | 'scheduled_start' | 'scheduled_end' | 'scheduled_for' | 'started_at' | 'ended_at' | 'duration_minutes' | 'metadata'
+>
 type AvailabilityRow = Database['public']['Tables']['mechanic_availability']['Row']
 type AvailabilitySelectRow = Pick<
   AvailabilityRow,
@@ -468,8 +471,10 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
 
     try {
       if (isOnline) {
-        const { error } = await channel.untrack()
-        if (error) throw error
+        const result = await channel.untrack()
+        if (result !== 'ok') {
+          throw new Error('Unable to disconnect from presence channel.')
+        }
         setIsOnline(false)
       } else {
         const payload: MechanicPresencePayload = {
@@ -477,8 +482,10 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
           status: 'online',
           name: mechanicName,
         }
-        const { error } = await channel.track(payload)
-        if (error) throw error
+        const result = await channel.track(payload)
+        if (result !== 'ok') {
+          throw new Error('Unable to announce presence right now.')
+        }
         setIsOnline(true)
       }
     } catch (error) {

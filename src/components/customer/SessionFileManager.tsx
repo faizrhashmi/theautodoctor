@@ -10,7 +10,20 @@ import type {
 } from './dashboard-types'
 import { CUSTOMER_FILES_BUCKET, formatFileSize, generateSignedFileList } from './sessionFilesHelpers'
 
-function normalizeFile(row: SessionFile): CustomerDashboardFile {
+type SessionFileRow = Pick<
+  SessionFile,
+  | 'id'
+  | 'created_at'
+  | 'session_id'
+  | 'file_name'
+  | 'file_size'
+  | 'file_type'
+  | 'storage_path'
+  | 'file_url'
+  | 'uploaded_by'
+>
+
+function normalizeFile(row: SessionFileRow): CustomerDashboardFile {
   return {
     id: row.id,
     sessionId: row.session_id,

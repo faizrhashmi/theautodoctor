@@ -25,11 +25,15 @@ export async function broadcastSessionRequest(
 ) {
   try {
     const channel = supabaseAdmin.channel('requests')
-    const { error: subscribeError } = await channel.subscribe()
-    if (subscribeError) {
-      console.error('Failed to subscribe to request channel', subscribeError)
-      return
-    }
+    await new Promise<void>((resolve, reject) => {
+      channel.subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          resolve()
+        } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+          reject(err ?? new Error(`Request channel subscription failed: ${status}`))
+        }
+      })
+    })
 
     await channel.send({
       type: 'broadcast',

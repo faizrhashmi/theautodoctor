@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Minimize2, Maximize2, Send, Paperclip, User } from 'lucide-react'
+import { X, Minimize2, Send, Paperclip, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import type { Database, Json } from '@/types/supabase'
 import SessionTimer from './SessionTimer'
 
 interface ChatPopupProps {
@@ -12,21 +13,32 @@ interface ChatPopupProps {
   onClose: () => void
 }
 
+type ChatMessageRow = Database['public']['Tables']['chat_messages']['Row']
+type SessionParticipantRow = Database['public']['Tables']['session_participants']['Row']
+
+type Attachment = {
+  name?: string | null
+  url?: string | null
+  [key: string]: Json | undefined
+}
+
 interface Message {
   id: string
   session_id: string
-  sender_email: string
+  sender_id: string | null
+  sender_email: string | null
   content: string
-  attachments: any[]
+  attachments: Attachment[]
   created_at: string
 }
 
 interface Participant {
   id: string
   session_id: string
-  user_email: string
+  user_id: string
+  user_email: string | null
   role: 'customer' | 'mechanic'
-  joined_at: string
+  joined_at: string | null
 }
 
 export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }: ChatPopupProps) {
@@ -60,7 +72,9 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true })
 
-    if (data) setMessages(data)
+    if (data) {
+      setMessages(data.map(normalizeMessage))
+    }
   }
 
   async function loadParticipants() {
@@ -69,7 +83,9 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
       .select('*')
       .eq('session_id', sessionId)
 
-    if (data) setParticipants(data)
+    if (data) {
+      setParticipants(data.map(normalizeParticipant))
+    }
   }
 
   function subscribeToMessages() {
@@ -84,7 +100,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message])
+          setMessages((prev) => [...prev, normalizeMessage(payload.new as ChatMessageRow)])
         }
       )
       .subscribe()
@@ -261,15 +277,22 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
           {messages.map((msg) => {
-            const isMechanic = participants.find(p => p.user_email === msg.sender_email)?.role === 'mechanic'
-            const isMe = msg.sender_email === userEmail
+            const senderParticipant =
+              participants.find(
+                (participant) =>
+                  (msg.sender_id && participant.user_id === msg.sender_id) ||
+                  (msg.sender_email && participant.user_email === msg.sender_email)
+              ) ?? null
+            const senderEmail = msg.sender_email ?? senderParticipant?.user_email ?? null
+            const isMechanic = senderParticipant?.role === 'mechanic'
+            const isMe = senderEmail === userEmail
 
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[70%] ${isMe ? 'order-2' : 'order-1'}`}>
                   <div className={`flex items-center gap-2 mb-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <span className="text-xs font-medium text-gray-600">
-                      {isMechanic ? 'Mechanic' : 'You'}
+                      {isMechanic ? 'Mechanic' : isMe ? 'You' : senderEmail ?? 'Guest'}
                     </span>
                   </div>
                   <div
@@ -280,22 +303,29 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                    {msg.attachments && msg.attachments.length > 0 && (
+                    {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
                       <div className="mt-2">
-                        {msg.attachments.map((att: any, idx: number) => (
-                          <a
-                            key={idx}
-                            href={att.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-xs underline flex items-center gap-1 ${
-                              isMe ? 'text-blue-100' : 'text-orange-600'
-                            }`}
-                          >
-                            <Paperclip className="w-3 h-3" />
-                            {att.name}
-                          </a>
-                        ))}
+                        {msg.attachments.map((att, idx) => {
+                          const url = typeof att.url === 'string' ? att.url : undefined
+                          const label = typeof att.name === 'string' ? att.name : url ?? `Attachment ${idx + 1}`
+
+                          if (!url) return null
+
+                          return (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`text-xs underline flex items-center gap-1 ${
+                                isMe ? 'text-blue-100' : 'text-orange-600'
+                              }`}
+                            >
+                              <Paperclip className="w-3 h-3" />
+                              {label}
+                            </a>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -349,4 +379,68 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
       </div>
     </div>
   )
+}
+
+function normalizeMessage(row: ChatMessageRow): Message {
+  const withEmail = row as ChatMessageRow & { sender_email?: string | null }
+  const attachmentsRaw = withEmail.attachments
+
+  const attachments: Attachment[] = Array.isArray(attachmentsRaw)
+    ? attachmentsRaw
+        .filter(isJsonRecord)
+        .map((item) => {
+          const record = item as Record<string, Json | undefined>
+          const name = typeof record.name === 'string' ? record.name : undefined
+          const url = typeof record.url === 'string' ? record.url : undefined
+
+          return {
+            ...record,
+            name,
+            url,
+          } as Attachment
+        })
+    : []
+
+  return {
+    id: withEmail.id,
+    session_id: withEmail.session_id,
+    sender_id: typeof withEmail.sender_id === 'string' ? withEmail.sender_id : null,
+    sender_email: typeof withEmail.sender_email === 'string' ? withEmail.sender_email : null,
+    content: withEmail.content,
+    attachments,
+    created_at: withEmail.created_at,
+  }
+}
+
+function normalizeParticipant(row: SessionParticipantRow): Participant {
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>
+
+  const email =
+    typeof metadata.email === 'string'
+      ? metadata.email
+      : typeof metadata.user_email === 'string'
+        ? metadata.user_email
+        : null
+
+  const joined =
+    typeof metadata.joined_at === 'string'
+      ? metadata.joined_at
+      : typeof metadata.joinedAt === 'string'
+        ? metadata.joinedAt
+        : row.created_at ?? null
+
+  const role = metadata.role === 'mechanic' || metadata.role === 'customer' ? metadata.role : row.role
+
+  return {
+    id: row.id,
+    session_id: row.session_id,
+    user_id: row.user_id,
+    user_email: email,
+    role: role as Participant['role'],
+    joined_at: joined,
+  }
+}
+
+function isJsonRecord(value: Json): value is Record<string, Json> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
