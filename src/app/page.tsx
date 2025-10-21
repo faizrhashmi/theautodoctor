@@ -2,27 +2,34 @@ import Link from 'next/link'
 import { ArrowRight, CalendarClock, CheckCircle2, Shield, Wrench, Gauge, MessageSquare, Video, FileText, Users } from 'lucide-react'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
-const SERVICE_PACKAGES = [
+const OFFERINGS = [
   {
-    title: 'Rapid Video Diagnostics',
-    price: '$49',
+    name: 'Free Session',
+    price: '$0',
+    duration: 'Up to 5 minutes',
+    description: 'Sample AskAutoDoctor with a short text-only conversation.',
+    features: ['Chat with a certified mechanic', 'Share one photo or video clip', 'Quick go/no-go advice']
+  },
+  {
+    name: 'Quick Chat',
+    price: '$9.99',
     duration: '30 minutes',
-    description: 'Ideal for light diagnostics, maintenance questions, and quick inspections.',
-    highlights: ['Live HD video call', 'Mechanic summary email', 'Follow-up chat access']
+    description: 'Fast text triage when you need reassurance or a second opinion.',
+    features: ['Private text workspace', 'Send photos, videos, and scan data', 'Action plan before chat ends']
   },
   {
-    title: 'Deep Dive Inspection',
-    price: '$89',
+    name: 'Standard Video',
+    price: '$29.99',
+    duration: '45 minutes',
+    description: 'Live video session to troubleshoot, inspect, and plan next steps.',
+    features: ['HD video & screen sharing', 'Guided inspections & documentation', 'Session recording link']
+  },
+  {
+    name: 'Full Diagnostic',
+    price: '$49.99',
     duration: '60 minutes',
-    description: 'Perfect for complex issues, code scans, and pre-purchase checks.',
-    highlights: ['Step-by-step repair plan', 'Parts and tool list', 'Priority booking']
-  },
-  {
-    title: 'Shop Support Retainer',
-    price: '$199',
-    duration: 'Monthly',
-    description: 'For independent shops needing expert backup on-demand.',
-    highlights: ['Unlimited quick chats', 'Shared file vault', 'Dedicated mechanic team']
+    description: 'Deep dive consultation with written summary and repair roadmap.',
+    features: ['Senior mechanic lead', 'Multiple issues covered in one call', 'Detailed follow-up report']
   }
 ]
 
@@ -183,16 +190,16 @@ export default function Home() {
           <h2 className="mt-4 text-3xl font-bold">Choose the right support package</h2>
           <p className="mt-2 text-sm text-slate-300">Transparent pricing, session timers, and optional extensions billed automatically.</p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {SERVICE_PACKAGES.map((service) => (
-            <div key={service.title} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <h3 className="text-xl font-semibold text-white">{service.title}</h3>
-              <p className="mt-2 text-sm text-slate-300">{service.description}</p>
-              <div className="mt-6 text-3xl font-bold text-white">{service.price}</div>
-              <p className="text-xs uppercase tracking-wide text-blue-200">{service.duration}</p>
+        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {OFFERINGS.map((offering) => (
+            <div key={offering.name} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <h3 className="text-xl font-semibold text-white">{offering.name}</h3>
+              <p className="mt-2 text-sm text-slate-300">{offering.description}</p>
+              <div className="mt-6 text-3xl font-bold text-white">{offering.price}</div>
+              <p className="text-xs uppercase tracking-wide text-blue-200">{offering.duration}</p>
               <ul className="mt-6 space-y-2 text-sm text-slate-300">
-                {service.highlights.map((highlight) => (
-                  <li key={highlight}>• {highlight}</li>
+                {offering.features.map((feature) => (
+                  <li key={feature}>• {feature}</li>
                 ))}
               </ul>
               <Link
@@ -200,6 +207,7 @@ export default function Home() {
                 className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
               >
                 Book now
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           ))}
