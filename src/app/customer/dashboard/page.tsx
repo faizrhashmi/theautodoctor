@@ -239,7 +239,7 @@ export default async function CustomerDashboardPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8">
-        {profile?.email_verified === false && (
+        {!user.email_confirmed_at && profile?.email_verified === false && (
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Please verify your email address before joining a session. Check your inbox for a confirmation link or request a new
             one from the login page.
@@ -364,6 +364,16 @@ export default async function CustomerDashboardPage() {
                 >
                   {planSummary.actionLabel}
                 </Link>
+                {profile?.preferred_plan && profile.preferred_plan !== 'free' && (
+                  <form action="/api/customer/clear-plan" method="POST" className="w-full">
+                    <button
+                      type="submit"
+                      className="inline-flex w-full items-center justify-center rounded-full border border-slate-600/30 bg-slate-700/10 px-4 py-2 text-xs font-semibold text-slate-400 transition hover:border-slate-500/50 hover:bg-slate-700/20 hover:text-slate-300"
+                    >
+                      Clear plan selection
+                    </button>
+                  </form>
+                )}
               </div>
             </section>
 
@@ -400,16 +410,28 @@ export default async function CustomerDashboardPage() {
               </div>
             </section>
 
-            {vehicleInfo && Object.keys(vehicleInfo).length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-                <h3 className="mb-3 text-sm font-semibold text-white">Your vehicle</h3>
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white">Your vehicles</h3>
+                <Link
+                  href="/customer/vehicles"
+                  className="text-xs font-semibold text-orange-400 hover:text-orange-300"
+                >
+                  {vehicleInfo && Object.keys(vehicleInfo).length > 0 ? 'Edit' : 'Add vehicle'}
+                </Link>
+              </div>
+              {vehicleInfo && Object.keys(vehicleInfo).length > 0 ? (
                 <div className="space-y-2 text-sm text-slate-300">
                   {vehicleInfo.make && <p><strong className="text-white">Make:</strong> {vehicleInfo.make}</p>}
                   {vehicleInfo.model && <p><strong className="text-white">Model:</strong> {vehicleInfo.model}</p>}
                   {vehicleInfo.year && <p><strong className="text-white">Year:</strong> {vehicleInfo.year}</p>}
                 </div>
-              </section>
-            )}
+              ) : (
+                <p className="text-sm text-slate-400">
+                  No vehicle added yet. Add your vehicle information to help mechanics prepare for your session.
+                </p>
+              )}
+            </section>
 
             <section className="rounded-2xl border border-orange-400/30 bg-orange-500/10 p-6 shadow-sm backdrop-blur">
               <h3 className="mb-2 text-sm font-semibold text-orange-200">Need help?</h3>

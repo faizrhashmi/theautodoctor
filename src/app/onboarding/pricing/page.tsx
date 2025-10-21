@@ -29,42 +29,46 @@ export default async function PricingSelectionPage() {
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email || 'User';
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-amber-950/50 to-slate-950 text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-60">
-        <div className="absolute -top-32 -left-24 h-64 w-64 rounded-full bg-amber-500/40 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-orange-500/30 blur-[120px]" />
-        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <header className="border-b border-white/10 bg-white/5 shadow-sm backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <h1 className="text-lg font-semibold text-white">Choose Your Plan</h1>
+          <a
+            href="/customer/dashboard"
+            className="text-sm font-medium text-slate-300 transition hover:text-white"
+          >
+            Back to Dashboard
+          </a>
+        </div>
+      </header>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-5 py-16 sm:px-8 lg:px-12">
-        <header className="space-y-6">
-          <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-amber-200">
-            Choose your plan
-          </span>
-          <div className="space-y-4">
-            <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
-              Finish onboarding by selecting{' '}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">
-                the session tier that fits you
-              </span>
-            </h1>
-            <p className="max-w-3xl text-sm text-orange-100/80">
-              Unlock live access to certified mechanics. Pick the option that matches the depth of help you need - you can upgrade later before booking.
-            </p>
+      <main className="mx-auto max-w-7xl px-6 py-12">
+        <div className="mb-12 text-center">
+          <div className="mb-4 inline-flex items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300">
+            Select Your Plan
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs text-orange-200/90">
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-500/10 px-4 py-2">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-300" />
-              Change or upgrade your plan any time inside the dashboard.
+          <h2 className="text-4xl font-bold text-white md:text-5xl">
+            Choose the Right Session
+            <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-400 to-orange-500">
+              For Your Vehicle
+            </span>
+          </h2>
+          <p className="mt-6 text-lg text-slate-300 max-w-3xl mx-auto">
+            Connect with certified mechanics instantly. Select the plan that matches your needs - you can upgrade anytime.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
+              <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
+              Change plans anytime
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-2">
-              Billing is secured through Stripe - Cancel or switch tiers whenever you like.
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
+              Secure Stripe billing
             </div>
           </div>
-        </header>
+        </div>
 
         <PlanSelectionClient displayName={displayName} />
-      </div>
+      </main>
     </div>
   );
 }

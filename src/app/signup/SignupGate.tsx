@@ -15,6 +15,9 @@ type SignupFormState = {
   phone: string;
   vehicle: string;
   dateOfBirth: string;
+  address: string;
+  city: string;
+  country: string;
 };
 
 const EMPTY_FORM: SignupFormState = {
@@ -23,6 +26,9 @@ const EMPTY_FORM: SignupFormState = {
   phone: "",
   vehicle: "",
   dateOfBirth: "",
+  address: "",
+  city: "",
+  country: "Canada",
 };
 
 function isAdult(value: string): boolean {
@@ -107,6 +113,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       form.lastName.trim() &&
       form.phone.trim() &&
       form.dateOfBirth &&
+      form.address.trim() &&
+      form.city.trim() &&
+      form.country.trim() &&
       email.trim() &&
       password
     );
@@ -117,6 +126,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     if (!form.firstName.trim() || !hasOnlyLetters(form.firstName)) return false;
     if (!form.lastName.trim() || !hasOnlyLetters(form.lastName)) return false;
     if (!form.phone.trim()) return false;
+    if (!form.address.trim()) return false;
+    if (!form.city.trim()) return false;
+    if (!form.country.trim()) return false;
     if (!isAdult(form.dateOfBirth)) return false;
     if (!email.trim()) return false;
     if (!isValidPassword(password)) return false;
@@ -222,6 +234,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           phone: form.phone.trim(),
           vehicle_hint: form.vehicle.trim(),
           date_of_birth: form.dateOfBirth,
+          address: form.address.trim(),
+          city: form.city.trim(),
+          country: form.country.trim(),
         },
         emailRedirectTo: redirectURL,
       },
@@ -427,6 +442,51 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                 {fieldErrors.dateOfBirth && (
                   <p className="mt-1 text-xs text-rose-400">{fieldErrors.dateOfBirth}</p>
                 )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-200">
+                Address <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={form.address}
+                onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
+                placeholder="123 Main Street"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-200">
+                  City <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.city}
+                  onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+                  placeholder="Toronto"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-200">
+                  Country <span className="text-rose-400">*</span>
+                </label>
+                <select
+                  required
+                  value={form.country}
+                  onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                >
+                  <option value="Canada">Canada</option>
+                  <option value="United States">United States</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
             </div>
 

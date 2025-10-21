@@ -96,10 +96,10 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-12">
-      <div className="rounded-2xl border border-orange-400/30 bg-orange-600/10 p-6 text-sm text-orange-100/90 backdrop-blur-sm">
-        <p className="text-xs uppercase tracking-[0.3em] text-orange-200/90">Signed in as</p>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
+        <p className="text-xs uppercase tracking-wider text-slate-400">Signed in as</p>
         <p className="mt-1 text-base font-semibold text-white">{displayName}</p>
-        <p className="mt-2 text-orange-100/80">
+        <p className="mt-2 text-sm text-slate-300">
           Your selection unlocks scheduling and payment options inside the dashboard. You can switch plans before paying.
         </p>
         <div className="mt-4">
@@ -113,7 +113,7 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
               }
               router.push('/signup');
             }}
-            className="text-xs font-semibold text-orange-200 underline transition hover:text-orange-100"
+            className="text-xs font-semibold text-orange-400 underline transition hover:text-orange-300"
           >
             Sign out
           </button>
@@ -121,7 +121,7 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-400/40 bg-rose-500/15 p-4 text-sm text-rose-100">
+        <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-300">
           {error}
         </div>
       )}
@@ -133,30 +133,30 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
             type="button"
             onClick={() => handleSelect(tier.id)}
             disabled={Boolean(submitting)}
-            className={`group relative flex h-full flex-col justify-between rounded-3xl border border-orange-500/20 bg-orange-500/10 p-6 text-left text-white shadow-[0_25px_60px_-35px_rgba(255,128,0,0.4)] transition duration-200 hover:border-orange-400/70 hover:bg-orange-500/20 hover:shadow-[0_28px_70px_-30px_rgba(255,160,60,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 ${
-              submitting && submitting !== tier.id ? 'opacity-60 blur-[0.4px]' : ''
-            }`}
+            className={`group relative flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-white/5 p-6 text-left text-white shadow-sm backdrop-blur transition duration-200 hover:border-orange-400/50 hover:bg-orange-500/10 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50 ${
+              submitting && submitting !== tier.id ? 'opacity-60' : ''
+            } ${tier.id === 'diagnostic' ? 'border-orange-400/30 bg-orange-500/10' : ''}`}
           >
             <div>
-              <span className="inline-flex items-center rounded-full border border-orange-300/20 bg-orange-500/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-100/90">
+              <span className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                 {tier.duration}
               </span>
               <h2 className="mt-4 text-2xl font-semibold text-white">{tier.name}</h2>
-              <p className="mt-2 text-sm text-orange-100/80">{tier.description}</p>
+              <p className="mt-2 text-sm text-slate-400">{tier.description}</p>
               <p className="mt-4 text-3xl font-bold text-white">{tier.price}</p>
-              <ul className="mt-4 space-y-2 text-sm text-orange-100/80">
+              <ul className="mt-4 space-y-2 text-sm text-slate-300">
                 {tier.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-orange-300" />
+                    <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-orange-400" />
                     <span>{perk}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="mt-6 text-xs text-orange-100/70">{tier.recommendedFor}</div>
-            <div className="mt-6 flex items-center justify-between rounded-2xl border border-orange-400/30 bg-orange-500/10 px-4 py-3 text-sm font-semibold text-white transition group-hover:border-orange-300 group-hover:bg-orange-500/30">
+            <div className="mt-6 text-xs text-slate-400">{tier.recommendedFor}</div>
+            <div className="mt-6 flex items-center justify-between rounded-2xl border border-orange-400/30 bg-orange-500/10 px-4 py-3 text-sm font-semibold text-white transition group-hover:border-orange-400/50 group-hover:bg-orange-500/20">
               <span>{tier.id === 'free' ? 'Start free session' : 'Continue with this plan'}</span>
-              <span className="text-orange-200 group-hover:text-white">{submitting === tier.id ? 'Saving...' : 'Select ->'}</span>
+              <span className="text-orange-400 group-hover:text-orange-300">{submitting === tier.id ? 'Saving...' : 'Select →'}</span>
             </div>
           </button>
         ))}
