@@ -10,6 +10,9 @@ export const fetchCache = 'force-no-store';
 interface SignupPageProps {
   searchParams?: {
     redirect?: string | string[];
+    error?: string | string[];
+    error_code?: string | string[];
+    error_description?: string | string[];
   };
 }
 
@@ -22,6 +25,10 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const redirectParam = searchParams?.redirect;
   const rawRedirect = typeof redirectParam === 'string' ? redirectParam : null;
   const redirectTo = rawRedirect && rawRedirect.startsWith('/') ? rawRedirect : null;
+
+  // Extract error information from query params
+  const errorCode = typeof searchParams?.error_code === 'string' ? searchParams.error_code : null;
+  const errorDescription = typeof searchParams?.error_description === 'string' ? searchParams.error_description : null;
 
   if (!user) {
     return (
@@ -111,7 +118,15 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             </div>
 
             {/* Right Side - Login/Signup Form */}
-            <div className="flex items-start justify-center lg:pt-0">
+            <div className="flex flex-col items-start justify-center gap-4 lg:pt-0">
+              {errorCode === 'otp_expired' && (
+                <div className="w-full max-w-md rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-300">
+                  <p className="font-semibold">Email Verification Link Expired</p>
+                  <p className="mt-2 text-xs text-rose-200">
+                    {errorDescription ? decodeURIComponent(errorDescription) : 'The verification link has expired. Please sign up again to receive a new confirmation email.'}
+                  </p>
+                </div>
+              )}
               <SignupGate redirectTo={redirectTo} />
             </div>
           </div>
