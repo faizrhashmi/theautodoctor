@@ -30,6 +30,10 @@ const SESSION_STATUS_VALUES: SessionStatus[] = ['scheduled', 'waiting', 'live', 
 type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
 type SessionRow = Database['public']['Tables']['sessions']['Row']
 type AvailabilityRow = Database['public']['Tables']['mechanic_availability']['Row']
+type AvailabilitySelectRow = Pick<
+  AvailabilityRow,
+  'id' | 'day_of_week' | 'start_time' | 'end_time' | 'is_available'
+>
 
 type MechanicDashboardSession = {
   id: string
@@ -135,7 +139,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     setIncomingRequests((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
-  const mapAvailabilityRow = useCallback((row: AvailabilityRow): MechanicAvailabilityBlock => ({
+  const mapAvailabilityRow = useCallback((row: AvailabilitySelectRow): MechanicAvailabilityBlock => ({
     id: row.id,
     weekday: typeof row.day_of_week === 'number' ? row.day_of_week : 0,
     startTime: row.start_time ?? '00:00',
