@@ -1,7 +1,9 @@
-﻿/** @type {import('next').NextConfig} */
+const path = require('path')
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
   typescript: {
     ignoreBuildErrors: false,
@@ -27,6 +29,10 @@ const nextConfig = {
         pathname: '/favicon.ico',
       },
     ],
+  },
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src')
+    return config
   },
 }
 
