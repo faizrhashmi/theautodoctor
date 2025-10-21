@@ -4,6 +4,8 @@
 
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @import '../vendor/react-big-calendar/lib/css/react-big-calendar.css';
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+
 
 /* Custom animations */
 @keyframes gradient {
