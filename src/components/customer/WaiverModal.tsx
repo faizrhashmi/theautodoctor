@@ -71,9 +71,9 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
                   not replace professional in-person mechanical inspection and repair.
                 </li>
                 <li>
-                  <strong>Follow Advice at Your Own Risk:</strong> Any actions you take based on our mechanics' advice
-                  are done at your own risk. We are not liable for damages, injuries, or losses resulting from
-                  following or not following the advice provided.
+                  <strong>Follow Advice at Your Own Risk:</strong>{' '}
+                  {"Any actions you take based on our mechanics' advice are done at your own risk. "}
+                  {'We are not liable for damages, injuries, or losses resulting from following or not following the advice provided.'}
                 </li>
                 <li>
                   <strong>Vehicle Safety:</strong> If you suspect your vehicle is unsafe to operate, do not drive it.
@@ -169,9 +169,8 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
             <section className="rounded-lg bg-amber-50 p-4">
               <h3 className="mb-2 font-semibold text-amber-900">Acknowledgment</h3>
               <p className="text-amber-800">
-                By clicking "I Accept", you acknowledge that you have read, understood, and agree to be bound by these
-                Terms of Service and Waiver. You confirm that you are 18 years or older and that you will use
-                AskAutoDoctor services at your own risk.
+                {'By clicking "I Accept", you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Waiver. '}
+                {'You confirm that you are 18 years or older and that you will use AskAutoDoctor services at your own risk.'}
               </p>
             </section>
           </div>
@@ -181,7 +180,7 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
         <div className="border-t border-slate-200 px-6 py-4">
           {!hasScrolled && (
             <p className="mb-3 text-center text-xs text-amber-600">
-              ⚠ Please scroll to the bottom to read all terms
+              Warning: Please scroll to the bottom to read all terms
             </p>
           )}
           <div className="flex gap-3">

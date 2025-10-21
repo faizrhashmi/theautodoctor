@@ -209,7 +209,7 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
             </div>
             <div className="flex items-center justify-center gap-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-green-400"></div>
-              <span className="text-sm text-slate-300">You're connected and ready</span>
+              <span className="text-sm text-slate-300">{"You're connected and ready"}</span>
             </div>
           </div>
         </div>

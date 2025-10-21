@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
           <span className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Account recovery</span>
           <h1 className="text-3xl font-semibold text-white md:text-4xl">Reset Password</h1>
           <p className="text-sm text-slate-300">
-            Enter your email and we'll send you a link to choose a new password.
+            {"Enter your email and we'll send you a link to choose a new password."}
           </p>
         </div>
 
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <p className="text-center text-sm text-slate-300">
-              Didn't receive the email?{' '}
+              {"Didn't receive the email?"}{' '}
               <button
                 onClick={() => setSuccess(false)}
                 className="font-semibold text-orange-200 transition hover:text-white"

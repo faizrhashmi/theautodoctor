@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { X, Minimize2, Send, Paperclip, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { Database, Json } from '@/types/supabase'
@@ -50,46 +50,38 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const mechanicJoinedAt = participants.find(p => p.role === 'mechanic')?.joined_at || null
 
   useEffect(() => {
-    loadMessages()
-    loadParticipants()
-    subscribeToMessages()
-    subscribeToParticipants()
-  }, [sessionId])
+    let isActive = true
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true })
 
-  async function loadMessages() {
-    const { data } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-
-    if (data) {
+      if (!isActive || !data) return
       setMessages(data.map(normalizeMessage))
     }
-  }
 
-  async function loadParticipants() {
-    const { data } = await supabase
-      .from('session_participants')
-      .select('*')
-      .eq('session_id', sessionId)
+    const fetchParticipants = async () => {
+      const { data } = await supabase
+        .from('session_participants')
+        .select('*')
+        .eq('session_id', sessionId)
 
-    if (data) {
+      if (!isActive || !data) return
       setParticipants(data.map(normalizeParticipant))
     }
-  }
 
-  function subscribeToMessages() {
-    const channel = supabase
+    void fetchMessages()
+    void fetchParticipants()
+
+    const messagesChannel = supabase
       .channel(`chat:${sessionId}`)
       .on(
         'postgres_changes',
@@ -100,18 +92,13 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
+          if (!isActive) return
           setMessages((prev) => [...prev, normalizeMessage(payload.new as ChatMessageRow)])
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }
-
-  function subscribeToParticipants() {
-    const channel = supabase
+    const participantsChannel = supabase
       .channel(`participants:${sessionId}`)
       .on(
         'postgres_changes',
@@ -122,15 +109,21 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
           filter: `session_id=eq.${sessionId}`,
         },
         () => {
-          loadParticipants()
+          void fetchParticipants()
         }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      isActive = false
+      supabase.removeChannel(messagesChannel)
+      supabase.removeChannel(participantsChannel)
     }
-  }
+  }, [sessionId, supabase])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

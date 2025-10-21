@@ -265,7 +265,9 @@ export default async function CustomerDashboardPage() {
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-sm backdrop-blur">
                   <h3 className="text-lg font-semibold text-white">No sessions scheduled</h3>
                   <p className="mt-2 text-sm text-slate-300">
-                    You're all set with your {profile?.preferred_plan ? PLAN_LABELS[profile.preferred_plan] || 'plan' : 'plan'}! Schedule your first session to connect with our certified mechanics.
+                    {"You're all set with your "}
+                    {profile?.preferred_plan ? PLAN_LABELS[profile.preferred_plan] || 'plan' : 'plan'}
+                    {"! Schedule your first session to connect with our certified mechanics."}
                   </p>
                   <div className="mt-4 flex justify-center">
                     <Link

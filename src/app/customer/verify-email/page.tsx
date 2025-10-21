@@ -18,7 +18,7 @@ export default function VerifyEmailPage() {
           </div>
           <h1 className="mt-6 text-3xl font-bold text-slate-900">Check Your Email</h1>
           <p className="mt-2 text-sm text-slate-600">
-            We've sent a verification link to your email
+            {"We've sent a verification link to your email"}
           </p>
         </div>
 
@@ -51,21 +51,21 @@ export default function VerifyEmailPage() {
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-orange-600">2.</span>
-                <span>Click the "Verify Email" button</span>
+                <span>{'Click the "Verify Email" button'}</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-orange-600">3.</span>
-                <span>You'll be redirected to login</span>
+                <span>{"You'll be redirected to login"}</span>
               </li>
             </ol>
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <h3 className="text-sm font-semibold text-slate-900">Didn't receive the email?</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{"Didn't receive the email?"}</h3>
             <ul className="mt-2 space-y-1 text-sm text-slate-600">
-              <li>• Check your spam/junk folder</li>
-              <li>• Make sure you entered the correct email</li>
-              <li>• Wait a few minutes and check again</li>
+              <li>- Check your spam/junk folder</li>
+              <li>- Make sure you entered the correct email</li>
+              <li>- Wait a few minutes and check again</li>
             </ul>
             <p className="mt-3 text-sm text-slate-600">
               Still having trouble?{' '}

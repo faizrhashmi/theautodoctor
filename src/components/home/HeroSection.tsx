@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Wrench, Zap, Star, Play, Video, CheckCircle2 } from 'lucide-react'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
@@ -8,10 +9,13 @@ export default function HeroSection() {
   return (
     <section className="relative isolate flex min-h-screen items-center overflow-hidden bg-slate-950">
       <div className="absolute inset-0 -z-10">
-        <img
+        <Image
           src="/images/mechanic-hero.jpg"
           alt="Professional auto mechanic workspace"
-          className="h-full w-full object-cover object-center brightness-[0.72] saturate-[0.9]"
+          className="object-cover object-center brightness-[0.72] saturate-[0.9]"
+          fill
+          priority
+          sizes="100vw"
           onError={(e) => {
             const target = e.target as HTMLImageElement
             target.src =

@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+// Using img element for dynamic file uploads with unknown dimensions
+
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'

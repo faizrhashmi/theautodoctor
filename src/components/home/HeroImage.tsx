@@ -1,6 +1,7 @@
 'use client'
 
 import { Video, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
 
 export default function HeroImage() {
   return (
@@ -13,10 +14,13 @@ export default function HeroImage() {
           {/* Hero Image */}
           <div className="relative h-80 w-full overflow-hidden rounded-t-3xl">
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10" />
-            <img
+            <Image
               src="/images/mechanic-hero.jpg"
               alt="Professional mechanic providing virtual diagnostic service"
-              className="h-full w-full object-cover"
+              className="object-cover"
+              fill
+              priority
+              sizes="(max-width: 1280px) 100vw, 1280px"
               onError={(e) => {
                 // Fallback to a beautiful gradient with icon if image not found
                 const target = e.currentTarget as HTMLImageElement;
