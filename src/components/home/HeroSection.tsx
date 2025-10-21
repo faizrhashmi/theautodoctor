@@ -79,86 +79,75 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Promo container — smaller and tighter for mobile */}
-        <div className="max-w-sm space-y-8 sm:max-w-md">
-          <div className="relative">
-            <div className="pointer-events-none absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 opacity-40 blur-sm" />
-            <div className="relative overflow-visible rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-red-600/10 p-3 sm:p-4 backdrop-blur">
-              <div className="absolute -top-3 left-3 flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-3 py-0.5 shadow-md">
-                <Zap className="h-3.5 w-3.5 text-white animate-pulse" />
-                <span className="text-[9px] font-bold uppercase tracking-wider text-white">Limited Time Offer</span>
+        <div className="max-w-4xl space-y-10">
+          {/* Promo box — small version, $0 removed */}
+          <div className="relative max-w-sm">
+            <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 opacity-70 blur-lg animate-pulse" />
+            <div className="relative overflow-visible rounded-2xl border border-orange-500/50 bg-gradient-to-br from-orange-500/15 to-red-600/15 p-3 sm:p-4 backdrop-blur-md">
+              <div className="absolute -top-4 left-6 flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-1 shadow-lg">
+                <Zap className="h-4 w-4 text-white animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider text-white">Limited Time Offer</span>
               </div>
-
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <p className="text-lg sm:text-xl font-bold text-white">FREE Trial Session</p>
-                  <p className="text-[9px] font-medium uppercase tracking-[0.25em] text-orange-200/80">
-                    Limited slots this month
-                  </p>
-                  <p className="text-xs sm:text-sm text-orange-100/80">
-                    Get expert help at zero cost while it lasts.
-                  </p>
-                </div>
-
-                {/* Removed $0, replaced with CTA button */}
-                <Link
-                  href="/signup"
-                  className="mt-1 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-[11px] font-semibold text-white shadow-md transition hover:from-orange-600 hover:to-red-700 sm:text-xs"
-                >
-                  Claim Free Trial
-                </Link>
+              <div className="flex flex-col gap-2">
+                <p className="text-xl font-bold text-white">FREE Trial Session</p>
+                <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-orange-200/80">
+                  Limited slots this month
+                </p>
+                <p className="text-xs text-orange-100/80">
+                  Get expert help at zero cost while it lasts.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md shadow-orange-500/30">
-                  <Video className="h-5 w-5 text-white" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-lg shadow-orange-500/30">
+                  <Video className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">Live Video Sessions</p>
-                  <p className="text-[11px] text-slate-300/90">HD troubleshooting within minutes</p>
+                  <p className="text-xs text-slate-300/90">HD troubleshooting within minutes</p>
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
                   <img
                     src="https://www.red-seal.ca/images/redsealmapleleafbilingual-eng.png"
                     alt="Red Seal certification"
-                    className="h-7 w-7 object-contain"
+                    className="h-8 w-8 object-contain"
                   />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">Red Seal Certified</p>
-                  <p className="text-[11px] text-slate-300/90">Professionals you can trust</p>
+                  <p className="text-xs text-slate-300/90">Professionals you can trust</p>
                 </div>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-4 backdrop-blur">
+            <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-md shadow-emerald-500/30">
-                  <CheckCircle2 className="h-5 w-5 text-white" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30">
+                  <CheckCircle2 className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">Money-Back Guarantee</p>
-                  <p className="text-[11px] text-slate-300/90">100% satisfaction promise</p>
+                  <p className="text-xs text-slate-300/90">100% satisfaction promise</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+          <div className="flex flex-wrap items-center gap-8">
             <div>
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-orange-400 text-orange-400" />
                 ))}
               </div>
-              <p className="mt-1 text-xs sm:text-sm text-slate-300/90">500+ Happy Customers</p>
+              <p className="mt-1 text-sm text-slate-300/90">500+ Happy Customers</p>
             </div>
           </div>
         </div>
