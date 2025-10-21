@@ -69,6 +69,24 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // Check for hash-based errors from Supabase OAuth/email confirmation
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const errorCode = params.get('error_code');
+      const errorDescription = params.get('error_description');
+
+      if (errorCode === 'otp_expired') {
+        setError(errorDescription
+          ? decodeURIComponent(errorDescription)
+          : 'Email verification link has expired. Please sign up again to receive a new confirmation email.');
+        // Clean up the URL
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, []);
+
   const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
   const redirectURL = useMemo(() => {
     try {
