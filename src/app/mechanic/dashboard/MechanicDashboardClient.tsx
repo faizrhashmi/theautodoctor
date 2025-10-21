@@ -228,15 +228,14 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     setIsLoadingRequests(true)
     setRequestsError(null)
 
-    // supabase client returns a PromiseLike; wrap with Promise.resolve so .finally is available to TypeScript
-    Promise.resolve(
-      supabase
-        .from('session_requests')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true })
-    )
-      .then(({ data, error }) => {
+    const fetchRequests = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('session_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true })
+
         if (cancelled || !isMountedRef.current) return
 
         if (error) {
@@ -250,12 +249,19 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
           )
         }
-      })
-      .finally(() => {
+      } catch (err) {
+        if (cancelled || !isMountedRef.current) return
+        console.error('Failed to load session requests', err)
+        setRequestsError('Unable to load incoming requests right now.')
+        setIncomingRequests([])
+      } finally {
         if (!cancelled && isMountedRef.current) {
           setIsLoadingRequests(false)
         }
-      })
+      }
+    }
+
+    void fetchRequests()
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })
@@ -302,44 +308,49 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     }
   }, [mechanicId, supabase, mapRowToRequest, removeRequest, upsertRequest])
 
-  const loadAvailability = useCallback(() => {
+  const loadAvailability = useCallback(async () => {
     if (!mechanicId) return
     setIsLoadingAvailability(true)
     setAvailabilityError(null)
 
-    supabase
-      .from('mechanic_availability')
-      .select('id, day_of_week, start_time, end_time, is_available')
-      .eq('mechanic_id', mechanicId)
-      .order('day_of_week', { ascending: true })
-      .order('start_time', { ascending: true })
-      .then(({ data, error }) => {
-        if (!isMountedRef.current) return
+    try {
+      const { data, error } = await supabase
+        .from('mechanic_availability')
+        .select('id, day_of_week, start_time, end_time, is_available')
+        .eq('mechanic_id', mechanicId)
+        .order('day_of_week', { ascending: true })
+        .order('start_time', { ascending: true })
 
-        if (error) {
-          console.error('Failed to load availability', error)
-          setAvailabilityError('Unable to load your availability schedule right now.')
-          setAvailabilityBlocks([])
-        } else if (data) {
-          setAvailabilityBlocks(
-            data.map(mapAvailabilityRow).sort((a, b) => {
-              if (a.weekday === b.weekday) {
-                return a.startTime.localeCompare(b.startTime)
-              }
-              return a.weekday - b.weekday
-            })
-          )
-        }
-      })
-      .finally(() => {
-        if (isMountedRef.current) {
-          setIsLoadingAvailability(false)
-        }
-      })
+      if (!isMountedRef.current) return
+
+      if (error) {
+        console.error('Failed to load availability', error)
+        setAvailabilityError('Unable to load your availability schedule right now.')
+        setAvailabilityBlocks([])
+      } else if (data) {
+        setAvailabilityBlocks(
+          data.map(mapAvailabilityRow).sort((a, b) => {
+            if (a.weekday === b.weekday) {
+              return a.startTime.localeCompare(b.startTime)
+            }
+            return a.weekday - b.weekday
+          })
+        )
+      }
+    } catch (err) {
+      if (!isMountedRef.current) return
+      console.error('Failed to load availability', err)
+      setAvailabilityError('Unable to load your availability schedule right now.')
+      setAvailabilityBlocks([])
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingAvailability(false)
+      }
+    }
   }, [mechanicId, mapAvailabilityRow, supabase])
 
   useEffect(() => {
-    loadAvailability()
+    void loadAvailability()
   }, [loadAvailability])
 
   const loadSessions = useCallback(
