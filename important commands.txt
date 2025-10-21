@@ -1,20 +1,22 @@
 npx tsc --noEmit
 
-(command  check for errors before rendering)
+(above is command  check for errors before rendering)
 
- tree /F > folder_tree.txt 
+tree /F > folder_tree.txt 
 Get-Location
 
 Get-ChildItem -Path "C:\Users\Faiz Hashmi\theautodoctor" -Recurse -Directory | Select-Object -ExpandProperty Name | Set-Clipboard
 
 Get-ChildItem -Recurse | Out-String -Width 4096 | Set-Clipboard
 
-tree /a /f | clip
+COPY TREE STRUCTURE
 
+tree /a /f | clip
 
 cd "C:\Users\Faiz Hashmi\theautodoctor"
 
-5) Update your local repo to the new main
+UPDATE YOUR LOCAL REPO TO THE MAIN
+
 # Make sure you're not sitting on the old branch
 git checkout main
 
@@ -29,3 +31,15 @@ if (Test-Path .next) { Remove-Item .next -Recurse -Force }
 
 # Run locally
 npm run dev
+
+
+IMPORTANT CODE TO REDIRECT URL:
+
+The fix: You need to configure the Site URL and Redirect URLs in your Supabase dashboard:
+Visit: https://qtkouemogsymqrzkysar.supabase.co
+Go to Authentication → URL Configuration
+Set Site URL to: http://localhost:3000/auth/callback (for local dev)
+In Redirect URLs, add both:
+http://localhost:3000/auth/callback
+http://localhost:3000/customer/dashboard
+When you deploy to production, update to: https://askautodoctor.com/auth/callback

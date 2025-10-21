@@ -7,6 +7,9 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const next = requestUrl.searchParams.get('next') ?? '/customer/dashboard'
 
+  // Use the configured app URL or fallback to request origin
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin
+
   if (code) {
     const cookieStore = cookies()
 
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
         const dateOfBirth = (user?.user_metadata?.date_of_birth as string | undefined) ?? null
 
         // Call profile API
-        await fetch(`${requestUrl.origin}/api/customer/profile`, {
+        await fetch(`${baseUrl}/api/customer/profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fullName, phone, vehicle, dateOfBirth }),
@@ -51,14 +54,14 @@ export async function GET(request: NextRequest) {
       }
 
       // Successfully confirmed email, redirect to dashboard
-      return NextResponse.redirect(new URL(next, request.url))
+      return NextResponse.redirect(new URL(next, baseUrl))
     } else {
       console.error('Auth callback error:', error)
       // Redirect to error page
-      return NextResponse.redirect(new URL(`/auth/confirm?error=${encodeURIComponent(error.message)}`, request.url))
+      return NextResponse.redirect(new URL(`/auth/confirm?error=${encodeURIComponent(error.message)}`, baseUrl))
     }
   }
 
   // No code provided, redirect to login
-  return NextResponse.redirect(new URL('/signup', request.url))
+  return NextResponse.redirect(new URL('/signup', baseUrl))
 }

@@ -14,7 +14,8 @@
       "Bash(findstr:*)",
       "Bash(powershell -Command \"(Get-Content ''src/app/customer/dashboard/page.tsx'' -Raw) -replace ''<span className=\"\"\"text-base text-green-300\"\"\">.*?</span>'',''<ClipboardList className=\"\"\"h-5 w-5 text-green-300\"\"\" />'' | Set-Content ''src/app/customer/dashboard/page.tsx'' -NoNewline\")",
       "Bash(dir:*)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(timeout /t 5)"
     ],
     "deny": [],
     "ask": []

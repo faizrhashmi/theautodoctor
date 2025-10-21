@@ -19,11 +19,22 @@ function matchesPrefix(pathname: string, prefix: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
 
   // Allow static assets immediately
   if (pathname.startsWith('/_next') || pathname === '/favicon.ico') {
     return NextResponse.next()
+  }
+
+  // Handle email confirmation codes landing on the homepage
+  // Redirect them to the auth callback handler
+  if (pathname === '/' && searchParams.has('code')) {
+    const callbackUrl = new URL('/auth/callback', request.url)
+    callbackUrl.searchParams.set('code', searchParams.get('code')!)
+    if (searchParams.has('next')) {
+      callbackUrl.searchParams.set('next', searchParams.get('next')!)
+    }
+    return NextResponse.redirect(callbackUrl)
   }
 
   const response = NextResponse.next()
@@ -91,6 +102,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/admin/:path*',
     '/customer/dashboard',
     '/customer/dashboard/:path*',
