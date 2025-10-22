@@ -1,16 +1,14 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export function LogoutButton() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   async function handleLogout() {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/logout', { 
+      await fetch('/api/admin/logout', {
         method: 'POST',
         credentials: 'include'
       })

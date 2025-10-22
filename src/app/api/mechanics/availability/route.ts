@@ -47,11 +47,11 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     available: availability.available,
     mechanicsOnline: availability.count,
-    mechanic: {
+    mechanic: availability.mechanic ? {
       id: availability.mechanic.id,
       name: availability.mechanic.name,
       specialty: availability.mechanic.specialty,
       eta: availability.mechanic.eta,
-    },
+    } : null,
   });
 }

@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { X, Calendar, Clock, User, FileText, Star, Video, MessageSquare } from 'lucide-react'
+import { X, Calendar, User, FileText, Star, Video, MessageSquare } from 'lucide-react'
 
 interface SessionFile {
   id: string

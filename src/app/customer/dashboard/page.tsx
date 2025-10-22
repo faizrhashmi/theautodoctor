@@ -258,10 +258,10 @@ export default async function CustomerDashboardPage() {
 
   // Session history - exclude sessions already shown above (active and upcoming)
   // Show completed, canceled, and any old pending/live sessions
-  const displayedSessionIds = new Set([
-    ...activeSessions.map(s => s.id),
-    ...scheduledSessions.map(s => s.id)
-  ])
+  // const displayedSessionIds = new Set([
+  //   ...activeSessions.map(s => s.id),
+  //   ...scheduledSessions.map(s => s.id)
+  // ])
 
   // Unused for now but kept for potential future "all history" feature
   // const allSessionHistory = normalizedSessions
@@ -781,11 +781,12 @@ function uploadLabel(session: CustomerDashboardSession): string {
 function initials(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return 'U'
-  const parts = trimmed.split(' ')
+  const parts = trimmed.split(' ').filter(p => p)
+  if (parts.length === 0) return 'U'
   if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase()
+    return parts[0]!.charAt(0).toUpperCase()
   }
-  return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase()
+  return `${parts[0]!.charAt(0)}${parts[parts.length - 1]!.charAt(0)}`.toUpperCase()
 }
 
 type PlanSummary = {

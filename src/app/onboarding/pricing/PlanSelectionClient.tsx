@@ -1,8 +1,6 @@
 ﻿"use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
 
 const TIERS = [
   {
@@ -68,8 +66,7 @@ type PlanSelectionClientProps = {
   activeSessionsCount: number;
 };
 
-export default function PlanSelectionClient({ hasActiveSessions, activeSessionsCount }: PlanSelectionClientProps) {
-  const router = useRouter();
+export default function PlanSelectionClient({ hasActiveSessions }: Pick<PlanSelectionClientProps, 'hasActiveSessions'>) {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

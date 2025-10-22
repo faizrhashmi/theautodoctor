@@ -17,7 +17,7 @@ export async function DELETE(
           getAll() {
             return request.cookies.getAll()
           },
-          setAll(cookiesToSet) {
+          setAll() {
             // Not needed for DELETE request
           },
         },

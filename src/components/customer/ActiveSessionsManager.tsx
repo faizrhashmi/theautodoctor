@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { Activity, Video, MessageSquare, Clock, User, ArrowRight, X } from 'lucide-react'
-import { useState } from 'react'
 
 interface ActiveSession {
   id: string
@@ -21,8 +20,6 @@ interface ActiveSessionsManagerProps {
 }
 
 export default function ActiveSessionsManager({ sessions }: ActiveSessionsManagerProps) {
-  const [closedSessions, setClosedSessions] = useState<Set<string>>(new Set())
-
   // BUSINESS RULE: Customer can only have ONE active session at a time
   // Enforce this by only showing the first session
   if (sessions.length === 0) {
@@ -36,15 +33,13 @@ export default function ActiveSessionsManager({ sessions }: ActiveSessionsManage
 
   // Only show the FIRST active session (enforce business rule)
   const singleSession = sessions[0]
-  const visibleSessions = closedSessions.has(singleSession.id) ? [] : [singleSession]
 
-  if (visibleSessions.length === 0) {
+  // Return early if no session
+  if (!singleSession) {
     return null
   }
 
-  const handleClose = (sessionId: string) => {
-    setClosedSessions((prev) => new Set([...prev, sessionId]))
-  }
+  const visibleSessions = [singleSession]
 
   const handleEndSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to end this session? This action cannot be undone.')) {

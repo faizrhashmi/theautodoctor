@@ -1,6 +1,6 @@
 'use client'
 
-import { X, FileText, Paperclip, Car, AlertCircle, Calendar, User, Mail, Phone } from 'lucide-react'
+import { X, FileText, Paperclip, Car, AlertCircle, Calendar, User, Mail } from 'lucide-react'
 
 type RequestDetail = {
   id: string

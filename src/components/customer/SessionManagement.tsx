@@ -18,7 +18,7 @@ interface SessionFile {
   uploadedByName: string | null
 }
 
-interface Session {
+interface DashboardSession {
   id: string
   plan: string
   planLabel: string
@@ -36,13 +36,13 @@ interface Session {
 }
 
 interface SessionManagementProps {
-  sessions: Session[]
+  sessions: DashboardSession[]
   userId: string
 }
 
 type FilterType = 'all' | 'attended' | 'canceled' | 'upcoming'
 
-export default function SessionManagement({ sessions, userId }: SessionManagementProps) {
+export default function SessionManagement({ sessions }: SessionManagementProps) {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all')
   const [selectedSession, setSelectedSession] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -80,7 +80,7 @@ export default function SessionManagement({ sessions, userId }: SessionManagemen
     ['pending', 'scheduled', 'live', 'waiting'].includes(s.status.toLowerCase())
   ).length
 
-  const handleViewDetails = async (session: Session) => {
+  const handleViewDetails = async (session: DashboardSession) => {
     // Transform session data to match the modal's expected format
     const sessionDetails = {
       ...session,
@@ -93,7 +93,7 @@ export default function SessionManagement({ sessions, userId }: SessionManagemen
       started_at: session.startedAt,
       ended_at: session.endedAt,
       mechanic_name: session.mechanicName,
-      files: session.files.map((f) => ({
+      files: session.files.map((f: SessionFile) => ({
         id: f.id,
         file_name: f.fileName,
         file_url: f.fileUrl || '',
@@ -186,7 +186,18 @@ export default function SessionManagement({ sessions, userId }: SessionManagemen
           {filteredSessions.map((session) => (
             <SessionHistoryCard
               key={session.id}
-              session={session}
+              session={{
+                id: session.id,
+                plan: session.plan,
+                type: session.type,
+                status: session.status,
+                created_at: session.createdAt,
+                started_at: session.startedAt,
+                ended_at: session.endedAt,
+                mechanic_name: session.mechanicName,
+                planLabel: session.planLabel,
+                typeLabel: session.typeLabel,
+              }}
               onViewDetails={() => handleViewDetails(session)}
               onDelete={handleDeleteSession}
             />

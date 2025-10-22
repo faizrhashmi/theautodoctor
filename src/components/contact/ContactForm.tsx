@@ -148,7 +148,6 @@ export default function ContactForm() {
 
   const isSubmitting = status === 'submitting'
   const isSuccess = status === 'success'
-  const isError = status === 'error'
 
   return (
     <form

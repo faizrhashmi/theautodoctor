@@ -210,7 +210,7 @@ export async function requireAdmin(
  * }
  */
 export async function requireMechanicAPI(
-  req: NextRequest
+  _req: NextRequest
 ): Promise<
   | { data: AuthenticatedMechanic; error: null }
   | { data: null; error: NextResponse }
@@ -291,7 +291,7 @@ export async function requireMechanicAPI(
  * }
  */
 export async function requireCustomerAPI(
-  req: NextRequest
+  _req: NextRequest
 ): Promise<
   | { data: AuthenticatedCustomer; error: null }
   | { data: null; error: NextResponse }
@@ -347,7 +347,7 @@ export async function requireCustomerAPI(
  * @returns Authenticated admin data or error response
  */
 export async function requireAdminAPI(
-  req: NextRequest
+  _req: NextRequest
 ): Promise<
   | { data: AuthenticatedAdmin; error: null }
   | { data: null; error: NextResponse }

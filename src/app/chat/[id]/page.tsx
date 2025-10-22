@@ -107,7 +107,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
     notFound()
   }
 
-  const { data: participants, error: participantsError } = await supabase
+  const { error: participantsError } = await supabase
     .from('session_participants')
     .select('user_id, role')
     .eq('session_id', sessionId)
@@ -129,7 +129,6 @@ export default async function ChatSessionPage({ params }: PageProps) {
   const planKey = (session.plan as PlanKey) ?? 'chat10'
   const planName = PRICING[planKey]?.name ?? 'Quick Chat'
   const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
-  const userEmail = user?.email || mechanic?.email || null
 
   // Fetch mechanic name if assigned
   let mechanicName: string | null = null
@@ -165,20 +164,14 @@ export default async function ChatSessionPage({ params }: PageProps) {
       sessionId={sessionId}
       userId={currentUserId!}
       userRole={userRole}
-      userEmail={userEmail}
       planName={planName}
       plan={session.plan ?? 'free'}
       isFreeSession={isFreeSession}
       status={session.status ?? 'pending'}
       startedAt={session.started_at || session.created_at}
-      scheduledStart={session.created_at}
-      scheduledEnd={null}
       initialMessages={(messages ?? []).map(mapMessage)}
-      initialParticipants={participants ?? []}
       mechanicName={mechanicName}
       customerName={customerName}
-      mechanicId={session.mechanic_id || null}
-      customerId={session.customer_user_id || null}
     />
   )
 }

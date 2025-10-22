@@ -127,7 +127,7 @@ export async function POST(
         ended_at: now,
         updated_at: now,
         metadata: {
-          ...(session.metadata || {}),
+          ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
           cancellation: {
             cancelled_at: now,
             reason: 'Ended by user before session started',

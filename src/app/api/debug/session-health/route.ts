@@ -33,7 +33,7 @@ export async function GET() {
     const waitingSessions: any[] = []
 
     allSessions?.forEach(session => {
-      if (session.status in sessionsByStatus) {
+      if (session.status && session.status in sessionsByStatus) {
         sessionsByStatus[session.status as keyof typeof sessionsByStatus]++
       }
       if (session.status === 'waiting') {

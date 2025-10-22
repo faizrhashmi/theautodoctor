@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { LiveKitRoom, VideoConference, RoomAudioRenderer, useTracks } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Track } from 'livekit-client'

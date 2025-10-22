@@ -80,7 +80,7 @@ export function format(dateInput: DateLike, formatStr: string, options?: FormatO
   }
 }
 
-export function parse(value: string, _formatStr: string, referenceDate: DateLike, options?: FormatOptions): Date {
+export function parse(value: string, _formatStr: string, referenceDate: DateLike, _options?: FormatOptions): Date {
   const base = toDate(referenceDate)
   if (!value) {
     return base

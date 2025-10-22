@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
           .limit(1);
 
         if (!checkError && activeSessions && activeSessions.length > 0) {
-          const activeSession = activeSessions[0];
+          const activeSession = activeSessions[0]!;
           return NextResponse.json({
             error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
             activeSessionId: activeSession.id,

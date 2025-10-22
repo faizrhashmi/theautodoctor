@@ -147,7 +147,7 @@ export async function cleanupOrphanedSessions(
 
   // Find orphaned sessions (no corresponding request)
   const orphanedSessions = waitingSessions.filter(
-    session => !customersWithRequests.has(session.customer_user_id)
+    session => session.customer_user_id && !customersWithRequests.has(session.customer_user_id)
   )
 
   if (orphanedSessions.length === 0) {
@@ -224,6 +224,10 @@ export async function checkCustomerSessionStatus(customerId: string): Promise<{
 
   const session = activeSessions[0]
 
+  if (!session) {
+    return { blocked: false }
+  }
+
   // Double-check: If it's a waiting session, make sure it's recent
   if (session.status === 'waiting') {
     const sessionAge = Date.now() - new Date(session.created_at).getTime()
@@ -243,6 +247,6 @@ export async function checkCustomerSessionStatus(customerId: string): Promise<{
 
   return {
     blocked: true,
-    session,
+    session: { ...session, status: session.status || 'unknown' },
   }
 }

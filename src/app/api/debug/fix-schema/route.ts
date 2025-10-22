@@ -6,7 +6,7 @@ export async function GET() {
     console.log('[fix-schema] Dropping old foreign key constraint...')
 
     // Drop the old foreign key constraint
-    const { error: dropError } = await supabaseAdmin.rpc('exec_sql', {
+    const { error: dropError } = await (supabaseAdmin as any).rpc('exec_sql', {
       sql: `
         ALTER TABLE public.session_requests
           DROP CONSTRAINT IF EXISTS session_requests_mechanic_id_fkey;
@@ -43,7 +43,7 @@ ALTER TABLE public.session_requests
     console.log('[fix-schema] Adding new foreign key constraint...')
 
     // Add new foreign key constraint
-    const { error: addError } = await supabaseAdmin.rpc('exec_sql', {
+    const { error: addError } = await (supabaseAdmin as any).rpc('exec_sql', {
       sql: `
         ALTER TABLE public.session_requests
           ADD CONSTRAINT session_requests_mechanic_id_fkey

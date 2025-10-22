@@ -286,7 +286,7 @@ export default function IntakePage() {
   async function uploadAll() {
     for (let i = 0; i < uploads.length; i += 1) {
       const item = uploads[i]
-      if (item.status === 'pending' || item.status === 'error') {
+      if (item && (item.status === 'pending' || item.status === 'error')) {
         // eslint-disable-next-line no-await-in-loop
         await uploadOne(item, i)
       }

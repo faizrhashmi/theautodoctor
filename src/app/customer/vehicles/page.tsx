@@ -5,19 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { Trash2, Star, Plus, Edit2 } from 'lucide-react'
-
-type Vehicle = {
-  id: string
-  make: string
-  model: string
-  year: string
-  vin: string
-  color: string
-  mileage: string
-  plate: string
-  is_primary: boolean
-  nickname: string
-}
+import type { Vehicle } from '@/types/supabase'
 
 export default function VehiclesPage() {
   const router = useRouter()

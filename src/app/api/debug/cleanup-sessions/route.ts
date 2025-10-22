@@ -78,7 +78,7 @@ export async function GET() {
     )
 
     const potentialOrphans = allWaitingSessions?.filter(
-      s => !customersWithRequests.has(s.customer_user_id)
+      s => s.customer_user_id && !customersWithRequests.has(s.customer_user_id)
     ).length || 0
 
     return NextResponse.json({

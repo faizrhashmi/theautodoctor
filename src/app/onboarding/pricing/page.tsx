@@ -31,7 +31,7 @@ export default async function PricingSelectionPage() {
     .gte('created_at', twentyFourHoursAgo)
     .order('created_at', { ascending: false });
 
-  const hasActiveSessions = activeSessions && activeSessions.length > 0;
+  const hasActiveSessions = Boolean(activeSessions && activeSessions.length > 0);
   const activeSessionsData = activeSessions || [];
 
   return (
@@ -120,7 +120,7 @@ export default async function PricingSelectionPage() {
           )}
         </div>
 
-        <PlanSelectionClient hasActiveSessions={hasActiveSessions} activeSessionsCount={activeSessionsData.length} />
+        <PlanSelectionClient hasActiveSessions={hasActiveSessions} />
       </main>
     </div>
   );

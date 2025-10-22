@@ -17,7 +17,7 @@ export default function SessionExtensionPanel({
   existingRequests = [],
   onRequestExtension
 }: SessionExtensionPanelProps) {
-  const [selectedMinutes, setSelectedMinutes] = useState<number>(EXTENSION_OPTIONS[0])
+  const [selectedMinutes, setSelectedMinutes] = useState<number>(EXTENSION_OPTIONS[0] || 10)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const cost = useMemo(() => ((hourlyRate / 60) * selectedMinutes).toFixed(2), [hourlyRate, selectedMinutes])

@@ -454,10 +454,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         throw new Error(message)
       }
 
-      // Get customer name before removing request
-      const acceptedRequest = incomingRequests.find((r) => r.id === requestId)
-      const customerName = acceptedRequest?.customerName || 'Customer'
-
       if (payload && typeof payload === 'object' && 'request' in payload) {
         const acceptedId = (payload as { request?: { id?: string } }).request?.id
         if (acceptedId) {
