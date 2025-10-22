@@ -14,6 +14,7 @@ import {
   Eye,
   History,
   FileText,
+  LogOut,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { SessionRequest } from '@/types/session'
@@ -509,6 +510,20 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }, [incomingRequests.length, upcomingSessions.length, completedSessions.length, earningsSummary.totalCents])
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/mechanics/logout', {
+        method: 'POST',
+      })
+      // Redirect to mechanic login page
+      window.location.href = '/mechanic/login'
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Still redirect even if API call fails
+      window.location.href = '/mechanic/login'
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-7xl">
@@ -519,6 +534,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               <h1 className="text-3xl font-bold text-white">Welcome back, {mechanic.name}</h1>
               <p className="mt-1 text-sm text-slate-400">Mechanic Dashboard</p>
             </div>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
           </div>
         </header>
 

@@ -31,7 +31,10 @@
       "Bash(npx tsc:*)",
       "Read(//c/temp/**)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run lint:strict:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

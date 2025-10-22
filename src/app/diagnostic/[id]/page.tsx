@@ -24,7 +24,7 @@ export default function DiagnosticSessionPage({ params }: { params: { id: string
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
-          router.push(`/customer/login?redirect=/diagnostic/${sessionId}`)
+          router.push(`/signup?redirect=/diagnostic/${sessionId}`)
           return
         }
 

@@ -21,7 +21,7 @@ export default async function CustomerSchedulePage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/customer/login?redirect=/customer/schedule')
+    redirect('/signup?redirect=/customer/schedule')
   }
 
   const { data: profile } = await supabase

@@ -136,7 +136,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user) {
-    const loginUrl = new URL('/customer/login', request.url)
+    const loginUrl = new URL('/signup', request.url)
     // SECURITY: Validate redirect to prevent open redirects
     const safeRedirect = validateRedirect(pathname, '/customer/dashboard')
     loginUrl.searchParams.set('redirect', safeRedirect)

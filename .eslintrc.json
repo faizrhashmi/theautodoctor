@@ -10,5 +10,14 @@
     "project": [
       "tsconfig.json"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.js", "*.cjs", "next.config.js", "postcss.config.js", "tailwind.config.js"],
+      "parser": "espree",
+      "parserOptions": {
+        "ecmaVersion": 2020
+      }
+    }
+  ]
 }

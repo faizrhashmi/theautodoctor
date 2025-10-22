@@ -382,7 +382,7 @@ export default function CustomerSignupPage() {
           {/* Login Link */}
           <p className="text-center text-sm text-slate-600">
             Already have an account?{' '}
-            <Link href="/customer/login" className="font-semibold text-orange-600 hover:text-blue-700">
+            <Link href="/signup" className="font-semibold text-orange-600 hover:text-blue-700">
               Sign In
             </Link>
           </p>

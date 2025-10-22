@@ -45,7 +45,7 @@ export default async function CustomerDashboardPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/customer/login?redirect=/customer/dashboard')
+    redirect('/signup?redirect=/customer/dashboard')
   }
 
   // CRITICAL: Clean up old waiting sessions BEFORE loading dashboard

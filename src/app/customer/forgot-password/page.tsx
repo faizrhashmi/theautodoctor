@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
             </p>
 
             <Link
-              href="/customer/login"
+              href="/signup"
               className="block text-center text-sm font-semibold text-orange-200 transition hover:text-white"
             >
               Back to login

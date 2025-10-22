@@ -24,7 +24,7 @@ export default function VideoSessionPage({ params }: { params: { id: string } })
         const { data: { user } } = await supabase.auth.getUser()
 
         if (!user) {
-          router.push(`/customer/login?redirect=/video/${sessionId}`)
+          router.push(`/signup?redirect=/video/${sessionId}`)
           return
         }
 

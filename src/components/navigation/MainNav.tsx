@@ -122,7 +122,7 @@ export default function MainNav() {
 
         <div className="ml-auto flex items-center gap-3 md:gap-4">
           <Link
-            href="/customer/login"
+            href="/signup"
             className="hidden text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-gray-900 md:inline-flex"
           >
             Sign In
@@ -165,7 +165,7 @@ export default function MainNav() {
           </div>
           <div className="mt-3 grid gap-2">
             <Link
-              href="/customer/login"
+              href="/signup"
               onClick={() => setMobileMenuOpen(false)}
               className="inline-flex items-center justify-center rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-colors duration-200 hover:border-gray-300 hover:text-gray-900"
             >

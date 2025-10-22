@@ -123,7 +123,7 @@ export async function requireCustomer(
   } = await supabase.auth.getUser()
 
   if (!user) {
-    const loginUrl = `/customer/login${redirectTo ? `?redirect=${redirectTo}` : ''}`
+    const loginUrl = `/signup${redirectTo ? `?redirect=${redirectTo}` : ''}`
     redirect(loginUrl)
   }
 

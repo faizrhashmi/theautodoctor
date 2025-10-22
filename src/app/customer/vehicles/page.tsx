@@ -36,7 +36,7 @@ export default function VehiclesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/customer/login')
+        router.push('/signup')
         return
       }
 
@@ -64,7 +64,7 @@ export default function VehiclesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/customer/login')
+        router.push('/signup')
         return
       }
 
