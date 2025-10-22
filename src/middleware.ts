@@ -13,13 +13,14 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // CRITICAL: Customer-only routes - mechanics and admins are blocked
+// Note: /chat is NOT included here because it's accessible by both customers AND mechanics
+// The chat page handles authentication for both roles based on session assignment
 const CUSTOMER_PROTECTED_PREFIXES = [
   '/customer/dashboard',
   '/customer/schedule',
   '/dashboard',
   '/session',
   '/video',
-  '/chat',
 ]
 
 // CRITICAL: Mechanic-only routes - customers and admins are blocked
