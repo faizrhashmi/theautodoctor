@@ -179,5 +179,6 @@ export const config = {
     '/session/:path*',
     '/video/:path*',
     '/chat/:path*',
+    '/diagnostic/:path*',
   ],
 }
