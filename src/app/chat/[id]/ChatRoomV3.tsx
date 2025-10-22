@@ -378,6 +378,8 @@ export default function ChatRoom({
 
   async function handleEndSession() {
     setEndingSession(true)
+    setShowEndSessionModal(false)
+
     try {
       const response = await fetch(`/api/sessions/${sessionId}/end`, {
         method: 'POST',
@@ -387,25 +389,27 @@ export default function ChatRoom({
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setShowEndSessionModal(false)
-        setSessionEnded(true)
+      const data = await response.json()
 
-        // Update current status to show what happened
+      if (response.ok) {
+        console.log('[ChatRoom] Session ended successfully:', data)
+        setSessionEnded(true)
         setCurrentStatus(data.session?.status || 'completed')
 
-        setTimeout(() => {
-          window.location.href = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
-        }, 2000)
+        // Redirect immediately to dashboard based on role
+        const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+        console.log('[ChatRoom] Redirecting to:', dashboardUrl)
+        window.location.href = dashboardUrl
       } else {
-        const data = await response.json()
+        console.error('[ChatRoom] Failed to end session:', data)
         throw new Error(data?.error || 'Failed to end session')
       }
     } catch (err: any) {
+      console.error('[ChatRoom] End session error:', err)
       setError(err.message || 'Failed to end session')
-    } finally {
       setEndingSession(false)
+      // Show the modal again so user can retry
+      setShowEndSessionModal(true)
     }
   }
 
@@ -873,6 +877,28 @@ export default function ChatRoom({
                 Processing...
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Redirecting Overlay */}
+      {sessionEnded && endingSession && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-green-500/30 bg-slate-800 p-8 shadow-2xl text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 border-2 border-green-500/50">
+                <svg className="h-8 w-8 text-green-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Session Ended</h3>
+            <p className="text-slate-400 mb-4">Redirecting to your dashboard...</p>
+            <div className="flex justify-center">
+              <div className="h-1 w-32 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 animate-pulse"></div>
+              </div>
+            </div>
           </div>
         </div>
       )}
