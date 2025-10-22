@@ -41,13 +41,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     const mechanic = await getMechanicFromCookie()
 
-    const senderId = user?.id || mechanic?.id
-
-    if (!senderId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Verify user has access to this session
+    // Verify user has access to this session FIRST to determine correct role
     const { data: session } = await supabaseAdmin
       .from('sessions')
       .select('id, customer_user_id, mechanic_id')
@@ -58,12 +52,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    const hasAccess =
-      session.customer_user_id === senderId ||
-      session.mechanic_id === senderId
+    // CRITICAL: Determine sender based on session assignment (mechanic takes priority)
+    // This prevents role confusion when testing with both cookies present
+    let senderId: string | null = null
 
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    if (mechanic && session.mechanic_id === mechanic.id) {
+      senderId = mechanic.id
+      console.log('[send-message] Sender identified as MECHANIC:', senderId)
+    } else if (user && session.customer_user_id === user.id) {
+      senderId = user.id
+      console.log('[send-message] Sender identified as CUSTOMER:', senderId)
+    }
+
+    if (!senderId) {
+      return NextResponse.json({ error: 'Unauthorized - not assigned to this session' }, { status: 401 })
     }
 
     // Insert message using admin client (bypasses RLS)
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
     }
 
-    console.log('[send-message] Message inserted successfully:', message.id)
+    console.log('[send-message] Message inserted successfully:', message.id, 'from sender:', senderId)
 
     return NextResponse.json({ message })
   } catch (error: any) {

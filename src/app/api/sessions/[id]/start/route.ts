@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * Sets started_at timestamp and updates status to 'live'
  */
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const sessionId = params.id

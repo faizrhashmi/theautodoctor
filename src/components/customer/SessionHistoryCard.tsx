@@ -115,7 +115,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                   {session.typeLabel}
                   {session.mechanic_name ? ` · ${session.mechanic_name}` : ''}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500" suppressHydrationWarning>
                   {formatSessionDate(session.ended_at ?? session.started_at ?? session.created_at)}
                 </p>
               </div>

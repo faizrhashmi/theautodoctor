@@ -303,7 +303,6 @@ export default function ChatRoom({
           if ((oldStatus === 'live' || oldStatus === 'waiting') &&
               (updated.status === 'completed' || updated.status === 'cancelled')) {
             const endedBy = isMechanic ? 'mechanic' : 'customer'
-            const otherRole = isMechanic ? 'customer' : 'mechanic'
             console.log(`[ChatRoom] Session ended by ${endedBy}`)
           }
 
@@ -774,8 +773,6 @@ export default function ChatRoom({
             messages.map((message) => {
               // Role-based alignment: mechanic always right, customer always left
               const isSenderMechanic = mechanicId && message.sender_id === mechanicId
-              const isSenderCustomer = customerId && message.sender_id === customerId
-              const isSelf = message.sender_id === userId
 
               return (
                 <div key={message.id} className={`flex ${isSenderMechanic ? 'justify-end' : 'justify-start'}`}>
