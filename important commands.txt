@@ -47,3 +47,36 @@ When you deploy to production, update to: https://askautodoctor.com/auth/callbac
 http://localhost:3001/admin/cleanup
 
 kill-port 3000 (command to kill on any port)
+
+
+TO FIND CUSTOMERS
+-- Get all customer profiles with their details
+SELECT 
+  id,
+  full_name,
+  phone,
+  role,
+  email_verified,
+  waiver_accepted,
+  terms_accepted,
+  preferred_plan,
+  created_at,
+  updated_at
+FROM public.profiles
+WHERE role = 'customer' OR role IS NULL
+ORDER BY created_at DESC;
+
+TO FIND MECHANICS
+-- Get all mechanics with their details
+SELECT 
+  id,
+  email,
+  name,
+  phone,
+  stripe_account_id,
+  stripe_onboarding_completed,
+  stripe_charges_enabled,
+  stripe_payouts_enabled,
+  created_at
+FROM public.mechanics
+ORDER BY created_at DESC;
