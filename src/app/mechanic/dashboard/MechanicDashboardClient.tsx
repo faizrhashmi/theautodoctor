@@ -455,20 +455,28 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         throw new Error(message)
       }
 
+      // Get request info and session type
+      let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat' // default
       if (payload && typeof payload === 'object' && 'request' in payload) {
-        const acceptedId = (payload as { request?: { id?: string } }).request?.id
-        if (acceptedId) {
-          removeRequest(acceptedId)
+        const request = (payload as { request?: { id?: string; sessionType?: string } }).request
+        if (request?.id) {
+          removeRequest(request.id)
+        }
+        // Get session type from request
+        if (request?.sessionType) {
+          sessionType = request.sessionType as 'chat' | 'video' | 'diagnostic'
         }
       }
 
-      // Redirect to the chat session
+      // Redirect to the correct session page based on type
       if (payload && typeof payload === 'object' && 'session' in payload) {
         const session = (payload as { session?: { id?: string } }).session
         if (session?.id) {
-          console.log('[accept-request] Redirecting to chat session:', session.id)
+          // Map session type to URL path
+          const sessionPath = sessionType === 'chat' ? 'chat' : sessionType === 'video' ? 'video' : 'diagnostic'
+          console.log(`[accept-request] Redirecting to ${sessionType} session:`, session.id)
           // Use window.location.href for full page navigation
-          window.location.href = `/chat/${session.id}`
+          window.location.href = `/${sessionPath}/${session.id}`
           return
         }
       }
