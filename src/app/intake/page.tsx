@@ -93,7 +93,7 @@ export default function IntakePage() {
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, phone, vehicle_info, city, address')
+            .select('full_name, phone, vehicle_info')
             .eq('id', user.id)
             .single()
 
@@ -104,7 +104,7 @@ export default function IntakePage() {
               name: profile.full_name || prev.name,
               email: user.email || prev.email,
               phone: profile.phone || prev.phone,
-              city: (user.user_metadata?.city as string) || (profile as any).city || prev.city,
+              city: (user.user_metadata?.city as string) || prev.city,
             }))
 
             // Save vehicle info if available (legacy)

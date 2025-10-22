@@ -8,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  *
  * WARNING: This deletes ALL sessions, not just old ones!
  */
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
 
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
 /**
  * GET endpoint to preview what would be deleted
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
 

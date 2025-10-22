@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
 
 // Helper to get mechanic from custom auth cookie
-async function getMechanicFromCookie(req: NextRequest) {
+async function getMechanicFromCookie(_req: NextRequest) {
   const cookieStore = cookies()
   const token = cookieStore.get('aad_mech')?.value
 

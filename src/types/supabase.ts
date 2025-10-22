@@ -446,6 +446,11 @@ export type Database = {
           email: string
           phone: string | null
           password_hash: string
+          stripe_account_id: string | null
+          stripe_onboarding_completed: boolean | null
+          stripe_charges_enabled: boolean | null
+          stripe_payouts_enabled: boolean | null
+          stripe_details_submitted: boolean | null
         }
         Insert: {
           id?: string
@@ -454,6 +459,11 @@ export type Database = {
           email: string
           phone?: string | null
           password_hash: string
+          stripe_account_id?: string | null
+          stripe_onboarding_completed?: boolean | null
+          stripe_charges_enabled?: boolean | null
+          stripe_payouts_enabled?: boolean | null
+          stripe_details_submitted?: boolean | null
         }
         Update: {
           id?: string
@@ -462,6 +472,11 @@ export type Database = {
           email?: string
           phone?: string | null
           password_hash?: string
+          stripe_account_id?: string | null
+          stripe_onboarding_completed?: boolean | null
+          stripe_charges_enabled?: boolean | null
+          stripe_payouts_enabled?: boolean | null
+          stripe_details_submitted?: boolean | null
         }
         Relationships: []
       }
@@ -556,6 +571,51 @@ export type Database = {
           ip_address?: string | null
           user_agent?: string | null
           metadata?: Json | null
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          make: string
+          model: string
+          year: string
+          vin: string | null
+          color: string | null
+          mileage: string | null
+          plate: string | null
+          is_primary: boolean
+          nickname: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id: string
+          make: string
+          model: string
+          year: string
+          vin?: string | null
+          color?: string | null
+          mileage?: string | null
+          plate?: string | null
+          is_primary?: boolean
+          nickname?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string
+          make?: string
+          model?: string
+          year?: string
+          vin?: string | null
+          color?: string | null
+          mileage?: string | null
+          plate?: string | null
+          is_primary?: boolean
+          nickname?: string | null
         }
         Relationships: []
       }
@@ -671,3 +731,4 @@ export type SessionParticipant = Tables<'session_participants'>
 export type ChatMessage = Tables<'chat_messages'>
 export type Profile = Tables<'profiles'>
 export type SessionFile = Tables<'session_files'>
+export type Vehicle = Tables<'vehicles'>

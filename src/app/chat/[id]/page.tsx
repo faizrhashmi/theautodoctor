@@ -44,7 +44,6 @@ export default async function ChatSessionPage({ params }: PageProps) {
   // Check for customer auth (Supabase)
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser()
 
   // Check for mechanic auth (custom)
@@ -148,16 +147,16 @@ export default async function ChatSessionPage({ params }: PageProps) {
   if (session.customer_user_id) {
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('name')
+      .select('full_name')
       .eq('id', session.customer_user_id)
       .maybeSingle()
 
-    if (profile?.name) {
-      customerName = profile.name
+    if (profile?.full_name) {
+      customerName = profile.full_name
     } else if (user?.user_metadata?.name) {
       customerName = user.user_metadata.name
     } else if (user?.email) {
-      customerName = user.email.split('@')[0]
+      customerName = user.email.split('@')[0] || null
     }
   }
 

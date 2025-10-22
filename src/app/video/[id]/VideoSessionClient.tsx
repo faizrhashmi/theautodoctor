@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { LiveKitRoom, VideoConference, RoomAudioRenderer, useRoomContext, useTracks } from '@livekit/components-react'
+import { LiveKitRoom, VideoConference, RoomAudioRenderer, useTracks } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Track } from 'livekit-client'
-import { createClient } from '@/lib/supabase'
 import { Clock, UserPlus, AlertCircle } from 'lucide-react'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
@@ -122,7 +120,6 @@ function SessionTimer({
 }
 
 export default function VideoSessionClient({ sessionId, plan, token, serverUrl }: VideoSessionClientProps) {
-  const router = useRouter()
   const [mechanicPresent, setMechanicPresent] = useState(false)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)

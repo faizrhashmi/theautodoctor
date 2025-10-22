@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { ChatMessage, SessionParticipant } from '@/types/supabase'
-import { PRICING, type PlanKey } from '@/config/pricing'
+import type { PlanKey } from '@/config/pricing'
 
 type Message = Pick<ChatMessage, 'id' | 'content' | 'created_at' | 'sender_id'> & {
   attachments?: Array<{ name: string; url: string; size: number; type: string }>
@@ -46,17 +46,14 @@ function formatFileSize(bytes: number) {
 export default function ChatRoom({
   sessionId,
   userId,
-  userEmail,
   planName,
   plan,
   isFreeSession,
   status,
   startedAt,
-  scheduledStart,
-  scheduledEnd,
   initialMessages,
   initialParticipants,
-}: ChatRoomProps) {
+}: Omit<ChatRoomProps, 'userEmail' | 'scheduledStart' | 'scheduledEnd'>) {
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<Message[]>(() => [...initialMessages])
   const [participants, setParticipants] = useState<Participant[]>(() => [...initialParticipants])
@@ -78,7 +75,6 @@ export default function ChatRoom({
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const mechanicCount = participants.filter((p) => p.role === 'mechanic').length
   const isMechanic = participants.find((p) => p.user_id === userId)?.role === 'mechanic'
 
   // Calculate session duration in minutes
@@ -259,7 +255,7 @@ export default function ChatRoom({
     const fileExt = file.name.split('.').pop()
     const fileName = `${sessionId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
-    const { error: uploadError, data } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('chat-attachments')
       .upload(fileName, file, {
         cacheControl: '3600',

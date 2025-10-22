@@ -12,7 +12,7 @@ const formatAmount = (cents: number) =>
   new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 
 export default function BookPage() {
-  const [service, setService] = useState(SERVICE_OPTIONS[0].id);
+  const [service, setService] = useState(SERVICE_OPTIONS[0]!.id);
   const [loading, setLoading] = useState(false);
 
   function handleCheckout() {

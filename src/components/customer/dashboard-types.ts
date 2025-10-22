@@ -15,7 +15,7 @@ export type CustomerDashboardSession = {
   id: string
   plan: string
   planLabel: string
-  type: string
+  type: 'chat' | 'video' | 'diagnostic'
   typeLabel: string
   status: string
   createdAt: string

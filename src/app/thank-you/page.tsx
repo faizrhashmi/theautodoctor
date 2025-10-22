@@ -23,7 +23,7 @@ const PLAN_NAMES: Record<string, string> = {
 
 function resolvePlanName(plan: string | null): string | null {
   if (!plan) return null
-  if (PLAN_NAMES[plan]) return PLAN_NAMES[plan]
+  if (PLAN_NAMES[plan]) return PLAN_NAMES[plan] || null
   const pricing = PRICING[plan as keyof typeof PRICING]
   if (pricing) return pricing.name
   return plan

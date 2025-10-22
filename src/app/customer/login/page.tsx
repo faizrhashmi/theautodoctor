@@ -12,7 +12,6 @@ const LINKS = [
 
 export default function CustomerLoginPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const redirectTo = searchParams.get('redirect') || '/customer/dashboard'
 
   const [formData, setFormData] = useState({

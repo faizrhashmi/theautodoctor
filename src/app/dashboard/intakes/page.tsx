@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import Link from 'next/link';
 
 type SearchParams = {
   q?: string;

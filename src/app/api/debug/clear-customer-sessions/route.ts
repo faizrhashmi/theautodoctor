@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()

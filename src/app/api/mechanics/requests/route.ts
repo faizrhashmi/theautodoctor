@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { runFullCleanup } from '@/lib/sessionCleanup'
 
-async function getMechanicFromCookie(req: NextRequest) {
+async function getMechanicFromCookie(_req: NextRequest) {
   const cookieStore = cookies()
   const token = cookieStore.get('aad_mech')?.value
 

@@ -42,7 +42,6 @@ export async function GET(req: NextRequest) {
   const token = await at.toJwt();
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || url.origin;
-  const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://myautodoctorca-oe6r6oqr.livekit.cloud';
 
   // Create invite URL based on session type
   const sessionRoute = session.type === 'chat' ? 'chat' : session.type === 'diagnostic' ? 'diagnostic' : 'video';

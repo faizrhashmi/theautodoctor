@@ -39,19 +39,19 @@ export async function GET(req: NextRequest) {
       // Try profiles first
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('name')
+        .select('full_name')
         .eq('id', session.customer_user_id)
         .maybeSingle()
 
-      if (profile?.name) {
-        customerName = profile.name
+      if (profile?.full_name) {
+        customerName = profile.full_name
       } else {
         // Fallback to auth.users metadata or email
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(session.customer_user_id)
         if (user?.user_metadata?.name) {
           customerName = user.user_metadata.name
         } else if (user?.email) {
-          customerName = user.email.split('@')[0]
+          customerName = user.email.split('@')[0] || null
         }
       }
     }

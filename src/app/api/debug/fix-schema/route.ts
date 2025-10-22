@@ -16,7 +16,7 @@ export async function GET() {
     if (dropError) {
       console.error('[fix-schema] Error dropping constraint:', dropError)
       // Try alternative method - direct SQL
-      const { error: altDropError } = await supabaseAdmin
+      await supabaseAdmin
         .from('session_requests')
         .select('id')
         .limit(0)

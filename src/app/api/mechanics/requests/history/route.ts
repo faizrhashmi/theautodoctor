@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-async function getMechanicFromCookie(req: NextRequest) {
+async function getMechanicFromCookie(_req: NextRequest) {
   const cookieStore = cookies()
   const token = cookieStore.get('aad_mech')?.value
 

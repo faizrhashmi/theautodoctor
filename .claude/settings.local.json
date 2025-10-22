@@ -27,7 +27,9 @@
       "Bash(echo:*)",
       "Bash(supabase db diff:*)",
       "Bash(taskkill:*)",
-      "Bash(supabase db push:*)"
+      "Bash(supabase db push:*)",
+      "Bash(npx tsc:*)",
+      "Read(//c/temp/**)"
     ],
     "deny": [],
     "ask": []

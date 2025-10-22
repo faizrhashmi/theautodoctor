@@ -7,7 +7,6 @@ import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceInd
 import RequestMechanicButton from '@/components/customer/RequestMechanicButton'
 import { SessionJoinCard } from '@/components/customer/SessionJoinCard'
 import { SessionFileManager } from '@/components/customer/SessionFileManager'
-import { SessionFileList } from '@/components/customer/SessionFileList'
 import type { Profile, Session, SessionFile } from '@/types/supabase'
 import type {
   CustomerDashboardFile,
@@ -264,13 +263,14 @@ export default async function CustomerDashboardPage() {
     ...scheduledSessions.map(s => s.id)
   ])
 
-  const allSessionHistory = normalizedSessions
-    .filter(session => !displayedSessionIds.has(session.id))
-    .sort((a, b) => {
-      const aTime = new Date(a.startedAt ?? a.createdAt).getTime()
-      const bTime = new Date(b.startedAt ?? b.createdAt).getTime()
-      return bTime - aTime // Most recent first
-    })
+  // Unused for now but kept for potential future "all history" feature
+  // const allSessionHistory = normalizedSessions
+  //   .filter(session => !displayedSessionIds.has(session.id))
+  //   .sort((a, b) => {
+  //     const aTime = new Date(a.startedAt ?? a.createdAt).getTime()
+  //     const bTime = new Date(b.startedAt ?? b.createdAt).getTime()
+  //     return bTime - aTime // Most recent first
+  //   })
 
   // Separate counts for better visibility
   const completedCount = normalizedSessions.filter(s => s.status.toLowerCase() === 'completed').length
@@ -284,8 +284,6 @@ export default async function CustomerDashboardPage() {
   }
 
   const planSummary = getPlanSummary(profile?.preferred_plan ?? null, profile?.account_status ?? null, upcomingSessions.length)
-
-  const vehicleInfo = (profile?.vehicle_info as Record<string, string | null> | null) ?? null
 
   // Fetch vehicles from the new vehicles table
   const { data: vehicles, error: vehiclesError } = await supabase
@@ -764,13 +762,13 @@ function sessionSortValue(session: CustomerDashboardSession, fallbackToCreated =
   return reference ? new Date(reference).getTime() : 0
 }
 
-function formatSessionDate(value: string | null): string {
-  if (!value) {
-    return 'Scheduled time to be confirmed'
-  }
-
-  return new Date(value).toLocaleString()
-}
+// Unused utility function - keeping for potential future use
+// function formatSessionDate(value: string | null): string {
+//   if (!value) {
+//     return 'Scheduled time to be confirmed'
+//   }
+//   return new Date(value).toLocaleString()
+// }
 
 function uploadLabel(session: CustomerDashboardSession): string {
   if (session.scheduledStart) {
