@@ -91,14 +91,17 @@ export default async function ChatSessionPage({ params }: PageProps) {
     isCustomerForThisSession,
   })
 
-  if (isMechanicForThisSession) {
+  // IMPORTANT: For chat room, prioritize mechanic auth when both cookies exist
+  // This ensures mechanics see the correct role in chat
+  // The "Return to Dashboard" button uses the isMechanic variable which will be correct
+  if (isMechanicForThisSession && mechanic) {
     // They are the assigned mechanic
-    currentUserId = mechanic!.id
+    currentUserId = mechanic.id
     userRole = 'mechanic'
     console.log('[CHAT PAGE SECURITY] Role assigned: MECHANIC', { currentUserId })
-  } else if (isCustomerForThisSession) {
+  } else if (isCustomerForThisSession && user) {
     // They are the customer who created this session
-    currentUserId = user!.id
+    currentUserId = user.id
     userRole = 'customer'
     console.log('[CHAT PAGE SECURITY] Role assigned: CUSTOMER', { currentUserId })
   } else {
@@ -159,6 +162,10 @@ export default async function ChatSessionPage({ params }: PageProps) {
     }
   }
 
+  // Determine correct dashboard URL based on who they actually are in this session
+  // Use user existence (not role) to prevent redirect leaks in testing scenarios
+  const dashboardUrl = user ? '/customer/dashboard' : '/mechanic/dashboard'
+
   return (
     <ChatRoom
       sessionId={sessionId}
@@ -172,6 +179,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
       initialMessages={(messages ?? []).map(mapMessage)}
       mechanicName={mechanicName}
       customerName={customerName}
+      dashboardUrl={dashboardUrl}
     />
   )
 }

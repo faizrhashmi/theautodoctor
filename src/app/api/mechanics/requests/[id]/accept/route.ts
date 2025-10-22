@@ -102,13 +102,14 @@ export async function POST(
   let sessionRow: { id: string } | null = null
 
   if (existingSession) {
-    // Update the existing session to assign this mechanic and set to live
+    // Update the existing session to assign mechanic and set to 'waiting' (not 'live' yet)
+    // Session will become 'live' when both participants join the chat room
     const { data: updated, error: updateSessionError } = await supabaseAdmin
       .from('sessions')
       .update({
         mechanic_id: mechanic.id,
-        status: 'live',
-        started_at: now,
+        status: 'waiting',
+        // Don't set started_at yet - it will be set when both participants join
         scheduled_start: now,
         scheduled_for: now,
       })
@@ -120,7 +121,7 @@ export async function POST(
       console.error('Failed to update session with mechanic', updateSessionError)
     } else {
       sessionRow = updated
-      console.log('[accept-request] Assigned mechanic to existing session', existingSession.id)
+      console.log('[accept-request] Assigned mechanic to existing session (status: waiting)', existingSession.id)
     }
   } else {
     // No existing session found, create a new one (fallback for old data)
@@ -130,11 +131,11 @@ export async function POST(
       .insert({
         mechanic_id: mechanic.id,
         customer_user_id: accepted.customer_id,
-        status: 'live',
+        status: 'waiting',
         plan: accepted.plan_code,
         type: accepted.session_type,
         stripe_session_id: `fallback_${accepted.id}`,
-        started_at: now,
+        // Don't set started_at yet - it will be set when both participants join
         scheduled_start: now,
         scheduled_for: now,
         metadata: {

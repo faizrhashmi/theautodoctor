@@ -58,6 +58,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: session.status,
+      mechanicId: session.mechanic_id,
+      customerId: session.customer_user_id,
       mechanicName,
       customerName,
     })

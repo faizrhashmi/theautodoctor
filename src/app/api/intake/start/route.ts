@@ -143,6 +143,49 @@ export async function POST(req: NextRequest) {
         if (participantError) {
           return NextResponse.json({ error: participantError.message }, { status: 500 });
         }
+
+        // Create session_request to notify mechanics
+        try {
+          // Get customer name from profile
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const customerName = profile?.full_name || email || 'Customer';
+
+          // Cancel any old pending requests for this customer
+          await supabaseAdmin
+            .from('session_requests')
+            .update({ status: 'cancelled' })
+            .eq('customer_id', user.id)
+            .eq('status', 'pending')
+            .is('mechanic_id', null);
+
+          // Create the session request
+          const { data: newRequest } = await supabaseAdmin
+            .from('session_requests')
+            .insert({
+              customer_id: user.id,
+              session_type: 'chat',
+              plan_code: plan,
+              status: 'pending',
+              customer_name: customerName,
+              customer_email: email || null,
+            })
+            .select()
+            .single();
+
+          // Broadcast to notify mechanics in real-time
+          if (newRequest) {
+            const { broadcastSessionRequest } = await import('@/lib/sessionRequests');
+            void broadcastSessionRequest('new_request', { request: newRequest });
+          }
+        } catch (error) {
+          console.error('[intake] Error creating session request:', error);
+          // Don't fail the whole flow if this fails
+        }
       }
     }
 

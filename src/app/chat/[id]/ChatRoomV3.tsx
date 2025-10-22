@@ -27,6 +27,7 @@ type ChatRoomProps = {
   customerName: string | null
   mechanicId: string | null
   customerId: string | null
+  dashboardUrl: string
 }
 
 function formatTimestamp(iso: string) {
@@ -59,6 +60,7 @@ export default function ChatRoom({
   initialMessages,
   mechanicName: initialMechanicName,
   customerName: initialCustomerName,
+  dashboardUrl,
 }: Omit<ChatRoomProps, 'userEmail' | 'scheduledStart' | 'scheduledEnd' | 'initialParticipants' | 'mechanicId' | 'customerId'>) {
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<Message[]>(() => [...initialMessages])
@@ -75,23 +77,39 @@ export default function ChatRoom({
   const [showEndSessionModal, setShowEndSessionModal] = useState(false)
   const [endingSession, setEndingSession] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(status)
+  const [currentStartedAt, setCurrentStartedAt] = useState(startedAt)
   const [mechanicName, setMechanicName] = useState<string | null>(initialMechanicName)
   const [customerName, setCustomerName] = useState<string | null>(initialCustomerName)
+  const [mechanicId, setMechanicId] = useState<string | null>(null)
+  const [customerId, setCustomerId] = useState<string | null>(null)
+  const [participantJoined, setParticipantJoined] = useState(false)
+  const [mechanicPresent, setMechanicPresent] = useState(false)
+  const [customerPresent, setCustomerPresent] = useState(false)
+  const [sessionStartInitiated, setSessionStartInitiated] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const isMechanic = userRole === 'mechanic'
+  const bothParticipantsPresent = mechanicPresent && customerPresent
 
   // Calculate session duration in minutes
   const sessionDurationMinutes = useMemo(() => {
+    // Check for free/trial plans first
+    if (plan === 'free' || plan === 'trial' || plan === 'trial-free') {
+      return 5 // Free sessions are 5 minutes
+    }
+
+    // Check for paid plans
     const planKey = plan as PlanKey
     if (planKey === 'chat10') return 30
     if (planKey === 'video15') return 45
     if (planKey === 'diagnostic') return 60
-    return 30 // default for free sessions
+
+    // Default fallback (shouldn't happen)
+    return 30
   }, [plan])
 
-  // Fetch updated participant names when mechanic joins
+  // Fetch updated participant info when session loads
   useEffect(() => {
     async function fetchSessionInfo() {
       try {
@@ -99,6 +117,16 @@ export default function ChatRoom({
         if (response.ok) {
           const data = await response.json()
           setCurrentStatus(data.status)
+
+          // Set participant IDs
+          if (data.mechanicId) {
+            setMechanicId(data.mechanicId)
+          }
+          if (data.customerId) {
+            setCustomerId(data.customerId)
+          }
+
+          // Update names
           if (data.mechanicName && !mechanicName) {
             setMechanicName(data.mechanicName)
           }
@@ -113,11 +141,87 @@ export default function ChatRoom({
     fetchSessionInfo()
   }, [sessionId, mechanicName, customerName])
 
+  // Track presence using Supabase Presence and start session when both join
+  useEffect(() => {
+    if (!mechanicId || !customerId) return
+
+    console.log('[ChatRoom] Setting up presence tracking')
+
+    const presenceChannel = supabase.channel(`presence-${sessionId}`, {
+      config: {
+        presence: {
+          key: userId,
+        },
+      },
+    })
+
+    // Track current user's presence
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        console.log('[ChatRoom] Presence sync:', state)
+
+        // Check who's present
+        const mechanicIsPresent = Object.keys(state).some(key => key === mechanicId)
+        const customerIsPresent = Object.keys(state).some(key => key === customerId)
+
+        setMechanicPresent(mechanicIsPresent)
+        setCustomerPresent(customerIsPresent)
+
+        console.log('[ChatRoom] Presence status:', { mechanicIsPresent, customerIsPresent })
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        console.log('[ChatRoom] User joined:', key)
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        console.log('[ChatRoom] User left:', key)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({
+            user_id: userId,
+            role: userRole,
+            online_at: new Date().toISOString(),
+          })
+        }
+      })
+
+    return () => {
+      supabase.removeChannel(presenceChannel)
+    }
+  }, [sessionId, userId, userRole, mechanicId, customerId, supabase])
+
+  // Start session when both participants join
+  useEffect(() => {
+    if (!bothParticipantsPresent || sessionStartInitiated) return
+    if (currentStatus !== 'waiting') return
+
+    console.log('[ChatRoom] Both participants present - starting session')
+    setSessionStartInitiated(true)
+
+    // Call API to mark session as started
+    fetch(`/api/sessions/${sessionId}/start`, {
+      method: 'POST',
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log('[ChatRoom] Session start response:', data)
+        if (data.success) {
+          setCurrentStatus('live')
+          setCurrentStartedAt(data.session.started_at)
+        }
+      })
+      .catch(err => {
+        console.error('[ChatRoom] Failed to start session:', err)
+        setSessionStartInitiated(false)
+      })
+  }, [bothParticipantsPresent, sessionStartInitiated, currentStatus, sessionId])
+
   // Timer countdown logic
   useEffect(() => {
-    if (currentStatus?.toLowerCase() !== 'live' || !startedAt) return
+    if (currentStatus?.toLowerCase() !== 'live' || !currentStartedAt) return
 
-    const startTime = new Date(startedAt).getTime()
+    const startTime = new Date(currentStartedAt).getTime()
     const durationMs = sessionDurationMinutes * 60 * 1000
 
     const interval = setInterval(() => {
@@ -135,7 +239,7 @@ export default function ChatRoom({
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [sessionId, currentStatus, startedAt, sessionDurationMinutes, sessionEnded, supabase])
+  }, [sessionId, currentStatus, currentStartedAt, sessionDurationMinutes, sessionEnded, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -185,19 +289,46 @@ export default function ChatRoom({
         async (payload) => {
           console.log('[ChatRoom] Session updated:', payload)
           const updated = payload.new as any
+          const oldStatus = currentStatus
           setCurrentStatus(updated.status)
 
-          // If mechanic just joined, fetch their name
-          if (updated.mechanic_id && !mechanicName) {
+          // Sync started_at to ensure both users have the same reference time
+          if (updated.started_at) {
+            setCurrentStartedAt(updated.started_at)
+          }
+
+          // Show notification when session ends
+          if ((oldStatus === 'live' || oldStatus === 'waiting') &&
+              (updated.status === 'completed' || updated.status === 'cancelled')) {
+            const endedBy = isMechanic ? 'mechanic' : 'customer'
+            const otherRole = isMechanic ? 'customer' : 'mechanic'
+            console.log(`[ChatRoom] Session ended by ${endedBy}`)
+          }
+
+          // If mechanic just joined, fetch their name and show notification
+          if (updated.mechanic_id && !mechanicId) {
+            setMechanicId(updated.mechanic_id)
             try {
               const response = await fetch(`/api/chat/session-info?sessionId=${sessionId}`)
               if (response.ok) {
                 const data = await response.json()
-                setMechanicName(data.mechanicName)
+                const name = data.mechanicName || 'Mechanic'
+                setMechanicName(name)
+
+                // Show join notification for customer
+                if (!isMechanic) {
+                  setParticipantJoined(true)
+                  setTimeout(() => setParticipantJoined(false), 5000)
+                }
               }
             } catch (err) {
               console.error('Failed to fetch mechanic name:', err)
             }
+          }
+
+          // Track customer ID
+          if (updated.customer_user_id && !customerId) {
+            setCustomerId(updated.customer_user_id)
           }
         }
       )
@@ -548,6 +679,53 @@ export default function ChatRoom({
 
       {/* Messages Area */}
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-x-hidden overflow-y-visible px-6 py-6">
+        {/* Join Notification */}
+        {participantJoined && mechanicName && !isMechanic && (
+          <div className="mb-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center backdrop-blur-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-green-300">
+              {mechanicName} has joined the session
+            </h3>
+            <p className="mt-1 text-sm text-green-200">
+              You can now start the conversation
+            </p>
+          </div>
+        )}
+
+        {/* Waiting for Participant Indicator */}
+        {currentStatus === 'waiting' && !bothParticipantsPresent && (
+          <div className="mb-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-center backdrop-blur-sm">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-yellow-500/30 border-t-yellow-500"></div>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-yellow-300">
+                  {isMechanic
+                    ? `Waiting for ${customerName || 'customer'} to join...`
+                    : `Waiting for ${mechanicName || 'mechanic'} to join...`}
+                </h3>
+                <p className="mt-1 text-sm text-yellow-200">
+                  {isMechanic
+                    ? 'The timer will start when the customer enters the chat room'
+                    : 'The timer will start when the mechanic enters the chat room'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Session Starting Notification */}
+        {bothParticipantsPresent && currentStatus === 'waiting' && (
+          <div className="mb-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center backdrop-blur-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-green-300">
+              Both participants joined - Session starting!
+            </h3>
+            <p className="mt-1 text-sm text-green-200">
+              The timer is now active
+            </p>
+          </div>
+        )}
+
         {sessionEnded && (
           <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center backdrop-blur-sm">
             <h3 className="text-lg font-bold text-red-300">
@@ -561,7 +739,7 @@ export default function ChatRoom({
                 : 'This session has ended. The chat is now read-only.'}
             </p>
             <a
-              href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
+              href={dashboardUrl}
               className="mt-4 inline-block rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
             >
               Return to Dashboard
@@ -592,30 +770,34 @@ export default function ChatRoom({
             </div>
           ) : (
             messages.map((message) => {
+              // Role-based alignment: mechanic always right, customer always left
+              const isSenderMechanic = mechanicId && message.sender_id === mechanicId
+              const isSenderCustomer = customerId && message.sender_id === customerId
               const isSelf = message.sender_id === userId
+
               return (
-                <div key={message.id} className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex max-w-2xl gap-3 ${isSelf ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div key={message.id} className={`flex ${isSenderMechanic ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex max-w-2xl gap-3 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
                     {/* Avatar */}
                     <div
                       className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
-                        isSelf
+                        isSenderMechanic
                           ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg'
-                          : 'bg-gradient-to-br from-slate-600 to-slate-700 shadow-lg'
+                          : 'bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg'
                       } text-xs font-bold text-white border-2 ${
-                        isSelf ? 'border-orange-400/30' : 'border-slate-500/30'
+                        isSenderMechanic ? 'border-orange-400/30' : 'border-blue-500/30'
                       }`}
                     >
-                      {isSelf ? (isMechanic ? 'M' : 'Y') : isMechanic ? 'C' : 'M'}
+                      {isSenderMechanic ? 'M' : 'C'}
                     </div>
 
                     {/* Message Bubble */}
                     <div className="flex flex-col gap-1">
                       <div
                         className={`rounded-2xl px-4 py-3 shadow-lg ${
-                          isSelf
+                          isSenderMechanic
                             ? 'rounded-tr-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white border border-orange-400/30'
-                            : 'rounded-tl-sm bg-slate-700/80 text-slate-100 border border-slate-600/50 backdrop-blur-sm'
+                            : 'rounded-tl-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white border border-blue-500/30'
                         }`}
                       >
                         {message.content && (
@@ -632,9 +814,9 @@ export default function ChatRoom({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`flex items-center gap-2 rounded-lg border p-2 text-xs transition ${
-                                  isSelf
+                                  isSenderMechanic
                                     ? 'border-orange-400/50 bg-orange-500/20 hover:bg-orange-500/30'
-                                    : 'border-slate-600 bg-slate-800/50 hover:bg-slate-800'
+                                    : 'border-blue-500/50 bg-blue-600/20 hover:bg-blue-600/30'
                                 }`}
                               >
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -647,7 +829,7 @@ export default function ChatRoom({
                                 </svg>
                                 <div className="flex-1 truncate">
                                   <p className="truncate font-medium">{file.name}</p>
-                                  <p className={`text-xs ${isSelf ? 'text-orange-200' : 'text-slate-400'}`}>
+                                  <p className={`text-xs ${isSenderMechanic ? 'text-orange-200' : 'text-blue-200'}`}>
                                     {formatFileSize(file.size)}
                                   </p>
                                 </div>
@@ -664,7 +846,7 @@ export default function ChatRoom({
                           </div>
                         )}
                       </div>
-                      <span className={`px-1 text-[10px] text-slate-500 ${isSelf ? 'text-right' : 'text-left'}`}>
+                      <span className={`px-1 text-[10px] text-slate-500 ${isSenderMechanic ? 'text-right' : 'text-left'}`}>
                         {formatTimestamp(message.created_at)}
                       </span>
                     </div>

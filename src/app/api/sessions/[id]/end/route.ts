@@ -109,40 +109,41 @@ export async function POST(
 
   console.log(`[end session] Ending session ${sessionId} with status: ${session.status}`)
 
-  // If session was never started (pending/waiting), we'll cancel it instead
-  const shouldCancel = !session.started_at && ['pending', 'waiting'].includes(session.status?.toLowerCase() || '')
+  // If session was never started (pending/waiting), mark as completed with no-show metadata
+  const shouldMarkNoShow = !session.started_at && ['pending', 'waiting'].includes(session.status?.toLowerCase() || '')
 
   const now = new Date().toISOString()
   const durationMinutes = calculateDuration(session.started_at, now)
 
-  // If session should be cancelled (never started), handle it differently
-  if (shouldCancel) {
-    console.log(`[end session] Session ${sessionId} never started - cancelling instead of completing`)
+  // If session should be marked as no-show (never started), mark as completed
+  if (shouldMarkNoShow) {
+    console.log(`[end session] Session ${sessionId} never started - marking as completed (no-show)`)
 
-    // Cancel the session instead of completing it
+    // Mark session as completed (not cancelled) so it shows in mechanic history
     const { error: updateError } = await supabaseAdmin
       .from('sessions')
       .update({
-        status: 'cancelled',
+        status: 'completed',
         ended_at: now,
         updated_at: now,
+        duration_minutes: 0,
         metadata: {
           ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
-          cancellation: {
-            cancelled_at: now,
-            reason: 'Ended by user before session started',
-            cancelled_by: isCustomer ? 'customer' : 'mechanic',
+          no_show: {
+            ended_at: now,
+            reason: 'Session ended before starting (customer/mechanic no-show)',
+            ended_by: isCustomer ? 'customer' : 'mechanic',
           },
         },
       })
       .eq('id', sessionId)
 
     if (updateError) {
-      console.error('Failed to cancel session', updateError)
+      console.error('Failed to end no-show session', updateError)
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // Also cancel any associated session request if it exists
+    // Cancel any associated session request if it exists
     await supabaseAdmin
       .from('session_requests')
       .update({
@@ -154,10 +155,10 @@ export async function POST(
 
     const responseData = {
       success: true,
-      message: 'Session cancelled successfully',
+      message: 'Session ended successfully',
       session: {
         id: sessionId,
-        status: 'cancelled',
+        status: 'completed',
         ended_at: now,
       },
     }

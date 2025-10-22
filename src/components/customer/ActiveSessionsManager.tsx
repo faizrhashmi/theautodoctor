@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Activity, Video, MessageSquare, Clock, User, ArrowRight, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
 
 interface ActiveSession {
   id: string
@@ -19,7 +21,48 @@ interface ActiveSessionsManagerProps {
   sessions: ActiveSession[]
 }
 
-export default function ActiveSessionsManager({ sessions }: ActiveSessionsManagerProps) {
+export default function ActiveSessionsManager({ sessions: initialSessions }: ActiveSessionsManagerProps) {
+  const supabase = useMemo(() => createClient(), [])
+  const [sessions, setSessions] = useState<ActiveSession[]>(initialSessions)
+
+  // Real-time subscription to detect when sessions end
+  useEffect(() => {
+    if (sessions.length === 0) return
+
+    const sessionIds = sessions.map(s => s.id)
+    console.log('[ActiveSessionsManager] Setting up real-time subscription for sessions:', sessionIds)
+
+    const channel = supabase
+      .channel('active-sessions-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=in.(${sessionIds.join(',')})`,
+        },
+        (payload) => {
+          console.log('[ActiveSessionsManager] Session updated:', payload)
+          const updated = payload.new as any
+
+          // If session ended (completed/cancelled), remove it from display
+          if (updated.status === 'completed' || updated.status === 'cancelled') {
+            console.log('[ActiveSessionsManager] Session ended, removing from display:', updated.id)
+            setSessions(prev => prev.filter(s => s.id !== updated.id))
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[ActiveSessionsManager] Subscription status:', status)
+      })
+
+    return () => {
+      console.log('[ActiveSessionsManager] Cleaning up subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [sessions, supabase])
+
   // BUSINESS RULE: Customer can only have ONE active session at a time
   // Enforce this by only showing the first session
   if (sessions.length === 0) {
