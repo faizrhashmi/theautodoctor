@@ -579,6 +579,11 @@ export type Database = {
           last_selected_slot: string | null
           date_of_birth: string | null
           metadata: Json | null
+          stripe_account_id: string | null
+          stripe_onboarding_completed: boolean | null
+          stripe_charges_enabled: boolean | null
+          stripe_payouts_enabled: boolean | null
+          stripe_details_submitted: boolean | null
           created_at: string
           updated_at: string
         }
@@ -601,6 +606,11 @@ export type Database = {
           last_selected_slot?: string | null
           date_of_birth?: string | null
           metadata?: Json | null
+          stripe_account_id?: string | null
+          stripe_onboarding_completed?: boolean | null
+          stripe_charges_enabled?: boolean | null
+          stripe_payouts_enabled?: boolean | null
+          stripe_details_submitted?: boolean | null
           created_at?: string
           updated_at?: string
         }
