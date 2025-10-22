@@ -60,8 +60,10 @@ export default function ChatRoom({
   initialMessages,
   mechanicName: initialMechanicName,
   customerName: initialCustomerName,
+  mechanicId: initialMechanicId,
+  customerId: initialCustomerId,
   dashboardUrl,
-}: Omit<ChatRoomProps, 'userEmail' | 'scheduledStart' | 'scheduledEnd' | 'initialParticipants' | 'mechanicId' | 'customerId'>) {
+}: Omit<ChatRoomProps, 'userEmail' | 'scheduledStart' | 'scheduledEnd' | 'initialParticipants'>) {
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<Message[]>(() => [...initialMessages])
   const [input, setInput] = useState('')
@@ -80,8 +82,8 @@ export default function ChatRoom({
   const [currentStartedAt, setCurrentStartedAt] = useState(startedAt)
   const [mechanicName, setMechanicName] = useState<string | null>(initialMechanicName)
   const [customerName, setCustomerName] = useState<string | null>(initialCustomerName)
-  const [mechanicId, setMechanicId] = useState<string | null>(null)
-  const [customerId, setCustomerId] = useState<string | null>(null)
+  const [mechanicId, setMechanicId] = useState<string | null>(initialMechanicId)
+  const [customerId, setCustomerId] = useState<string | null>(initialCustomerId)
   const [participantJoined, setParticipantJoined] = useState(false)
   const [mechanicPresent, setMechanicPresent] = useState(false)
   const [customerPresent, setCustomerPresent] = useState(false)

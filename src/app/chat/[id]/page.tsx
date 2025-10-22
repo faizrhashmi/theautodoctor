@@ -179,6 +179,8 @@ export default async function ChatSessionPage({ params }: PageProps) {
       initialMessages={(messages ?? []).map(mapMessage)}
       mechanicName={mechanicName}
       customerName={customerName}
+      mechanicId={session.mechanic_id}
+      customerId={session.customer_user_id}
       dashboardUrl={dashboardUrl}
     />
   )
