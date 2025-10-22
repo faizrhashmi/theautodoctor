@@ -22,17 +22,29 @@ const TIME_EXTENSIONS = [
 
 interface VideoSessionClientProps {
   sessionId: string
+  userId: string
+  userRole: 'mechanic' | 'customer'
   plan: PlanKey
+  planName: string
   token: string
   serverUrl: string
+  status: string
+  startedAt: string | null
+  mechanicId: string | null
+  customerId: string | null
+  dashboardUrl: string
 }
 
 function ParticipantMonitor({
   onMechanicJoined,
   onMechanicLeft,
+  onCustomerJoined,
+  onCustomerLeft,
 }: {
   onMechanicJoined: () => void
   onMechanicLeft: () => void
+  onCustomerJoined: () => void
+  onCustomerLeft: () => void
 }) {
   const tracks = useTracks([Track.Source.Camera, Track.Source.Microphone])
 
@@ -47,12 +59,28 @@ function ParticipantMonitor({
       }
     })
 
+    const customerTracks = tracks.filter((track) => {
+      const metadata = track.participant.metadata
+      try {
+        const parsed = metadata ? JSON.parse(metadata) : {}
+        return parsed.role === 'customer'
+      } catch {
+        return false
+      }
+    })
+
     if (mechanicTracks.length > 0) {
       onMechanicJoined()
     } else {
       onMechanicLeft()
     }
-  }, [tracks, onMechanicJoined, onMechanicLeft])
+
+    if (customerTracks.length > 0) {
+      onCustomerJoined()
+    } else {
+      onCustomerLeft()
+    }
+  }, [tracks, onMechanicJoined, onMechanicLeft, onCustomerJoined, onCustomerLeft])
 
   return null
 }
@@ -119,17 +147,32 @@ function SessionTimer({
   )
 }
 
-export default function VideoSessionClient({ sessionId, plan, token, serverUrl }: VideoSessionClientProps) {
+export default function VideoSessionClient({
+  sessionId,
+  userId: _userId,
+  userRole: _userRole,
+  plan,
+  planName: _planName,
+  token,
+  serverUrl,
+  status: _status,
+  startedAt: _startedAt,
+  mechanicId: _mechanicId,
+  customerId: _customerId,
+  dashboardUrl,
+}: VideoSessionClientProps) {
   const [mechanicPresent, setMechanicPresent] = useState(false)
+  const [customerPresent, setCustomerPresent] = useState(false)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [extendingSession, setExtendingSession] = useState(false)
   const [timeWarning, setTimeWarning] = useState<string | null>(null)
+  const [bothJoinedNotification, setBothJoinedNotification] = useState(false)
 
   const durationMinutes = PLAN_DURATIONS[plan] || 45
 
-  // Auto-update session status to "live" when customer joins video
+  // Auto-update session status to "waiting" when first participant joins
   useEffect(() => {
     const updateSessionStatus = async () => {
       try {
@@ -146,10 +189,10 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
         if (session?.status?.toLowerCase() === 'pending') {
           await supabase
             .from('sessions')
-            .update({ status: 'live' })
+            .update({ status: 'waiting' })
             .eq('id', sessionId)
 
-          console.log('Video session status updated to live')
+          console.log('[VIDEO] Session status updated to waiting (first participant joined)')
         }
       } catch (err) {
         console.error('Failed to update video session status:', err)
@@ -159,18 +202,49 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
   }, [sessionId])
 
   const handleMechanicJoined = useCallback(() => {
-    if (!mechanicPresent) {
-      setMechanicPresent(true)
-      if (!sessionStarted) {
-        setSessionStarted(true)
-        setSessionStartTime(new Date())
-      }
-    }
-  }, [mechanicPresent, sessionStarted])
+    console.log('[VIDEO] Mechanic joined')
+    setMechanicPresent(true)
+  }, [])
 
   const handleMechanicLeft = useCallback(() => {
+    console.log('[VIDEO] Mechanic left')
     setMechanicPresent(false)
   }, [])
+
+  const handleCustomerJoined = useCallback(() => {
+    console.log('[VIDEO] Customer joined')
+    setCustomerPresent(true)
+  }, [])
+
+  const handleCustomerLeft = useCallback(() => {
+    console.log('[VIDEO] Customer left')
+    setCustomerPresent(false)
+  }, [])
+
+  // Dual-join detection: Start session when BOTH participants join
+  useEffect(() => {
+    if (mechanicPresent && customerPresent && !sessionStarted) {
+      console.log('[VIDEO] Both participants present - Starting session!')
+      setBothJoinedNotification(true)
+      setTimeout(() => setBothJoinedNotification(false), 5000)
+
+      // Mark session as truly started
+      setSessionStarted(true)
+      setSessionStartTime(new Date())
+
+      // Call API to update session status to 'live' and set started_at
+      fetch(`/api/sessions/${sessionId}/start`, {
+        method: 'POST',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('[VIDEO] Session start API response:', data)
+        })
+        .catch((err) => {
+          console.error('[VIDEO] Failed to call session start API:', err)
+        })
+    }
+  }, [mechanicPresent, customerPresent, sessionStarted, sessionId])
 
   const handleTimeWarning = useCallback((minutesLeft: number) => {
     setTimeWarning(`${minutesLeft} minute${minutesLeft > 1 ? 's' : ''} remaining`)
@@ -212,31 +286,51 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
 
   return (
     <div className="relative h-screen w-full bg-slate-950">
-      {/* Waiting Room Overlay */}
-      {!mechanicPresent && (
+      {/* Waiting Room Overlay - Shows when either participant is missing */}
+      {(!mechanicPresent || !customerPresent) && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur">
           <div className="max-w-md space-y-6 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-500/20">
-              <UserPlus className="h-10 w-10 animate-pulse text-orange-400" />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/20">
+              <UserPlus className="h-10 w-10 animate-pulse text-yellow-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-white">Waiting for mechanic to join</h2>
+              <h2 className="text-2xl font-semibold text-white">
+                {!mechanicPresent && !customerPresent
+                  ? 'Waiting for both participants...'
+                  : !mechanicPresent
+                  ? 'Waiting for mechanic to join'
+                  : 'Waiting for customer to join'}
+              </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Your session is ready. A certified mechanic will join shortly.
+                {!mechanicPresent && !customerPresent
+                  ? 'Session will start when both participants join.'
+                  : !mechanicPresent
+                  ? 'A certified mechanic will join shortly.'
+                  : 'Waiting for the customer to enter the session.'}
               </p>
             </div>
-            <div className="rounded-2xl border border-orange-400/30 bg-orange-500/10 p-4">
-              <p className="text-sm text-orange-200">
+            <div className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-4">
+              <p className="text-sm text-yellow-200">
                 <strong>Session Duration:</strong> {durationMinutes} minutes
               </p>
-              <p className="mt-1 text-xs text-orange-300">
-                Timer starts when mechanic joins
+              <p className="mt-1 text-xs text-yellow-300">
+                Timer starts when both participants join
               </p>
             </div>
             <div className="flex items-center justify-center gap-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-green-400"></div>
               <span className="text-sm text-slate-300">{"You're connected and ready"}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Both Joined Notification */}
+      {bothJoinedNotification && (
+        <div className="absolute left-1/2 top-4 z-50 -translate-x-1/2 transform">
+          <div className="flex items-center gap-2 rounded-full border border-green-400/30 bg-green-500/20 px-6 py-3 text-green-200 shadow-lg backdrop-blur">
+            <div className="h-3 w-3 rounded-full bg-green-400"></div>
+            <span className="text-sm font-semibold">Both participants joined - Session starting!</span>
           </div>
         </div>
       )}
@@ -256,7 +350,7 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
         <div className="flex items-center gap-3">
           {/* Back to Dashboard */}
           <a
-            href="/customer/dashboard"
+            href={dashboardUrl}
             className="flex items-center gap-2 rounded-full border border-white/20 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl transition hover:from-slate-800 hover:to-slate-700 hover:shadow-orange-500/50"
             title="Back to dashboard - You can return anytime"
           >
@@ -308,6 +402,8 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
         <ParticipantMonitor
           onMechanicJoined={handleMechanicJoined}
           onMechanicLeft={handleMechanicLeft}
+          onCustomerJoined={handleCustomerJoined}
+          onCustomerLeft={handleCustomerLeft}
         />
         <VideoConference />
         <RoomAudioRenderer />
