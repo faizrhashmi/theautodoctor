@@ -137,20 +137,36 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 
   if (!user.email_confirmed_at) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-slate-900">Check your inbox to verify</h1>
-          <p className="mt-4 text-sm text-slate-600">
-            We sent a verification link to <span className="font-semibold">{user.email}</span>. Confirm your email and then
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4">
+        <div className="max-w-lg rounded-2xl border border-white/10 bg-white/5 p-10 text-center shadow-sm backdrop-blur">
+          <h1 className="text-2xl font-semibold text-white">Check your inbox to verify</h1>
+          <p className="mt-4 text-sm text-slate-300">
+            We sent a verification link to <span className="font-semibold text-orange-400">{user.email}</span>. Confirm your email and then
             reopen this page to select your plan and finish booking.
           </p>
-          <p className="mt-4 text-sm text-slate-600">
-            Need a new link? Open the original email or contact
-            <a href="mailto:support@askautodoctor.com" className="ml-1 text-orange-600 hover:underline">
+          <p className="mt-4 text-sm text-slate-300">
+            Need a new link? Open the original email or contact{' '}
+            <a href="mailto:support@askautodoctor.com" className="text-orange-400 hover:underline">
               support@askautodoctor.com
             </a>
             .
           </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <form action="/api/customer/logout" method="POST" className="w-full">
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-orange-600 px-4 py-3 font-semibold text-white transition hover:bg-orange-700"
+              >
+                Sign out and try different account
+              </button>
+            </form>
+            <a
+              href="/customer/dashboard"
+              className="rounded-lg border border-white/20 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-white/40 hover:bg-white/5"
+            >
+              Go to Dashboard
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -162,23 +178,23 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     .eq('id', user.id)
     .maybeSingle();
 
+  // If user has no plan, send them to select one
   if (!profile?.preferred_plan) {
     redirect('/onboarding/pricing');
   }
 
+  // If user has a paid plan (not free), send them to dashboard
+  if (profile.preferred_plan !== 'free') {
+    redirect('/customer/dashboard');
+  }
+
   // If the user is on the free tier, allow them to continue to onboarding/pricing
   // or follow an explicit redirect query (for example when they click "Upgrade").
-  // Only send them to the dashboard by default when there's no other destination.
   if (profile.preferred_plan === 'free') {
-    if (redirectTo) {
-      // Prevent redirect loops back into signup/onboarding
-      if (redirectTo.startsWith('/signup') || redirectTo.startsWith('/onboarding')) {
-        // Let them continue to onboarding pricing to upgrade
-      } else {
-        redirect(redirectTo);
-      }
+    if (redirectTo && !redirectTo.startsWith('/signup') && !redirectTo.startsWith('/onboarding')) {
+      redirect(redirectTo);
     } else {
-      // No explicit redirect, allow user to reach onboarding if needed. Default to pricing.
+      // No explicit redirect, send free tier users to pricing to upgrade
       redirect('/onboarding/pricing');
     }
   }

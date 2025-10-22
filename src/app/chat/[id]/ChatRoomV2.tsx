@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { ChatMessage, SessionParticipant } from '@/types/supabase'
+import { PRICING, type PlanKey } from '@/config/pricing'
 
 type Message = Pick<ChatMessage, 'id' | 'content' | 'created_at' | 'sender_id'> & {
   attachments?: Array<{ name: string; url: string; size: number; type: string }>
@@ -14,7 +15,12 @@ type ChatRoomProps = {
   userId: string
   userEmail: string | null
   planName: string
+  plan: string
+  isFreeSession: boolean
   status: string | null
+  startedAt: string | null
+  scheduledStart: string | null
+  scheduledEnd: string | null
   initialMessages: Message[]
   initialParticipants: Participant[]
 }
@@ -42,7 +48,12 @@ export default function ChatRoom({
   userId,
   userEmail,
   planName,
+  plan,
+  isFreeSession,
   status,
+  startedAt,
+  scheduledStart,
+  scheduledEnd,
   initialMessages,
   initialParticipants,
 }: ChatRoomProps) {
@@ -54,11 +65,76 @@ export default function ChatRoom({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [attachments, setAttachments] = useState<File[]>([])
+  const [showExtensionModal, setShowExtensionModal] = useState(false)
+  const [extendingSession, setExtendingSession] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+  const [sessionEnded, setSessionEnded] = useState(false)
+  const [showSessionMenu, setShowSessionMenu] = useState(false)
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false)
+  const [endingSession, setEndingSession] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const mechanicCount = participants.filter((p) => p.role === 'mechanic').length
   const isMechanic = participants.find((p) => p.user_id === userId)?.role === 'mechanic'
+
+  // Calculate session duration in minutes
+  const sessionDurationMinutes = useMemo(() => {
+    const planKey = plan as PlanKey
+    if (planKey === 'chat10') return 30
+    if (planKey === 'video15') return 45
+    if (planKey === 'diagnostic') return 60
+    return 30 // default for free sessions
+  }, [plan])
+
+  // Auto-update session status to "live" when customer joins
+  useEffect(() => {
+    async function updateSessionStatus() {
+      if (status && status.toLowerCase() === 'pending') {
+        try {
+          await supabase
+            .from('sessions')
+            .update({ status: 'live' })
+            .eq('id', sessionId)
+        } catch (err) {
+          console.error('Failed to update session status:', err)
+        }
+      }
+    }
+    updateSessionStatus()
+  }, [sessionId, status, supabase])
+
+  // Timer countdown logic
+  useEffect(() => {
+    if (status?.toLowerCase() !== 'live' || !startedAt) return
+
+    const startTime = new Date(startedAt).getTime()
+    const durationMs = sessionDurationMinutes * 60 * 1000
+
+    const interval = setInterval(() => {
+      const now = Date.now()
+      const elapsed = now - startTime
+      const remaining = Math.max(0, durationMs - elapsed)
+
+      setTimeRemaining(Math.ceil(remaining / 1000)) // in seconds
+
+      // Session expired
+      if (remaining <= 0 && !sessionEnded) {
+        setSessionEnded(true)
+        // Auto-update session to completed
+        supabase
+          .from('sessions')
+          .update({ status: 'completed' })
+          .eq('id', sessionId)
+          .then(() => {
+            console.log('Session automatically completed due to time expiry')
+          })
+        clearInterval(interval)
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [sessionId, status, startedAt, sessionDurationMinutes, sessionEnded, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -224,31 +300,112 @@ export default function ChatRoom({
       : 'Waiting for mechanic...'
   const headerColor = mechanicCount > 0 ? 'text-green-600' : 'text-amber-600'
 
+  async function handleExtendSession(minutes: number, priceInCents: number) {
+    if (isFreeSession) {
+      // Redirect to Stripe checkout for free sessions
+      window.location.href = `/api/checkout/extend-session?session_id=${sessionId}&minutes=${minutes}&price=${priceInCents}`
+      return
+    }
+
+    setExtendingSession(true)
+    try {
+      const response = await fetch('/api/sessions/extend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, minutes })
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || 'Failed to extend session')
+
+      setShowExtensionModal(false)
+      // Show success message
+      setError(null)
+    } catch (err: any) {
+      setError(err.message || 'Failed to extend session')
+    } finally {
+      setExtendingSession(false)
+    }
+  }
+
+  async function handleEndSession() {
+    setEndingSession(true)
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/end`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        setShowEndSessionModal(false)
+        setSessionEnded(true)
+        // Optionally redirect after a delay
+        setTimeout(() => {
+          window.location.href = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+        }, 2000)
+      } else {
+        const data = await response.json()
+        throw new Error(data?.error || 'Failed to end session')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to end session')
+    } finally {
+      setEndingSession(false)
+    }
+  }
+
   return (
     <div className="flex h-screen flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-600">
-              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
+            {/* Back to Dashboard Button */}
+            <a
+              href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
+              className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              title="Back to dashboard"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-slate-900">{planName}</h1>
-              <p className={`text-xs font-medium ${headerColor}`}>
-                {mechanicCount > 0 ? '● ' : '○ '}
-                {headerStatus}
-              </p>
+              <span className="hidden sm:inline">Dashboard</span>
+            </a>
+
+            <div className="h-8 w-px bg-slate-200" />
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-600">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-sm font-semibold text-slate-900">{planName}</h1>
+                <p className={`text-xs font-medium ${headerColor}`}>
+                  {mechanicCount > 0 ? '● ' : '○ '}
+                  {headerStatus}
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {timeRemaining !== null && status?.toLowerCase() === 'live' && (
+              <div className="flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+              </div>
+            )}
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
               Session: {status || 'pending'}
             </span>
@@ -257,12 +414,85 @@ export default function ChatRoom({
                 Mechanic
               </span>
             )}
+
+            {/* Session Actions Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSessionMenu(!showSessionMenu)}
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+                <span className="hidden sm:inline">Options</span>
+              </button>
+
+              {showSessionMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSessionMenu(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-xl">
+                    <div className="p-2">
+                      {!isMechanic && status?.toLowerCase() === 'live' && (
+                        <button
+                          onClick={() => {
+                            setShowSessionMenu(false)
+                            setShowExtensionModal(true)
+                          }}
+                          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-orange-50 hover:text-orange-700"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Extend Session Time
+                        </button>
+                      )}
+                      <a
+                        href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        View Dashboard
+                      </a>
+                      <div className="my-1 h-px bg-slate-200" />
+                      <button
+                        onClick={() => {
+                          setShowSessionMenu(false)
+                          setShowEndSessionModal(true)
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        End Session
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Messages Area */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-hidden px-6 py-6">
+        {sessionEnded && (
+          <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-center">
+            <h3 className="text-lg font-bold text-red-200">Session Time Expired</h3>
+            <p className="mt-2 text-sm text-red-100">
+              Your {sessionDurationMinutes}-minute session has ended. The chat is now read-only.
+            </p>
+            <a
+              href="/customer/dashboard"
+              className="mt-4 inline-block rounded-full bg-red-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+            >
+              Return to Dashboard
+            </a>
+          </div>
+        )}
         <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-sm">
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
@@ -413,11 +643,11 @@ export default function ChatRoom({
                     form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
                   }
                 }}
-                placeholder="Type your message... (Shift+Enter for new line)"
+                placeholder={sessionEnded ? "Session has ended" : "Type your message... (Shift+Enter for new line)"}
                 rows={3}
                 maxLength={2000}
-                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-blue-100"
-                disabled={sending || uploading}
+                className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                disabled={sending || uploading || sessionEnded}
               />
               <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>{input.length} / 2000</span>
@@ -437,7 +667,7 @@ export default function ChatRoom({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={sending || uploading}
+                disabled={sending || uploading || sessionEnded}
                 className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Attach file"
               >
@@ -452,7 +682,7 @@ export default function ChatRoom({
               </button>
               <button
                 type="submit"
-                disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
+                disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
                 className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-600 text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Send message"
               >
@@ -491,6 +721,133 @@ export default function ChatRoom({
           )}
         </form>
       </main>
+
+      {/* Extension Modal */}
+      {showExtensionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-slate-900">Extend Your Session</h3>
+              <button
+                onClick={() => setShowExtensionModal(false)}
+                className="text-slate-400 transition hover:text-slate-600"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <p className="mb-6 text-sm text-slate-600">
+              {isFreeSession
+                ? 'Choose additional time for your session. You\'ll be redirected to payment.'
+                : 'Choose how much time you\'d like to add to your current session.'}
+            </p>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => handleExtendSession(15, 1499)}
+                disabled={extendingSession}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-orange-300 hover:bg-orange-50 disabled:opacity-50"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">15 Minutes</p>
+                  <p className="text-sm text-slate-500">Quick extension</p>
+                </div>
+                <span className="text-lg font-bold text-orange-600">$14.99</span>
+              </button>
+
+              <button
+                onClick={() => handleExtendSession(30, 2499)}
+                disabled={extendingSession}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-orange-300 hover:bg-orange-50 disabled:opacity-50"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">30 Minutes</p>
+                  <p className="text-sm text-slate-500">Standard extension</p>
+                </div>
+                <span className="text-lg font-bold text-orange-600">$24.99</span>
+              </button>
+
+              <button
+                onClick={() => handleExtendSession(60, 3999)}
+                disabled={extendingSession}
+                className="flex w-full items-center justify-between rounded-xl border-2 border-orange-300 bg-orange-50 p-4 text-left transition hover:border-orange-400 hover:bg-orange-100 disabled:opacity-50"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">60 Minutes</p>
+                  <p className="text-sm text-orange-600">Best value!</p>
+                </div>
+                <span className="text-lg font-bold text-orange-600">$39.99</span>
+              </button>
+            </div>
+
+            {extendingSession && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600">
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Processing...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* End Session Modal */}
+      {showEndSessionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-slate-900">End Session?</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Are you sure you want to end this session? This action cannot be undone and the chat will be marked as completed.
+                </p>
+              </div>
+            </div>
+
+            {!isMechanic && timeRemaining !== null && timeRemaining > 0 && (
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="h-5 w-5 flex-shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-900">Time Remaining</p>
+                    <p className="mt-1 text-sm text-amber-700">
+                      You still have {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')} left in your session. Ending now will forfeit the remaining time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3 sm:flex-row-reverse">
+              <button
+                onClick={handleEndSession}
+                disabled={endingSession}
+                className="flex-1 rounded-full bg-red-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {endingSession ? 'Ending Session...' : 'Yes, End Session'}
+              </button>
+              <button
+                onClick={() => setShowEndSessionModal(false)}
+                disabled={endingSession}
+                className="flex-1 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

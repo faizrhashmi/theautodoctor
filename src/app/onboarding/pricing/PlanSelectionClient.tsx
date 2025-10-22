@@ -63,14 +63,18 @@ function getRedirectTarget(_planId: (typeof TIERS)[number]['id']): string {
   return '/customer/dashboard';
 }
 
-export default function PlanSelectionClient({ displayName }: { displayName: string }) {
+type PlanSelectionClientProps = {
+  hasActiveSessions: boolean;
+  activeSessionsCount: number;
+};
+
+export default function PlanSelectionClient({ hasActiveSessions, activeSessionsCount }: PlanSelectionClientProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
 
   async function handleSelect(planId: (typeof TIERS)[number]['id']) {
-    if (submitting) return;
+    if (submitting || hasActiveSessions) return;
     setSubmitting(planId);
     setError(null);
 
@@ -86,7 +90,8 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
         throw new Error((data as any)?.error || 'Unable to save your plan.');
       }
 
-      router.push(getRedirectTarget(planId));
+      // Use window.location.href for a full page reload to ensure fresh data
+      window.location.href = getRedirectTarget(planId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to save your plan.';
       setError(message);
@@ -96,30 +101,6 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-12">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-        <p className="text-xs uppercase tracking-wider text-slate-400">Signed in as</p>
-        <p className="mt-1 text-base font-semibold text-white">{displayName}</p>
-        <p className="mt-2 text-sm text-slate-300">
-          Your selection unlocks scheduling and payment options inside the dashboard. You can switch plans before paying.
-        </p>
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await supabase.auth.signOut();
-              } catch (err) {
-                // ignore
-              }
-              router.push('/signup');
-            }}
-            className="text-xs font-semibold text-orange-400 underline transition hover:text-orange-300"
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-300">
           {error}
@@ -132,31 +113,64 @@ export default function PlanSelectionClient({ displayName }: { displayName: stri
             key={tier.id}
             type="button"
             onClick={() => handleSelect(tier.id)}
-            disabled={Boolean(submitting)}
-            className={`group relative flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-white/5 p-6 text-left text-white shadow-sm backdrop-blur transition duration-200 hover:border-orange-400/50 hover:bg-orange-500/10 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50 ${
-              submitting && submitting !== tier.id ? 'opacity-60' : ''
-            } ${tier.id === 'diagnostic' ? 'border-orange-400/30 bg-orange-500/10' : ''}`}
+            disabled={Boolean(submitting) || hasActiveSessions}
+            className={`group relative flex h-full flex-col justify-between rounded-3xl border p-6 text-left shadow-sm backdrop-blur transition duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50 ${
+              hasActiveSessions
+                ? 'cursor-not-allowed border-slate-600/30 bg-slate-800/20 opacity-50'
+                : submitting && submitting !== tier.id
+                ? 'opacity-60 border-white/10 bg-white/5'
+                : tier.id === 'diagnostic'
+                ? 'border-orange-400/30 bg-orange-500/10 text-white hover:border-orange-400/50 hover:bg-orange-500/10 hover:shadow-lg'
+                : 'border-white/10 bg-white/5 text-white hover:border-orange-400/50 hover:bg-orange-500/10 hover:shadow-lg'
+            }`}
           >
+            {hasActiveSessions && (
+              <div className="absolute top-4 right-4">
+                <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+            )}
             <div>
-              <span className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider ${
+                hasActiveSessions
+                  ? 'border-slate-600/20 bg-slate-700/20 text-slate-500'
+                  : 'border-white/20 bg-white/5 text-slate-300'
+              }`}>
                 {tier.duration}
               </span>
-              <h2 className="mt-4 text-2xl font-semibold text-white">{tier.name}</h2>
-              <p className="mt-2 text-sm text-slate-400">{tier.description}</p>
-              <p className="mt-4 text-3xl font-bold text-white">{tier.price}</p>
-              <ul className="mt-4 space-y-2 text-sm text-slate-300">
+              <h2 className={`mt-4 text-2xl font-semibold ${hasActiveSessions ? 'text-slate-400' : 'text-white'}`}>
+                {tier.name}
+              </h2>
+              <p className={`mt-2 text-sm ${hasActiveSessions ? 'text-slate-500' : 'text-slate-400'}`}>
+                {tier.description}
+              </p>
+              <p className={`mt-4 text-3xl font-bold ${hasActiveSessions ? 'text-slate-400' : 'text-white'}`}>
+                {tier.price}
+              </p>
+              <ul className={`mt-4 space-y-2 text-sm ${hasActiveSessions ? 'text-slate-500' : 'text-slate-300'}`}>
                 {tier.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-orange-400" />
+                    <span className={`mt-1 inline-block h-1.5 w-1.5 rounded-full ${
+                      hasActiveSessions ? 'bg-slate-600' : 'bg-orange-400'
+                    }`} />
                     <span>{perk}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="mt-6 text-xs text-slate-400">{tier.recommendedFor}</div>
-            <div className="mt-6 flex items-center justify-between rounded-2xl border border-orange-400/30 bg-orange-500/10 px-4 py-3 text-sm font-semibold text-white transition group-hover:border-orange-400/50 group-hover:bg-orange-500/20">
-              <span>{tier.id === 'free' ? 'Start free session' : 'Continue with this plan'}</span>
-              <span className="text-orange-400 group-hover:text-orange-300">{submitting === tier.id ? 'Saving...' : 'Select →'}</span>
+            <div className={`mt-6 text-xs ${hasActiveSessions ? 'text-slate-600' : 'text-slate-400'}`}>
+              {tier.recommendedFor}
+            </div>
+            <div className={`mt-6 flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+              hasActiveSessions
+                ? 'border-slate-600/30 bg-slate-700/20 text-slate-500'
+                : 'border-orange-400/30 bg-orange-500/10 text-white group-hover:border-orange-400/50 group-hover:bg-orange-500/20'
+            }`}>
+              <span>{hasActiveSessions ? 'Locked' : tier.id === 'free' ? 'Start free session' : 'Continue with this plan'}</span>
+              <span className={hasActiveSessions ? 'text-slate-600' : 'text-orange-400 group-hover:text-orange-300'}>
+                {hasActiveSessions ? '🔒' : submitting === tier.id ? 'Saving...' : 'Select →'}
+              </span>
             </div>
           </button>
         ))}

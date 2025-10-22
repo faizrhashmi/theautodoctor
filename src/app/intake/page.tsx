@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
 
 type Errors = Partial<
   Record<
@@ -72,7 +73,99 @@ export default function IntakePage() {
   const [decoding, setDecoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Errors>({})
+  const [savedVehicle, setSavedVehicle] = useState<any>(null)
+  const [userVehicles, setUserVehicles] = useState<any[]>([])
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [activeSessionModal, setActiveSessionModal] = useState<{
+    sessionId: string
+    sessionType: string
+    sessionStatus: string
+  } | null>(null)
   const firstErrorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const supabase = createClient()
+
+  // Load user profile and vehicle info
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone, vehicle_info, city, address')
+            .eq('id', user.id)
+            .single()
+
+          if (profile) {
+            // Pre-fill all user contact info
+            setForm(prev => ({
+              ...prev,
+              name: profile.full_name || prev.name,
+              email: user.email || prev.email,
+              phone: profile.phone || prev.phone,
+              city: (user.user_metadata?.city as string) || (profile as any).city || prev.city,
+            }))
+
+            // Save vehicle info if available (legacy)
+            if (profile.vehicle_info && typeof profile.vehicle_info === 'object') {
+              setSavedVehicle(profile.vehicle_info)
+            }
+          }
+
+          // Load vehicles from new vehicles table
+          const { data: vehicles, error: vehiclesError } = await supabase
+            .from('vehicles')
+            .select('id, make, model, year, vin, color, mileage, plate, is_primary, nickname')
+            .eq('user_id', user.id)
+            .order('is_primary', { ascending: false })
+            .order('created_at', { ascending: false })
+
+          if (!vehiclesError && vehicles && vehicles.length > 0) {
+            setUserVehicles(vehicles)
+            // Auto-select primary vehicle if available
+            const primaryVehicle = vehicles.find(v => v.is_primary)
+            if (primaryVehicle) {
+              setSelectedVehicleId(primaryVehicle.id)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading profile:', err)
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+    loadProfile()
+  }, [supabase])
+
+  function loadSavedVehicle() {
+    if (savedVehicle) {
+      setForm(prev => ({
+        ...prev,
+        year: savedVehicle.year || prev.year,
+        make: savedVehicle.make || prev.make,
+        model: savedVehicle.model || prev.model,
+        vin: savedVehicle.vin || prev.vin,
+        odometer: savedVehicle.mileage || prev.odometer,
+      }))
+    }
+  }
+
+  function loadSelectedVehicle() {
+    const vehicle = userVehicles.find(v => v.id === selectedVehicleId)
+    if (vehicle) {
+      setForm(prev => ({
+        ...prev,
+        year: vehicle.year || prev.year,
+        make: vehicle.make || prev.make,
+        model: vehicle.model || prev.model,
+        vin: vehicle.vin || prev.vin,
+        odometer: vehicle.mileage || prev.odometer,
+        plate: vehicle.plate || prev.plate,
+      }))
+    }
+  }
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, [])
   const phoneRegex = useMemo(() => /^[0-9+()\-\s]{7,}$/i, [])
@@ -222,6 +315,17 @@ export default function IntakePage() {
         body: JSON.stringify({ plan, ...form, files: uploadedPaths }),
       })
       const data = await res.json()
+
+      // Handle active session conflict
+      if (res.status === 409 && data.activeSessionId) {
+        setActiveSessionModal({
+          sessionId: data.activeSessionId,
+          sessionType: data.activeSessionType || 'chat',
+          sessionStatus: data.activeSessionStatus || 'pending'
+        })
+        return
+      }
+
       if (!res.ok) throw new Error(data?.error || 'Unable to continue')
       if (data.redirect) {
         router.push(data.redirect)
@@ -239,10 +343,28 @@ export default function IntakePage() {
     return Boolean(hasContact && hasVehicle && hasConcern && uploadsReady)
   })()
 
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
+
   return (
     <main className="mx-auto max-w-5xl rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur lg:p-12">
       <div className="flex flex-col gap-8">
         <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-6 shadow-lg sm:p-8">
+          <div className="flex items-center justify-end mb-4">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm font-semibold text-slate-400 hover:text-white transition"
+            >
+              Sign out
+            </button>
+          </div>
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Step 2 of 3</p>
@@ -314,6 +436,49 @@ export default function IntakePage() {
           </Section>
 
           <Section title="Vehicle information">
+            {userVehicles.length > 0 && !loadingProfile && (
+              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+                <label className="block">
+                  <span className="text-sm font-semibold text-orange-200">Select from your saved vehicles</span>
+                  <select
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    className="mt-2 block w-full rounded-lg border border-orange-400/30 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
+                  >
+                    <option value="">Choose a vehicle...</option>
+                    {userVehicles.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {vehicle.nickname ? `${vehicle.nickname} - ` : ''}{vehicle.year} {vehicle.make} {vehicle.model}
+                        {vehicle.is_primary ? ' (Primary)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {selectedVehicleId && (
+                  <button
+                    type="button"
+                    onClick={loadSelectedVehicle}
+                    className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                  >
+                    Use this vehicle
+                  </button>
+                )}
+              </div>
+            )}
+            {savedVehicle && !loadingProfile && userVehicles.length === 0 && (
+              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+                <p className="text-sm font-semibold text-orange-200">
+                  Saved vehicle: {savedVehicle.year} {savedVehicle.make} {savedVehicle.model}
+                </p>
+                <button
+                  type="button"
+                  onClick={loadSavedVehicle}
+                  className="mt-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                >
+                  Use this vehicle
+                </button>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Input
                 label="VIN (17 characters preferred)"
@@ -448,6 +613,75 @@ export default function IntakePage() {
           </div>
         </div>
       </div>
+
+      {/* Active Session Modal */}
+      {activeSessionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-lg rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-8 shadow-2xl">
+            <div className="mb-6 flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-600">
+                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white">Active Session in Progress</h3>
+                <p className="mt-2 text-sm text-slate-300">
+                  You already have a session that's {activeSessionModal.sessionStatus}. You can only have one active session at a time.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-sm text-slate-400">
+                Please complete or cancel your current session before starting a new one.
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                onClick={() => router.push(activeSessionModal.sessionType === 'chat'
+                  ? `/chat/${activeSessionModal.sessionId}`
+                  : `/video/${activeSessionModal.sessionId}`
+                )}
+                className="w-full rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-orange-500 hover:to-orange-600"
+              >
+                Return to Active Session
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push('/customer/dashboard')}
+                  className="flex-1 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Go to Dashboard
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to end this session? This action cannot be undone.')) {
+                      try {
+                        const response = await fetch(`/api/sessions/${activeSessionModal.sessionId}/end`, {
+                          method: 'POST',
+                        })
+                        if (response.ok) {
+                          setActiveSessionModal(null)
+                          // Refresh the page or show success message
+                        } else {
+                          alert('Failed to end session. Please try again.')
+                        }
+                      } catch (error) {
+                        alert('Failed to end session. Please try again.')
+                      }
+                    }
+                  }}
+                  className="flex-1 rounded-full border border-red-400/50 bg-red-500/10 px-6 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                >
+                  End Session
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

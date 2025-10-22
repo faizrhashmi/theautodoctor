@@ -29,7 +29,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
 
   const { data: session, error: sessionError } = await supabase
     .from('sessions')
-    .select('id, plan, type, status, metadata')
+    .select('id, plan, type, status, metadata, created_at')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -66,6 +66,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
 
   const planKey = (session.plan as PlanKey) ?? 'chat10'
   const planName = PRICING[planKey]?.name ?? 'Quick Chat'
+  const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
 
   return (
     <ChatRoom
@@ -73,7 +74,12 @@ export default async function ChatSessionPage({ params }: PageProps) {
       userId={user.id}
       userEmail={user.email ?? null}
       planName={planName}
+      plan={session.plan ?? 'free'}
+      isFreeSession={isFreeSession}
       status={session.status ?? 'pending'}
+      startedAt={session.created_at}
+      scheduledStart={session.created_at}
+      scheduledEnd={null}
       initialMessages={(messages ?? []).map(mapMessage)}
       initialParticipants={participants ?? []}
     />

@@ -96,6 +96,27 @@ export async function fulfillCheckout(
     throw new Error(`[fulfillment] Unsupported plan key "${plan}"`)
   }
 
+  // CRITICAL: Check for existing active/pending sessions - Only ONE session allowed at a time!
+  if (supabaseUserId) {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: activeSessions, error: checkError } = await supabaseAdmin
+      .from('sessions')
+      .select('id, status, type, created_at')
+      .eq('customer_user_id', supabaseUserId)
+      .in('status', ['pending', 'waiting', 'live', 'scheduled']) // Block ALL non-completed sessions
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (!checkError && activeSessions && activeSessions.length > 0) {
+      const activeSession = activeSessions[0]
+      throw new Error(
+        `Customer already has an active or pending session (ID: ${activeSession.id}, Status: ${activeSession.status}). Only one session allowed at a time.`
+      )
+    }
+  }
+
   const existing = await supabaseAdmin
     .from('sessions')
     .select('id, type, plan, customer_user_id, intake_id, metadata')

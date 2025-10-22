@@ -61,8 +61,14 @@ function computeJoinState(session: CustomerDashboardSession, now: number) {
     now >= scheduledStart - joinWindowMs &&
     (scheduledEnd === null || now <= scheduledEnd + joinWindowMs)
 
-  const isLiveLike = ['live', 'waiting'].includes(session.status.toLowerCase())
-  const joinable = isLiveLike || withinScheduledWindow
+  const status = session.status.toLowerCase()
+  const isLiveLike = ['live', 'waiting'].includes(status)
+  const isPending = status === 'pending'
+
+  // Pending sessions without scheduled time are immediately joinable (from intake form)
+  const pendingWithoutSchedule = isPending && scheduledStart === null
+
+  const joinable = isLiveLike || withinScheduledWindow || pendingWithoutSchedule
 
   const countdown =
     scheduledStart && now < scheduledStart
@@ -112,14 +118,31 @@ export function SessionJoinCard({ session }: { session: CustomerDashboardSession
         <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto">
           <Link
             href={getJoinRoute(session)}
-            className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+            className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
               joinable ? 'bg-orange-600 hover:bg-orange-700' : 'bg-slate-300 text-slate-600 cursor-not-allowed'
             }`}
             aria-disabled={!joinable}
             tabIndex={joinable ? 0 : -1}
           >
-            {joinable ? 'Join Session' : `Join available ${JOIN_WINDOW_MINUTES} min before`}
+            {session.status.toLowerCase() === 'live' && (
+              <span className="flex h-2 w-2">
+                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              </span>
+            )}
+            {joinable
+              ? session.status.toLowerCase() === 'live'
+                ? 'Return to Session'
+                : session.status.toLowerCase() === 'pending'
+                ? 'Enter Session'
+                : 'Join Session'
+              : `Join available ${JOIN_WINDOW_MINUTES} min before`}
           </Link>
+          {joinable && session.status.toLowerCase() === 'live' && (
+            <p className="text-center text-xs text-slate-500">
+              You can leave and return anytime while the session is active
+            </p>
+          )}
           <Link
             href="/customer/schedule"
             className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.1",
+    "@headlessui/react": "^2.2.9",
     "@livekit/components-react": "^2.9.15",
     "@livekit/components-styles": "^1.1.6",
     "@supabase/ssr": "^0.7.0",

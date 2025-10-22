@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
   const update: ProfileInsert = {
     id: user.id,
     role: 'customer',
+    // Set email_verified to true if user's email is confirmed
+    email_verified: !!user.email_confirmed_at,
   }
 
   if (typeof body.plan === 'string') {

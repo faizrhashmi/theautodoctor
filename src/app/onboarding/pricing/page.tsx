@@ -1,5 +1,6 @@
 ﻿import { redirect } from 'next/navigation';
 import { getSupabaseServer } from '@/lib/supabaseServer';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import PlanSelectionClient from './PlanSelectionClient';
 
 export const dynamic = 'force-dynamic';
@@ -20,29 +21,79 @@ export default async function PricingSelectionPage() {
     redirect('/signup');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('preferred_plan, full_name')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Check for active sessions - users cannot change plans with active sessions
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: activeSessions } = await supabaseAdmin
+    .from('sessions')
+    .select('id, status, type, created_at')
+    .eq('customer_user_id', user.id)
+    .in('status', ['pending', 'waiting', 'live', 'scheduled'])
+    .gte('created_at', twentyFourHoursAgo)
+    .order('created_at', { ascending: false });
 
-  const displayName = profile?.full_name || user.user_metadata?.full_name || user.email || 'User';
+  const hasActiveSessions = activeSessions && activeSessions.length > 0;
+  const activeSessionsData = activeSessions || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <header className="border-b border-white/10 bg-white/5 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <h1 className="text-lg font-semibold text-white">Choose Your Plan</h1>
-          <a
-            href="/customer/dashboard"
-            className="text-sm font-medium text-slate-300 transition hover:text-white"
-          >
-            Back to Dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/customer/dashboard"
+              className="text-sm font-medium text-slate-300 transition hover:text-white"
+            >
+              Dashboard
+            </a>
+            <form action="/api/customer/logout" method="POST">
+              <button
+                type="submit"
+                className="text-sm font-medium text-slate-300 transition hover:text-white"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-12">
+        {hasActiveSessions && (
+          <div className="mb-8 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-6 flex items-start gap-4">
+            <svg className="h-6 w-6 text-amber-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-amber-300">Plan Selection Locked</h3>
+              <p className="text-sm text-amber-200/90 mt-2">
+                You have {activeSessionsData.length} active session{activeSessionsData.length > 1 ? 's' : ''}. Please complete or cancel your active session{activeSessionsData.length > 1 ? 's' : ''} before selecting a new plan or starting a new booking.
+              </p>
+              <div className="mt-4 space-y-2">
+                {activeSessionsData.map((session) => (
+                  <div key={session.id} className="flex items-center gap-3 rounded-lg bg-amber-500/20 border border-amber-400/30 px-4 py-2 text-sm">
+                    <div className="flex-1">
+                      <span className="font-semibold text-amber-200">
+                        {session.type === 'chat' ? 'Chat' : session.type === 'video' ? 'Video' : 'Diagnostic'} Session
+                      </span>
+                      <span className="text-amber-300/80"> • Status: {session.status}</span>
+                    </div>
+                    <a
+                      href={session.type === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700"
+                    >
+                      Go to session
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300">
             Select Your Plan
@@ -56,18 +107,20 @@ export default async function PricingSelectionPage() {
           <p className="mt-6 text-lg text-slate-300 max-w-3xl mx-auto">
             Connect with certified mechanics instantly. Select the plan that matches your needs - you can upgrade anytime.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
-              <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
-              Change plans anytime
+          {!hasActiveSessions && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
+                Change plans anytime
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
+                Secure Stripe billing
+              </div>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
-              Secure Stripe billing
-            </div>
-          </div>
+          )}
         </div>
 
-        <PlanSelectionClient displayName={displayName} />
+        <PlanSelectionClient hasActiveSessions={hasActiveSessions} activeSessionsCount={activeSessionsData.length} />
       </main>
     </div>
   );

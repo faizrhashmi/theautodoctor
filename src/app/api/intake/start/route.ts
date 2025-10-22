@@ -80,6 +80,30 @@ export async function POST(req: NextRequest) {
     let sessionId: string | null = null;
 
     if (supabaseAdmin && intakeId) {
+      // Check for existing active/pending sessions - Only ONE session allowed at a time!
+      if (user?.id) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: activeSessions, error: checkError } = await supabaseAdmin
+          .from('sessions')
+          .select('id, status, type, created_at')
+          .eq('customer_user_id', user.id)
+          .in('status', ['pending', 'waiting', 'live', 'scheduled']) // Block ALL non-completed sessions
+          .gte('created_at', twentyFourHoursAgo) // Check last 24 hours
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!checkError && activeSessions && activeSessions.length > 0) {
+          const activeSession = activeSessions[0];
+          return NextResponse.json({
+            error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
+            activeSessionId: activeSession.id,
+            activeSessionType: activeSession.type,
+            activeSessionStatus: activeSession.status,
+          }, { status: 409 });
+        }
+      }
+
       const metadata: Record<string, Json> = {
         intake_id: intakeId,
         source: 'intake',

@@ -15,7 +15,14 @@
       "Bash(powershell -Command \"(Get-Content ''src/app/customer/dashboard/page.tsx'' -Raw) -replace ''<span className=\"\"\"text-base text-green-300\"\"\">.*?</span>'',''<ClipboardList className=\"\"\"h-5 w-5 text-green-300\"\"\" />'' | Set-Content ''src/app/customer/dashboard/page.tsx'' -NoNewline\")",
       "Bash(dir:*)",
       "Bash(xargs sed:*)",
-      "Bash(timeout /t 5)"
+      "Bash(timeout /t 5)",
+      "Bash(powershell -Command \"(Get-Content ''src\\app\\customer\\dashboard\\page.tsx'' -Raw) -replace ''support@askautodoctor.com.*?</a>'', ''support@askautodoctor.com →</a>'' | Set-Content ''src\\app\\customer\\dashboard\\page.tsx'' -NoNewline\")",
+      "Bash(where supabase:*)",
+      "Bash(cat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(timeout /t 3)",
+      "Bash(npm install:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []

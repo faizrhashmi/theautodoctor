@@ -79,22 +79,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Check email verification - only check user.email_confirmed_at
+  // The profile.email_verified is synced via the profile API
   if (!user.email_confirmed_at) {
     return NextResponse.redirect(new URL('/customer/verify-email', request.url))
   }
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, email_verified')
+    .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
+  // Only redirect if user has wrong role (e.g., admin trying to access customer pages)
   if (profile?.role && profile.role !== 'customer') {
     return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  if (profile?.email_verified === false) {
-    return NextResponse.redirect(new URL('/customer/verify-email', request.url))
   }
 
   return response

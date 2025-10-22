@@ -132,6 +132,35 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
 
   const durationMinutes = PLAN_DURATIONS[plan] || 45
 
+  // Auto-update session status to "live" when customer joins video
+  useEffect(() => {
+    const updateSessionStatus = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase')
+        const supabase = createClient()
+
+        // Check current status first
+        const { data: session } = await supabase
+          .from('sessions')
+          .select('status')
+          .eq('id', sessionId)
+          .single()
+
+        if (session?.status?.toLowerCase() === 'pending') {
+          await supabase
+            .from('sessions')
+            .update({ status: 'live' })
+            .eq('id', sessionId)
+
+          console.log('Video session status updated to live')
+        }
+      } catch (err) {
+        console.error('Failed to update video session status:', err)
+      }
+    }
+    updateSessionStatus()
+  }, [sessionId])
+
   const handleMechanicJoined = useCallback(() => {
     if (!mechanicPresent) {
       setMechanicPresent(true)
@@ -226,31 +255,48 @@ export default function VideoSessionClient({ sessionId, plan, token, serverUrl }
       )}
 
       {/* Session Header */}
-      {sessionStarted && sessionStartTime && (
-        <div className="absolute left-4 right-4 top-4 z-40 flex items-center justify-between">
-          <div className="rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 backdrop-blur">
-            <p className="text-sm text-slate-300">
-              {mechanicPresent ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-green-400"></span>
-                  Mechanic connected
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-amber-400"></span>
-                  Mechanic disconnected
-                </span>
-              )}
-            </p>
-          </div>
+      <div className="absolute left-4 right-4 top-4 z-[9999] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Back to Dashboard */}
+          <a
+            href="/customer/dashboard"
+            className="flex items-center gap-2 rounded-full border border-white/20 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl transition hover:from-slate-800 hover:to-slate-700 hover:shadow-orange-500/50"
+            title="Back to dashboard - You can return anytime"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Dashboard</span>
+          </a>
+
+          {sessionStarted && (
+            <div className="rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 backdrop-blur">
+              <p className="text-sm text-slate-300">
+                {mechanicPresent ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-green-400"></span>
+                    Mechanic connected
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+                    Mechanic disconnected
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {sessionStarted && sessionStartTime && (
           <SessionTimer
             startTime={sessionStartTime}
             durationMinutes={durationMinutes}
             onTimeWarning={handleTimeWarning}
             onTimeUp={handleTimeUp}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Video Conference */}
       <LiveKitRoom

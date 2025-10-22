@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -13,7 +13,9 @@ import type {
   CustomerDashboardFile,
   CustomerDashboardSession,
 } from '@/components/customer/dashboard-types'
-import { AlertCircle, Calendar, ClipboardList } from 'lucide-react'
+import { AlertCircle, Calendar, ClipboardList, Star } from 'lucide-react'
+import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import SessionManagement from '@/components/customer/SessionManagement'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,12 +98,7 @@ export default async function CustomerDashboardPage() {
         created_at,
         plan,
         type,
-        status,
-        scheduled_start,
-        scheduled_end,
-        started_at,
-        ended_at,
-        mechanic_id
+        status
       )
     `)
     .eq('user_id', user.id)
@@ -136,9 +133,10 @@ export default async function CustomerDashboardPage() {
 
   const relatedProfileIds = Array.from(
     new Set([
-      ...sessions
-        .map((session) => session.mechanic_id)
-        .filter((value): value is string => Boolean(value)),
+      // Removed mechanic_id mapping as it may not exist in all database schemas
+      // ...sessions
+      //   .map((session) => session.mechanic_id)
+      //   .filter((value): value is string => Boolean(value)),
       ...fileRows.map((file) => file.uploaded_by).filter((value): value is string => Boolean(value)),
     ])
   )
@@ -186,12 +184,12 @@ export default async function CustomerDashboardPage() {
     typeLabel: SESSION_TYPE_LABELS[session.type] ?? session.type,
     status: session.status ?? 'pending',
     createdAt: session.created_at,
-    scheduledStart: session.scheduled_start,
-    scheduledEnd: session.scheduled_end,
-    startedAt: session.started_at,
-    endedAt: session.ended_at,
-    mechanicId: session.mechanic_id,
-    mechanicName: session.mechanic_id ? profileMap.get(session.mechanic_id) ?? null : null,
+    scheduledStart: session.created_at,
+    scheduledEnd: null,
+    startedAt: session.created_at,
+    endedAt: null,
+    mechanicId: null, // Mechanic ID may not be available in all database schemas
+    mechanicName: null, // Mechanic name will be null if mechanic_id doesn't exist
     files: filesBySession.get(session.id) ?? [],
   }))
 
@@ -199,278 +197,481 @@ export default async function CustomerDashboardPage() {
     .filter((session) => !['completed', 'cancelled'].includes(session.status.toLowerCase()))
     .sort((a, b) => sessionSortValue(a) - sessionSortValue(b))
 
-  const nextSession = upcomingSessions[0] ?? null
-  const queuedSessions = upcomingSessions.slice(1)
+  // Separate active/in-progress sessions from scheduled ones
+  const activeSessions = upcomingSessions.filter((session) =>
+    ['live', 'waiting'].includes(session.status.toLowerCase())
+  )
+  const scheduledSessions = upcomingSessions.filter((session) =>
+    ['pending', 'scheduled'].includes(session.status.toLowerCase())
+  )
 
-  const pastSessions = normalizedSessions
-    .filter((session) => session.status.toLowerCase() === 'completed')
-    .sort((a, b) => sessionSortValue(b, true) - sessionSortValue(a, true))
+  // nextSession should be the first scheduled session (not active)
+  const nextSession = scheduledSessions[0] ?? null
+  const queuedSessions = scheduledSessions.slice(1)
+
+  // Session history - exclude sessions already shown above (active and upcoming)
+  // Show completed, canceled, and any old pending/live sessions
+  const displayedSessionIds = new Set([
+    ...activeSessions.map(s => s.id),
+    ...scheduledSessions.map(s => s.id)
+  ])
+
+  const allSessionHistory = normalizedSessions
+    .filter(session => !displayedSessionIds.has(session.id))
+    .sort((a, b) => {
+      const aTime = new Date(a.startedAt ?? a.createdAt).getTime()
+      const bTime = new Date(b.startedAt ?? b.createdAt).getTime()
+      return bTime - aTime // Most recent first
+    })
+
+  // Separate counts for better visibility
+  const completedCount = normalizedSessions.filter(s => s.status.toLowerCase() === 'completed').length
+  const activeCount = activeSessions.length
+  const pendingCount = scheduledSessions.length
+  const canceledCount = normalizedSessions.filter(s => ['cancelled', 'canceled'].includes(s.status.toLowerCase())).length
 
   const planSummary = getPlanSummary(profile?.preferred_plan ?? null, profile?.account_status ?? null, upcomingSessions.length)
 
   const vehicleInfo = (profile?.vehicle_info as Record<string, string | null> | null) ?? null
 
+  // Fetch vehicles from the new vehicles table
+  const { data: vehicles, error: vehiclesError } = await supabase
+    .from('vehicles')
+    .select('id, make, model, year, vin, color, mileage, plate, is_primary, nickname')
+    .eq('user_id', user.id)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (vehiclesError) {
+    console.warn('Unable to load vehicles for dashboard', vehiclesError)
+  }
+
+  const userVehicles = vehicles ?? []
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      <header className="border-b border-white/10 bg-white/5 shadow-sm backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-600">
-              <span className="text-lg font-semibold text-white">{initials(profile?.full_name ?? user.email ?? 'Customer')}</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Modern Header with Gradient */}
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 shadow-2xl backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <div className="group relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 transition-all hover:scale-105 hover:shadow-orange-500/50">
+              <span className="text-xl font-bold text-white">{initials(profile?.full_name ?? user.email ?? 'Customer')}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-white">
-                {profile?.full_name ? `Hi, ${profile.full_name}` : 'Customer Dashboard'}
+              <h1 className="text-lg font-bold text-white">
+                {profile?.full_name ? `Welcome back, ${profile.full_name.split(' ')[0]}!` : 'Dashboard'}
               </h1>
-              <p className="text-xs text-slate-400">{user.email}</p>
+              <p className="text-sm text-slate-400">{user.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden rounded-full border border-orange-400/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-200 sm:block">
-              {planSummary.badge ?? planSummary.headline}
+          <div className="flex items-center gap-4">
+            <div className="hidden rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-500/20 to-orange-600/20 px-4 py-2 shadow-lg backdrop-blur-sm sm:block">
+              <p className="text-xs font-medium text-orange-300">{planSummary.badge ?? planSummary.headline}</p>
             </div>
             <form action="/api/customer/logout" method="POST">
-              <button type="submit" className="text-sm font-medium text-slate-300 transition hover:text-white">
-                Logout
+              <button type="submit" className="group flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition-all hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300">
+                <svg className="h-4 w-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </form>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-6 py-8 space-y-8">
+        {/* Email Verification Alert */}
         {!user.email_confirmed_at && profile?.email_verified === false && (
-          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            Please verify your email address before joining a session. Check your inbox for a confirmation link or request a new
-            one from the login page.
+          <div className="group relative overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 p-5 shadow-lg backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative flex items-start gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500/20">
+                <svg className="h-5 w-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-200">Email Verification Required</h3>
+                <p className="mt-1 text-sm text-amber-200/80">
+                  Please verify your email address before joining a session. Check your inbox for a confirmation link.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="mb-6 flex">
+        {/* Mechanic Presence - Modern Card */}
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-6 shadow-xl backdrop-blur-sm">
           <MechanicPresenceIndicator
             variant="dark"
-            loadingText="Checking live mechanic availabilityÃ¢â‚¬Â¦"
+            loadingText="Checking live mechanic availability..."
             zeroText="Our mechanics are currently offline. We'll let you know as soon as someone is live."
             className="flex w-full items-center justify-center sm:w-auto sm:justify-start"
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="space-y-6">
+        {/* Main Content Grid - Dynamic ordering based on active sessions */}
+        <div className="grid gap-8 lg:grid-cols-12">
+          <div className="space-y-8 lg:col-span-8">
+            {/* Active Sessions Management - Shows FIRST when there are active sessions */}
+            {activeCount > 0 && <ActiveSessionsManager sessions={activeSessions} />}
+
+            {/* Plan & Billing - Shows FIRST when NO active sessions, otherwise shows after Active Sessions */}
+            <section className={`group rounded-2xl border p-8 shadow-2xl backdrop-blur transition ${
+              activeCount > 0
+                ? 'border-slate-600/30 bg-gradient-to-br from-slate-800/20 to-slate-700/10 opacity-60 cursor-not-allowed'
+                : 'border-orange-400/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 hover:border-orange-400/50'
+            }`}>
+              {activeCount > 0 && (
+                <div className="mb-5 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
+                  <svg className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-300">Plan & Billing Locked</p>
+                    <p className="text-xs text-amber-200/80 mt-1">
+                      You have {activeCount} active session{activeCount > 1 ? 's' : ''}. Please complete or cancel your active session{activeCount > 1 ? 's' : ''} before making changes to your plan or starting a new session.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-lg ${
+                  activeCount > 0
+                    ? 'bg-gradient-to-br from-slate-600 to-slate-700'
+                    : 'bg-gradient-to-br from-orange-500 to-orange-600'
+                }`}>
+                  <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className={`text-xs font-bold uppercase tracking-wider ${
+                    activeCount > 0 ? 'text-slate-400' : 'text-orange-300'
+                  }`}>Plan &amp; Billing</p>
+                  <h3 className={`text-2xl font-bold mt-1 ${
+                    activeCount > 0 ? 'text-slate-300' : 'text-white'
+                  }`}>{planSummary.headline}</h3>
+                </div>
+              </div>
+
+              <p className={`text-base leading-relaxed ${
+                activeCount > 0 ? 'text-slate-400' : 'text-orange-50/90'
+              }`}>{planSummary.description}</p>
+
+              {planSummary.billingDetail && (
+                <div className={`mt-4 rounded-xl border px-4 py-3 ${
+                  activeCount > 0
+                    ? 'bg-slate-700/20 border-slate-600/30'
+                    : 'bg-orange-500/20 border-orange-400/30'
+                }`}>
+                  <p className={`text-sm font-medium ${
+                    activeCount > 0 ? 'text-slate-400' : 'text-orange-100'
+                  }`}>{planSummary.billingDetail}</p>
+                </div>
+              )}
+
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-400/30 px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-green-300">{activeCount}</p>
+                  <p className="text-xs text-green-200/80 mt-1">Active</p>
+                </div>
+                <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-400/30 px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-blue-300">{pendingCount}</p>
+                  <p className="text-xs text-blue-200/80 mt-1">Pending</p>
+                </div>
+                <div className="rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-400/30 px-4 py-3 text-center">
+                  <p className="text-2xl font-bold text-purple-300">{completedCount}</p>
+                  <p className="text-xs text-purple-200/80 mt-1">Completed</p>
+                </div>
+                {canceledCount > 0 && (
+                  <div className="rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-400/30 px-4 py-3 text-center">
+                    <p className="text-2xl font-bold text-red-300">{canceledCount}</p>
+                    <p className="text-xs text-red-200/80 mt-1">Canceled</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                {planSummary.checkoutHref && (
+                  activeCount > 0 ? (
+                    <div className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-3.5 text-base font-bold text-slate-400 shadow-lg cursor-not-allowed opacity-50">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      {planSummary.checkoutLabel ?? 'Complete payment'}
+                    </div>
+                  ) : (
+                    <Link
+                      href={planSummary.checkoutHref}
+                      prefetch={false}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-orange-700 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-700 hover:to-orange-800 hover:shadow-orange-500/50"
+                    >
+                      {planSummary.checkoutLabel ?? 'Complete payment'}
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </Link>
+                  )
+                )}
+                <div className="flex gap-3">
+                  {activeCount > 0 ? (
+                    <div className="flex-1 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-600/40 bg-slate-700/20 px-4 py-3 text-sm font-semibold text-slate-500 cursor-not-allowed opacity-50">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      {planSummary.actionLabel}
+                    </div>
+                  ) : (
+                    <Link
+                      href={planSummary.actionHref}
+                      className="flex-1 inline-flex items-center justify-center gap-1 rounded-xl border border-orange-400/40 bg-orange-500/20 px-4 py-3 text-sm font-semibold text-orange-200 transition hover:border-orange-400/60 hover:bg-orange-500/30"
+                    >
+                      {planSummary.actionLabel}
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  )}
+                  {profile?.preferred_plan && (
+                    <form action="/api/customer/clear-plan" method="POST">
+                      <button
+                        type="submit"
+                        disabled={activeCount > 0}
+                        className={`inline-flex items-center justify-center gap-1 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                          activeCount > 0
+                            ? 'border-slate-600/40 bg-slate-700/20 text-slate-500 cursor-not-allowed opacity-50'
+                            : 'border-white/20 bg-white/5 text-slate-300 hover:border-white/30 hover:bg-white/10 hover:text-slate-200'
+                        }`}
+                      >
+                        Clear plan
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* Active Sessions Management - Only show when NO active sessions (otherwise shown at top) */}
+            {activeCount === 0 && activeSessions.length === 0 && <ActiveSessionsManager sessions={activeSessions} />}
+
+            {/* Comprehensive Session Management with Filters */}
+            <section className="space-y-5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                  <ClipboardList className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Session Management</h2>
+              </div>
+              <SessionManagement sessions={normalizedSessions} userId={user.id} />
+            </section>
+          </div>
+
+          <aside className="space-y-6 lg:col-span-4">
+            {/* Upcoming Session - Now in sidebar */}
             <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Upcoming session</h2>
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600 shadow-md">
+                  <Calendar className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-lg font-bold text-white">Next Session</h2>
+              </div>
               {nextSession ? (
                 <SessionJoinCard session={nextSession} />
               ) : (
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-sm backdrop-blur">
-                  <h3 className="text-lg font-semibold text-white">No sessions scheduled</h3>
-                  <p className="mt-2 text-sm text-slate-300">
-                    {"You're all set with your "}
-                    {profile?.preferred_plan ? PLAN_LABELS[profile.preferred_plan] || 'plan' : 'plan'}
-                    {"! Schedule your first session to connect with our certified mechanics."}
-                  </p>
-                  <div className="mt-4 flex justify-center">
+                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 p-6 text-center shadow-lg backdrop-blur transition hover:border-orange-400/30">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition group-hover:bg-orange-500/20"></div>
+                  <div className="relative">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30">
+                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-bold text-white">No upcoming sessions</h3>
+                    <p className="mt-2 text-xs text-slate-300">
+                      Schedule your first session to connect with our mechanics.
+                    </p>
                     <Link
                       href="/customer/schedule"
-                      className="rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700"
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-700 hover:to-orange-800"
                     >
-                      Schedule a session
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Schedule now
                     </Link>
                   </div>
                 </div>
               )}
-            </section>
 
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">More upcoming sessions</h2>
-                {queuedSessions.length > 0 && (
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {queuedSessions.length} waiting
-                  </span>
-                )}
-              </div>
-              {queuedSessions.length === 0 ? (
-                <p className="mt-3 text-sm text-slate-400">We&apos;ll list additional bookings here once you have more sessions.</p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {queuedSessions.map((session) => (
-                    <UpcomingSessionCard key={session.id} session={session} />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section>
-              <h2 className="mb-4 text-lg font-semibold text-white">Session history</h2>
-              {pastSessions.length === 0 ? (
-                <p className="text-sm text-slate-400">You haven&apos;t completed any sessions yet. Completed sessions will appear here.</p>
-              ) : (
+              {/* More Upcoming Sessions */}
+              {queuedSessions.length > 0 && (
                 <div className="space-y-3">
-                  {pastSessions.slice(0, 6).map((session) => (
-                    <div
-                      key={session.id}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur"
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{session.planLabel}</p>
-                          <p className="text-xs text-slate-400">
-                            {session.typeLabel}
-                            {session.mechanicName ? ` Ã‚Â· ${session.mechanicName}` : ''}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {formatSessionDate(session.endedAt ?? session.startedAt ?? session.createdAt)}
-                          </p>
-                        </div>
-                        <span className="inline-flex items-center justify-center rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
-                          Completed
-                        </span>
-                      </div>
-                      {session.files.length > 0 && (
-                        <SessionFileList files={session.files} compact currentUserId={user.id} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          <aside className="space-y-6">
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-wide text-orange-400">Plan &amp; billing</p>
-              <h3 className="mt-2 text-lg font-semibold text-white">{planSummary.headline}</h3>
-              <p className="mt-2 text-sm text-slate-300">{planSummary.description}</p>
-              {planSummary.billingDetail && (
-                <p className="mt-3 text-xs text-orange-200">{planSummary.billingDetail}</p>
-              )}
-              <p className="mt-4 text-xs text-slate-400">
-                Upcoming sessions: {upcomingSessions.length} - Completed: {pastSessions.length}
-              </p>
-              <div className="mt-4 flex flex-col gap-2">
-                {planSummary.checkoutHref && (
-                  <Link
-                    href={planSummary.checkoutHref}
-                    prefetch={false}
-                    className="inline-flex items-center justify-center rounded-full bg-orange-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-orange-400"
-                  >
-                    {planSummary.checkoutLabel ?? 'Complete payment'}
-                  </Link>
-                )}
-                <Link
-                  href={planSummary.actionHref}
-                  className="inline-flex items-center justify-center rounded-full border border-orange-400/30 bg-orange-500/10 px-4 py-2 text-xs font-semibold text-orange-200 transition hover:border-orange-400/50 hover:bg-orange-500/20"
-                >
-                  {planSummary.actionLabel}
-                </Link>
-                {profile?.preferred_plan && profile.preferred_plan !== 'free' && (
-                  <form action="/api/customer/clear-plan" method="POST" className="w-full">
-                    <button
-                      type="submit"
-                      className="inline-flex w-full items-center justify-center rounded-full border border-slate-600/30 bg-slate-700/10 px-4 py-2 text-xs font-semibold text-slate-400 transition hover:border-slate-500/50 hover:bg-slate-700/20 hover:text-slate-300"
-                    >
-                      Clear plan selection
-                    </button>
-                  </form>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-              <h3 className="mb-4 text-sm font-semibold text-white">Quick actions</h3>
-              <div className="space-y-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500/20">
-                      <AlertCircle className="h-5 w-5 text-orange-300" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">Need help right now?</p>
-                      <p className="text-xs text-slate-300">
-                        Send a real-time alert to our mechanics and start a Quick Chat as soon as someone accepts.
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-300">Also Scheduled</h3>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-2.5 py-1 text-xs font-semibold text-blue-300">
+                      <span className="inline-flex h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+                      {queuedSessions.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {queuedSessions.slice(0, 3).map((session) => (
+                      <UpcomingSessionCard key={session.id} session={session} />
+                    ))}
+                    {queuedSessions.length > 3 && (
+                      <p className="text-xs text-center text-slate-500 pt-1">
+                        +{queuedSessions.length - 3} more
                       </p>
-                      <RequestMechanicButton className="mt-3" />
-                    </div>
+                    )}
                   </div>
                 </div>
-
-                <Link
-                  href="/customer/schedule"
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20">
-                    <Calendar className="h-5 w-5 text-purple-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-white">Manage bookings</p>
-                    <p className="text-xs text-slate-300">Reschedule or cancel an upcoming session.</p>
-                  </div>
-                </Link>
-              </div>
+              )}
             </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-white">Your vehicles</h3>
+            <section className="group rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 p-6 shadow-lg backdrop-blur transition hover:border-white/20">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                    <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <h3 className="font-bold text-white">Your Vehicles</h3>
+                </div>
                 <Link
                   href="/customer/vehicles"
-                  className="text-xs font-semibold text-orange-400 hover:text-orange-300"
+                  className="inline-flex items-center gap-1 rounded-full bg-orange-600/80 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600"
                 >
-                  {vehicleInfo && Object.keys(vehicleInfo).length > 0 ? 'Edit' : 'Add vehicle'}
+                  {userVehicles.length > 0 ? 'Manage' : 'Add vehicle'}
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
-              {vehicleInfo && Object.keys(vehicleInfo).length > 0 ? (
-                <div className="space-y-2 text-sm text-slate-300">
-                  {vehicleInfo.make && <p><strong className="text-white">Make:</strong> {vehicleInfo.make}</p>}
-                  {vehicleInfo.model && <p><strong className="text-white">Model:</strong> {vehicleInfo.model}</p>}
-                  {vehicleInfo.year && <p><strong className="text-white">Year:</strong> {vehicleInfo.year}</p>}
+              {userVehicles.length > 0 ? (
+                <div className="space-y-3">
+                  {userVehicles.slice(0, 3).map((vehicle) => (
+                    <div
+                      key={vehicle.id}
+                      className="group/vehicle rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4 text-sm transition hover:border-white/20 hover:bg-white/10"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-1 gap-3">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-800 shadow-md">
+                            <svg className="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              {vehicle.is_primary && (
+                                <Star className="h-3.5 w-3.5 flex-shrink-0 fill-orange-400 text-orange-400" />
+                              )}
+                              <p className="font-semibold text-white truncate">
+                                {vehicle.year} {vehicle.make} {vehicle.model}
+                              </p>
+                            </div>
+                            {vehicle.nickname && (
+                              <p className="text-xs text-slate-400 mt-1">{vehicle.nickname}</p>
+                            )}
+                            <div className="mt-2 space-y-0.5 text-xs text-slate-400">
+                              {vehicle.color && <p>Color: {vehicle.color}</p>}
+                              {vehicle.mileage && <p>Mileage: {vehicle.mileage}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {userVehicles.length > 3 && (
+                    <p className="text-xs text-center text-slate-500 pt-2">
+                      +{userVehicles.length - 3} more vehicle{userVehicles.length - 3 !== 1 ? 's' : ''}
+                    </p>
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">
-                  No vehicle added yet. Add your vehicle information to help mechanics prepare for your session.
-                </p>
+                <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-6 text-center">
+                  <svg className="mx-auto h-10 w-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <p className="mt-3 text-sm text-slate-400">
+                    No vehicle added yet. Add your vehicle information to help mechanics prepare for your session.
+                  </p>
+                </div>
               )}
             </section>
 
-            <section className="rounded-2xl border border-orange-400/30 bg-orange-500/10 p-6 shadow-sm backdrop-blur">
-              <h3 className="mb-2 text-sm font-semibold text-orange-200">Need help?</h3>
-              <p className="text-sm text-orange-300">
-                Contact our support team if you have any questions or issues.
-              </p>
-              <a
-                href="mailto:support@askautodoctor.com"
-                className="mt-3 inline-block text-sm font-semibold text-orange-400 hover:text-orange-300"
-              >
-                support@askautodoctor.com Ã¢â€ â€™
-              </a>
+            {/* Quick Actions - Need Help */}
+            <section className="group rounded-2xl border border-orange-400/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 p-6 shadow-lg backdrop-blur transition hover:border-orange-400/50">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-md">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-white">Need help now?</h3>
+                  <p className="mt-2 text-sm text-orange-100/90">
+                    Alert our mechanics instantly or email us at{' '}
+                    <a
+                      href="mailto:support@askautodoctor.com"
+                      className="font-semibold text-orange-300 hover:text-orange-200 transition underline decoration-orange-400/50 hover:decoration-orange-300"
+                    >
+                      support@askautodoctor.com
+                    </a>
+                  </p>
+                  <RequestMechanicButton className="mt-4" />
+                </div>
+              </div>
             </section>
+
           </aside>
         </div>
 
-        <section className="mt-10">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <section className="mt-12">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">My uploads</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-white">My Uploads</h2>
+              </div>
               <p className="text-sm text-slate-300">Share photos, PDFs, or scan reports before your session so your mechanic can prepare.</p>
             </div>
             {upcomingSessions.length > 0 && (
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Files sync instantly with your mechanic
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/20 px-3 py-1.5 text-xs font-semibold text-green-300">
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-400"></span>
+                Files sync instantly
               </span>
             )}
           </div>
 
           {upcomingSessions.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-slate-300 backdrop-blur">
-              Upload slots will appear here once you schedule a session. Ready to get started?{' '}
-              <Link href="/customer/schedule" className="font-semibold text-orange-400 hover:text-orange-300">
-                Schedule a session
-              </Link>
-              .
+            <div className="mt-6 group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/10 p-8 text-center shadow-lg backdrop-blur transition hover:border-blue-400/30">
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-blue-500/10 blur-2xl transition group-hover:bg-blue-500/20"></div>
+              <div className="relative">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30">
+                  <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <p className="text-sm text-slate-300">
+                  Upload slots will appear here once you schedule a session. Ready to get started?{' '}
+                  <Link href="/customer/schedule" className="font-semibold text-orange-400 transition hover:text-orange-300">
+                    Schedule a session
+                  </Link>
+                  .
+                </p>
+              </div>
             </div>
           ) : (
-            <div className="mt-4 space-y-4">
+            <div className="mt-6 space-y-4">
               {upcomingSessions.map((session) => (
                 <SessionFileManager
                   key={session.id}
@@ -559,27 +760,28 @@ function getPlanSummary(plan: string | null, status: string | null, upcomingCoun
   const checkoutHref = `/intake?plan=${intakePlanParam}`
   const price = planKey ? PRICE_FORMATTER.format(PRICING[planKey].priceCents / 100) : null
 
+  // No plan selected - show plan selection
   if (!plan) {
     return {
       headline: 'No active plan selected',
-      description: 'Choose a plan to schedule your first session and unlock live support.',
+      description: 'Choose a plan to schedule your first session and unlock live support from our certified mechanics.',
       actionLabel: 'Pick a plan',
       actionHref: '/onboarding/pricing',
       badge: 'No plan',
     }
   }
 
-  if (plan === 'free' || status === 'trial') {
+  if (status === 'trial') {
     return {
-      headline: 'Complimentary session',
+      headline: 'Trial access',
       description:
-        'You can launch your complimentary chat right away. Upgrade to a standard or diagnostic plan afterward to keep priority access.',
-      actionLabel: 'View upgrade options',
+        'You have trial access. Choose a plan to continue using our service after your trial period.',
+      actionLabel: 'View plans',
       actionHref: '/onboarding/pricing',
       badge: 'Trial access',
-      billingDetail: 'No payment is required for complimentary access.',
+      billingDetail: 'No payment is required during trial.',
       checkoutHref,
-      checkoutLabel: 'Start complimentary session',
+      checkoutLabel: 'Continue to intake',
     }
   }
 
@@ -589,13 +791,16 @@ function getPlanSummary(plan: string | null, status: string | null, upcomingCoun
       ? `You have ${upcomingCount} upcoming session${upcomingCount === 1 ? '' : 's'}. Adjust or add more at any time.`
       : 'Your next step is the intake form. Share your vehicle details so we can prep your live session.'
 
+  // For free plan, show specific messaging
+  const isFree = plan === 'free'
+
   return {
     headline: label,
     description,
-    actionLabel: 'Change or upgrade plan',
+    actionLabel: isFree ? 'View paid plans' : 'Change or upgrade plan',
     actionHref: '/onboarding/pricing',
     badge: label,
-    billingDetail: price ? `${label} is billed at ${price} once checkout is complete.` : null,
+    billingDetail: price ? `${label} is billed at ${price} once checkout is complete.` : isFree ? 'No payment required for free sessions.' : null,
     checkoutHref,
     checkoutLabel: 'Continue',
   }
