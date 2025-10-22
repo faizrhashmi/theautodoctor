@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Session Status</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .session-card {
+            background: #f8f9fa;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.live { background: #10b981; color: white; }
+        .status.waiting { background: #f59e0b; color: white; }
+        .status.pending { background: #6b7280; color: white; }
+        .status.completed { background: #3b82f6; color: white; }
+        .status.cancelled { background: #ef4444; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Check Session Status</h1>
+        <p>This tool helps diagnose why "End Session" might not be showing.</p>
+
+        <button onclick="checkSessions()">🔍 Check My Sessions</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+
+        async function checkSessions() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/debug/cleanup-user-data`, {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    output.innerHTML = '<p style="color: red;">❌ Not logged in! Please login at: <a href="' + API_BASE + '/customer/login" target="_blank">Customer Login</a></p>';
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    output.innerHTML = '<p style="color: red;">❌ Error: ' + (data.error || 'Unknown error') + '</p>';
+                    return;
+                }
+
+                let html = '<h2>Your Sessions</h2>';
+                html += '<p><strong>User:</strong> ' + data.userEmail + '</p>';
+
+                if (data.wouldDelete && data.wouldDelete.sessionDetails) {
+                    const sessions = data.wouldDelete.sessionDetails;
+
+                    if (sessions.length === 0) {
+                        html += '<p style="background: #dbeafe; padding: 15px; border-radius: 6px;">✅ You have no sessions.</p>';
+                    } else {
+                        html += '<p><strong>Total Sessions:</strong> ' + sessions.length + '</p>';
+
+                        sessions.forEach(session => {
+                            const status = session.status.toLowerCase();
+                            const isActive = status === 'live' || status === 'waiting';
+
+                            html += '<div class="session-card" style="border-color: ' + (isActive ? '#10b981' : '#e5e7eb') + ';">';
+                            html += '<div style="display: flex; justify-content: space-between; align-items: start;">';
+                            html += '<div>';
+                            html += '<strong>Session ID:</strong> ' + session.id.substring(0, 8) + '...<br>';
+                            html += '<strong>Plan:</strong> ' + session.plan + '<br>';
+                            html += '<strong>Type:</strong> ' + session.type + '<br>';
+                            html += '<strong>Created:</strong> ' + new Date(session.created_at).toLocaleString() + '<br>';
+                            html += '</div>';
+                            html += '<span class="status ' + status + '">' + session.status + '</span>';
+                            html += '</div>';
+
+                            if (isActive) {
+                                html += '<div style="margin-top: 10px; padding: 10px; background: #d1fae5; border-radius: 4px; font-size: 13px;">';
+                                html += '<strong>✅ "End Session" SHOULD be visible for this session</strong><br>';
+                                html += '<ul style="margin: 5px 0; padding-left: 20px;">';
+                                html += '<li>On Customer Dashboard: Look for "Active Sessions" section</li>';
+                                html += '<li>In Chat Page: Click "Options" (three dots) → "End Session"</li>';
+                                html += '</ul>';
+                                html += '</div>';
+                            } else {
+                                html += '<div style="margin-top: 10px; padding: 10px; background: #fee; border-radius: 4px; font-size: 13px;">';
+                                html += '<strong>⚠️ "End Session" will NOT show for this session</strong><br>';
+                                html += 'Reason: Status is "' + session.status + '" (only "live" and "waiting" sessions can be ended)';
+                                html += '</div>';
+                            }
+
+                            html += '</div>';
+                        });
+
+                        // Summary
+                        const activeCount = sessions.filter(s => s.status.toLowerCase() === 'live' || s.status.toLowerCase() === 'waiting').length;
+                        if (activeCount > 0) {
+                            html += '<div style="background: #dbeafe; padding: 15px; border-radius: 6px; margin-top: 20px;">';
+                            html += '<strong>📌 Summary:</strong> You have ' + activeCount + ' active session(s).<br>';
+                            html += 'The "End Session" button SHOULD be visible on your customer dashboard and in the chat page.';
+                            html += '</div>';
+                        } else {
+                            html += '<div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin-top: 20px;">';
+                            html += '<strong>📌 Summary:</strong> You have NO active sessions.<br>';
+                            html += 'The "End Session" option will only appear for sessions with status "live" or "waiting".';
+                            html += '</div>';
+                        }
+                    }
+                } else {
+                    html += '<p>No session data available.</p>';
+                }
+
+                html += '<pre style="margin-top: 20px;">' + JSON.stringify(data, null, 2) + '</pre>';
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', checkSessions);
+    </script>
+</body>
+</html>

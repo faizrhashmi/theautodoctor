@@ -23,11 +23,20 @@ interface ActiveSessionsManagerProps {
 export default function ActiveSessionsManager({ sessions }: ActiveSessionsManagerProps) {
   const [closedSessions, setClosedSessions] = useState<Set<string>>(new Set())
 
+  // BUSINESS RULE: Customer can only have ONE active session at a time
+  // Enforce this by only showing the first session
   if (sessions.length === 0) {
     return null
   }
 
-  const visibleSessions = sessions.filter((s) => !closedSessions.has(s.id))
+  // Log warning if multiple sessions are passed (should never happen)
+  if (sessions.length > 1) {
+    console.error('[ActiveSessionsManager] WARNING: Multiple active sessions detected! Only showing first session.', sessions)
+  }
+
+  // Only show the FIRST active session (enforce business rule)
+  const singleSession = sessions[0]
+  const visibleSessions = closedSessions.has(singleSession.id) ? [] : [singleSession]
 
   if (visibleSessions.length === 0) {
     return null
@@ -70,9 +79,9 @@ export default function ActiveSessionsManager({ sessions }: ActiveSessionsManage
             </span>
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Active Sessions</h2>
+            <h2 className="text-xl font-bold text-white">Active Session</h2>
             <p className="text-sm text-green-300">
-              {visibleSessions.length} session{visibleSessions.length !== 1 ? 's' : ''} in progress
+              Session in progress
             </p>
           </div>
         </div>

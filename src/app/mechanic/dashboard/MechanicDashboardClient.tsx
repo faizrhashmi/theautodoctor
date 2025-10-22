@@ -5,25 +5,34 @@ import Link from 'next/link'
 import {
   AlertCircle,
   CalendarClock,
-  CalendarDays,
   Clock,
   DollarSign,
   Loader2,
   Radio,
-  Users,
+  CheckCircle2,
+  AlertTriangle,
+  Eye,
+  History,
+  FileText,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
-import type { MechanicPresencePayload } from '@/types/presence'
 import type { SessionRequest } from '@/types/session'
 import type { SessionStatus } from '@/types/session'
-import type { MechanicAvailabilityBlock } from '@/types/session'
-import { PRICING, type PlanKey } from '@/config/pricing'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
+import RequestDetailModal from '@/components/mechanic/RequestDetailModal'
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MECHANIC_SHARE = 0.7
+
+// Local pricing config to avoid Stripe env dependencies
+type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 const PLAN_KEYS: PlanKey[] = ['chat10', 'video15', 'diagnostic']
+
+const PLAN_PRICING: Record<PlanKey, number> = {
+  chat10: 999,      // $9.99
+  video15: 2999,    // $29.99
+  diagnostic: 4999, // $49.99
+}
 
 const SESSION_STATUS_VALUES: SessionStatus[] = ['scheduled', 'waiting', 'live', 'completed', 'cancelled']
 
@@ -31,11 +40,6 @@ type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
 type SessionRow = Pick<
   Database['public']['Tables']['sessions']['Row'],
   'id' | 'status' | 'plan' | 'type' | 'scheduled_start' | 'scheduled_end' | 'scheduled_for' | 'started_at' | 'ended_at' | 'duration_minutes' | 'metadata'
->
-type AvailabilityRow = Database['public']['Tables']['mechanic_availability']['Row']
-type AvailabilitySelectRow = Pick<
-  AvailabilityRow,
-  'id' | 'day_of_week' | 'start_time' | 'end_time' | 'is_available'
 >
 
 type MechanicDashboardSession = {
@@ -52,9 +56,12 @@ type MechanicDashboardSession = {
 }
 
 type MechanicDashboardClientProps = {
-  initialMechanic: {
+  mechanic: {
     id: string
     name: string
+    email: string
+    stripeConnected: boolean
+    payoutsEnabled: boolean
   }
 }
 
@@ -64,27 +71,29 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 })
 
-export default function MechanicDashboardClient({ initialMechanic }: MechanicDashboardClientProps) {
+export default function MechanicDashboardClient({ mechanic }: MechanicDashboardClientProps) {
   const supabase = useMemo(() => createClient(), [])
-  const mechanicId = initialMechanic.id
-  const [mechanicName, setMechanicName] = useState(initialMechanic.name)
-  const [isOnline, setIsOnline] = useState(false)
-  const [channelReady, setChannelReady] = useState(false)
-  const [isToggling, setIsToggling] = useState(false)
-  const [presenceError, setPresenceError] = useState<string | null>(null)
-  const [incomingRequests, setIncomingRequests] = useState<SessionRequest[]>([])
+  const mechanicId = mechanic.id
+
+  console.log('[MECHANIC DASHBOARD CLIENT] Component rendered, mechanicId:', mechanicId)
+
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([])
   const [isLoadingRequests, setIsLoadingRequests] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
   const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
-  const [availabilityBlocks, setAvailabilityBlocks] = useState<MechanicAvailabilityBlock[]>([])
-  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false)
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null)
+  const [acceptedSessionId, setAcceptedSessionId] = useState<string | null>(null)
+  const [acceptedCustomerName, setAcceptedCustomerName] = useState<string | null>(null)
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
+
+  const [requestHistory, setRequestHistory] = useState<any[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+
   const [upcomingSessions, setUpcomingSessions] = useState<MechanicDashboardSession[]>([])
   const [completedSessions, setCompletedSessions] = useState<MechanicDashboardSession[]>([])
   const [activeSession, setActiveSession] = useState<MechanicDashboardSession | null>(null)
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
-  const channelRef = useRef<RealtimeChannel | null>(null)
+
   const requestsChannelRef = useRef<RealtimeChannel | null>(null)
   const sessionsChannelRef = useRef<RealtimeChannel | null>(null)
   const isMountedRef = useRef(true)
@@ -94,10 +103,6 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
       isMountedRef.current = false
     }
   }, [])
-
-  useEffect(() => {
-    setMechanicName(initialMechanic.name)
-  }, [initialMechanic.name])
 
   const mapRowToRequest = useCallback(
     (row: SessionRequestRow): SessionRequest => ({
@@ -142,13 +147,95 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     setIncomingRequests((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
-  const mapAvailabilityRow = useCallback((row: AvailabilitySelectRow): MechanicAvailabilityBlock => ({
-    id: row.id,
-    weekday: typeof row.day_of_week === 'number' ? row.day_of_week : 0,
-    startTime: row.start_time ?? '00:00',
-    endTime: row.end_time ?? '00:00',
-    isActive: typeof row.is_available === 'boolean' ? row.is_available : true,
-  }), [])
+  const fetchRequests = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!mechanicId) return
+
+      if (!options?.silent) {
+        setIsLoadingRequests(true)
+      }
+      setRequestsError(null)
+
+      try {
+        const response = await fetch('/api/mechanics/requests', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+
+        const body = (await response
+          .json()
+          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
+
+        if (!response.ok) {
+          console.error(
+            '[MECHANIC DASHBOARD] Failed to load session requests',
+            response.status,
+            body ?? {}
+          )
+          if (!isMountedRef.current) return
+          setRequestsError('Unable to load incoming requests right now.')
+          setIncomingRequests([])
+          return
+        }
+
+        if (!isMountedRef.current) return
+
+        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
+
+        setIncomingRequests(
+          mapped.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        )
+      } catch (error) {
+        console.error('[MECHANIC DASHBOARD] Failed to load session requests', error)
+        if (!isMountedRef.current) return
+        setRequestsError('Unable to load incoming requests right now.')
+        setIncomingRequests([])
+      } finally {
+        if (!options?.silent && isMountedRef.current) {
+          setIsLoadingRequests(false)
+        }
+      }
+    },
+    [mechanicId, mapRowToRequest]
+  )
+
+  const fetchHistory = useCallback(
+    async () => {
+      if (!mechanicId) return
+
+      setIsLoadingHistory(true)
+
+      try {
+        const response = await fetch('/api/mechanics/requests/history', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+
+        const body = await response.json().catch(() => null)
+
+        if (!response.ok) {
+          console.error('[MECHANIC DASHBOARD] Failed to load request history', response.status)
+          return
+        }
+
+        if (!isMountedRef.current) return
+
+        const history = Array.isArray(body?.history) ? body.history : []
+        setRequestHistory(history)
+      } catch (error) {
+        console.error('[MECHANIC DASHBOARD] Failed to load request history', error)
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoadingHistory(false)
+        }
+      }
+    },
+    [mechanicId]
+  )
 
   const mapSessionRow = useCallback(
     (row: SessionRow): MechanicDashboardSession => {
@@ -189,79 +276,12 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     []
   )
 
-  useEffect(() => {
-    const channel = supabase.channel('online_mechanics', {
-      config: { presence: { key: mechanicId } },
-    })
-
-    channelRef.current = channel
-    setChannelReady(false)
-    setPresenceError(null)
-
-    channel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        setChannelReady(true)
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        setPresenceError('Unable to connect to realtime presence. Please refresh and try again.')
-        setChannelReady(false)
-        setIsOnline(false)
-      }
-    })
-
-    return () => {
-      void channel.untrack()
-      supabase.removeChannel(channel)
-      channelRef.current = null
-      setChannelReady(false)
-      setIsOnline(false)
-    }
-  }, [mechanicId, supabase])
-
+  // Load incoming requests
   useEffect(() => {
     if (!mechanicId) {
       setIncomingRequests([])
-      setAvailabilityBlocks([])
-      setUpcomingSessions([])
-      setCompletedSessions([])
-      setActiveSession(null)
+      setIsLoadingRequests(false)
       return
-    }
-
-    let cancelled = false
-    setIsLoadingRequests(true)
-    setRequestsError(null)
-
-    const fetchRequests = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('session_requests')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: true })
-
-        if (cancelled || !isMountedRef.current) return
-
-        if (error) {
-          console.error('Failed to load session requests', error)
-          setRequestsError('Unable to load incoming requests right now.')
-          setIncomingRequests([])
-        } else if (data) {
-          setIncomingRequests(
-            data
-              .map(mapRowToRequest)
-              .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-          )
-        }
-      } catch (err) {
-        if (cancelled || !isMountedRef.current) return
-        console.error('Failed to load session requests', err)
-        setRequestsError('Unable to load incoming requests right now.')
-        setIncomingRequests([])
-      } finally {
-        if (!cancelled && isMountedRef.current) {
-          setIsLoadingRequests(false)
-        }
-      }
     }
 
     void fetchRequests()
@@ -286,6 +306,14 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
           removeRequest(row.id)
         }
       })
+      .on('broadcast', { event: 'new_request' }, ({ payload }) => {
+        const row = extractSessionRequestRow(payload)
+        if (row) {
+          upsertRequest(row)
+        } else {
+          void fetchRequests({ silent: true })
+        }
+      })
       .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
         const id = typeof payload?.id === 'string' ? payload.id : null
         if (id) removeRequest(id)
@@ -304,57 +332,11 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     requestsChannelRef.current = channel
 
     return () => {
-      cancelled = true
       void channel.unsubscribe()
       supabase.removeChannel(channel)
       requestsChannelRef.current = null
     }
-  }, [mechanicId, supabase, mapRowToRequest, removeRequest, upsertRequest])
-
-  const loadAvailability = useCallback(async () => {
-    if (!mechanicId) return
-    setIsLoadingAvailability(true)
-    setAvailabilityError(null)
-
-    try {
-      const { data, error } = await supabase
-        .from('mechanic_availability')
-        .select('id, day_of_week, start_time, end_time, is_available')
-        .eq('mechanic_id', mechanicId)
-        .order('day_of_week', { ascending: true })
-        .order('start_time', { ascending: true })
-
-      if (!isMountedRef.current) return
-
-      if (error) {
-        console.error('Failed to load availability', error)
-        setAvailabilityError('Unable to load your availability schedule right now.')
-        setAvailabilityBlocks([])
-      } else if (data) {
-        setAvailabilityBlocks(
-          data.map(mapAvailabilityRow).sort((a, b) => {
-            if (a.weekday === b.weekday) {
-              return a.startTime.localeCompare(b.startTime)
-            }
-            return a.weekday - b.weekday
-          })
-        )
-      }
-    } catch (err) {
-      if (!isMountedRef.current) return
-      console.error('Failed to load availability', err)
-      setAvailabilityError('Unable to load your availability schedule right now.')
-      setAvailabilityBlocks([])
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoadingAvailability(false)
-      }
-    }
-  }, [mechanicId, mapAvailabilityRow, supabase])
-
-  useEffect(() => {
-    void loadAvailability()
-  }, [loadAvailability])
+  }, [fetchRequests, mechanicId, removeRequest, supabase, upsertRequest])
 
   const loadSessions = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -440,64 +422,10 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     }
   }, [loadSessions, mechanicId, supabase])
 
+  // Load request history
   useEffect(() => {
-    if (!isOnline) return
-
-    const handleBeforeUnload = () => {
-      void channelRef.current?.untrack()
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-    }
-  }, [isOnline])
-
-  const toggleOnlineStatus = async () => {
-    if (!mechanicId) {
-      setPresenceError('Log in to manage your availability.')
-      return
-    }
-
-    const channel = channelRef.current
-
-    if (!channel || !channelReady) {
-      setPresenceError('Connecting to realtime presence… please try again in a moment.')
-      return
-    }
-
-    setIsToggling(true)
-    setPresenceError(null)
-
-    try {
-      if (isOnline) {
-        const result = await channel.untrack()
-        if (result !== 'ok') {
-          throw new Error('Unable to disconnect from presence channel.')
-        }
-        setIsOnline(false)
-      } else {
-        const payload: MechanicPresencePayload = {
-          user_id: mechanicId,
-          status: 'online',
-          name: mechanicName,
-        }
-        const result = await channel.track(payload)
-        if (result !== 'ok') {
-          throw new Error('Unable to announce presence right now.')
-        }
-        setIsOnline(true)
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Something went wrong while updating your availability.'
-      setPresenceError(message)
-    } finally {
-      setIsToggling(false)
-    }
-  }
+    void fetchHistory()
+  }, [fetchHistory])
 
   const acceptRequest = async (requestId: string) => {
     if (!mechanicId) {
@@ -526,12 +454,30 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
         throw new Error(message)
       }
 
+      // Get customer name before removing request
+      const acceptedRequest = incomingRequests.find((r) => r.id === requestId)
+      const customerName = acceptedRequest?.customerName || 'Customer'
+
       if (payload && typeof payload === 'object' && 'request' in payload) {
         const acceptedId = (payload as { request?: { id?: string } }).request?.id
         if (acceptedId) {
           removeRequest(acceptedId)
         }
       }
+
+      // Redirect to the chat session
+      if (payload && typeof payload === 'object' && 'session' in payload) {
+        const session = (payload as { session?: { id?: string } }).session
+        if (session?.id) {
+          console.log('[accept-request] Redirecting to chat session:', session.id)
+          // Use window.location.href for full page navigation
+          window.location.href = `/chat/${session.id}`
+          return
+        }
+      }
+
+      // Fallback: Reload sessions to show newly accepted session
+      void loadSessions({ silent: true })
     } catch (error) {
       console.error('Accept request failed', error)
       setRequestsError(error instanceof Error ? error.message : 'Unable to accept this request right now.')
@@ -541,7 +487,7 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
   }
 
   const earningsSummary = useMemo(() => {
-    const rows = completedSessions.slice(0, 5).map((session) => ({
+    const rows = completedSessions.slice(0, 10).map((session) => ({
       id: session.id,
       date: session.endedAt ?? session.scheduledEnd ?? session.startedAt ?? session.scheduledStart,
       plan: session.plan,
@@ -558,309 +504,431 @@ export default function MechanicDashboardClient({ initialMechanic }: MechanicDas
     return { rows, totalCents }
   }, [completedSessions])
 
+  const stats = useMemo(() => {
+    return {
+      pendingRequests: incomingRequests.length,
+      upcomingSessions: upcomingSessions.length,
+      completedSessions: completedSessions.length,
+      totalEarnings: earningsSummary.totalCents,
+    }
+  }, [incomingRequests.length, upcomingSessions.length, completedSessions.length, earningsSummary.totalCents])
+
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-8">
-      <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-orange-600">Mechanic Workspace</p>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard overview</h1>
-          <p className="text-sm text-slate-500">Manage your availability, pick up live requests, and review your earnings.</p>
-        </div>
-        <div className="flex flex-col items-stretch gap-3 sm:items-end">
-          <div
-            className={`flex flex-col items-stretch gap-2 rounded-3xl border px-4 py-3 text-sm shadow-sm sm:flex-row sm:items-center ${
-              isOnline ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  isOnline
-                    ? 'bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.2)]'
-                    : 'bg-slate-300'
-                }`}
-              />
-              <span className="font-semibold">
-                {isOnline ? 'You are visible to customers' : 'You are currently offline'}
-              </span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Welcome back, {mechanic.name}</h1>
+              <p className="mt-1 text-sm text-slate-400">Mechanic Dashboard</p>
             </div>
-            <button
-              type="button"
-              onClick={toggleOnlineStatus}
-              disabled={isToggling || !channelReady}
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition ${
-                isOnline
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400'
-                  : 'bg-orange-600 text-white hover:bg-orange-700 disabled:bg-orange-400'
-              }`}
-            >
-              {isToggling ? 'Updating…' : isOnline ? 'Go offline' : channelReady ? 'Go online' : 'Connecting…'}
-            </button>
           </div>
-          {presenceError && <p className="text-xs text-rose-600">{presenceError}</p>}
-        </div>
-      </header>
+        </header>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Incoming requests</h2>
-                <p className="text-sm text-slate-500">Claim customers who are waiting in real time.</p>
+        {/* Stripe Connect Banner */}
+        {!mechanic.payoutsEnabled && (
+          <div className="mb-6 rounded-3xl border border-amber-400/20 bg-gradient-to-r from-amber-900/20 to-orange-900/20 p-6 backdrop-blur-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-6 w-6 text-amber-400" />
               </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                <Radio className="h-3.5 w-3.5" />
-                {incomingRequests.length} waiting
-              </span>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-100">Connect Your Bank to Receive Payouts</h3>
+                <p className="mt-1 text-sm text-amber-200/80">
+                  You earn 70% per session. Complete Stripe onboarding to receive automatic payouts 3-7 days after each session.
+                </p>
+                <Link
+                  href="/mechanic/onboarding/stripe"
+                  className="mt-3 inline-flex items-center rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700"
+                >
+                  Connect Stripe Account
+                </Link>
+              </div>
             </div>
-            {requestsError && (
-              <p className="mt-3 flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                <AlertCircle className="h-4 w-4" />
-                {requestsError}
-              </p>
-            )}
-            {isLoadingRequests && incomingRequests.length === 0 ? (
-              <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading requests…
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {incomingRequests.map((item) => (
-                  <article
-                    key={item.id}
-                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{item.customerName}</p>
-                      <p className="text-sm text-slate-500">{describePlan(item.planCode, item.sessionType)}</p>
-                      <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
-                      <button
-                        type="button"
-                        onClick={() => acceptRequest(item.id)}
-                        disabled={acceptingRequestId === item.id}
-                        className="inline-flex items-center justify-center rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:bg-orange-400"
-                      >
-                        {acceptingRequestId === item.id ? 'Accepting…' : 'Accept request'}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-                {incomingRequests.length === 0 && !isLoadingRequests && (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                    No live requests at the moment. Stay online to be the first to know.
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
+          </div>
+        )}
 
-          {activeSession && (
-            <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-emerald-900">Active session</h2>
-                  <p className="text-sm text-emerald-700">
-                    Currently in session with {activeSession.customerName}.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  <Users className="h-3.5 w-3.5" /> Live
-                </span>
+        {/* Request Accepted Success Banner */}
+        {acceptedSessionId && acceptedCustomerName && (
+          <div className="mb-6 rounded-3xl border border-green-400/30 bg-gradient-to-r from-green-900/30 to-emerald-900/30 p-6 backdrop-blur-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
+                <CheckCircle2 className="h-6 w-6 text-green-400" />
               </div>
-              <dl className="mt-4 grid gap-4 text-sm text-emerald-800 sm:grid-cols-2">
-                <div className="flex items-center gap-3">
-                  <CalendarDays className="h-4 w-4" />
-                  <span>{formatDateTime(activeSession.startedAt ?? activeSession.scheduledStart)}</span>
+              <div className="flex-1">
+                <h3 className="font-bold text-green-100">Request Accepted Successfully!</h3>
+                <p className="mt-1 text-sm text-green-200/80">
+                  You've accepted the session request from <span className="font-semibold">{acceptedCustomerName}</span>. The session is now in your active sessions below.
+                </p>
+                <div className="mt-4 flex gap-3">
+                  <Link
+                    href={`/chat/${acceptedSessionId}`}
+                    className="inline-flex items-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                  >
+                    Join Session Now
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAcceptedSessionId(null)
+                      setAcceptedCustomerName(null)
+                    }}
+                    className="inline-flex items-center rounded-full border border-green-400/30 bg-green-500/10 px-5 py-2.5 text-sm font-semibold text-green-200 transition hover:bg-green-500/20"
+                  >
+                    Dismiss
+                  </button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {activeSession.durationMinutes
-                      ? `${activeSession.durationMinutes} min elapsed`
-                      : 'Tracking time…'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stats Grid */}
+        <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Pending Requests</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.pendingRequests}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
+                <Radio className="h-6 w-6 text-orange-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Upcoming Sessions</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.upcomingSessions}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+                <CalendarClock className="h-6 w-6 text-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Completed</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.completedSessions}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-6 w-6 text-green-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Earnings</p>
+                <p className="mt-2 text-3xl font-bold text-green-400">{formatCurrencyFromCents(stats.totalEarnings)}</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <DollarSign className="h-6 w-6 text-green-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+          {/* Main Content */}
+          <div className="space-y-6">
+            {/* Active Session */}
+            {activeSession && (
+              <section className="rounded-3xl border border-green-500/20 bg-gradient-to-br from-green-900/20 to-emerald-900/20 p-6 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-green-100">Active Session</h2>
+                    <p className="mt-1 text-sm text-green-200/80">
+                      Currently in session with {activeSession.customerName}
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
+                    <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                    Live
                   </span>
                 </div>
-              </dl>
-              <Link
-                href={`/mechanic/session/${activeSession.id}`}
-                className="mt-4 inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-              >
-                Rejoin workspace
-              </Link>
-            </section>
-          )}
-
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Upcoming sessions</h2>
-                <p className="text-sm text-slate-500">Prep for scheduled and waiting appointments.</p>
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                <CalendarClock className="h-3.5 w-3.5" />
-                {upcomingSessions.length}
-              </span>
-            </div>
-            {sessionsError && (
-              <p className="mt-3 flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                <AlertCircle className="h-4 w-4" />
-                {sessionsError}
-              </p>
-            )}
-            {isLoadingSessions && upcomingSessions.length === 0 ? (
-              <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading schedule…
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {upcomingSessions.map((session) => (
-                  <article
-                    key={session.id}
-                    className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{session.customerName}</p>
-                      <p className="text-sm text-slate-500">
-                        {describePlan(session.plan, session.sessionType as SessionRequest['sessionType'])} • {session.status}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Starts {formatDateTime(session.scheduledStart)}
-                      </p>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-6 text-sm text-green-200/80">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      <span>{describePlan(activeSession.plan, activeSession.sessionType)}</span>
                     </div>
-                    <Link
-                      href={`/mechanic/session/${session.id}`}
-                      className="inline-flex items-center justify-center rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"
+                  </div>
+                  <Link
+                    href={`/chat/${activeSession.id}`}
+                    className="inline-flex items-center justify-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                  >
+                    Rejoin Session
+                  </Link>
+                </div>
+              </section>
+            )}
+
+            {/* Incoming Requests */}
+            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Incoming Requests</h2>
+                  <p className="mt-1 text-sm text-slate-400">New customers waiting for help</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400">
+                  <Radio className="h-3.5 w-3.5" />
+                  {incomingRequests.length} waiting
+                </span>
+              </div>
+
+              {requestsError && (
+                <p className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+                  <AlertCircle className="h-4 w-4" />
+                  {requestsError}
+                </p>
+              )}
+
+              {isLoadingRequests && incomingRequests.length === 0 ? (
+                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading requests...
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {incomingRequests.map((item) => (
+                    <article
+                      key={item.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
                     >
-                      Open details
-                    </Link>
-                  </article>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="font-semibold text-white">{item.customerName}</p>
+                          <p className="text-sm text-slate-400">{describePlan(item.planCode, item.sessionType)}</p>
+                          <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
+                            {item.intake && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
+                                <FileText className="h-3 w-3" />
+                                Intake
+                              </span>
+                            )}
+                            {item.files && item.files.length > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                                <FileText className="h-3 w-3" />
+                                {item.files.length} file{item.files.length > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRequest(item)}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => acceptRequest(item.id)}
+                          disabled={acceptingRequestId === item.id}
+                          className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-orange-400"
+                        >
+                          {acceptingRequestId === item.id ? 'Accepting...' : 'Accept Request'}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                  {incomingRequests.length === 0 && !isLoadingRequests && (
+                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No pending requests at the moment.
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Upcoming Sessions */}
+            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Upcoming Sessions</h2>
+                  <p className="mt-1 text-sm text-slate-400">Scheduled and waiting sessions</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-400">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  {upcomingSessions.length}
+                </span>
+              </div>
+
+              {sessionsError && (
+                <p className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+                  <AlertCircle className="h-4 w-4" />
+                  {sessionsError}
+                </p>
+              )}
+
+              {isLoadingSessions && upcomingSessions.length === 0 ? (
+                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading sessions...
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {upcomingSessions.map((session) => (
+                    <article
+                      key={session.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold text-white">{session.customerName}</p>
+                        <p className="text-sm text-slate-400">
+                          {describePlan(session.plan, session.sessionType)} • {session.status}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatDateTime(session.scheduledStart)}
+                        </p>
+                      </div>
+                      <Link
+                        href={`/chat/${session.id}`}
+                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                      >
+                        View Details
+                      </Link>
+                    </article>
+                  ))}
+                  {upcomingSessions.length === 0 && !isLoadingSessions && (
+                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No upcoming sessions. Accepted requests will appear here.
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-6">
+            {/* Earnings Summary */}
+            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Recent Earnings</h2>
+                <DollarSign className="h-5 w-5 text-green-400" />
+              </div>
+              <p className="mt-1 text-sm text-slate-400">70% of each session</p>
+
+              <div className="mt-4 space-y-3">
+                {earningsSummary.rows.slice(0, 5).map((row) => (
+                  <div key={row.id} className="flex items-center justify-between rounded-xl border border-slate-700/30 bg-slate-900/30 p-3">
+                    <div>
+                      <p className="text-sm font-medium text-white">{describePlan(row.plan, row.sessionType)}</p>
+                      <p className="text-xs text-slate-500">{formatDate(row.date)}</p>
+                    </div>
+                    <p className="font-semibold text-green-400">{formatCurrencyFromCents(row.earningsCents)}</p>
+                  </div>
                 ))}
-                {upcomingSessions.length === 0 && !isLoadingSessions && (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                    No upcoming sessions assigned. Accepted sessions will appear here automatically.
+                {earningsSummary.rows.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-slate-700/30 bg-slate-900/20 p-6 text-center text-sm text-slate-500">
+                    No earnings yet
                   </div>
                 )}
               </div>
-            )}
-          </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Earnings history</h2>
-                <p className="text-sm text-slate-500">
-                  Mechanics earn 70% of session revenue. Review your recent payouts below.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <DollarSign className="h-3.5 w-3.5" />
-                {formatCurrencyFromCents(earningsSummary.totalCents)}
-              </span>
-            </div>
-            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                  <tr>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Session</th>
-                    <th className="px-4 py-3">Duration</th>
-                    <th className="px-4 py-3 text-right">Earnings</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {earningsSummary.rows.length > 0 ? (
-                    earningsSummary.rows.map((row) => (
-                      <tr key={row.id}>
-                        <td className="px-4 py-3 text-slate-600">{formatDate(row.date)}</td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {describePlan(row.plan, row.sessionType as SessionRequest['sessionType'])}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {row.durationMinutes ? `${row.durationMinutes} min` : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-800">
-                          {formatCurrencyFromCents(row.earningsCents)}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-4 py-6 text-center text-sm text-slate-500" colSpan={4}>
-                        No completed sessions yet. Your first earnings will appear after you wrap a session.
-                      </td>
-                    </tr>
+              {earningsSummary.totalCents > 0 && (
+                <div className="mt-4 rounded-xl border border-green-500/20 bg-green-900/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-400">Total Earned</span>
+                    <span className="text-xl font-bold text-green-400">{formatCurrencyFromCents(earningsSummary.totalCents)}</span>
+                  </div>
+                  {mechanic.payoutsEnabled && (
+                    <p className="mt-2 text-xs text-slate-500">Payouts transfer automatically 3-7 days after sessions</p>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                </div>
+              )}
+            </section>
 
-        <aside className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Weekly availability</h2>
-              <Link href="/mechanic/availability" className="text-sm font-semibold text-orange-600">
-                Manage
-              </Link>
-            </div>
-            <p className="mt-1 text-sm text-slate-500">Update the blocks below to control when customers can book you.</p>
-            {availabilityError && (
-              <p className="mt-3 flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                <AlertCircle className="h-4 w-4" />
-                {availabilityError}
-              </p>
-            )}
-            {isLoadingAvailability ? (
-              <div className="mt-6 flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading availability…
-              </div>
-            ) : availabilityBlocks.length > 0 ? (
-              <ul className="mt-4 space-y-3">
-                {availabilityBlocks.map((block) => (
-                  <li
-                    key={block.id}
-                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm shadow-sm ${
-                      block.isActive ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500'
-                    }`}
+            {/* Quick Actions */}
+            <section className="rounded-3xl border border-slate-700/50 bg-gradient-to-br from-orange-900/20 to-red-900/20 p-6 backdrop-blur-sm">
+              <h2 className="text-lg font-bold text-orange-100">Quick Links</h2>
+              <p className="mt-1 text-sm text-orange-200/60">Common actions and tools</p>
+
+              <div className="mt-4 space-y-2">
+                {!mechanic.payoutsEnabled && (
+                  <Link
+                    href="/mechanic/onboarding/stripe"
+                    className="block rounded-xl border border-amber-500/20 bg-amber-900/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-900/20"
                   >
-                    <div>
-                      <p className="font-semibold">{WEEKDAYS[block.weekday]}</p>
-                      <p className="text-xs text-slate-500">
-                        {formatAvailabilityTime(block.startTime)} – {formatAvailabilityTime(block.endTime)}
-                      </p>
-                    </div>
-                    <span className="text-xs font-semibold uppercase">
-                      {block.isActive ? 'Open' : 'Paused'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                You have not set any availability yet. Create blocks to let customers schedule time with you.
+                    Setup Stripe Payouts
+                  </Link>
+                )}
+                <Link
+                  href="/mechanic/logout"
+                  className="block rounded-xl border border-slate-700/30 bg-slate-900/30 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-900/50"
+                >
+                  Sign Out
+                </Link>
               </div>
-            )}
-          </section>
+            </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-orange-600 to-red-600 p-6 text-white shadow-lg">
-            <h2 className="text-lg font-semibold">Digital waivers ready</h2>
-            <p className="mt-1 text-sm text-blue-100">
-              Customers sign automatically before joining so you can focus on diagnostics.
-            </p>
-            <Link
-              href="/waiver"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-            >
-              Review waiver template
-            </Link>
-          </section>
-        </aside>
+            {/* Request History */}
+            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
+                  <History className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Request History</h2>
+                  <p className="text-xs text-slate-400">Past accepted requests</p>
+                </div>
+              </div>
+
+              {isLoadingHistory ? (
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                </div>
+              ) : requestHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {requestHistory.slice(0, 10).map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-slate-700/30 bg-slate-900/30 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white">{item.customer_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(item.created_at).toLocaleDateString()} • {item.status}
+                          </p>
+                        </div>
+                        <span className={`text-xs font-semibold uppercase ${
+                          item.status === 'accepted' ? 'text-green-400' : 'text-slate-500'
+                        }`}>
+                          {item.session_type}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-700/30 bg-slate-900/20 p-6 text-center text-sm text-slate-500">
+                  No history yet
+                </div>
+              )}
+            </section>
+          </aside>
+        </div>
       </div>
+
+      {/* Request Detail Modal */}
+      <RequestDetailModal
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        onAccept={acceptRequest}
+        accepting={acceptingRequestId === selectedRequest?.id}
+      />
     </div>
   )
 }
@@ -874,10 +942,10 @@ function normalizeSessionStatus(value: string | null): SessionStatus {
   return 'scheduled'
 }
 
-function describePlan(planCode: string | null | undefined, sessionType: SessionRequest['sessionType']) {
+function describePlan(planCode: string | null | undefined, sessionType: string) {
   switch (planCode) {
     case 'chat10':
-      return 'Quick Chat (30 min chat)'
+      return 'Quick Chat (30 min)'
     case 'video15':
       return 'Standard Video (45 min)'
     case 'diagnostic':
@@ -910,6 +978,37 @@ function formatRequestAge(iso: string) {
   return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
+function extractSessionRequestRow(payload: unknown): SessionRequestRow | null {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const payloadRecord = payload as Record<string, unknown>
+  const source =
+    payloadRecord.request && typeof payloadRecord.request === 'object'
+      ? (payloadRecord.request as Record<string, unknown>)
+      : payloadRecord
+
+  if (!source || typeof source !== 'object') {
+    return null
+  }
+
+  const candidate = source as Record<string, unknown>
+
+  if (
+    typeof candidate.id === 'string' &&
+    typeof candidate.status === 'string' &&
+    typeof candidate.session_type === 'string' &&
+    typeof candidate.plan_code === 'string' &&
+    typeof candidate.created_at === 'string' &&
+    typeof candidate.customer_id === 'string'
+  ) {
+    return candidate as SessionRequestRow
+  }
+
+  return null
+}
+
 function diffInMinutes(startIso: string | null, endIso: string | null) {
   if (!startIso || !endIso) return null
 
@@ -930,7 +1029,7 @@ function toTimeValue(iso: string | null) {
 function calculateEarningsCents(plan: string | null) {
   const planKey = asPlanKey(plan)
   if (!planKey) return null
-  const base = PRICING[planKey]?.priceCents
+  const base = PLAN_PRICING[planKey]
   if (typeof base !== 'number') return null
   return Math.round(base * MECHANIC_SHARE)
 }
@@ -941,7 +1040,7 @@ function asPlanKey(value: string | null | undefined): PlanKey | null {
 }
 
 function formatCurrencyFromCents(cents: number | null) {
-  if (cents == null) return '—'
+  if (cents == null) return '$0.00'
   return currencyFormatter.format(cents / 100)
 }
 
@@ -957,14 +1056,4 @@ function formatDate(iso: string | null | undefined) {
   const value = new Date(iso)
   if (Number.isNaN(value.getTime())) return '—'
   return value.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatAvailabilityTime(time: string) {
-  if (!time) return '—'
-  const [hourString, minuteString] = time.split(':')
-  const hour = Number.parseInt(hourString ?? '0', 10)
-  const minute = Number.parseInt(minuteString ?? '0', 10)
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return time
-  const date = new Date(Date.UTC(1970, 0, 1, hour, minute))
-  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }

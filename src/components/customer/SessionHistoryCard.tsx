@@ -94,7 +94,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
   }
 
   return (
-    <div className="group relative rounded-2xl border border-white/10 bg-white/5 p-6 shadow-md backdrop-blur transition hover:border-white/20 hover:bg-white/10">
+    <div className="group rounded-2xl border border-white/10 bg-white/5 p-6 shadow-md backdrop-blur transition hover:border-white/20 hover:bg-white/10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-1 gap-4">
           {/* Icon */}
@@ -120,8 +120,8 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                 </p>
               </div>
 
-              {/* Three-dot menu */}
-              <Menu as="div" className="relative">
+              {/* Three-dot menu - positioned relative to enable absolute dropdown */}
+              <Menu as="div" className="relative z-10">
                 <Menu.Button className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white">
                   <MoreVertical className="h-4 w-4" />
                 </Menu.Button>
@@ -135,7 +135,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl focus:outline-none">
+                  <Menu.Items className="absolute right-0 z-[9999] mt-2 w-48 origin-top-right rounded-xl border border-white/10 bg-slate-900 p-1 shadow-2xl backdrop-blur-xl focus:outline-none">
                     <Menu.Item>
                       {({ active }) => (
                         <button

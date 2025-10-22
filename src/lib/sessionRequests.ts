@@ -24,7 +24,7 @@ export async function broadcastSessionRequest(
   payload: Record<string, unknown>
 ) {
   try {
-    const channel = supabaseAdmin.channel('requests')
+    const channel = supabaseAdmin.channel('session_requests_feed')
     await new Promise<void>((resolve, reject) => {
       channel.subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {

@@ -53,30 +53,33 @@ export async function POST(
     },
   })
 
+  // Check for customer auth (Supabase)
   const {
     data: { user },
   } = await supabaseClient.auth.getUser()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Check for mechanic auth (custom cookie-based)
+  let mechanicId: string | null = null
+  const token = req.cookies.get('aad_mech')?.value
+  if (token) {
+    const { data: session } = await supabaseAdmin
+      .from('mechanic_sessions')
+      .select('mechanic_id')
+      .eq('token', token)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+    mechanicId = session?.mechanic_id || null
   }
 
-  // Verify the user is a participant in this session
-  const { data: participant } = await supabaseClient
-    .from('session_participants')
-    .select('user_id')
-    .eq('session_id', sessionId)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!participant) {
-    return NextResponse.json({ error: 'Not authorized to end this session' }, { status: 403 })
+  // Must be authenticated as either customer or mechanic
+  if (!user && !mechanicId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   // Fetch full session details using admin client (bypasses RLS)
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
-    .select('id, status, plan, type, started_at, mechanic_id, metadata')
+    .select('id, status, plan, type, started_at, mechanic_id, customer_user_id, metadata')
     .eq('id', sessionId)
     .single()
 
@@ -85,15 +88,94 @@ export async function POST(
     return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   }
 
+  // Verify authorization: must be the customer who created the session OR the assigned mechanic
+  const isCustomer = user && session.customer_user_id === user.id
+  const isMechanic = mechanicId && session.mechanic_id === mechanicId
+
+  if (!isCustomer && !isMechanic) {
+    console.log('[end session] Authorization failed:', {
+      hasUser: !!user,
+      hasMechanic: !!mechanicId,
+      sessionCustomerId: session.customer_user_id,
+      sessionMechanicId: session.mechanic_id,
+    })
+    return NextResponse.json({ error: 'Not authorized to end this session' }, { status: 403 })
+  }
+
   // Don't allow ending already completed sessions
   if (session.status === 'completed') {
     return NextResponse.json({ error: 'Session already completed' }, { status: 400 })
   }
 
+  console.log(`[end session] Ending session ${sessionId} with status: ${session.status}`)
+
+  // If session was never started (pending/waiting), we'll cancel it instead
+  const shouldCancel = !session.started_at && ['pending', 'waiting'].includes(session.status?.toLowerCase() || '')
+
   const now = new Date().toISOString()
   const durationMinutes = calculateDuration(session.started_at, now)
 
-  // Calculate mechanic earnings
+  // If session should be cancelled (never started), handle it differently
+  if (shouldCancel) {
+    console.log(`[end session] Session ${sessionId} never started - cancelling instead of completing`)
+
+    // Cancel the session instead of completing it
+    const { error: updateError } = await supabaseAdmin
+      .from('sessions')
+      .update({
+        status: 'cancelled',
+        ended_at: now,
+        updated_at: now,
+        metadata: {
+          ...(session.metadata || {}),
+          cancellation: {
+            cancelled_at: now,
+            reason: 'Ended by user before session started',
+            cancelled_by: isCustomer ? 'customer' : 'mechanic',
+          },
+        },
+      })
+      .eq('id', sessionId)
+
+    if (updateError) {
+      console.error('Failed to cancel session', updateError)
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    // Also cancel any associated session request if it exists
+    await supabaseAdmin
+      .from('session_requests')
+      .update({
+        status: 'cancelled',
+        updated_at: now,
+      })
+      .eq('session_id', sessionId)
+      .eq('status', 'pending')
+
+    const responseData = {
+      success: true,
+      message: 'Session cancelled successfully',
+      session: {
+        id: sessionId,
+        status: 'cancelled',
+        ended_at: now,
+      },
+    }
+
+    // Check if this is a fetch request (JSON) or form POST (redirect)
+    const acceptHeader = req.headers.get('accept')
+    const contentType = req.headers.get('content-type')
+
+    if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
+      return NextResponse.json(responseData)
+    }
+
+    // Redirect based on role
+    const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+    return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
+  }
+
+  // Calculate mechanic earnings (only for sessions that actually happened)
   const planKey = session.plan as PlanKey
   const planPrice = PRICING[planKey]?.priceCents || 0
   const mechanicEarningsCents = Math.round(planPrice * MECHANIC_SHARE)
@@ -107,21 +189,32 @@ export async function POST(
     calculated_at: now,
   }
 
-  // Attempt Stripe transfer if mechanic has connected account
-  if (session.mechanic_id && mechanicEarningsCents > 0) {
+  // Attempt Stripe transfer if mechanic has connected account AND session was actually started
+  if (session.mechanic_id && mechanicEarningsCents > 0 && session.started_at) {
     try {
-      const { data: mechanicProfile } = await supabaseAdmin
-        .from('profiles')
-        .select('stripe_account_id, stripe_payouts_enabled, full_name')
+      // First try mechanics table (custom auth system)
+      const { data: mechanic } = await supabaseAdmin
+        .from('mechanics')
+        .select('stripe_account_id, stripe_payouts_enabled, name')
         .eq('id', session.mechanic_id)
         .single()
 
-      if (mechanicProfile?.stripe_account_id && mechanicProfile.stripe_payouts_enabled) {
+      // Fallback to profiles table (Supabase auth system) if not found
+      const { data: profile } = !mechanic ? await supabaseAdmin
+        .from('profiles')
+        .select('stripe_account_id, stripe_payouts_enabled, full_name')
+        .eq('id', session.mechanic_id)
+        .single() : { data: null }
+
+      const mechanicData = mechanic || profile
+      const mechanicName = mechanic?.name || profile?.full_name || 'Mechanic'
+
+      if (mechanicData?.stripe_account_id && mechanicData.stripe_payouts_enabled) {
         // Create Stripe transfer
         const transfer = await stripe.transfers.create({
           amount: mechanicEarningsCents,
           currency: 'usd',
-          destination: mechanicProfile.stripe_account_id,
+          destination: mechanicData.stripe_account_id,
           description: `Session ${sessionId} - ${session.type} (${session.plan})`,
           metadata: {
             session_id: sessionId,
@@ -135,9 +228,9 @@ export async function POST(
           ...payoutMetadata,
           status: 'transferred',
           transfer_id: transfer.id,
-          destination_account: mechanicProfile.stripe_account_id,
+          destination_account: mechanicData.stripe_account_id,
           transferred_at: now,
-          mechanic_name: mechanicProfile.full_name || 'Mechanic',
+          mechanic_name: mechanicName,
         }
 
         console.log(`✅ Stripe transfer created: ${transfer.id} for ${mechanicEarningsCents / 100} USD`)
@@ -210,6 +303,7 @@ export async function POST(
     return NextResponse.json(responseData)
   }
 
-  // Redirect back to dashboard for form submissions
-  return NextResponse.redirect(new URL('/customer/dashboard', req.nextUrl.origin))
+  // Redirect based on role
+  const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+  return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
 }

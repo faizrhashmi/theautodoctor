@@ -1,11 +1,14 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { getRedirectFromQuery } from '@/lib/security/redirects'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/customer/dashboard'
+
+  // SECURITY: Validate redirect URL to prevent open redirects
+  const next = getRedirectFromQuery(requestUrl.searchParams, 'next', '/customer/dashboard')
 
   // Use the configured app URL or fallback to request origin
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin

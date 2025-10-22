@@ -25,12 +25,15 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session
     const plan = (session.metadata?.plan ?? '') as PlanKey
 
+    console.log('[stripe:webhook] checkout.session.completed received for plan:', plan)
+    console.log('[stripe:webhook] Metadata:', session.metadata)
+
     if (!plan || !PRICING[plan]) {
       return NextResponse.json({ error: 'Unknown plan in session metadata' }, { status: 400 })
     }
 
     try {
-      await fulfillCheckout(plan, {
+      const result = await fulfillCheckout(plan, {
         stripeSessionId: session.id,
         intakeId: session.metadata?.intake_id ?? session.client_reference_id ?? null,
         supabaseUserId: typeof session.metadata?.supabase_user_id === 'string' && session.metadata?.supabase_user_id
@@ -43,6 +46,7 @@ export async function POST(req: NextRequest) {
         currency: session.currency ?? null,
         slotId: typeof session.metadata?.slot_id === 'string' ? session.metadata.slot_id : null,
       })
+      console.log('[stripe:webhook] Fulfillment completed successfully. Session ID:', result.sessionId)
     } catch (error: any) {
       console.error('[stripe:webhook] fulfillment error', error)
       return NextResponse.json({ error: error?.message ?? 'Checkout fulfillment failed' }, { status: 500 })

@@ -118,11 +118,7 @@ export async function POST(request: NextRequest) {
   }
 
   void broadcastSessionRequest('new_request', {
-    id: inserted.id,
-    customerName: inserted.customer_name ?? 'Customer',
-    sessionType: inserted.session_type,
-    planCode: inserted.plan_code,
-    createdAt: inserted.created_at,
+    request: inserted,
   })
   void maybeEmailMechanics(inserted)
 

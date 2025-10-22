@@ -43,3 +43,7 @@ In Redirect URLs, add both:
 http://localhost:3000/auth/callback
 http://localhost:3000/customer/dashboard
 When you deploy to production, update to: https://askautodoctor.com/auth/callback
+
+http://localhost:3001/admin/cleanup
+
+kill-port 3000 (command to kill on any port)

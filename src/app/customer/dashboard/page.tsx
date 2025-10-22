@@ -16,6 +16,7 @@ import type {
 import { AlertCircle, Calendar, ClipboardList, Star } from 'lucide-react'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
 import SessionManagement from '@/components/customer/SessionManagement'
+import { cleanupCustomerWaitingSessions } from '@/lib/sessionCleanup'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,18 @@ export default async function CustomerDashboardPage() {
 
   if (!user) {
     redirect('/customer/login?redirect=/customer/dashboard')
+  }
+
+  // CRITICAL: Clean up old waiting sessions BEFORE loading dashboard
+  // This prevents ghost sessions from appearing in "Next Session"
+  try {
+    const cleanedCount = await cleanupCustomerWaitingSessions(user.id, 15)
+    if (cleanedCount > 0) {
+      console.log(`[CustomerDashboard] Cleaned up ${cleanedCount} stale waiting session(s) for user ${user.id}`)
+    }
+  } catch (error) {
+    console.error('[CustomerDashboard] Error during cleanup:', error)
+    // Continue loading dashboard even if cleanup fails
   }
 
   let profile: Pick<
@@ -127,7 +140,14 @@ export default async function CustomerDashboardPage() {
     if (!filesError) {
       fileRows = (filesData ?? []) as SessionFile[]
     } else {
-      console.error('Unable to load session files for dashboard', filesError)
+      // RESILIENT: If session_files table doesn't exist, continue without files
+      // This prevents the dashboard from crashing due to missing optional features
+      if (filesError.code === 'PGRST205' || filesError.message?.includes('Could not find the table')) {
+        console.warn('[CustomerDashboard] session_files table not found - file uploads feature disabled')
+        fileRows = []
+      } else {
+        console.error('Unable to load session files for dashboard', filesError)
+      }
     }
   }
 
@@ -197,17 +217,45 @@ export default async function CustomerDashboardPage() {
     .filter((session) => !['completed', 'cancelled'].includes(session.status.toLowerCase()))
     .sort((a, b) => sessionSortValue(a) - sessionSortValue(b))
 
-  // Separate active/in-progress sessions from scheduled ones
-  const activeSessions = upcomingSessions.filter((session) =>
+  // CRITICAL: Separate active/in-progress sessions from scheduled ones
+  // Active sessions (live/waiting) show in the ActiveSessionsManager component at the top
+  // Scheduled sessions (pending/scheduled) show in the "Next Session" sidebar
+  // BUSINESS RULE: Customer can only have ONE active session at a time
+  const allActiveSessions = upcomingSessions.filter((session) =>
     ['live', 'waiting'].includes(session.status.toLowerCase())
   )
-  const scheduledSessions = upcomingSessions.filter((session) =>
-    ['pending', 'scheduled'].includes(session.status.toLowerCase())
-  )
 
-  // nextSession should be the first scheduled session (not active)
+  // Enforce business rule: Only ONE active session allowed at a time
+  // Take only the first active session (should never be more than one, but enforce it here)
+  const activeSessions = allActiveSessions.slice(0, 1)
+
+  // CRITICAL FIX: Only show pending/scheduled sessions that are recent (within 24 hours)
+  // This prevents ghost/stale sessions from appearing in "Next Session"
+  // Active sessions (live/waiting) are EXCLUDED from this list
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime()
+  const scheduledSessions = upcomingSessions.filter((session) => {
+    const isPendingOrScheduled = ['pending', 'scheduled'].includes(session.status.toLowerCase())
+    if (!isPendingOrScheduled) return false
+
+    // Only show if created within last 24 hours
+    const createdAt = new Date(session.createdAt).getTime()
+    const isRecent = createdAt > twentyFourHoursAgo
+
+    if (!isRecent) {
+      console.log(`[CustomerDashboard] Filtering out stale session ${session.id} - created ${new Date(session.createdAt).toLocaleString()}`)
+    }
+
+    return isRecent
+  })
+
+  // nextSession should be the first scheduled session (NOT active - those show in ActiveSessionsManager)
   const nextSession = scheduledSessions[0] ?? null
   const queuedSessions = scheduledSessions.slice(1)
+
+  // Safety check: Ensure nextSession is never an active session
+  if (nextSession && ['live', 'waiting'].includes(nextSession.status.toLowerCase())) {
+    console.error('[CustomerDashboard] BUG: Active session detected in nextSession!', nextSession)
+  }
 
   // Session history - exclude sessions already shown above (active and upcoming)
   // Show completed, canceled, and any old pending/live sessions
@@ -226,9 +274,14 @@ export default async function CustomerDashboardPage() {
 
   // Separate counts for better visibility
   const completedCount = normalizedSessions.filter(s => s.status.toLowerCase() === 'completed').length
-  const activeCount = activeSessions.length
+  const activeCount = activeSessions.length // Should always be 0 or 1 due to business rule
   const pendingCount = scheduledSessions.length
   const canceledCount = normalizedSessions.filter(s => ['cancelled', 'canceled'].includes(s.status.toLowerCase())).length
+
+  // CRITICAL: Log warning if business rule is violated (multiple active sessions detected)
+  if (allActiveSessions.length > 1) {
+    console.error(`[CustomerDashboard] BUSINESS RULE VIOLATION: Customer ${user.id} has ${allActiveSessions.length} active sessions! Only ONE allowed.`, allActiveSessions)
+  }
 
   const planSummary = getPlanSummary(profile?.preferred_plan ?? null, profile?.account_status ?? null, upcomingSessions.length)
 
@@ -332,7 +385,7 @@ export default async function CustomerDashboardPage() {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-amber-300">Plan & Billing Locked</p>
                     <p className="text-xs text-amber-200/80 mt-1">
-                      You have {activeCount} active session{activeCount > 1 ? 's' : ''}. Please complete or cancel your active session{activeCount > 1 ? 's' : ''} before making changes to your plan or starting a new session.
+                      You have an active session in progress. Please complete or cancel your active session before making changes to your plan or starting a new session.
                     </p>
                   </div>
                 </div>
@@ -458,9 +511,6 @@ export default async function CustomerDashboardPage() {
               </div>
             </section>
 
-            {/* Active Sessions Management - Only show when NO active sessions (otherwise shown at top) */}
-            {activeCount === 0 && activeSessions.length === 0 && <ActiveSessionsManager sessions={activeSessions} />}
-
             {/* Comprehensive Session Management with Filters */}
             <section className="space-y-5">
               <div className="flex items-center gap-2">
@@ -474,13 +524,24 @@ export default async function CustomerDashboardPage() {
           </div>
 
           <aside className="space-y-6 lg:col-span-4">
-            {/* Upcoming Session - Now in sidebar */}
+            {/* Upcoming/Scheduled Sessions - Now in sidebar */}
             <section className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600 shadow-md">
-                  <Calendar className="h-5 w-5 text-white" />
-                </div>
-                <h2 className="text-lg font-bold text-white">Next Session</h2>
+                {nextSession ? (
+                  <>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-green-600 shadow-md">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    <h2 className="text-lg font-bold text-white">Next Session</h2>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 shadow-md">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    <h2 className="text-lg font-bold text-white">Schedule a Session</h2>
+                  </>
+                )}
               </div>
               {nextSession ? (
                 <SessionJoinCard session={nextSession} />
@@ -493,9 +554,11 @@ export default async function CustomerDashboardPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <h3 className="text-base font-bold text-white">No upcoming sessions</h3>
+                    <h3 className="text-base font-bold text-white">No scheduled sessions</h3>
                     <p className="mt-2 text-xs text-slate-300">
-                      Schedule your first session to connect with our mechanics.
+                      {activeCount > 0
+                        ? 'Finish your current session, then schedule your next appointment.'
+                        : 'Book a session to connect with our expert mechanics.'}
                     </p>
                     <Link
                       href="/customer/schedule"
@@ -623,7 +686,7 @@ export default async function CustomerDashboardPage() {
                       support@askautodoctor.com
                     </a>
                   </p>
-                  <RequestMechanicButton className="mt-4" />
+                  <RequestMechanicButton className="mt-4" disabled={activeCount > 0} />
                 </div>
               </div>
             </section>

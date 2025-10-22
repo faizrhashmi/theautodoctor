@@ -72,6 +72,9 @@ export default function ChatRoom({
   const [showSessionMenu, setShowSessionMenu] = useState(false)
   const [showEndSessionModal, setShowEndSessionModal] = useState(false)
   const [endingSession, setEndingSession] = useState(false)
+  const [currentStatus, setCurrentStatus] = useState(status)
+  const [mechanicName, setMechanicName] = useState<string | null>(null)
+  const [customerName, setCustomerName] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -86,6 +89,24 @@ export default function ChatRoom({
     if (planKey === 'diagnostic') return 60
     return 30 // default for free sessions
   }, [plan])
+
+  // Fetch participant names on mount
+  useEffect(() => {
+    async function fetchSessionInfo() {
+      try {
+        const response = await fetch(`/api/chat/session-info?sessionId=${sessionId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setCurrentStatus(data.status)
+          setMechanicName(data.mechanicName)
+          setCustomerName(data.customerName)
+        }
+      } catch (err) {
+        console.error('Failed to fetch session info:', err)
+      }
+    }
+    fetchSessionInfo()
+  }, [sessionId])
 
   // Auto-update session status to "live" when customer joins
   useEffect(() => {
@@ -106,7 +127,7 @@ export default function ChatRoom({
 
   // Timer countdown logic
   useEffect(() => {
-    if (status?.toLowerCase() !== 'live' || !startedAt) return
+    if (currentStatus?.toLowerCase() !== 'live' || !startedAt) return
 
     const startTime = new Date(startedAt).getTime()
     const durationMs = sessionDurationMinutes * 60 * 1000
@@ -134,7 +155,7 @@ export default function ChatRoom({
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [sessionId, status, startedAt, sessionDurationMinutes, sessionEnded, supabase])
+  }, [sessionId, currentStatus, startedAt, sessionDurationMinutes, sessionEnded, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -201,12 +222,38 @@ export default function ChatRoom({
           setParticipants((prev) => prev.filter((p) => p.user_id !== participant.user_id))
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          const updated = payload.new as any
+          setCurrentStatus(updated.status)
+
+          // If mechanic just joined, fetch their name
+          if (updated.mechanic_id && !mechanicName) {
+            try {
+              const response = await fetch(`/api/chat/session-info?sessionId=${sessionId}`)
+              if (response.ok) {
+                const data = await response.json()
+                setMechanicName(data.mechanicName)
+              }
+            } catch (err) {
+              console.error('Failed to fetch mechanic name:', err)
+            }
+          }
+        }
+      )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase])
+  }, [sessionId, supabase, mechanicName])
 
   async function uploadFile(file: File): Promise<{ name: string; url: string; size: number; type: string }> {
     const fileExt = file.name.split('.').pop()
@@ -254,14 +301,20 @@ export default function ChatRoom({
         setUploading(false)
       }
 
-      const { error: insertError } = await supabase.from('chat_messages').insert({
-        session_id: sessionId,
-        content: trimmed || '📎 Attachment',
-        attachments: uploadedFiles,
+      // Use API endpoint instead of direct insert (supports both customers and mechanics)
+      const response = await fetch('/api/chat/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          content: trimmed || '📎 Attachment',
+          attachments: uploadedFiles.length > 0 ? uploadedFiles : null,
+        }),
       })
 
-      if (insertError) {
-        throw insertError
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to send message')
       }
 
       setInput('')
@@ -294,11 +347,20 @@ export default function ChatRoom({
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const headerStatus =
-    mechanicCount > 0
-      ? `${mechanicCount} mechanic${mechanicCount > 1 ? 's' : ''} online`
+  // Role-aware header status
+  const headerStatus = isMechanic
+    ? customerName
+      ? `Chat with ${customerName}`
+      : 'Chat with customer'
+    : mechanicName
+      ? `${mechanicName} has joined`
       : 'Waiting for mechanic...'
-  const headerColor = mechanicCount > 0 ? 'text-green-600' : 'text-amber-600'
+
+  const headerColor = isMechanic
+    ? 'text-blue-600'
+    : mechanicName
+      ? 'text-green-600'
+      : 'text-amber-600'
 
   async function handleExtendSession(minutes: number, priceInCents: number) {
     if (isFreeSession) {
@@ -391,14 +453,14 @@ export default function ChatRoom({
               <div>
                 <h1 className="text-sm font-semibold text-slate-900">{planName}</h1>
                 <p className={`text-xs font-medium ${headerColor}`}>
-                  {mechanicCount > 0 ? '● ' : '○ '}
+                  {(isMechanic || mechanicName) ? '● ' : '○ '}
                   {headerStatus}
                 </p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {timeRemaining !== null && status?.toLowerCase() === 'live' && (
+            {timeRemaining !== null && currentStatus?.toLowerCase() === 'live' && (
               <div className="flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -407,7 +469,7 @@ export default function ChatRoom({
               </div>
             )}
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              Session: {status || 'pending'}
+              Session: {currentStatus || 'pending'}
             </span>
             {isMechanic && (
               <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -432,7 +494,7 @@ export default function ChatRoom({
                   <div className="fixed inset-0 z-40" onClick={() => setShowSessionMenu(false)} />
                   <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-xl">
                     <div className="p-2">
-                      {!isMechanic && status?.toLowerCase() === 'live' && (
+                      {!isMechanic && currentStatus?.toLowerCase() === 'live' && (
                         <button
                           onClick={() => {
                             setShowSessionMenu(false)

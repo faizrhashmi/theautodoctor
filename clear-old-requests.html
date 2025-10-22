@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Old Session Requests</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #e55a2b;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Old Session Requests</h1>
+        <p>This will cancel any pending session requests older than 5 minutes.</p>
+
+        <button id="clearBtn" onclick="clearOldRequests()">Clear Old Requests</button>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        async function clearOldRequests() {
+            const output = document.getElementById('output');
+            const btn = document.getElementById('clearBtn');
+
+            output.textContent = 'Processing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/debug/clear-old-requests', {
+                    method: 'POST'
+                });
+                const data = await res.json();
+
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

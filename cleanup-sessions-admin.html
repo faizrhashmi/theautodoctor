@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Cleanup Admin Tool</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+        }
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Session Cleanup Admin Tool</h1>
+
+        <div class="info">
+            <strong>ℹ️ About:</strong> This tool helps you clean up stale sessions and requests that might be blocking customers. It uses the centralized cleanup utility with built-in safety checks.
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3>Expired Requests</h3>
+                <div class="value" id="stat-requests">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Old Waiting Sessions</h3>
+                <div class="value" id="stat-sessions">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Orphaned Sessions</h3>
+                <div class="value" id="stat-orphans">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total to Clean</h3>
+                <div class="value" id="stat-total">-</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="checkStats()">📊 Check Stats</button>
+            <button class="danger" onclick="runCleanup()">🧹 Run Cleanup</button>
+        </div>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        async function checkStats() {
+            const output = document.getElementById('output');
+            output.textContent = 'Checking cleanup stats...';
+
+            try {
+                const res = await fetch('http://localhost:3000/api/debug/cleanup-sessions');
+                const data = await res.json();
+
+                if (res.ok && data.wouldClean) {
+                    document.getElementById('stat-requests').textContent = data.wouldClean.expiredRequests;
+                    document.getElementById('stat-sessions').textContent = data.wouldClean.oldWaitingSessions;
+                    document.getElementById('stat-orphans').textContent = data.wouldClean.potentialOrphans;
+                    document.getElementById('stat-total').textContent = data.wouldClean.total;
+
+                    output.textContent = JSON.stringify(data, null, 2);
+
+                    if (data.wouldClean.total === 0) {
+                        output.textContent += '\\n\\n✅ No cleanup needed - all sessions are healthy!';
+                    } else {
+                        output.textContent += '\\n\\n⚠️ Click "Run Cleanup" to clean these up.';
+                    }
+                } else {
+                    output.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function runCleanup() {
+            const output = document.getElementById('output');
+
+            if (!confirm('Are you sure you want to run cleanup? This will cancel stale sessions and requests.')) {
+                return;
+            }
+
+            output.textContent = 'Running cleanup...';
+
+            try {
+                const res = await fetch('http://localhost:3000/api/debug/cleanup-sessions', {
+                    method: 'POST'
+                });
+
+                const data = await res.json();
+
+                output.textContent = JSON.stringify(data, null, 2);
+
+                if (res.ok) {
+                    if (data.stats.totalCleaned > 0) {
+                        output.textContent += `\\n\\n✅ Successfully cleaned up ${data.stats.totalCleaned} items!`;
+                        output.textContent += `\\n\\n- Expired Requests: ${data.stats.expiredRequests}`;
+                        output.textContent += `\\n- Old Waiting Sessions: ${data.stats.oldWaitingSessions}`;
+                        output.textContent += `\\n- Orphaned Sessions: ${data.stats.orphanedSessions}`;
+
+                        // Refresh stats
+                        setTimeout(checkStats, 1000);
+                    } else {
+                        output.textContent += '\\n\\n✅ No cleanup was needed - all sessions are healthy!';
+                    }
+                }
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Auto-load stats on page load
+        window.addEventListener('load', checkStats);
+    </script>
+</body>
+</html>

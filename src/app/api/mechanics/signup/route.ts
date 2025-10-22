@@ -7,6 +7,9 @@ function bad(msg: string, status = 400) { return NextResponse.json({ error: msg 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured on server', 500);
   const { name, email, phone, password } = await req.json().catch(() => ({}));
+
+  console.log('[MECHANIC SIGNUP] Attempt for email:', email);
+
   if (!email || !password) return bad('Email and password are required');
 
   const password_hash = hashPassword(password);
@@ -15,6 +18,8 @@ export async function POST(req: NextRequest) {
   const { data: mech, error } = await supabaseAdmin.from('mechanics')
     .insert({ name, email, phone, password_hash })
     .select('id').single();
+
+  console.log('[MECHANIC SIGNUP] Database insert result:', { success: !!mech, error: error?.message, code: error?.code });
 
   if (error) {
     if (error.code === '23505') return bad('Email already registered', 409);
@@ -29,6 +34,9 @@ export async function POST(req: NextRequest) {
     token,
     expires_at: expires.toISOString(),
   });
+
+  console.log('[MECHANIC SIGNUP] Session creation:', { success: !sErr, error: sErr?.message });
+
   if (sErr) return bad(sErr.message, 500);
 
   const res = NextResponse.json({ ok: true });
@@ -39,5 +47,8 @@ export async function POST(req: NextRequest) {
     path: '/',
     maxAge: 60*60*24*30,
   });
+
+  console.log('[MECHANIC SIGNUP] Success! Mechanic created:', mech.id);
+
   return res;
 }

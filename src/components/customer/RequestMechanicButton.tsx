@@ -7,6 +7,7 @@ interface RequestMechanicButtonProps {
   sessionType?: 'chat' | 'video' | 'diagnostic'
   label?: string
   className?: string
+  disabled?: boolean
 }
 
 export default function RequestMechanicButton({
@@ -14,12 +15,13 @@ export default function RequestMechanicButton({
   sessionType = 'chat',
   label = 'Request a Mechanic',
   className,
+  disabled = false,
 }: RequestMechanicButtonProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState<string | null>(null)
 
   const handleRequest = async () => {
-    if (status === 'loading') return
+    if (status === 'loading' || disabled) return
 
     setStatus('loading')
     setMessage(null)
@@ -52,14 +54,16 @@ export default function RequestMechanicButton({
       <button
         type="button"
         onClick={handleRequest}
-        disabled={status === 'loading' || status === 'success'}
-        className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed ${
+        disabled={disabled || status === 'loading' || status === 'success'}
+        className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
           status === 'success'
             ? 'bg-green-600 hover:bg-green-600 disabled:bg-green-500'
+            : disabled
+            ? 'bg-slate-600'
             : 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400'
         }`}
       >
-        {status === 'loading' ? 'Sending…' : status === 'success' ? 'Request Sent' : label}
+        {disabled ? 'Session In Progress' : status === 'loading' ? 'Sending…' : status === 'success' ? 'Request Sent' : label}
       </button>
       {message && (
         <p

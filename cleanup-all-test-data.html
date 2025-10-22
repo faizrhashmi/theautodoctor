@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Test Data Cleanup</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .warning {
+            background: #fee;
+            border: 2px solid #f00;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+        }
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Complete Test Data Cleanup</h1>
+
+        <div class="warning">
+            ⚠️ DANGER ZONE: This will DELETE ALL test sessions, requests, and participants data.
+            Only use this in development/testing environments!
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3>Sessions</h3>
+                <div class="value" id="stat-sessions">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Session Requests</h3>
+                <div class="value" id="stat-requests">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Session Participants</h3>
+                <div class="value" id="stat-participants">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Waiting Sessions</h3>
+                <div class="value" id="stat-waiting">-</div>
+            </div>
+        </div>
+
+        <div>
+            <button onclick="viewAllData()">📊 View All Data</button>
+            <button onclick="viewCurrentUserSessions()">👤 View My Sessions</button>
+            <button class="danger" onclick="cleanupStale()">🧹 Cleanup Stale Only (Safe)</button>
+            <button class="danger" onclick="deleteAllTestData()">💣 DELETE ALL (Dangerous)</button>
+        </div>
+
+        <pre id="output">Click a button to get started...</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+
+        async function viewAllData() {
+            const output = document.getElementById('output');
+            output.textContent = 'Loading all database data...\n\n';
+
+            try {
+                // This would need a dedicated API endpoint to view data
+                // For now, we'll show what we can via the health endpoint
+                const healthRes = await fetch(`${API_BASE}/api/debug/session-health`);
+                const healthData = await healthRes.json();
+
+                output.textContent = '📊 CURRENT DATABASE STATE\n\n';
+                output.textContent += JSON.stringify(healthData, null, 2);
+
+                // Update stats
+                if (healthData.sessions) {
+                    document.getElementById('stat-sessions').textContent = healthData.sessions.total || 0;
+                    document.getElementById('stat-waiting').textContent = healthData.sessions.waiting?.total || 0;
+                }
+                if (healthData.requests) {
+                    document.getElementById('stat-requests').textContent = healthData.requests.total || 0;
+                }
+            } catch (error) {
+                output.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function viewCurrentUserSessions() {
+            const output = document.getElementById('output');
+            output.textContent = 'This would require authentication to show your specific sessions.\n\n';
+            output.textContent += 'You can view your sessions by logging into the customer dashboard at:\n';
+            output.textContent += `${API_BASE}/customer/dashboard\n\n`;
+            output.textContent += 'Or check the /admin/cleanup page (once the 500 error is fixed).';
+        }
+
+        async function cleanupStale() {
+            const output = document.getElementById('output');
+
+            if (!confirm('This will cancel stale sessions and requests (>15 min old). Continue?')) {
+                return;
+            }
+
+            output.textContent = 'Running safe cleanup (stale sessions/requests only)...\n\n';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/debug/cleanup-sessions`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+
+                output.textContent = '✅ CLEANUP COMPLETE\n\n';
+                output.textContent += JSON.stringify(data, null, 2);
+
+                if (data.stats && data.stats.totalCleaned > 0) {
+                    output.textContent += `\n\n✅ Successfully cleaned up ${data.stats.totalCleaned} stale items!`;
+                } else {
+                    output.textContent += '\n\n✅ No stale items found - database is clean!';
+                }
+
+                // Refresh stats
+                setTimeout(viewAllData, 1000);
+            } catch (error) {
+                output.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function deleteAllTestData() {
+            const output = document.getElementById('output');
+
+            const confirmation = prompt('⚠️ DANGER! This will DELETE ALL sessions, requests, and participants.\n\nType "DELETE ALL" to confirm:');
+
+            if (confirmation !== 'DELETE ALL') {
+                output.textContent = '❌ Cancelled - confirmation text did not match.\n\n';
+                output.textContent += 'You must type exactly: DELETE ALL';
+                return;
+            }
+
+            output.textContent = '💣 DELETING ALL TEST DATA...\n\n';
+            output.textContent += 'This operation would require a dedicated endpoint.\n';
+            output.textContent += 'For now, you can:\n\n';
+            output.textContent += '1. Use the Supabase dashboard to delete data directly\n';
+            output.textContent += '2. Run SQL commands via Supabase SQL editor:\n\n';
+            output.textContent += 'DELETE FROM session_participants;\n';
+            output.textContent += 'DELETE FROM session_requests;\n';
+            output.textContent += 'DELETE FROM sessions;\n';
+            output.textContent += 'DELETE FROM session_files;\n\n';
+            output.textContent += '⚠️ WARNING: This will delete ALL data, not just test data!';
+        }
+
+        // Auto-load stats on page load
+        window.addEventListener('load', viewAllData);
+    </script>
+</body>
+</html>

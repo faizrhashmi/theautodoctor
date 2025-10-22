@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { type PlanKey } from '@/config/pricing'
 import type { Database, Json } from '@/types/supabase'
+import { broadcastSessionRequest } from '@/lib/sessionRequests'
 
 type SessionType = 'chat' | 'video' | 'diagnostic'
 type SessionInsert = Database['public']['Tables']['sessions']['Insert']
@@ -97,22 +98,14 @@ export async function fulfillCheckout(
   }
 
   // CRITICAL: Check for existing active/pending sessions - Only ONE session allowed at a time!
+  // Uses centralized cleanup utility for consistency and robustness
   if (supabaseUserId) {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { checkCustomerSessionStatus } = await import('./sessionCleanup')
+    const sessionStatus = await checkCustomerSessionStatus(supabaseUserId)
 
-    const { data: activeSessions, error: checkError } = await supabaseAdmin
-      .from('sessions')
-      .select('id, status, type, created_at')
-      .eq('customer_user_id', supabaseUserId)
-      .in('status', ['pending', 'waiting', 'live', 'scheduled']) // Block ALL non-completed sessions
-      .gte('created_at', twentyFourHoursAgo)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (!checkError && activeSessions && activeSessions.length > 0) {
-      const activeSession = activeSessions[0]
+    if (sessionStatus.blocked && sessionStatus.session) {
       throw new Error(
-        `Customer already has an active or pending session (ID: ${activeSession.id}, Status: ${activeSession.status}). Only one session allowed at a time.`
+        `Customer already has an active session (ID: ${sessionStatus.session.id}, Status: ${sessionStatus.session.status}). Please complete or cancel it before creating a new one.`
       )
     }
   }
@@ -163,6 +156,16 @@ export async function fulfillCheckout(
 
     await upsertParticipant(existing.data.id, supabaseUserId)
 
+    // Create session_request to notify mechanics (if not already created)
+    if (supabaseUserId) {
+      await createSessionRequest({
+        customerId: supabaseUserId,
+        sessionType: existing.data.type as SessionType,
+        planCode: plan,
+        customerEmail,
+      })
+    }
+
     return {
       sessionId: existing.data.id,
       route: `${ROUTE_PREFIX[existing.data.type as SessionType]}/${existing.data.id}`,
@@ -187,6 +190,19 @@ export async function fulfillCheckout(
   }
 
   await upsertParticipant(insert.data.id, supabaseUserId)
+
+  // Create session_request to notify mechanics
+  console.log('[fulfillment] About to create session_request. supabaseUserId:', supabaseUserId, 'sessionType:', sessionType, 'plan:', plan)
+  if (supabaseUserId) {
+    await createSessionRequest({
+      customerId: supabaseUserId,
+      sessionType,
+      planCode: plan,
+      customerEmail,
+    })
+  } else {
+    console.warn('[fulfillment] No supabaseUserId - cannot create session_request')
+  }
 
   return {
     sessionId: insert.data.id,
@@ -215,5 +231,79 @@ async function upsertParticipant(sessionId: string, supabaseUserId?: string | nu
 
   if (error) {
     throw new Error(`[fulfillment] Failed to upsert session participant: ${error.message}`)
+  }
+}
+
+type CreateSessionRequestOptions = {
+  customerId: string
+  sessionType: SessionType
+  planCode: string
+  customerEmail?: string | null
+}
+
+async function createSessionRequest({
+  customerId,
+  sessionType,
+  planCode,
+  customerEmail,
+}: CreateSessionRequestOptions) {
+  try {
+    // Cancel any old pending requests for this customer (they're starting a new session)
+    const { data: oldRequests } = await supabaseAdmin
+      .from('session_requests')
+      .select('id')
+      .eq('customer_id', customerId)
+      .eq('status', 'pending')
+      .is('mechanic_id', null)
+
+    if (oldRequests && oldRequests.length > 0) {
+      console.log(`[fulfillment] Cancelling ${oldRequests.length} old pending request(s) for customer`, customerId)
+      await supabaseAdmin
+        .from('session_requests')
+        .update({ status: 'cancelled' })
+        .eq('customer_id', customerId)
+        .eq('status', 'pending')
+        .is('mechanic_id', null)
+    }
+
+    console.log('[fulfillment] Creating new session_request for customer', customerId)
+
+    // Get customer name from profile
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', customerId)
+      .maybeSingle()
+
+    const customerName = profile?.full_name || customerEmail || 'Customer'
+
+    // Create the session request
+    const { data: newRequest, error: insertError } = await supabaseAdmin
+      .from('session_requests')
+      .insert({
+        customer_id: customerId,
+        session_type: sessionType,
+        plan_code: planCode,
+        status: 'pending',
+        customer_name: customerName,
+        customer_email: customerEmail || null,
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('[fulfillment] Failed to create session request:', insertError)
+      // Don't throw - we don't want to fail the whole payment flow if this fails
+    } else {
+      console.log('[fulfillment] Session request created successfully for customer', customerId)
+
+      // Broadcast to notify mechanics in real-time
+      if (newRequest) {
+        void broadcastSessionRequest('new_request', { request: newRequest })
+      }
+    }
+  } catch (error) {
+    console.error('[fulfillment] Error creating session request:', error)
+    // Don't throw - we don't want to fail the whole payment flow if this fails
   }
 }

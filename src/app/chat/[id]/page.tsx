@@ -1,7 +1,9 @@
 import { notFound, redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PRICING, type PlanKey } from '@/config/pricing'
-import ChatRoom from './ChatRoomV2'
+import ChatRoom from './ChatRoomV3'
 import type { Json } from '@/types/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -10,26 +12,53 @@ type PageProps = {
   params: { id: string }
 }
 
+// Helper to check mechanic auth
+async function getMechanicFromCookie() {
+  const cookieStore = cookies()
+  const token = cookieStore.get('aad_mech')?.value
+
+  if (!token) return null
+
+  const { data: session } = await supabaseAdmin
+    .from('mechanic_sessions')
+    .select('mechanic_id')
+    .eq('token', token)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle()
+
+  if (!session) return null
+
+  const { data: mechanic } = await supabaseAdmin
+    .from('mechanics')
+    .select('id, name, email')
+    .eq('id', session.mechanic_id)
+    .maybeSingle()
+
+  return mechanic
+}
+
 export default async function ChatSessionPage({ params }: PageProps) {
   const sessionId = params.id
   const supabase = getSupabaseServer()
 
+  // Check for customer auth (Supabase)
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError) {
-    throw new Error(userError.message)
-  }
+  // Check for mechanic auth (custom)
+  const mechanic = await getMechanicFromCookie()
 
-  if (!user) {
+  // Must be authenticated as either customer or mechanic
+  if (!user && !mechanic) {
     redirect(`/signup?redirect=/chat/${sessionId}`)
   }
 
+  // Fetch session FIRST to determine the correct role
   const { data: session, error: sessionError } = await supabase
     .from('sessions')
-    .select('id, plan, type, status, metadata, created_at')
+    .select('id, plan, type, status, metadata, created_at, started_at, mechanic_id, customer_user_id')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -41,6 +70,44 @@ export default async function ChatSessionPage({ params }: PageProps) {
     notFound()
   }
 
+  // CRITICAL: Determine role based on session assignment, NOT just cookie presence
+  // This prevents role confusion when both cookies exist (testing on same browser)
+  let currentUserId: string
+  let userRole: 'mechanic' | 'customer'
+
+  // Check if this person is the assigned mechanic for this session
+  const isMechanicForThisSession = mechanic && session.mechanic_id === mechanic.id
+
+  // Check if this person is the customer who created this session
+  const isCustomerForThisSession = user && session.customer_user_id === user.id
+
+  // Security logging
+  console.log('[CHAT PAGE SECURITY]', {
+    sessionId,
+    hasUserAuth: !!user,
+    hasMechanicAuth: !!mechanic,
+    sessionCustomerId: session.customer_user_id,
+    sessionMechanicId: session.mechanic_id,
+    isMechanicForThisSession,
+    isCustomerForThisSession,
+  })
+
+  if (isMechanicForThisSession) {
+    // They are the assigned mechanic
+    currentUserId = mechanic!.id
+    userRole = 'mechanic'
+    console.log('[CHAT PAGE SECURITY] Role assigned: MECHANIC', { currentUserId })
+  } else if (isCustomerForThisSession) {
+    // They are the customer who created this session
+    currentUserId = user!.id
+    userRole = 'customer'
+    console.log('[CHAT PAGE SECURITY] Role assigned: CUSTOMER', { currentUserId })
+  } else {
+    // Neither the assigned mechanic nor the customer - access denied
+    console.log('[CHAT PAGE SECURITY] ACCESS DENIED - Not assigned to this session')
+    notFound()
+  }
+
   const { data: participants, error: participantsError } = await supabase
     .from('session_participants')
     .select('user_id, role')
@@ -48,10 +115,6 @@ export default async function ChatSessionPage({ params }: PageProps) {
 
   if (participantsError) {
     throw new Error(participantsError.message)
-  }
-
-  if (!participants?.some((participant) => participant.user_id === user.id)) {
-    notFound()
   }
 
   const { data: messages, error: messagesError } = await supabase
@@ -67,21 +130,56 @@ export default async function ChatSessionPage({ params }: PageProps) {
   const planKey = (session.plan as PlanKey) ?? 'chat10'
   const planName = PRICING[planKey]?.name ?? 'Quick Chat'
   const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
+  const userEmail = user?.email || mechanic?.email || null
+
+  // Fetch mechanic name if assigned
+  let mechanicName: string | null = null
+  if (session.mechanic_id) {
+    const { data: mechanicData } = await supabaseAdmin
+      .from('mechanics')
+      .select('name')
+      .eq('id', session.mechanic_id)
+      .maybeSingle()
+    mechanicName = mechanicData?.name || null
+  }
+
+  // Fetch customer name
+  let customerName: string | null = null
+  if (session.customer_user_id) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('name')
+      .eq('id', session.customer_user_id)
+      .maybeSingle()
+
+    if (profile?.name) {
+      customerName = profile.name
+    } else if (user?.user_metadata?.name) {
+      customerName = user.user_metadata.name
+    } else if (user?.email) {
+      customerName = user.email.split('@')[0]
+    }
+  }
 
   return (
     <ChatRoom
       sessionId={sessionId}
-      userId={user.id}
-      userEmail={user.email ?? null}
+      userId={currentUserId!}
+      userRole={userRole}
+      userEmail={userEmail}
       planName={planName}
       plan={session.plan ?? 'free'}
       isFreeSession={isFreeSession}
       status={session.status ?? 'pending'}
-      startedAt={session.created_at}
+      startedAt={session.started_at || session.created_at}
       scheduledStart={session.created_at}
       scheduledEnd={null}
       initialMessages={(messages ?? []).map(mapMessage)}
       initialParticipants={participants ?? []}
+      mechanicName={mechanicName}
+      customerName={customerName}
+      mechanicId={session.mechanic_id || null}
+      customerId={session.customer_user_id || null}
     />
   )
 }

@@ -23,7 +23,11 @@
       "Bash(timeout /t 3)",
       "Bash(npm install:*)",
       "Bash(netstat:*)",
-      "Bash(timeout /t 10)"
+      "Bash(timeout /t 10)",
+      "Bash(echo:*)",
+      "Bash(supabase db diff:*)",
+      "Bash(taskkill:*)",
+      "Bash(supabase db push:*)"
     ],
     "deny": [],
     "ask": []

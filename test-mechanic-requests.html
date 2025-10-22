@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Mechanic Requests API</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Mechanic Requests API</h1>
+
+    <div class="warning">
+        <strong>⚠️ Authentication Required:</strong> This endpoint requires mechanic authentication.
+        Make sure you're logged in as a mechanic in this browser before testing.
+    </div>
+
+    <button onclick="testAPI()">🔄 Fetch Requests</button>
+    <pre id="output">Click the button to fetch mechanic requests...</pre>
+
+    <script>
+        async function testAPI() {
+            const output = document.getElementById('output');
+            output.textContent = 'Loading...\n\nCalling: http://localhost:3000/api/mechanics/requests';
+
+            try {
+                const res = await fetch('http://localhost:3000/api/mechanics/requests', {
+                    credentials: 'include' // Include cookies for authentication
+                });
+                const data = await res.json();
+
+                if (res.status === 401) {
+                    output.textContent = '❌ Authentication Failed\n\n';
+                    output.textContent += 'Please log in as a mechanic first:\n';
+                    output.textContent += 'http://localhost:3000/mechanic/login\n\n';
+                    output.textContent += JSON.stringify(data, null, 2);
+                } else if (res.ok) {
+                    output.textContent = '✅ Success!\n\n';
+                    output.textContent += `Found ${data.requests?.length || 0} request(s)\n\n`;
+                    output.textContent += JSON.stringify(data, null, 2);
+                } else {
+                    output.textContent = `❌ Error ${res.status}\n\n`;
+                    output.textContent += JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                output.textContent = '❌ Fetch Error\n\n';
+                output.textContent += 'Error: ' + error.message + '\n\n';
+                output.textContent += 'Make sure:\n';
+                output.textContent += '1. Dev server is running (npm run dev)\n';
+                output.textContent += '2. Server is on http://localhost:3000\n';
+                output.textContent += '3. You are logged in as a mechanic';
+            }
+        }
+
+        // Auto-run on load
+        testAPI();
+    </script>
+</body>
+</html>
