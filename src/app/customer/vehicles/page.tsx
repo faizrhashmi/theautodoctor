@@ -29,6 +29,7 @@ export default function VehiclesPage() {
 
   useEffect(() => {
     loadVehicles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function loadVehicles() {

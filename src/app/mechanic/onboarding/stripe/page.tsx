@@ -124,7 +124,7 @@ export default function StripeOnboardingPage() {
           {isRefresh && (
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm text-amber-800">
-                It looks like you didn't complete the setup. Click below to try again.
+                It looks like you didn&apos;t complete the setup. Click below to try again.
               </p>
             </div>
           )}

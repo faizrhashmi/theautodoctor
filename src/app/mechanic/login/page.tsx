@@ -92,7 +92,7 @@ export default function MechanicLogin() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/mechanic/signup" className="font-semibold text-orange-400 hover:text-orange-300">
                 Sign up
               </Link>

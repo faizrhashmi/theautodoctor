@@ -152,8 +152,8 @@ export default function ActiveSessionsManager({ sessions }: ActiveSessionsManage
 
       <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
         <p className="text-xs text-green-200">
-          <strong>Tip:</strong> Your session will remain active until you or the mechanic ends it. Don't forget to end
-          the session when you're done to ensure accurate billing.
+          <strong>Tip:</strong> Your session will remain active until you or the mechanic ends it. Don&apos;t forget to end
+          the session when you&apos;re done to ensure accurate billing.
         </p>
       </div>
     </div>

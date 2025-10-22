@@ -555,7 +555,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               <div className="flex-1">
                 <h3 className="font-bold text-green-100">Request Accepted Successfully!</h3>
                 <p className="mt-1 text-sm text-green-200/80">
-                  You've accepted the session request from <span className="font-semibold">{acceptedCustomerName}</span>. The session is now in your active sessions below.
+                  You&apos;ve accepted the session request from <span className="font-semibold">{acceptedCustomerName}</span>. The session is now in your active sessions below.
                 </p>
                 <div className="mt-4 flex gap-3">
                   <Link

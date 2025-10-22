@@ -627,7 +627,7 @@ export default function IntakePage() {
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-white">Active Session in Progress</h3>
                 <p className="mt-2 text-sm text-slate-300">
-                  You already have a session that's {activeSessionModal.sessionStatus}. You can only have one active session at a time.
+                  You already have a session that&apos;s {activeSessionModal.sessionStatus}. You can only have one active session at a time.
                 </p>
               </div>
             </div>
