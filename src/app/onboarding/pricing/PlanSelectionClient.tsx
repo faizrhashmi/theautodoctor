@@ -63,10 +63,9 @@ function getRedirectTarget(_planId: (typeof TIERS)[number]['id']): string {
 
 type PlanSelectionClientProps = {
   hasActiveSessions: boolean;
-  activeSessionsCount: number;
 };
 
-export default function PlanSelectionClient({ hasActiveSessions }: Pick<PlanSelectionClientProps, 'hasActiveSessions'>) {
+export default function PlanSelectionClient({ hasActiveSessions }: PlanSelectionClientProps) {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

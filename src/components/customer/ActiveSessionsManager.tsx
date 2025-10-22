@@ -32,12 +32,7 @@ export default function ActiveSessionsManager({ sessions }: ActiveSessionsManage
   }
 
   // Only show the FIRST active session (enforce business rule)
-  const singleSession = sessions[0]
-
-  // Return early if no session
-  if (!singleSession) {
-    return null
-  }
+  const singleSession = sessions[0]!
 
   const visibleSessions = [singleSession]
 

@@ -29,7 +29,8 @@
       "Bash(taskkill:*)",
       "Bash(supabase db push:*)",
       "Bash(npx tsc:*)",
-      "Read(//c/temp/**)"
+      "Read(//c/temp/**)",
+      "Bash(npm run typecheck:*)"
     ],
     "deny": [],
     "ask": []
