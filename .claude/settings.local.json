@@ -22,7 +22,8 @@
       "Bash(powershell -Command:*)",
       "Bash(timeout /t 3)",
       "Bash(npm install:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(timeout /t 10)"
     ],
     "deny": [],
     "ask": []

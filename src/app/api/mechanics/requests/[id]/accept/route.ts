@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabaseServer'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
 
 export async function POST(
@@ -51,11 +52,43 @@ export async function POST(
     return NextResponse.json({ error: 'Request already claimed' }, { status: 409 })
   }
 
+  // Create a session row so it appears in mechanic's upcoming sessions
+  const { data: sessionRow, error: sessionError } = await supabaseAdmin
+    .from('sessions')
+    .insert({
+      mechanic_id: user.id,
+      customer_user_id: accepted.customer_id,
+      status: 'waiting',
+      plan: accepted.plan_code,
+      type: accepted.session_type,
+      stripe_session_id: `req_${accepted.id}`, // Link to the request
+      scheduled_start: now,
+      scheduled_for: now,
+      metadata: {
+        request_id: accepted.id,
+        customer_id: accepted.customer_id,
+        customer_name: accepted.customer_name ?? 'Customer',
+        customer_email: accepted.customer_email ?? null,
+        notes: accepted.notes ?? null,
+      },
+    })
+    .select('id')
+    .single()
+
+  if (sessionError) {
+    console.error('Failed to create session after accepting request', sessionError)
+    // Session request is already accepted, so we log but don't fail the request
+    // The mechanic dashboard will still show the accepted request
+  }
+
   void broadcastSessionRequest('request_accepted', {
     id: accepted.id,
     mechanicId: accepted.mechanic_id,
     mechanicName: profile?.full_name ?? user.email ?? 'Mechanic',
   })
 
-  return NextResponse.json({ request: toSessionRequest(accepted) })
+  return NextResponse.json({
+    request: toSessionRequest(accepted),
+    session: sessionRow ? { id: sessionRow.id } : null
+  })
 }
