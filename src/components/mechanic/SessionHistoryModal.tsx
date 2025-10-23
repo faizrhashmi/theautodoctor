@@ -1,0 +1,303 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { X, MessageSquare, Clock, Trash2, FileText, Download, User } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
+
+interface Message {
+  id: string
+  created_at: string
+  sender_id: string
+  sender_role: 'customer' | 'mechanic'
+  content: string
+  sender_name?: string
+}
+
+interface SessionHistoryModalProps {
+  sessionId: string | null
+  sessionType: string
+  customerName: string
+  plan: string
+  status: string
+  startedAt: string | null
+  endedAt: string | null
+  durationMinutes: number | null
+  onClose: () => void
+}
+
+export default function SessionHistoryModal({
+  sessionId,
+  sessionType,
+  customerName,
+  plan,
+  status,
+  startedAt,
+  endedAt,
+  durationMinutes,
+  onClose,
+}: SessionHistoryModalProps) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [isDeletingLog, setIsDeletingLog] = useState(false)
+  const [isDeletingSession, setIsDeletingSession] = useState(false)
+
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!sessionId) return
+
+    const loadMessages = async () => {
+      setIsLoadingMessages(true)
+      try {
+        const { data, error } = await supabase
+          .from('session_messages')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: true })
+
+        if (error) {
+          console.error('Error loading messages:', error)
+          return
+        }
+
+        setMessages(data || [])
+      } catch (err) {
+        console.error('Failed to load messages:', err)
+      } finally {
+        setIsLoadingMessages(false)
+      }
+    }
+
+    loadMessages()
+  }, [sessionId, supabase])
+
+  const handleDeleteLog = async () => {
+    if (!sessionId) return
+    if (!confirm('Are you sure you want to delete all chat messages for this session? This cannot be undone.')) return
+
+    setIsDeletingLog(true)
+    try {
+      const { error } = await supabase
+        .from('session_messages')
+        .delete()
+        .eq('session_id', sessionId)
+
+      if (error) throw error
+
+      setMessages([])
+      alert('Chat log deleted successfully')
+    } catch (error) {
+      console.error('Error deleting chat log:', error)
+      alert('Failed to delete chat log. Please try again.')
+    } finally {
+      setIsDeletingLog(false)
+    }
+  }
+
+  const handleDeleteSession = async () => {
+    if (!sessionId) return
+    if (!confirm('Are you sure you want to delete this session record? This will also delete all messages. This cannot be undone.')) return
+
+    setIsDeletingSession(true)
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('id', sessionId)
+
+      if (error) throw error
+
+      alert('Session deleted successfully')
+      onClose()
+      window.location.reload() // Refresh to update the list
+    } catch (error) {
+      console.error('Error deleting session:', error)
+      alert('Failed to delete session. Please try again.')
+    } finally {
+      setIsDeletingSession(false)
+    }
+  }
+
+  const exportChatLog = () => {
+    if (messages.length === 0) {
+      alert('No messages to export')
+      return
+    }
+
+    const chatLog = messages.map(msg => {
+      const time = new Date(msg.created_at).toLocaleString()
+      const sender = msg.sender_role === 'mechanic' ? 'Mechanic' : 'Customer'
+      return `[${time}] ${sender}: ${msg.content}`
+    }).join('\n\n')
+
+    const blob = new Blob([chatLog], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `session-${sessionId}-chat-log.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  if (!sessionId) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-800/95 px-6 py-4 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
+              <MessageSquare className="h-5 w-5 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Session Details</h2>
+              <p className="text-sm text-slate-400">{customerName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Session Info */}
+        <div className="border-b border-slate-700 bg-slate-800/50 px-6 py-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-slate-500">Plan</p>
+              <p className="mt-1 font-semibold text-white">{plan}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Type</p>
+              <p className="mt-1 font-semibold text-white capitalize">{sessionType}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Status</p>
+              <p className={`mt-1 font-semibold ${
+                status === 'completed' ? 'text-green-400' : 'text-slate-400'
+              }`}>
+                {status === 'completed' ? 'Completed' : 'Cancelled'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Duration</p>
+              <p className="mt-1 font-semibold text-white">
+                {durationMinutes ? `${durationMinutes} min` : 'N/A'}
+              </p>
+            </div>
+          </div>
+          {(startedAt || endedAt) && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+              <Clock className="h-3.5 w-3.5" />
+              {startedAt && `Started: ${new Date(startedAt).toLocaleString()}`}
+              {startedAt && endedAt && ' • '}
+              {endedAt && `Ended: ${new Date(endedAt).toLocaleString()}`}
+            </div>
+          )}
+        </div>
+
+        {/* Chat Messages */}
+        <div className="max-h-[50vh] overflow-y-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-white">Conversation</h3>
+            <div className="flex gap-2">
+              {messages.length > 0 && (
+                <button
+                  onClick={exportChatLog}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isLoadingMessages ? (
+            <div className="flex items-center justify-center py-8 text-slate-400">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-600 border-t-slate-400" />
+                Loading messages...
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-700 bg-slate-800/50 py-8 text-center text-sm text-slate-500">
+              No messages found for this session
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex gap-3 ${
+                    msg.sender_role === 'mechanic' ? 'flex-row-reverse' : 'flex-row'
+                  }`}
+                >
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
+                    msg.sender_role === 'mechanic'
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div className={`max-w-[70%] ${
+                    msg.sender_role === 'mechanic' ? 'text-right' : 'text-left'
+                  }`}>
+                    <div className={`inline-block rounded-2xl px-4 py-2 ${
+                      msg.sender_role === 'mechanic'
+                        ? 'bg-orange-500/20 text-orange-100'
+                        : 'bg-blue-500/20 text-blue-100'
+                    }`}>
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(msg.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="sticky bottom-0 border-t border-slate-700 bg-slate-800/95 px-6 py-4 backdrop-blur">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-600"
+            >
+              Close
+            </button>
+            {messages.length > 0 && (
+              <button
+                onClick={handleDeleteLog}
+                disabled={isDeletingLog}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeletingLog ? 'Deleting...' : 'Delete Chat Log'}
+              </button>
+            )}
+            <button
+              onClick={handleDeleteSession}
+              disabled={isDeletingSession}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeletingSession ? 'Deleting...' : 'Delete Session Record'}
+            </button>
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Note: Deleting the session record will also delete all associated messages and cannot be undone.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
