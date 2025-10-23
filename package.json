@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:turbo": "next dev --turbo",
+    "dev:clean": "rm -rf .next && next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start -p $PORT",
     "lint": "next lint",
     "lint:strict": "eslint . --max-warnings 10",
@@ -13,7 +16,10 @@
     "audit:security": "npm audit --audit-level=high",
     "audit:deps": "depcheck --ignores=\"@types/*,eslint-config-next\"",
     "audit:all": "npm run typecheck && npm run lint:strict && npm run audit:deps && npm run audit:security",
-    "validate": "npm run typecheck && npm run lint && npm run build"
+    "validate": "npm run typecheck && npm run lint && npm run build",
+    "clean": "rm -rf .next node_modules/.cache",
+    "config:dev": "cp next.config.dev.js next.config.js",
+    "config:prod": "cp next.config.prod.js next.config.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.1",
