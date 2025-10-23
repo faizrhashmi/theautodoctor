@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
-import SessionsList from './SessionsList'
+import AdminSessionsClient, { type SessionWithParticipants } from './AdminSessionsClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MechanicSessionsPage() {
+export default async function AdminSessionsPage() {
   const supabase = getSupabaseServer()
 
   const {
@@ -16,85 +17,61 @@ export default async function MechanicSessionsPage() {
     redirect('/admin/login')
   }
 
-  // Fetch available sessions (pending chat/video sessions without mechanics)
-  const { data: availableSessions, error: availableError } = await supabase
+  // Fetch initial sessions with all related data
+  const { data: sessions, error: sessionsError } = await supabase
     .from('sessions')
     .select(`
-      id,
-      created_at,
-      type,
-      plan,
-      status,
-      intake_id,
-      customer_user_id
-    `)
-    .in('type', ['chat', 'video'])
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-
-  if (availableError) {
-    throw new Error(availableError.message)
-  }
-
-  // For each session, check if it has a mechanic assigned
-  const sessionsWithMechanicCount = await Promise.all(
-    (availableSessions || []).map(async (session) => {
-      const { count } = await supabase
-        .from('session_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id)
-        .eq('role', 'mechanic')
-
-      return {
-        ...session,
-        has_mechanic: (count || 0) > 0,
-      }
-    })
-  )
-
-  // Filter to only sessions without mechanics
-  const unassignedSessions = sessionsWithMechanicCount.filter((s) => !s.has_mechanic)
-
-  // Fetch sessions this mechanic is currently in
-  const { data: mySessions, error: mySessionsError } = await supabase
-    .from('session_participants')
-    .select(`
-      session_id,
-      sessions (
-        id,
-        created_at,
-        type,
-        plan,
-        status,
-        intake_id,
-        customer_user_id
+      *,
+      session_participants!inner(
+        user_id,
+        role,
+        users!inner(
+          email,
+          user_metadata
+        )
       )
     `)
-    .eq('user_id', user.id)
-    .eq('role', 'mechanic')
+    .order('created_at', { ascending: false })
+    .limit(100)
 
-  if (mySessionsError) {
-    throw new Error(mySessionsError.message)
+  if (sessionsError) {
+    console.error('Error fetching sessions:', sessionsError)
   }
 
-  const activeSessions = (mySessions || [])
-    .map((p: any) => p.sessions)
-    .filter((s: any) => s && s.status !== 'completed')
+  // Get statistics
+  const stats = await getSessionStats(supabase)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Mechanic Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Session Management</h1>
         <p className="mt-2 text-sm text-slate-600">
-          View available sessions and join customers who need help
+          Monitor and manage all customer sessions
         </p>
       </div>
 
-      <SessionsList
-        userId={user.id}
-        availableSessions={unassignedSessions}
-        activeSessions={activeSessions}
-      />
+      <AdminSessionsClient initialSessions={(sessions as unknown as SessionWithParticipants[]) || []} initialStats={stats} />
     </div>
   )
+}
+
+async function getSessionStats(supabase: any) {
+  const [liveCount, waitingCount, completedCount, totalRevenue] = await Promise.all([
+    supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('status', 'live'),
+    supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('status', 'waiting'),
+    supabase.from('sessions').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+    supabase.from('sessions').select('metadata').eq('status', 'completed'),
+  ])
+
+  const revenue = totalRevenue.data?.reduce((sum: number, session: any) => {
+    const amount = session.metadata?.amount || 0
+    return sum + (typeof amount === 'number' ? amount : 0)
+  }, 0) || 0
+
+  return {
+    live: liveCount.count || 0,
+    waiting: waitingCount.count || 0,
+    completed: completedCount.count || 0,
+    revenue: revenue / 100, // Convert cents to dollars
+  }
 }

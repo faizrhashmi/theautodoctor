@@ -451,6 +451,50 @@ export type Database = {
           stripe_charges_enabled: boolean | null
           stripe_payouts_enabled: boolean | null
           stripe_details_submitted: boolean | null
+          // Personal information
+          full_address: string | null
+          city: string | null
+          province: string | null
+          postal_code: string | null
+          country: string | null
+          date_of_birth: string | null
+          sin_or_business_number: string | null
+          // Credentials
+          red_seal_certified: boolean | null
+          red_seal_number: string | null
+          red_seal_province: string | null
+          red_seal_expiry_date: string | null
+          certification_documents: string[] | null
+          other_certifications: Json | null
+          years_of_experience: number | null
+          specializations: string[] | null
+          // Shop information
+          shop_affiliation: string | null
+          shop_name: string | null
+          shop_address: string | null
+          business_license_number: string | null
+          business_license_document: string | null
+          // Insurance and legal
+          liability_insurance: boolean | null
+          insurance_policy_number: string | null
+          insurance_expiry: string | null
+          insurance_document: string | null
+          criminal_record_check: boolean | null
+          crc_date: string | null
+          crc_document: string | null
+          // Banking
+          banking_info_completed: boolean | null
+          // Approval workflow
+          application_status: string | null
+          background_check_status: string | null
+          approval_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          application_submitted_at: string | null
+          approved_at: string | null
+          application_draft: Json | null
+          current_step: number | null
+          last_updated: string | null
         }
         Insert: {
           id?: string
@@ -464,6 +508,44 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          full_address?: string | null
+          city?: string | null
+          province?: string | null
+          postal_code?: string | null
+          country?: string | null
+          date_of_birth?: string | null
+          sin_or_business_number?: string | null
+          red_seal_certified?: boolean | null
+          red_seal_number?: string | null
+          red_seal_province?: string | null
+          red_seal_expiry_date?: string | null
+          certification_documents?: string[] | null
+          other_certifications?: Json | null
+          years_of_experience?: number | null
+          specializations?: string[] | null
+          shop_affiliation?: string | null
+          shop_name?: string | null
+          shop_address?: string | null
+          business_license_number?: string | null
+          business_license_document?: string | null
+          liability_insurance?: boolean | null
+          insurance_policy_number?: string | null
+          insurance_expiry?: string | null
+          insurance_document?: string | null
+          criminal_record_check?: boolean | null
+          crc_date?: string | null
+          crc_document?: string | null
+          banking_info_completed?: boolean | null
+          application_status?: string | null
+          background_check_status?: string | null
+          approval_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          application_submitted_at?: string | null
+          approved_at?: string | null
+          application_draft?: Json | null
+          current_step?: number | null
+          last_updated?: string | null
         }
         Update: {
           id?: string
@@ -477,8 +559,141 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          full_address?: string | null
+          city?: string | null
+          province?: string | null
+          postal_code?: string | null
+          country?: string | null
+          date_of_birth?: string | null
+          sin_or_business_number?: string | null
+          red_seal_certified?: boolean | null
+          red_seal_number?: string | null
+          red_seal_province?: string | null
+          red_seal_expiry_date?: string | null
+          certification_documents?: string[] | null
+          other_certifications?: Json | null
+          years_of_experience?: number | null
+          specializations?: string[] | null
+          shop_affiliation?: string | null
+          shop_name?: string | null
+          shop_address?: string | null
+          business_license_number?: string | null
+          business_license_document?: string | null
+          liability_insurance?: boolean | null
+          insurance_policy_number?: string | null
+          insurance_expiry?: string | null
+          insurance_document?: string | null
+          criminal_record_check?: boolean | null
+          crc_date?: string | null
+          crc_document?: string | null
+          banking_info_completed?: boolean | null
+          application_status?: string | null
+          background_check_status?: string | null
+          approval_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          application_submitted_at?: string | null
+          approved_at?: string | null
+          application_draft?: Json | null
+          current_step?: number | null
+          last_updated?: string | null
         }
         Relationships: []
+      }
+      mechanic_documents: {
+        Row: {
+          id: string
+          created_at: string
+          mechanic_id: string
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          storage_path: string
+          storage_url: string | null
+          description: string | null
+          verified: boolean | null
+          verified_by: string | null
+          verified_at: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          mechanic_id: string
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          storage_path: string
+          storage_url?: string | null
+          description?: string | null
+          verified?: boolean | null
+          verified_by?: string | null
+          verified_at?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          mechanic_id?: string
+          document_type?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          storage_path?: string
+          storage_url?: string | null
+          description?: string | null
+          verified?: boolean | null
+          verified_by?: string | null
+          verified_at?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'mechanic_documents_mechanic_id_fkey'
+            columns: ['mechanic_id']
+            referencedRelation: 'mechanics'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      mechanic_admin_actions: {
+        Row: {
+          id: string
+          created_at: string
+          mechanic_id: string
+          admin_id: string
+          action_type: string
+          notes: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          mechanic_id: string
+          admin_id: string
+          action_type: string
+          notes?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          mechanic_id?: string
+          admin_id?: string
+          action_type?: string
+          notes?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'mechanic_admin_actions_mechanic_id_fkey'
+            columns: ['mechanic_id']
+            referencedRelation: 'mechanics'
+            referencedColumns: ['id']
+          }
+        ]
       }
       mechanic_availability: {
         Row: {

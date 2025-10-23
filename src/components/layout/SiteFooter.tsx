@@ -5,8 +5,7 @@ const NAV_LINKS = [
   { href: '/about', label: 'About' },
   { href: '/services-pricing', label: 'Services & Pricing' },
   { href: '/knowledge-base', label: 'Knowledge Base' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/waiver', label: 'Waiver' }
+  { href: '/contact', label: 'Contact' }
 ]
 
 const SOCIAL_ICONS = [

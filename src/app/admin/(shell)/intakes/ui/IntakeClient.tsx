@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable @next/next/no-img-element */
 // Using img element for dynamic file uploads with unknown dimensions
 

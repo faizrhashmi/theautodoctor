@@ -4,7 +4,19 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, password, fullName, phone, vehicleInfo, waiverAccepted, is18Plus } = body
+    const {
+      email,
+      password,
+      fullName,
+      phone,
+      address,
+      preferredLanguage,
+      newsletterSubscribed,
+      referralSource,
+      vehicleInfo,
+      waiverAccepted,
+      is18Plus,
+    } = body
 
     // Validation
     if (!email || !password || !fullName || !phone) {
@@ -59,15 +71,36 @@ export async function POST(req: NextRequest) {
         full_name: fullName,
         phone,
         role: 'customer',
+        // Address fields
+        address_line1: address?.line1,
+        address_line2: address?.line2,
+        city: address?.city,
+        state_province: address?.state,
+        postal_zip_code: address?.postalCode,
+        country: address?.country,
+        // Preferences
+        preferred_language: preferredLanguage || 'en',
+        newsletter_subscribed: newsletterSubscribed || false,
+        referral_source: referralSource,
+        communication_preferences: {
+          email: true,
+          sms: true,
+          push: true,
+        },
+        // Vehicle info
         vehicle_info: vehicleInfo || {},
+        // Legal
         is_18_plus: true,
         waiver_accepted: true,
         waiver_accepted_at: new Date().toISOString(),
         waiver_ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
         terms_accepted: true,
         terms_accepted_at: new Date().toISOString(),
+        // Status
         email_verified: false,
         account_status: 'active',
+        profile_completed: true,
+        profile_completed_at: new Date().toISOString(),
       }, {
         onConflict: 'id'
       })

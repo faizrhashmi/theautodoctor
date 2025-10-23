@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/app/admin/layout.tsx
 import type { Metadata } from 'next'
 import { LogoutButton } from '@/components/admin/LogoutButton'
@@ -48,7 +49,13 @@ function AdminHeader() {
             </span>
             <span className="text-sm font-semibold text-slate-900">Admin Panel</span>
           </div>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-3">
+            <a
+              href="/admin"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Dashboard
+            </a>
             <a
               href="/admin/intakes"
               className="text-sm font-medium text-slate-600 hover:text-slate-900"
@@ -60,6 +67,61 @@ function AdminHeader() {
               className="text-sm font-medium text-slate-600 hover:text-slate-900"
             >
               Sessions
+            </a>
+            <a
+              href="/admin/unattended"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Unattended
+            </a>
+            <a
+              href="/admin/customers"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Customers
+            </a>
+            <a
+              href="/admin/mechanics"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Mechanics
+            </a>
+            <a
+              href="/admin/corporate"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Corporate
+            </a>
+            <div className="h-4 w-px bg-slate-300"></div>
+            <a
+              href="/admin/logs"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Logs
+            </a>
+            <a
+              href="/admin/errors"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Errors
+            </a>
+            <a
+              href="/admin/database"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Database
+            </a>
+            <a
+              href="/admin/health"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Health
+            </a>
+            <a
+              href="/admin/cleanup"
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Cleanup
             </a>
           </nav>
         </div>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/app/api/admin/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';

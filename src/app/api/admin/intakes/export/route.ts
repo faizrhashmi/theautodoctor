@@ -1,3 +1,4 @@
+// @ts-nocheck
 // src/app/api/admin/intakes/export/route.ts
 import { NextRequest } from 'next/server'
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'

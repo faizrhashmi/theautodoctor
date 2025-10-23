@@ -10,7 +10,17 @@
       "Bash(npm run build:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npx supabase:*)",
+      "Bash(find:*)",
+      "Bash(tee:*)",
+      "Bash(while read file)",
+      "Bash(do node -e \"const fs = require(''''fs''''); let content = fs.readFileSync(''''$file'''', ''''utf8''''); if (content.includes(''''request.'''')) { content = content.replace(/_request:/g, ''''request:''''); fs.writeFileSync(''''$file'''', content); console.log(''''Fixed: $file''''); }\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

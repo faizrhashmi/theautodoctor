@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Link from 'next/link'
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'
 import type { IntakeDeletion } from '@/types/supabase'

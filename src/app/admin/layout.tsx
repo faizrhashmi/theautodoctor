@@ -34,6 +34,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 >
                   Sessions
                 </a>
+                <a
+                  href="/admin/customers"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  Customers
+                </a>
+                <a
+                  href="/admin/mechanics"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                >
+                  Mechanics
+                </a>
               </nav>
             </div>
             <LogoutButton />

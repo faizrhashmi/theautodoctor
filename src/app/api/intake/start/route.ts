@@ -189,17 +189,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const thankYouUrl = new URL('/thank-you', req.nextUrl.origin);
-    thankYouUrl.searchParams.set('plan', plan);
-    if (intakeId) thankYouUrl.searchParams.set('intake_id', intakeId);
-    if (sessionId) {
-      thankYouUrl.searchParams.set('session', sessionId);
-      thankYouUrl.searchParams.set('type', 'chat');
-    }
+    // Redirect to waiver signing page instead of thank-you
+    const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
+    waiverUrl.searchParams.set('plan', plan);
+    if (intakeId) waiverUrl.searchParams.set('intake_id', intakeId);
+    if (sessionId) waiverUrl.searchParams.set('session', sessionId);
 
-    return NextResponse.json({ redirect: `${thankYouUrl.pathname}${thankYouUrl.search}` });
+    return NextResponse.json({ redirect: `${waiverUrl.pathname}${waiverUrl.search}` });
   }
+
+  // Paid plans also redirect to waiver first, then waiver will redirect to checkout
+  const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
+  waiverUrl.searchParams.set('plan', plan);
+  if (intakeId) waiverUrl.searchParams.set('intake_id', intakeId);
+
   return NextResponse.json({
-    redirect: `/api/checkout/create-session?plan=${encodeURIComponent(plan)}&intake_id=${encodeURIComponent(intakeId!)}`,
+    redirect: `${waiverUrl.pathname}${waiverUrl.search}`,
   });
 }
