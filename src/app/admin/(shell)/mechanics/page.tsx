@@ -400,13 +400,13 @@ export default function MechanicsPage() {
                       <OnlineIndicator isOnline={mechanic.is_online} />
                     </td>
                     <td>
-                      <RatingDisplay rating={mechanic.rating} />
+                      <RatingDisplay rating={mechanic.rating || 0} />
                     </td>
                     <td className="text-center font-medium text-slate-900">
-                      {mechanic.total_sessions}
+                      {mechanic.total_sessions || 0}
                     </td>
                     <td className="font-medium text-slate-900">
-                      ${mechanic.total_earnings.toFixed(2)}
+                      ${(mechanic.total_earnings || 0).toFixed(2)}
                     </td>
                     <td className="text-slate-600">
                       {formatResponseTime(mechanic.avg_response_time)}

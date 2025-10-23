@@ -75,7 +75,7 @@ export default function HealthPage() {
   }, [autoRefresh])
 
   const formatUptime = (percentage: number) => {
-    return percentage.toFixed(2) + '%'
+    return (percentage || 0).toFixed(2) + '%'
   }
 
   const getUptimeColor = (percentage: number) => {

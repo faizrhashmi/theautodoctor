@@ -29,7 +29,7 @@ export default function SessionStats({ stats }: Props) {
     },
     {
       label: 'Revenue',
-      value: `$${stats.revenue.toFixed(2)}`,
+      value: `$${(stats.revenue || 0).toFixed(2)}`,
       color: 'bg-purple-100 text-purple-700',
       icon: '💰',
     },
