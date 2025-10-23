@@ -55,19 +55,20 @@ export async function cleanupCustomerWaitingSessions(
 /**
  * Clean up expired session requests and their associated sessions
  *
- * IMPORTANT: Pending requests should stay available for mechanics to see and accept.
- * Only cleanup requests that are VERY old (2+ hours) to avoid blocking the mechanic dashboard.
+ * REAL-TIME BUSINESS RULE: Pending requests expire after 5 minutes.
+ * If a mechanic hasn't accepted within 5 minutes, the request is stale and should be cancelled.
+ * This prevents ghost requests from cluttering the mechanic dashboard.
  *
- * @param maxAgeMinutes - Maximum age in minutes (default: 120 = 2 hours)
+ * @param maxAgeMinutes - Maximum age in minutes (default: 5 minutes for real-time business)
  * @returns Cleanup statistics
  */
 export async function cleanupExpiredRequests(
-  maxAgeMinutes: number = 120
+  maxAgeMinutes: number = 5
 ): Promise<{ requests: number; sessions: number }> {
   const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
 
-  // Find very old pending requests (2+ hours old)
-  // These are likely abandoned - customer has left or given up
+  // Find expired pending requests (> 5 minutes old by default)
+  // Real-time business: if no mechanic accepts within 5 minutes, request is stale
   const { data: expiredRequests } = await supabaseAdmin
     .from('session_requests')
     .select('id, customer_id')
@@ -115,19 +116,19 @@ export async function cleanupExpiredRequests(
 /**
  * Clean up old ACCEPTED requests that were never started
  *
- * When a mechanic accepts a request, it becomes status='accepted'.
- * If the customer never joins/starts the session, these get stuck as "accepted" forever.
- * This function cancels accepted requests older than the specified time.
+ * REAL-TIME BUSINESS RULE: Accepted requests expire after 30 minutes.
+ * When a mechanic accepts a request, customer has 30 minutes to join.
+ * If customer doesn't join within 30 minutes, request is cancelled to free up the mechanic.
  *
- * @param maxAgeMinutes - Maximum age in minutes (default: 60 = 1 hour)
+ * @param maxAgeMinutes - Maximum age in minutes (default: 30 minutes for real-time business)
  * @returns Number of accepted requests cleaned
  */
 export async function cleanupAcceptedRequests(
-  maxAgeMinutes: number = 60
+  maxAgeMinutes: number = 30
 ): Promise<number> {
   const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
 
-  // Find old accepted requests (1+ hour old)
+  // Find old accepted requests (> 30 minutes old by default)
   // These were accepted by mechanics but customers never started the session
   // Also catch data integrity issues: accepted=true but mechanic_id=null
   const { data: oldAcceptedRequests } = await supabaseAdmin
@@ -213,7 +214,10 @@ export async function cleanupOrphanedSessions(
  * Comprehensive cleanup - runs all cleanup operations
  * Safe to call frequently, will only clean up problematic sessions
  *
- * IMPORTANT: Uses long timeouts to allow mechanics time to come online and accept requests
+ * REAL-TIME BUSINESS RULES:
+ * - Pending requests: 5 minutes (if no mechanic accepts, request is stale)
+ * - Accepted requests: 30 minutes (if customer doesn't join, free up mechanic)
+ * - Orphaned sessions: 60 minutes (waiting sessions without valid requests)
  *
  * @returns Cleanup statistics
  */
@@ -221,9 +225,9 @@ export async function runFullCleanup(): Promise<CleanupStats> {
   console.log('[sessionCleanup] Running full cleanup...')
 
   const [expiredResult, acceptedCount, orphanedCount] = await Promise.all([
-    cleanupExpiredRequests(120), // 2 hours - give mechanics time to see and accept requests
-    cleanupAcceptedRequests(60), // 1 hour - accepted requests that customers never joined
-    cleanupOrphanedSessions(120), // 2 hours - match request cleanup time
+    cleanupExpiredRequests(5), // 5 minutes - real-time business, fast expiration
+    cleanupAcceptedRequests(30), // 30 minutes - accepted requests that customers never joined
+    cleanupOrphanedSessions(60), // 60 minutes - orphaned waiting sessions
   ])
 
   const stats: CleanupStats = {

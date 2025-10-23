@@ -64,7 +64,8 @@ export async function POST(
     return NextResponse.json({ error: 'Request already claimed' }, { status: 409 })
   }
 
-  // Check if mechanic already has an active session
+  // BUSINESS RULE ENFORCEMENT: Mechanic can only have ONE active/accepted request at a time
+  // Check 1: Does mechanic have any active sessions?
   const { data: mechanicActiveSessions } = await supabaseAdmin
     .from('sessions')
     .select('id, status')
@@ -81,6 +82,28 @@ export async function POST(
 
     return NextResponse.json({
       error: 'You already have an active session. Please complete it before accepting new requests.'
+    }, { status: 409 })
+  }
+
+  // Check 2: Does mechanic have any OTHER accepted requests?
+  // (The current request is already marked as accepted, so exclude it)
+  const { data: otherAcceptedRequests } = await supabaseAdmin
+    .from('session_requests')
+    .select('id')
+    .eq('mechanic_id', mechanic.id)
+    .eq('status', 'accepted')
+    .neq('id', requestId)
+    .limit(1)
+
+  if (otherAcceptedRequests && otherAcceptedRequests.length > 0) {
+    // Rollback the accepted status
+    await supabaseAdmin
+      .from('session_requests')
+      .update({ mechanic_id: null, status: 'pending', accepted_at: null })
+      .eq('id', requestId)
+
+    return NextResponse.json({
+      error: 'You already have an accepted request. Please start that session or cancel it before accepting new requests.'
     }, { status: 409 })
   }
 
