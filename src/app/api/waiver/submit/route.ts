@@ -127,6 +127,24 @@ export async function POST(req: NextRequest) {
         const thankYouUrl = new URL('/thank-you', req.nextUrl.origin)
         thankYouUrl.searchParams.set('plan', plan)
         thankYouUrl.searchParams.set('intake_id', intakeId)
+
+        // CRITICAL FIX: Check if there's an existing session for this intake and pass it through
+        // This prevents the "Start session now" button from redirecting to /signup
+        const { data: existingSession } = await supabaseAdmin
+          .from('sessions')
+          .select('id')
+          .eq('intake_id', intakeId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (existingSession) {
+          thankYouUrl.searchParams.set('session', existingSession.id)
+          console.log('[waiver] Found session for intake:', existingSession.id)
+        } else {
+          console.warn('[waiver] No session found for intake:', intakeId)
+        }
+
         redirectUrl = `${thankYouUrl.pathname}${thankYouUrl.search}`
       } else {
         // Paid plans need to go to checkout
