@@ -97,6 +97,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
 
+  // Debug state
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
+  const [debugData, setDebugData] = useState<any>(null)
+  const [isLoadingDebug, setIsLoadingDebug] = useState(false)
+
   const requestsChannelRef = useRef<RealtimeChannel | null>(null)
   const sessionsChannelRef = useRef<RealtimeChannel | null>(null)
   const isMountedRef = useRef(true)
@@ -601,6 +606,24 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }, [incomingRequests.length, upcomingSessions.length, completedSessions.length, earningsSummary.totalCents])
 
+  const fetchDebugData = async () => {
+    setIsLoadingDebug(true)
+    try {
+      const response = await fetch('/api/debug/mechanic-requests', {
+        method: 'GET',
+        cache: 'no-store',
+      })
+      const data = await response.json()
+      setDebugData(data)
+      console.log('[DEBUG PANEL] Data loaded:', data)
+    } catch (error) {
+      console.error('[DEBUG PANEL] Failed to fetch debug data:', error)
+      setDebugData({ error: 'Failed to load debug data' })
+    } finally {
+      setIsLoadingDebug(false)
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await fetch('/api/mechanics/logout', {
@@ -634,6 +657,164 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
             </button>
           </div>
         </header>
+
+        {/* Debug Panel Toggle Button */}
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => {
+              setShowDebugPanel(!showDebugPanel)
+              if (!showDebugPanel && !debugData) {
+                void fetchDebugData()
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
+          >
+            <AlertCircle className="h-4 w-4" />
+            {showDebugPanel ? 'Hide Debug Panel' : 'Show Debug Panel (Requests Not Showing?)'}
+          </button>
+        </div>
+
+        {/* Debug Panel */}
+        {showDebugPanel && (
+          <div className="mb-6 rounded-3xl border border-red-500/30 bg-red-900/20 p-6 backdrop-blur-sm">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-red-100">Request Debugging Panel</h3>
+                <p className="mt-1 text-sm text-red-200/80">
+                  This panel shows you exactly what&apos;s happening with requests in the database
+                </p>
+              </div>
+              <button
+                onClick={() => void fetchDebugData()}
+                disabled={isLoadingDebug}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+              >
+                {isLoadingDebug ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertCircle className="h-4 w-4" />}
+                Refresh Data
+              </button>
+            </div>
+
+            {isLoadingDebug && !debugData && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-red-400" />
+              </div>
+            )}
+
+            {debugData && (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="rounded-2xl border border-red-400/20 bg-red-900/30 p-4">
+                  <h4 className="font-bold text-red-100 mb-3">Summary</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-xs text-red-300/60">Total Requests</p>
+                      <p className="text-2xl font-bold text-red-100">{debugData.summary?.totalRequests ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-red-300/60">Should Show (Pending)</p>
+                      <p className="text-2xl font-bold text-green-400">{debugData.summary?.pendingRequests ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-red-300/60">Your Accepted</p>
+                      <p className="text-2xl font-bold text-blue-400">{debugData.summary?.acceptedByThisMechanic ?? 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-red-300/60">Bad State</p>
+                      <p className={`text-2xl font-bold ${(debugData.summary?.badStateRequests ?? 0) > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                        {debugData.summary?.badStateRequests ?? 0}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Breakdown */}
+                <div className="rounded-2xl border border-red-400/20 bg-red-900/30 p-4">
+                  <h4 className="font-bold text-red-100 mb-3">Breakdown by Status</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-lg bg-red-900/20 p-3">
+                      <p className="text-xs text-red-300/60">Pending</p>
+                      <p className="text-xl font-bold text-green-300">{debugData.breakdown?.byStatus?.pending ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-900/20 p-3">
+                      <p className="text-xs text-red-300/60">Accepted</p>
+                      <p className="text-xl font-bold text-blue-300">{debugData.breakdown?.byStatus?.accepted ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-900/20 p-3">
+                      <p className="text-xs text-red-300/60">Cancelled</p>
+                      <p className="text-xl font-bold text-amber-300">{debugData.breakdown?.byStatus?.cancelled ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-900/20 p-3">
+                      <p className="text-xs text-red-300/60">Other</p>
+                      <p className="text-xl font-bold text-purple-300">{debugData.breakdown?.byStatus?.other ?? 0}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Issues Found */}
+                {(debugData.issues?.badStateRequests?.length > 0 ||
+                  debugData.issues?.oldPendingRequests?.length > 0) && (
+                  <div className="rounded-2xl border border-amber-400/30 bg-amber-900/20 p-4">
+                    <h4 className="font-bold text-amber-100 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Issues Found
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      {debugData.issues.badStateRequests?.length > 0 && (
+                        <div className="rounded-lg bg-amber-900/20 p-3">
+                          <p className="font-semibold text-amber-200">Bad State Requests ({debugData.issues.badStateRequests.length})</p>
+                          <p className="text-xs text-amber-300/80 mt-1">These requests are marked as pending but have a mechanic assigned</p>
+                          <div className="mt-2 space-y-1">
+                            {debugData.issues.badStateRequests.slice(0, 3).map((issue: any) => (
+                              <p key={issue.id} className="text-xs text-amber-300/60">
+                                Request {issue.id.substring(0, 8)}... - mechanic_id: {issue.mechanic_id?.substring(0, 8)}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {debugData.issues.oldPendingRequests?.length > 0 && (
+                        <div className="rounded-lg bg-amber-900/20 p-3">
+                          <p className="font-semibold text-amber-200">Old Pending Requests ({debugData.issues.oldPendingRequests.length})</p>
+                          <p className="text-xs text-amber-300/80 mt-1">These requests have been pending for more than 24 hours</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Current State Display */}
+                <div className="rounded-2xl border border-red-400/20 bg-red-900/30 p-4">
+                  <h4 className="font-bold text-red-100 mb-3">What You Should See</h4>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-red-200">
+                      ✓ Incoming Requests count: <span className="font-mono font-bold text-green-400">{debugData.summary?.pendingRequests ?? 0}</span>
+                    </p>
+                    <p className="text-red-200">
+                      ✓ Accepted Requests count: <span className="font-mono font-bold text-blue-400">{debugData.summary?.acceptedByThisMechanic ?? 0}</span>
+                    </p>
+                    <p className="text-red-200/60 text-xs mt-2">
+                      If the counts above don&apos;t match what you see below, try refreshing the page or check console logs
+                    </p>
+                  </div>
+                </div>
+
+                {/* Raw Console Data */}
+                <details className="rounded-2xl border border-red-400/20 bg-red-900/30 p-4">
+                  <summary className="cursor-pointer font-bold text-red-100">View Raw Data (for developers)</summary>
+                  <pre className="mt-3 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-300">
+                    {JSON.stringify(debugData, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            )}
+
+            {debugData?.error && (
+              <div className="rounded-2xl border border-red-400/30 bg-red-900/40 p-4 text-sm text-red-200">
+                Error loading debug data: {debugData.error}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Stripe Connect Banner */}
         {!mechanic.payoutsEnabled && (
