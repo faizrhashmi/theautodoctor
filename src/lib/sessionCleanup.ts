@@ -13,6 +13,8 @@ export interface CleanupStats {
   expiredRequests: number
   acceptedRequests: number
   orphanedSessions: number
+  unattendedRequests: number
+  expiredTokens: number
   totalCleaned: number
 }
 
@@ -53,64 +55,94 @@ export async function cleanupCustomerWaitingSessions(
 }
 
 /**
- * Clean up expired session requests and their associated sessions
+ * Mark unattended session requests (no mechanic accepted within 5 minutes)
  *
- * REAL-TIME BUSINESS RULE: Pending requests expire after 5 minutes.
- * If a mechanic hasn't accepted within 5 minutes, the request is stale and should be cancelled.
- * This prevents ghost requests from cluttering the mechanic dashboard.
+ * REAL-TIME BUSINESS RULE: Pending requests not accepted after 5 minutes become 'unattended'.
+ * These are hidden from mechanics but visible to admins for manual assignment.
+ * Stripe payment token is still valid for 2 hours, so admin can reassign within that window.
  *
  * @param maxAgeMinutes - Maximum age in minutes (default: 5 minutes for real-time business)
- * @returns Cleanup statistics
+ * @returns Number of requests marked as unattended
  */
-export async function cleanupExpiredRequests(
+export async function markUnattendedRequests(
   maxAgeMinutes: number = 5
-): Promise<{ requests: number; sessions: number }> {
+): Promise<number> {
   const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
 
-  // Find expired pending requests (> 5 minutes old by default)
-  // Real-time business: if no mechanic accepts within 5 minutes, request is stale
-  const { data: expiredRequests } = await supabaseAdmin
+  // Find old pending requests (> 5 minutes old by default)
+  // Real-time business: if no mechanic accepts within 5 minutes, mark as unattended
+  const { data: oldRequests } = await supabaseAdmin
     .from('session_requests')
     .select('id, customer_id')
     .eq('status', 'pending')
     .is('mechanic_id', null)
     .lt('created_at', cutoffTime)
 
-  if (!expiredRequests || expiredRequests.length === 0) {
-    return { requests: 0, sessions: 0 }
+  if (!oldRequests || oldRequests.length === 0) {
+    return 0
   }
 
-  console.log(`[sessionCleanup] Cancelling ${expiredRequests.length} expired pending request(s) older than ${maxAgeMinutes} minutes`)
+  console.log(`[sessionCleanup] Marking ${oldRequests.length} pending request(s) as unattended (older than ${maxAgeMinutes} minutes)`)
 
-  // Cancel the old requests (note: session_requests table has no updated_at column)
+  // Mark as unattended (don't cancel - admin can still assign)
   await supabaseAdmin
     .from('session_requests')
-    .update({ status: 'cancelled' })
+    .update({ status: 'unattended' })
     .eq('status', 'pending')
     .is('mechanic_id', null)
     .lt('created_at', cutoffTime)
 
+  return oldRequests.length
+}
+
+/**
+ * Expire requests with old Stripe tokens (> 2 hours)
+ *
+ * BUSINESS RULE: Stripe payment sessions expire after 2 hours.
+ * After that, the payment token is no longer valid and customer must re-request.
+ * This applies to both 'pending' and 'unattended' requests.
+ *
+ * @param maxAgeMinutes - Maximum age in minutes (default: 120 minutes = 2 hours)
+ * @returns Number of requests expired
+ */
+export async function expireOldStripeTokens(
+  maxAgeMinutes: number = 120
+): Promise<number> {
+  const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
+
+  // Find requests with expired Stripe tokens (> 2 hours old)
+  const { data: expiredRequests } = await supabaseAdmin
+    .from('session_requests')
+    .select('id, customer_id')
+    .in('status', ['pending', 'unattended'])
+    .lt('created_at', cutoffTime)
+
+  if (!expiredRequests || expiredRequests.length === 0) {
+    return 0
+  }
+
+  console.log(`[sessionCleanup] Expiring ${expiredRequests.length} request(s) with old Stripe tokens (older than ${maxAgeMinutes} minutes)`)
+
+  // Mark as expired (payment token no longer valid)
+  await supabaseAdmin
+    .from('session_requests')
+    .update({ status: 'expired' })
+    .in('status', ['pending', 'unattended'])
+    .lt('created_at', cutoffTime)
+
   // Cancel associated waiting sessions
   const customerIds = [...new Set(expiredRequests.map(r => r.customer_id))]
-  let sessionsCleaned = 0
 
   if (customerIds.length > 0) {
-    const { data: cancelledSessions } = await supabaseAdmin
+    await supabaseAdmin
       .from('sessions')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .in('customer_user_id', customerIds)
       .eq('status', 'waiting')
       .lt('created_at', cutoffTime)
-      .select('id')
-
-    sessionsCleaned = cancelledSessions?.length || 0
-    console.log(`[sessionCleanup] Cancelled ${sessionsCleaned} associated waiting session(s)`)
   }
 
-  return {
-    requests: expiredRequests.length,
-    sessions: sessionsCleaned,
-  }
+  return expiredRequests.length
 }
 
 /**
@@ -214,8 +246,9 @@ export async function cleanupOrphanedSessions(
  * Comprehensive cleanup - runs all cleanup operations
  * Safe to call frequently, will only clean up problematic sessions
  *
- * REAL-TIME BUSINESS RULES:
- * - Pending requests: 5 minutes (if no mechanic accepts, request is stale)
+ * TWO-TIER TIMEOUT SYSTEM:
+ * - Pending requests → unattended: 5 minutes (no mechanic accepted, needs admin assignment)
+ * - Unattended → expired: 120 minutes (Stripe token expires, customer must re-request)
  * - Accepted requests: 30 minutes (if customer doesn't join, free up mechanic)
  * - Orphaned sessions: 60 minutes (waiting sessions without valid requests)
  *
@@ -224,18 +257,21 @@ export async function cleanupOrphanedSessions(
 export async function runFullCleanup(): Promise<CleanupStats> {
   console.log('[sessionCleanup] Running full cleanup...')
 
-  const [expiredResult, acceptedCount, orphanedCount] = await Promise.all([
-    cleanupExpiredRequests(5), // 5 minutes - real-time business, fast expiration
+  const [unattendedCount, expiredTokens, acceptedCount, orphanedCount] = await Promise.all([
+    markUnattendedRequests(5), // 5 minutes - mark as unattended for admin assignment
+    expireOldStripeTokens(120), // 120 minutes (2 hours) - expire Stripe payment tokens
     cleanupAcceptedRequests(30), // 30 minutes - accepted requests that customers never joined
     cleanupOrphanedSessions(60), // 60 minutes - orphaned waiting sessions
   ])
 
   const stats: CleanupStats = {
-    oldWaitingSessions: expiredResult.sessions,
-    expiredRequests: expiredResult.requests,
+    oldWaitingSessions: 0, // No longer tracked separately
+    expiredRequests: 0, // Replaced by unattended → expired flow
     acceptedRequests: acceptedCount,
     orphanedSessions: orphanedCount,
-    totalCleaned: expiredResult.requests + expiredResult.sessions + acceptedCount + orphanedCount,
+    unattendedRequests: unattendedCount,
+    expiredTokens: expiredTokens,
+    totalCleaned: unattendedCount + expiredTokens + acceptedCount + orphanedCount,
   }
 
   if (stats.totalCleaned > 0) {

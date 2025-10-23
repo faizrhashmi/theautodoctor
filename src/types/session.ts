@@ -18,7 +18,7 @@ export interface SessionQueueItem extends SessionSummary {
   waitingSince?: string
 }
 
-export type SessionRequestStatus = 'pending' | 'accepted' | 'cancelled'
+export type SessionRequestStatus = 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
 
 export interface SessionRequest {
   id: string

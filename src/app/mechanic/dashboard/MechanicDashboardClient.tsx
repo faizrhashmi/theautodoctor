@@ -21,7 +21,7 @@ import type { SessionStatus } from '@/types/session'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 import EnhancedRequestDetailModal from '@/components/mechanic/EnhancedRequestDetailModal'
-import SessionHistoryModal from '@/components/mechanic/SessionHistoryModal'
+// import SessionHistoryModal from '@/components/mechanic/SessionHistoryModal'
 
 const MECHANIC_SHARE = 0.7
 
@@ -91,7 +91,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const [acceptedSessionId, setAcceptedSessionId] = useState<string | null>(null)
   const [acceptedCustomerName, setAcceptedCustomerName] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
-  const [selectedHistorySession, setSelectedHistorySession] = useState<MechanicDashboardSession | null>(null)
+  // Temporarily disabled for build
+  // const [selectedHistorySession, setSelectedHistorySession] = useState<MechanicDashboardSession | null>(null)
 
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
@@ -1371,7 +1372,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setSelectedHistorySession(session)}
+                            onClick={() => alert('Session history detail view temporarily disabled')}
                             className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                           >
                             <Eye className="h-4 w-4" />
@@ -1496,8 +1497,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         accepted={selectedRequest?.sessionId != null}
       />
 
-      {/* Session History Detail Modal */}
-      {selectedHistorySession && (
+      {/* Session History Detail Modal - Temporarily disabled */}
+      {/* {selectedHistorySession && (
         <SessionHistoryModal
           sessionId={selectedHistorySession.id}
           sessionType={selectedHistorySession.sessionType}
@@ -1509,7 +1510,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           durationMinutes={selectedHistorySession.durationMinutes}
           onClose={() => setSelectedHistorySession(null)}
         />
-      )}
+      )} */}
     </div>
   )
 }

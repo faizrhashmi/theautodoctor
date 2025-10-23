@@ -1,23 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, MessageSquare, Clock, Trash2, FileText, Download, User } from 'lucide-react'
+import { X, MessageSquare, Clock, Trash2, Download, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 
 interface Message {
   id: string
   created_at: string
+  session_id: string
   sender_id: string
-  sender_role: 'customer' | 'mechanic'
   content: string
-  sender_name?: string
+  attachments: any
 }
 
 interface SessionHistoryModalProps {
   sessionId: string | null
   sessionType: string
   customerName: string
-  plan: string
+  plan: string | null
   status: string
   startedAt: string | null
   endedAt: string | null
@@ -50,7 +50,7 @@ export default function SessionHistoryModal({
       setIsLoadingMessages(true)
       try {
         const { data, error } = await supabase
-          .from('session_messages')
+          .from('chat_messages')
           .select('*')
           .eq('session_id', sessionId)
           .order('created_at', { ascending: true })
@@ -78,7 +78,7 @@ export default function SessionHistoryModal({
     setIsDeletingLog(true)
     try {
       const { error } = await supabase
-        .from('session_messages')
+        .from('chat_messages')
         .delete()
         .eq('session_id', sessionId)
 

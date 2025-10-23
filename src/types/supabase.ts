@@ -274,7 +274,7 @@ export type Database = {
           mechanic_id: string | null
           session_type: SessionType
           plan_code: string
-          status: 'pending' | 'accepted' | 'cancelled'
+          status: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name: string | null
           customer_email: string | null
           notes: string | null
@@ -290,7 +290,7 @@ export type Database = {
           mechanic_id?: string | null
           session_type: SessionType
           plan_code: string
-          status?: 'pending' | 'accepted' | 'cancelled'
+          status?: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name?: string | null
           customer_email?: string | null
           notes?: string | null
@@ -306,7 +306,7 @@ export type Database = {
           mechanic_id?: string | null
           session_type?: SessionType
           plan_code?: string
-          status?: 'pending' | 'accepted' | 'cancelled'
+          status?: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name?: string | null
           customer_email?: string | null
           notes?: string | null
