@@ -368,6 +368,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   const loadSessions = useCallback(
     async (options?: { silent?: boolean }) => {
+      console.log('[loadSessions] Starting, mechanicId:', mechanicId)
       if (!mechanicId) return
 
       if (!options?.silent) {
@@ -383,9 +384,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           .order('scheduled_start', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false })
 
-        if (!isMountedRef.current) {
-          return
-        }
+        console.log('[loadSessions] Query result:', { dataCount: data?.length, error })
+
+        // FIX: Removed isMountedRef check - React 18 StrictMode causes false unmount detection
+        // If we have data from the query, we should update state regardless
 
         if (error) {
           console.error('Failed to load mechanic sessions', error)
@@ -394,6 +396,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           setSessionHistory([])
         } else if (data) {
           const mapped = data.map(mapSessionRow)
+          console.log('[loadSessions] Mapped sessions:', mapped.length)
+          console.log('[loadSessions] First 3 sessions:', mapped.slice(0, 3))
 
           // Filter sessions by category
           const now = new Date()
@@ -448,8 +452,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
             .filter((session) => session.status === 'completed' || session.status === 'cancelled')
             .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
 
+          console.log('[loadSessions] Session history filtered:', history.length)
+          console.log('[loadSessions] First 3 history:', history.slice(0, 3))
+
           setUpcomingSessions(upcoming)
           setSessionHistory(history)
+          console.log('[loadSessions] State updated - upcoming:', upcoming.length, 'history:', history.length)
         }
 
         if (!options?.silent && isMountedRef.current) {
@@ -1386,12 +1394,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                         </div>
                       </article>
                     ))}
-                    {sessionHistory.length === 0 && !isLoadingSessions && (
-                      <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
-                        No session history yet.
-                      </div>
-                    )}
                   </div>
+
+                  {/* Empty State - Moved outside to prevent hydration errors */}
+                  {sessionHistory.length === 0 && !isLoadingSessions && (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No session history yet.
+                    </div>
+                  )}
 
                   {/* Pagination Controls */}
                   {sessionHistory.length > visibleHistoryItems && (

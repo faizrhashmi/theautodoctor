@@ -14,6 +14,7 @@ import type {
 } from '@/components/customer/dashboard-types'
 import { AlertCircle, Calendar, ClipboardList, Star } from 'lucide-react'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import { StuckSessionManager } from "@/components/customer/StuckSessionManager"
 import SessionManagement from '@/components/customer/SessionManagement'
 import { cleanupCustomerWaitingSessions } from '@/lib/sessionCleanup'
 
@@ -213,7 +214,7 @@ export default async function CustomerDashboardPage() {
   }))
 
   const upcomingSessions = normalizedSessions
-    .filter((session) => !['completed', 'cancelled'].includes(session.status.toLowerCase()))
+    .filter((session) => !['completed', 'cancelled', 'unattended', 'expired'].includes(session.status.toLowerCase()))
     .sort((a, b) => sessionSortValue(a) - sessionSortValue(b))
 
   // CRITICAL: Separate active/in-progress sessions from scheduled ones
@@ -297,6 +298,17 @@ export default async function CustomerDashboardPage() {
     console.warn('Unable to load vehicles for dashboard', vehiclesError)
   }
 
+
+  // Detect stuck sessions (pending sessions older than 5 minutes that may be blocking new sessions)
+  const stuckSessions = scheduledSessions
+    .filter(session => {
+      const sessionAge = Date.now() - new Date(session.createdAt).getTime()
+      const isOld = sessionAge > 5 * 60 * 1000
+      const isPending = session.status === 'pending'
+      return isPending && isOld
+    })
+    .map(s => ({ id: s.id, status: s.status, type: s.type, createdAt: s.createdAt }))
+
   const userVehicles = vehicles ?? []
 
   return (
@@ -333,6 +345,9 @@ export default async function CustomerDashboardPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8 space-y-8">
+        {/* Stuck Session Manager - Shows pending sessions that may be blocking new sessions */}
+        <StuckSessionManager sessions={stuckSessions} />
+
         {/* Email Verification Alert */}
         {!user.email_confirmed_at && profile?.email_verified === false && (
           <div className="group relative overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 p-5 shadow-lg backdrop-blur-sm">

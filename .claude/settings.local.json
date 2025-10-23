@@ -4,7 +4,12 @@
       "Bash(node -e:*)",
       "Bash(node:*)",
       "Bash(where:*)",
-      "Bash(md-to-pdf:*)"
+      "Bash(md-to-pdf:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
