@@ -102,7 +102,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   // Pagination state - show 10 items initially, expand by 10
   const ITEMS_PER_PAGE = 10
   const [visibleNewRequests, setVisibleNewRequests] = useState(ITEMS_PER_PAGE)
-  const [visibleActiveSessions, setVisibleActiveSessions] = useState(ITEMS_PER_PAGE)
+  // Active Sessions: Show only 1 (the most recent) - no pagination needed
   const [visibleUpcomingSessions, setVisibleUpcomingSessions] = useState(ITEMS_PER_PAGE)
   const [visibleHistoryItems, setVisibleHistoryItems] = useState(ITEMS_PER_PAGE)
 
@@ -259,16 +259,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const mapSessionRow = useCallback(
     (row: SessionRow): MechanicDashboardSession => {
       const status = normalizeSessionStatus(row.status)
-
-      // DEBUG: Log raw status from database
-      if (row.status === 'completed' || row.status === 'cancelled') {
-        console.log('[MECHANIC DASHBOARD] Found completed/cancelled session:', {
-          id: row.id.substring(0, 8),
-          rawStatus: row.status,
-          normalizedStatus: status
-        })
-      }
-
       const metadata = (row.metadata ?? {}) as Record<string, unknown>
       const nameCandidate = [
         metadata.customer_name,
@@ -381,96 +371,94 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       }
       setSessionsError(null)
 
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('id, status, plan, type, scheduled_start, scheduled_end, scheduled_for, started_at, ended_at, duration_minutes, metadata')
-        .eq('mechanic_id', mechanicId)
-        .order('scheduled_start', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false })
+      try {
+        const { data, error } = await supabase
+          .from('sessions')
+          .select('id, status, plan, type, scheduled_start, scheduled_end, scheduled_for, started_at, ended_at, duration_minutes, metadata')
+          .eq('mechanic_id', mechanicId)
+          .order('scheduled_start', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: false })
 
-      if (!isMountedRef.current) {
-        return
-      }
+        if (!isMountedRef.current) {
+          return
+        }
 
-      if (error) {
-        console.error('Failed to load mechanic sessions', error)
-        setSessionsError('Unable to load your sessions right now.')
+        if (error) {
+          console.error('Failed to load mechanic sessions', error)
+          setSessionsError('Unable to load your sessions right now.')
+          setUpcomingSessions([])
+          setSessionHistory([])
+        } else if (data) {
+          const mapped = data.map(mapSessionRow)
+
+          // Filter sessions by category
+          const now = new Date()
+
+          // Live/Waiting sessions (in progress) - add to active sessions as session objects
+          const liveSessions = mapped
+            .filter((session) => session.status === 'live' || session.status === 'waiting')
+            .map((session) => ({
+              id: session.id,
+              customerId: '', // Not available from session, but not needed for display
+              customerName: session.customerName,
+              customerEmail: undefined,
+              sessionType: session.sessionType,
+              planCode: session.plan ?? 'unknown',
+              status: session.status as any,
+              createdAt: session.startedAt ?? session.scheduledStart ?? new Date().toISOString(),
+              acceptedAt: session.startedAt ?? session.scheduledStart,
+              mechanicId: mechanicId,
+              sessionId: session.id, // Already a started session
+              isLive: true, // Flag to indicate this is an active/live session
+            }))
+
+          // Merge live sessions with accepted requests (from fetchActiveSessions)
+          // Keep existing accepted requests and add any new live sessions
+          setActiveSessions((prev) => {
+            // Filter out any duplicates (sessions that were accepted requests but are now live)
+            const existingAccepted = prev.filter(item => !item.isLive)
+            const liveSessionIds = new Set(liveSessions.map(s => s.sessionId))
+            const filteredAccepted = existingAccepted.filter(item => !liveSessionIds.has(item.sessionId))
+
+            // Combine and sort
+            return [...liveSessions, ...filteredAccepted].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
+          })
+
+          // Upcoming: Future scheduled sessions only
+          const upcoming = mapped
+            .filter((session) => {
+              if (session.status !== 'scheduled') return false
+              if (!session.scheduledStart) return false
+              return new Date(session.scheduledStart) > now
+            })
+            .sort((a, b) => {
+              const aTime = toTimeValue(a.scheduledStart)
+              const bTime = toTimeValue(b.scheduledStart)
+              return aTime - bTime
+            })
+
+          // Session History: Completed AND Cancelled sessions
+          const history = mapped
+            .filter((session) => session.status === 'completed' || session.status === 'cancelled')
+            .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
+
+          setUpcomingSessions(upcoming)
+          setSessionHistory(history)
+        }
+
+        if (!options?.silent && isMountedRef.current) {
+          setIsLoadingSessions(false)
+        }
+      } catch (err) {
+        console.error('[MECHANIC DASHBOARD] Error loading sessions:', err)
+        setSessionsError('Failed to load sessions. Please refresh the page.')
         setUpcomingSessions([])
         setSessionHistory([])
-      } else if (data) {
-        const mapped = data.map(mapSessionRow)
-
-        // DEBUG: Log all sessions to see what we're getting
-        console.log('[MECHANIC DASHBOARD] All sessions loaded:', mapped.length)
-        console.log('[MECHANIC DASHBOARD] Session statuses:', mapped.map(s => ({ id: s.id.substring(0, 8), status: s.status })))
-
-        // Filter sessions by category
-        const now = new Date()
-
-        // Live/Waiting sessions (in progress) - add to active sessions as session objects
-        const liveSessions = mapped
-          .filter((session) => session.status === 'live' || session.status === 'waiting')
-          .map((session) => ({
-            id: session.id,
-            customerId: '', // Not available from session, but not needed for display
-            customerName: session.customerName,
-            customerEmail: undefined,
-            sessionType: session.sessionType,
-            planCode: session.plan ?? 'unknown',
-            status: session.status as any,
-            createdAt: session.startedAt ?? session.scheduledStart ?? new Date().toISOString(),
-            acceptedAt: session.startedAt ?? session.scheduledStart,
-            mechanicId: mechanicId,
-            sessionId: session.id, // Already a started session
-            isLive: true, // Flag to indicate this is an active/live session
-          }))
-
-        // Merge live sessions with accepted requests (from fetchActiveSessions)
-        // Keep existing accepted requests and add any new live sessions
-        setActiveSessions((prev) => {
-          // Filter out any duplicates (sessions that were accepted requests but are now live)
-          const existingAccepted = prev.filter(item => !item.isLive)
-          const liveSessionIds = new Set(liveSessions.map(s => s.sessionId))
-          const filteredAccepted = existingAccepted.filter(item => !liveSessionIds.has(item.sessionId))
-
-          // Combine and sort
-          return [...liveSessions, ...filteredAccepted].sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
-        })
-
-        // Upcoming: Future scheduled sessions only
-        const upcoming = mapped
-          .filter((session) => {
-            if (session.status !== 'scheduled') return false
-            if (!session.scheduledStart) return false
-            return new Date(session.scheduledStart) > now
-          })
-          .sort((a, b) => {
-            const aTime = toTimeValue(a.scheduledStart)
-            const bTime = toTimeValue(b.scheduledStart)
-            return aTime - bTime
-          })
-
-        // Session History: Completed AND Cancelled sessions
-        const history = mapped
-          .filter((session) => session.status === 'completed' || session.status === 'cancelled')
-          .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
-
-        // DEBUG: Log history filtering
-        console.log('[MECHANIC DASHBOARD] Session History filtered:', history.length, 'sessions')
-        console.log('[MECHANIC DASHBOARD] History items:', history.map(s => ({
-          id: s.id.substring(0, 8),
-          status: s.status,
-          customer: s.customerName
-        })))
-
-        setUpcomingSessions(upcoming)
-        setSessionHistory(history)
-      }
-
-      if (!options?.silent && isMountedRef.current) {
-        setIsLoadingSessions(false)
+        if (!options?.silent && isMountedRef.current) {
+          setIsLoadingSessions(false)
+        }
       }
     },
     [mechanicId, mapSessionRow, supabase]
@@ -986,7 +974,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 </div>
 
                 <div className="space-y-4">
-                  {activeSessions.slice(0, visibleActiveSessions).map((item) => (
+                  {activeSessions.slice(0, 1).map((item) => (
                     <article
                       key={item.id}
                       className="group relative overflow-hidden rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-5 shadow-lg backdrop-blur transition hover:border-green-400/50"
@@ -1107,27 +1095,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   ))}
                 </div>
 
-                {/* Pagination Controls */}
-                {activeSessions.length > visibleActiveSessions && (
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => setVisibleActiveSessions(prev => prev + ITEMS_PER_PAGE)}
-                      className="inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-6 py-2.5 text-sm font-semibold text-green-300 transition hover:bg-green-500/20"
-                    >
-                      View More ({activeSessions.length - visibleActiveSessions} remaining)
-                    </button>
-                  </div>
-                )}
-                {visibleActiveSessions > ITEMS_PER_PAGE && activeSessions.length > 0 && (
-                  <div className="mt-2 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => setVisibleActiveSessions(ITEMS_PER_PAGE)}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
-                    >
-                      Show Less
-                    </button>
+                {/* Show notification if there are more sessions */}
+                {activeSessions.length > 1 && (
+                  <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-3 text-center">
+                    <p className="text-sm text-green-200">
+                      +{activeSessions.length - 1} more session{activeSessions.length - 1 > 1 ? 's' : ''} waiting. Complete this one first.
+                    </p>
                   </div>
                 )}
 
