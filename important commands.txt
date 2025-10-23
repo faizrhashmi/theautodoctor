@@ -83,3 +83,28 @@ ORDER BY created_at DESC;
 
 TO REVERT TO ANY RESTORE POINT
 git reset --hard bbaea32 (REPLACE BB... WITH WHATEVER POINT YOU WANT)
+
+Steps to Set Up Your Admin Account:
+Quickest Method (if you have an existing account):
+Find your current email - What email did you use to sign up as a customer or test user?
+Run this in Supabase SQL Editor:
+Go to your Supabase Dashboard → SQL Editor
+Run:
+UPDATE profiles
+SET role = 'admin'
+WHERE email = 'your-actual-email@example.com';
+Verify it worked:
+SELECT email, role FROM profiles WHERE role = 'admin';
+Log in at http://localhost:3000/admin/login with that email and password
+Or Create a New Admin User:
+Go to Supabase Dashboard → Authentication → Users → Add User
+Enter:
+Email: admin@yourdomain.com (or whatever you want)
+Password: (create a secure password)
+Auto Confirm User: ✓ (check this box)
+Run in SQL Editor:
+UPDATE profiles
+SET role = 'admin'
+WHERE email = 'admin@yourdomain.com';
+Log in at http://localhost:3000/admin/login
+
