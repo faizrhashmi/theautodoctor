@@ -1,10 +1,20 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { LiveKitRoom, VideoConference, RoomAudioRenderer, useTracks } from '@livekit/components-react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import {
+  LiveKitRoom,
+  useLocalParticipant,
+  useTracks,
+  VideoTrack,
+  RoomAudioRenderer,
+} from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Track } from 'livekit-client'
-import { Clock, UserPlus, AlertCircle } from 'lucide-react'
+import {
+  Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
+  Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
+  Maximize2, Minimize2
+} from 'lucide-react'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -108,7 +118,6 @@ function SessionTimer({
 
       setTimeLeft(remaining)
 
-      // Warnings
       const minutesLeft = Math.floor(remaining / 60)
       if (minutesLeft === 5 && !hasWarned5) {
         setHasWarned5(true)
@@ -134,15 +143,189 @@ function SessionTimer({
   const isDanger = minutes < 1
 
   return (
-    <div className={`flex items-center gap-2 rounded-full px-4 py-2 ${
+    <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
       isDanger ? 'bg-red-500/20 text-red-200' :
       isWarning ? 'bg-amber-500/20 text-amber-200' :
-      'bg-orange-500/20 text-orange-200'
+      'bg-slate-800/80 text-slate-200'
     }`}>
       <Clock className="h-4 w-4" />
       <span className="font-mono text-sm font-semibold">
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </span>
+    </div>
+  )
+}
+
+function VideoControls({
+  onEndSession,
+  onUploadFile,
+}: {
+  onEndSession: () => void
+  onUploadFile: (file: File) => void
+}) {
+  const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const toggleCamera = useCallback(async () => {
+    await localParticipant.setCameraEnabled(!isCameraEnabled)
+  }, [localParticipant, isCameraEnabled])
+
+  const toggleMic = useCallback(async () => {
+    await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+  }, [localParticipant, isMicrophoneEnabled])
+
+  const toggleScreenShare = useCallback(async () => {
+    await localParticipant.setScreenShareEnabled(!isScreenShareEnabled)
+  }, [localParticipant, isScreenShareEnabled])
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen()
+      setIsFullscreen(false)
+    }
+  }, [])
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      onUploadFile(file)
+      e.target.value = '' // Reset input
+    }
+  }, [onUploadFile])
+
+  return (
+    <div className="flex items-center gap-2">
+      {/* Camera Toggle */}
+      <button
+        onClick={toggleCamera}
+        className={`rounded-lg p-3 transition ${
+          isCameraEnabled
+            ? 'bg-slate-700/80 text-white hover:bg-slate-600'
+            : 'bg-red-500/80 text-white hover:bg-red-600'
+        }`}
+        title={isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+      >
+        {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+      </button>
+
+      {/* Microphone Toggle */}
+      <button
+        onClick={toggleMic}
+        className={`rounded-lg p-3 transition ${
+          isMicrophoneEnabled
+            ? 'bg-slate-700/80 text-white hover:bg-slate-600'
+            : 'bg-red-500/80 text-white hover:bg-red-600'
+        }`}
+        title={isMicrophoneEnabled ? 'Mute microphone' : 'Unmute microphone'}
+      >
+        {isMicrophoneEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+      </button>
+
+      {/* Screen Share Toggle */}
+      <button
+        onClick={toggleScreenShare}
+        className={`rounded-lg p-3 transition ${
+          isScreenShareEnabled
+            ? 'bg-blue-500/80 text-white hover:bg-blue-600'
+            : 'bg-slate-700/80 text-white hover:bg-slate-600'
+        }`}
+        title={isScreenShareEnabled ? 'Stop sharing' : 'Share screen'}
+      >
+        {isScreenShareEnabled ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+      </button>
+
+      {/* Upload File */}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="rounded-lg bg-slate-700/80 p-3 text-white transition hover:bg-slate-600"
+        title="Share file"
+      >
+        <Upload className="h-5 w-5" />
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileSelect}
+        accept="image/*,.pdf,.doc,.docx,.txt"
+      />
+
+      {/* Fullscreen Toggle */}
+      <button
+        onClick={toggleFullscreen}
+        className="rounded-lg bg-slate-700/80 p-3 text-white transition hover:bg-slate-600"
+        title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+      >
+        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+      </button>
+
+      {/* End Session */}
+      <button
+        onClick={onEndSession}
+        className="ml-2 rounded-lg bg-red-500/80 p-3 text-white transition hover:bg-red-600"
+        title="End session"
+      >
+        <PhoneOff className="h-5 w-5" />
+      </button>
+    </div>
+  )
+}
+
+function VideoView({
+  userRole,
+}: {
+  userRole: 'mechanic' | 'customer'
+}) {
+  const cameraTracks = useTracks([Track.Source.Camera])
+  const screenTracks = useTracks([Track.Source.ScreenShare])
+
+  const localCameraTrack = cameraTracks.find((t) => t.participant.isLocal)
+  const remoteCameraTrack = cameraTracks.find((t) => !t.participant.isLocal)
+  const screenShareTrack = screenTracks.find((t) => t.publication.isSubscribed)
+
+  // Main video is remote participant or screen share
+  const mainTrack = screenShareTrack || remoteCameraTrack
+  const pipTrack = screenShareTrack ? remoteCameraTrack : localCameraTrack
+
+  return (
+    <div className="relative h-full w-full">
+      {/* Main Video (Remote participant or screen share) */}
+      <div className="absolute inset-0 bg-slate-900">
+        {mainTrack ? (
+          <VideoTrack
+            trackRef={mainTrack}
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-slate-700">
+                <UserPlus className="h-12 w-12 text-slate-400" />
+              </div>
+              <p className="text-lg text-slate-300">
+                Waiting for {userRole === 'mechanic' ? 'customer' : 'mechanic'}...
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Picture-in-Picture (Local camera or remote when screen sharing) */}
+      {pipTrack && (
+        <div className="absolute bottom-4 right-4 z-10 h-48 w-64 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl">
+          <VideoTrack
+            trackRef={pipTrack}
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white">
+            {pipTrack.participant.isLocal ? 'You' : 'Other participant'}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -166,9 +349,12 @@ export default function VideoSessionClient({
   const [sessionStarted, setSessionStarted] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
   const [showExtendModal, setShowExtendModal] = useState(false)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [extendingSession, setExtendingSession] = useState(false)
   const [timeWarning, setTimeWarning] = useState<string | null>(null)
   const [bothJoinedNotification, setBothJoinedNotification] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [sharedFiles, setSharedFiles] = useState<Array<{ name: string; url: string; size: number }>>([])
 
   const durationMinutes = PLAN_DURATIONS[plan] || 45
 
@@ -179,7 +365,6 @@ export default function VideoSessionClient({
         const { createClient } = await import('@/lib/supabase')
         const supabase = createClient()
 
-        // Check current status first
         const { data: session } = await supabase
           .from('sessions')
           .select('status')
@@ -228,11 +413,9 @@ export default function VideoSessionClient({
       setBothJoinedNotification(true)
       setTimeout(() => setBothJoinedNotification(false), 5000)
 
-      // Mark session as truly started
       setSessionStarted(true)
       setSessionStartTime(new Date())
 
-      // Call API to update session status to 'live' and set started_at
       fetch(`/api/sessions/${sessionId}/start`, {
         method: 'POST',
       })
@@ -253,6 +436,7 @@ export default function VideoSessionClient({
 
   const handleTimeUp = useCallback(() => {
     setTimeWarning('Session time has ended')
+    setShowExtendModal(true)
   }, [])
 
   const handleExtendTime = async (duration: number, price: number) => {
@@ -275,7 +459,6 @@ export default function VideoSessionClient({
       }
 
       const data = await response.json()
-      // Redirect to Stripe checkout
       window.location.href = data.checkoutUrl
     } catch (error) {
       console.error('Error extending session:', error)
@@ -284,9 +467,59 @@ export default function VideoSessionClient({
     }
   }
 
+  const handleEndSession = useCallback(() => {
+    setShowEndConfirm(true)
+  }, [])
+
+  const confirmEndSession = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/end`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        window.location.href = dashboardUrl
+      } else {
+        console.error('Failed to end session')
+      }
+    } catch (error) {
+      console.error('Error ending session:', error)
+    }
+  }, [sessionId, dashboardUrl])
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    setUploadingFile(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('sessionId', sessionId)
+
+      const response = await fetch('/api/sessions/' + sessionId + '/files', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setSharedFiles((prev) => [...prev, {
+          name: file.name,
+          url: data.url,
+          size: file.size,
+        }])
+      } else {
+        alert('Failed to upload file')
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      alert('Failed to upload file')
+    } finally {
+      setUploadingFile(false)
+    }
+  }, [sessionId])
+
   return (
     <div className="relative h-screen w-full bg-slate-950">
-      {/* Waiting Room Overlay - Shows when either participant is missing */}
+      {/* Waiting Room Overlay */}
       {(!mechanicPresent || !customerPresent) && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur">
           <div className="max-w-md space-y-6 text-center">
@@ -345,38 +578,25 @@ export default function VideoSessionClient({
         </div>
       )}
 
+      {/* File Upload Progress */}
+      {uploadingFile && (
+        <div className="absolute left-1/2 top-4 z-50 -translate-x-1/2 transform">
+          <div className="flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/20 px-6 py-3 text-blue-200 shadow-lg backdrop-blur">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
+            <span className="text-sm font-semibold">Uploading file...</span>
+          </div>
+        </div>
+      )}
+
       {/* Session Header */}
-      <div className="absolute left-4 right-4 top-4 z-[9999] flex items-center justify-between">
+      <div className="absolute left-4 right-4 top-4 z-40 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* Back to Dashboard */}
           <a
             href={dashboardUrl}
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl transition hover:from-slate-800 hover:to-slate-700 hover:shadow-orange-500/50"
-            title="Back to dashboard - You can return anytime"
+            className="rounded-lg border border-white/10 bg-slate-900/80 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-slate-800"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Dashboard</span>
+            ← Dashboard
           </a>
-
-          {sessionStarted && (
-            <div className="rounded-full border border-white/10 bg-slate-900/80 px-4 py-2 backdrop-blur">
-              <p className="text-sm text-slate-300">
-                {mechanicPresent ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green-400"></span>
-                    Mechanic connected
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-amber-400"></span>
-                    Mechanic disconnected
-                  </span>
-                )}
-              </p>
-            </div>
-          )}
         </div>
 
         {sessionStarted && sessionStartTime && (
@@ -396,7 +616,6 @@ export default function VideoSessionClient({
         connect
         video
         audio
-        data-lk-theme="default"
         className="h-full w-full"
       >
         <ParticipantMonitor
@@ -405,24 +624,74 @@ export default function VideoSessionClient({
           onCustomerJoined={handleCustomerJoined}
           onCustomerLeft={handleCustomerLeft}
         />
-        <VideoConference />
+        <VideoView userRole={_userRole} />
         <RoomAudioRenderer />
+
+        {/* Video Controls - Bottom Bar */}
+        {sessionStarted && (
+          <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-700/50 bg-slate-900/90 p-4 backdrop-blur">
+            <div className="mx-auto flex max-w-4xl items-center justify-between">
+              <div className="text-sm text-slate-300">
+                <strong className="text-white">{_planName}</strong>
+              </div>
+
+              <VideoControls
+                onEndSession={handleEndSession}
+                onUploadFile={handleFileUpload}
+              />
+            </div>
+          </div>
+        )}
       </LiveKitRoom>
 
-      {/* Add More Time Footer */}
-      {sessionStarted && (
-        <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-slate-900/90 p-4 backdrop-blur">
-          <div className="mx-auto flex max-w-4xl items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">Need more time?</p>
-              <p className="text-xs text-slate-400">Extend your session and continue without interruption</p>
+      {/* Shared Files Sidebar */}
+      {sharedFiles.length > 0 && (
+        <div className="absolute right-4 top-20 z-40 w-72 rounded-lg border border-slate-700 bg-slate-900/95 p-4 backdrop-blur">
+          <h3 className="mb-3 text-sm font-semibold text-white">Shared Files</h3>
+          <div className="space-y-2">
+            {sharedFiles.map((file, index) => (
+              <div key={index} className="flex items-center gap-2 rounded border border-slate-700 bg-slate-800/50 p-2">
+                <FileText className="h-4 w-4 text-slate-400" />
+                <div className="flex-1 overflow-hidden">
+                  <p className="truncate text-xs text-white">{file.name}</p>
+                  <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(0)} KB</p>
+                </div>
+                <a
+                  href={file.url}
+                  download={file.name}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-white"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* End Session Confirmation */}
+      {showEndConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <h3 className="text-xl font-semibold text-white">End Session?</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Are you sure you want to end this session? This action cannot be undone.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowEndConfirm(false)}
+                className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/35"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmEndSession}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+              >
+                End Session
+              </button>
             </div>
-            <button
-              onClick={() => setShowExtendModal(true)}
-              className="rounded-full bg-gradient-to-r from-orange-500 to-indigo-500 px-6 py-2 text-sm font-semibold text-white transition hover:from-orange-400 hover:to-indigo-400"
-            >
-              Add Time
-            </button>
           </div>
         </div>
       )}
@@ -431,9 +700,17 @@ export default function VideoSessionClient({
       {showExtendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-white">Extend Your Session</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-white">Extend Your Session</h3>
+              <button
+                onClick={() => setShowExtendModal(false)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
             <p className="mt-2 text-sm text-slate-400">
-              Choose additional time to continue your diagnostic session
+              Choose additional time to continue your session
             </p>
 
             <div className="mt-6 space-y-3">
@@ -455,16 +732,6 @@ export default function VideoSessionClient({
                   </div>
                 </button>
               ))}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowExtendModal(false)}
-                disabled={extendingSession}
-                className="flex-1 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/35 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </div>
