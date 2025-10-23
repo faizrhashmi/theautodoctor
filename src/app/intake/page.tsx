@@ -555,18 +555,47 @@ export default function IntakePage() {
               {uploads.length > 0 && (
                 <div className="mt-4 space-y-3">
                   {uploads.map((u, idx) => (
-                    <div key={idx} className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200">
+                    <div key={idx} className={`rounded-xl border p-3 text-sm transition ${
+                      u.status === 'done'
+                        ? 'border-emerald-400/50 bg-emerald-500/10'
+                        : u.status === 'error'
+                        ? 'border-rose-400/50 bg-rose-500/10'
+                        : 'border-white/10 bg-white/5'
+                    }`}>
                       <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-white">{u.file.name}</div>
-                          <div className="text-xs text-slate-400">{Math.round(u.file.size / 1024)} KB - {u.status}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-white flex items-center gap-2">
+                            {u.file.name}
+                            {u.status === 'done' && (
+                              <svg className="h-4 w-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className={`text-xs mt-1 ${u.status === 'done' ? 'text-emerald-300' : u.status === 'error' ? 'text-rose-300' : 'text-slate-400'}`}>
+                            {Math.round(u.file.size / 1024)} KB • {u.status === 'done' ? 'Uploaded' : u.status === 'uploading' ? 'Uploading...' : u.status === 'error' ? 'Failed' : 'Ready'}
+                          </div>
                         </div>
-                        <div className="w-40">
+                        {u.status !== 'uploading' && (
+                          <button
+                            type="button"
+                            onClick={() => setUploads(prev => prev.filter((_, i) => i !== idx))}
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+                            title="Remove file"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      {u.status === 'uploading' && (
+                        <div className="mt-2">
                           <div className="h-2 w-full rounded-full bg-slate-800">
                             <div className="h-2 rounded-full bg-emerald-400 transition-all" style={{ width: `${u.progress}%` }} />
                           </div>
                         </div>
-                      </div>
+                      )}
                       {u.error && <div className="mt-2 text-xs text-rose-300">{u.error}</div>}
                     </div>
                   ))}
@@ -575,16 +604,16 @@ export default function IntakePage() {
                       type="button"
                       onClick={uploadAll}
                       disabled={uploads.every((u) => u.status === 'done')}
-                      className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50"
+                      className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {uploads.some((u) => u.status === 'uploading') ? 'Uploading...' : 'Upload selected files'}
+                      {uploads.some((u) => u.status === 'uploading') ? 'Uploading...' : uploads.every((u) => u.status === 'done') ? '✓ All files uploaded' : 'Upload selected files'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setUploads([])}
-                      className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-white/40"
+                      className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5"
                     >
-                      Clear
+                      Clear all
                     </button>
                   </div>
                 </div>
