@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PRICING, type PlanKey } from '@/config/pricing'
+import { generateLiveKitToken } from '@/lib/livekit'
 import VideoSessionClient from './VideoSessionClient'
 
 export const dynamic = 'force-dynamic'
@@ -111,38 +112,22 @@ export default async function VideoSessionPage({ params }: PageProps) {
   const planKey = (session.plan as PlanKey) ?? 'video15'
   const planName = PRICING[planKey]?.name ?? 'Video Consultation'
 
-  // Generate LiveKit token with correct role metadata
+  // Generate LiveKit token with correct role metadata (server-side)
   const roomName = `session-${sessionId}`
   const identity = userRole === 'mechanic' ? `mechanic-${currentUserId}` : `customer-${currentUserId}`
 
-  const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/livekit/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const { token, serverUrl } = await generateLiveKitToken({
+    room: roomName,
+    identity: identity,
+    metadata: {
+      sessionId,
+      userId: currentUserId,
+      role: userRole,
     },
-    body: JSON.stringify({
-      room: roomName,
-      identity: identity,
-      metadata: JSON.stringify({
-        sessionId,
-        userId: currentUserId,
-        role: userRole,
-      }),
-    }),
   })
-
-  if (!tokenResponse.ok) {
-    const errorData = await tokenResponse.json().catch(() => ({}))
-    console.error('LiveKit token error:', errorData)
-    throw new Error(errorData.error || 'Failed to generate LiveKit token')
-  }
-
-  const { token } = await tokenResponse.json()
 
   // Determine correct dashboard URL based on user existence (not role)
   const dashboardUrl = user ? '/customer/dashboard' : '/mechanic/dashboard'
-
-  const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://myautodoctorca-oe6r6oqr.livekit.cloud'
 
   return (
     <VideoSessionClient
