@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { PRICING, type PlanKey } from '@/config/pricing'
 import ChatRoom from './ChatRoomV3'
 import type { Json } from '@/types/supabase'
 
@@ -128,6 +129,8 @@ export default async function ChatSessionPage({ params }: PageProps) {
     throw new Error(messagesError.message)
   }
 
+  const planKey = (session.plan as PlanKey) ?? 'chat10'
+  const planName = PRICING[planKey]?.name ?? 'Quick Chat'
   const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
 
   // Fetch mechanic name if assigned
@@ -168,6 +171,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
       sessionId={sessionId}
       userId={currentUserId!}
       userRole={userRole}
+      planName={planName}
       plan={session.plan ?? 'free'}
       isFreeSession={isFreeSession}
       status={session.status ?? 'pending'}
