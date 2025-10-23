@@ -5,7 +5,6 @@ import Link from 'next/link'
 import {
   AlertCircle,
   CalendarClock,
-  Clock,
   DollarSign,
   Loader2,
   Radio,
@@ -78,8 +77,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   console.log('[MECHANIC DASHBOARD CLIENT] Component rendered, mechanicId:', mechanicId)
 
-  const [incomingRequests, setIncomingRequests] = useState<any[]>([])
-  const [acceptedRequests, setAcceptedRequests] = useState<any[]>([])
+  // NEW STATE STRUCTURE: 4 clear sections
+  const [newRequests, setNewRequests] = useState<any[]>([]) // Pending requests (not accepted)
+  const [activeSessions, setActiveSessions] = useState<any[]>([]) // Accepted but not started
+  const [upcomingSessions, setUpcomingSessions] = useState<MechanicDashboardSession[]>([]) // Future scheduled
+  const [sessionHistory, setSessionHistory] = useState<MechanicDashboardSession[]>([]) // Completed + Cancelled
+
   const [isLoadingRequests, setIsLoadingRequests] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
   const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
@@ -88,12 +91,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const [acceptedCustomerName, setAcceptedCustomerName] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
 
-  const [requestHistory, setRequestHistory] = useState<any[]>([])
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
-
-  const [upcomingSessions, setUpcomingSessions] = useState<MechanicDashboardSession[]>([])
-  const [completedSessions, setCompletedSessions] = useState<MechanicDashboardSession[]>([])
-  const [activeSession, setActiveSession] = useState<MechanicDashboardSession | null>(null)
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
   const [sessionsError, setSessionsError] = useState<string | null>(null)
 
@@ -130,7 +127,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   const upsertRequest = useCallback(
     (row: SessionRequestRow) => {
-      setIncomingRequests((prev) => {
+      setNewRequests((prev) => {
         if (row.status !== 'pending') {
           return prev.filter((item) => item.id !== row.id)
         }
@@ -152,10 +149,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   )
 
   const removeRequest = useCallback((id: string) => {
-    setIncomingRequests((prev) => prev.filter((item) => item.id !== id))
+    setNewRequests((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
-  const fetchRequests = useCallback(
+  // Fetch NEW REQUESTS (pending, not accepted by anyone)
+  const fetchNewRequests = useCallback(
     async (options?: { silent?: boolean }) => {
       if (!mechanicId) return
 
@@ -165,7 +163,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       setRequestsError(null)
 
       try {
-        const response = await fetch('/api/mechanics/requests', {
+        const response = await fetch('/api/mechanics/requests?status=pending', {
           method: 'GET',
           headers: { Accept: 'application/json' },
           cache: 'no-store',
@@ -177,13 +175,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         if (!response.ok) {
           console.error(
-            '[MECHANIC DASHBOARD] Failed to load session requests',
+            '[MECHANIC DASHBOARD] Failed to load new requests',
             response.status,
             body ?? {}
           )
           if (!isMountedRef.current) return
-          setRequestsError('Unable to load incoming requests right now.')
-          setIncomingRequests([])
+          setRequestsError('Unable to load new requests right now.')
+          setNewRequests([])
           return
         }
 
@@ -191,16 +189,16 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
 
-        setIncomingRequests(
+        setNewRequests(
           mapped.sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           )
         )
       } catch (error) {
-        console.error('[MECHANIC DASHBOARD] Failed to load session requests', error)
+        console.error('[MECHANIC DASHBOARD] Failed to load new requests', error)
         if (!isMountedRef.current) return
-        setRequestsError('Unable to load incoming requests right now.')
-        setIncomingRequests([])
+        setRequestsError('Unable to load new requests right now.')
+        setNewRequests([])
       } finally {
         if (!options?.silent && isMountedRef.current) {
           setIsLoadingRequests(false)
@@ -210,7 +208,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     [mechanicId, mapRowToRequest]
   )
 
-  const fetchAcceptedRequests = useCallback(
+  // Fetch ACTIVE SESSIONS (accepted but not started)
+  const fetchActiveSessions = useCallback(
     async () => {
       if (!mechanicId) return
 
@@ -226,9 +225,9 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
 
         if (!response.ok) {
-          console.error('[MECHANIC DASHBOARD] Failed to load accepted requests', response.status, body ?? {})
+          console.error('[MECHANIC DASHBOARD] Failed to load active sessions', response.status, body ?? {})
           if (!isMountedRef.current) return
-          setAcceptedRequests([])
+          setActiveSessions([])
           return
         }
 
@@ -236,53 +235,18 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
 
-        setAcceptedRequests(
+        setActiveSessions(
           mapped.sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           )
         )
       } catch (error) {
-        console.error('[MECHANIC DASHBOARD] Failed to load accepted requests', error)
+        console.error('[MECHANIC DASHBOARD] Failed to load active sessions', error)
         if (!isMountedRef.current) return
-        setAcceptedRequests([])
+        setActiveSessions([])
       }
     },
     [mechanicId, mapRowToRequest]
-  )
-
-  const fetchHistory = useCallback(
-    async () => {
-      if (!mechanicId) return
-
-      setIsLoadingHistory(true)
-
-      try {
-        const response = await fetch('/api/mechanics/requests/history', {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        })
-
-        const body = await response.json().catch(() => null)
-
-        if (!response.ok) {
-          console.error('[MECHANIC DASHBOARD] Failed to load request history', response.status)
-          return
-        }
-
-        if (!isMountedRef.current) return
-
-        const history = Array.isArray(body?.history) ? body.history : []
-        setRequestHistory(history)
-      } catch (error) {
-        console.error('[MECHANIC DASHBOARD] Failed to load request history', error)
-      } finally {
-        if (isMountedRef.current) {
-          setIsLoadingHistory(false)
-        }
-      }
-    },
-    [mechanicId]
   )
 
   const mapSessionRow = useCallback(
@@ -327,14 +291,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   // Load incoming and accepted requests
   useEffect(() => {
     if (!mechanicId) {
-      setIncomingRequests([])
-      setAcceptedRequests([])
+      setNewRequests([])
+      setActiveSessions([])
       setIsLoadingRequests(false)
       return
     }
 
-    void fetchRequests()
-    void fetchAcceptedRequests()
+    void fetchNewRequests()
+    void fetchActiveSessions()
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })
@@ -361,19 +325,19 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         if (row) {
           upsertRequest(row)
         } else {
-          void fetchRequests({ silent: true })
+          void fetchNewRequests({ silent: true })
         }
       })
       .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
         const id = typeof payload?.id === 'string' ? payload.id : null
         if (id) removeRequest(id)
-        // Reload accepted requests to show newly accepted
-        void fetchAcceptedRequests()
+        // Reload active sessions to show newly accepted
+        void fetchActiveSessions()
       })
       .on('broadcast', { event: 'request_cancelled' }, () => {
         // Reload both lists - cancelled request goes back to pending
-        void fetchRequests({ silent: true })
-        void fetchAcceptedRequests()
+        void fetchNewRequests({ silent: true })
+        void fetchActiveSessions()
       })
 
     channel.subscribe((status) => {
@@ -389,7 +353,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       supabase.removeChannel(channel)
       requestsChannelRef.current = null
     }
-  }, [fetchRequests, fetchAcceptedRequests, mechanicId, removeRequest, supabase, upsertRequest])
+  }, [fetchNewRequests, fetchActiveSessions, mechanicId, removeRequest, supabase, upsertRequest])
 
   const loadSessions = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -415,25 +379,33 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         console.error('Failed to load mechanic sessions', error)
         setSessionsError('Unable to load your sessions right now.')
         setUpcomingSessions([])
-        setCompletedSessions([])
-        setActiveSession(null)
+        setSessionHistory([])
       } else if (data) {
         const mapped = data.map(mapSessionRow)
-        const active = mapped.find((session) => session.status === 'live') ?? null
+
+        // Filter sessions by category
+        const now = new Date()
+
+        // Upcoming: Future scheduled sessions only
         const upcoming = mapped
-          .filter((session) => session.status === 'scheduled' || session.status === 'waiting')
+          .filter((session) => {
+            if (session.status !== 'scheduled') return false
+            if (!session.scheduledStart) return false
+            return new Date(session.scheduledStart) > now
+          })
           .sort((a, b) => {
             const aTime = toTimeValue(a.scheduledStart)
             const bTime = toTimeValue(b.scheduledStart)
             return aTime - bTime
           })
-        const completed = mapped
-          .filter((session) => session.status === 'completed')
+
+        // Session History: Completed AND Cancelled sessions
+        const history = mapped
+          .filter((session) => session.status === 'completed' || session.status === 'cancelled')
           .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
 
-        setActiveSession(active)
         setUpcomingSessions(upcoming)
-        setCompletedSessions(completed)
+        setSessionHistory(history)
       }
 
       if (!options?.silent && isMountedRef.current) {
@@ -474,11 +446,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       sessionsChannelRef.current = null
     }
   }, [loadSessions, mechanicId, supabase])
-
-  // Load request history
-  useEffect(() => {
-    void fetchHistory()
-  }, [fetchHistory])
 
   const acceptRequest = async (requestId: string) => {
     if (!mechanicId) {
@@ -568,9 +535,9 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         throw new Error(message)
       }
 
-      // Reload both lists - request goes back to pending
-      void fetchRequests({ silent: true })
-      void fetchAcceptedRequests()
+      // Reload both lists - request goes back to pending (new requests)
+      void fetchNewRequests({ silent: true })
+      void fetchActiveSessions()
     } catch (error) {
       console.error('[MECHANIC DASHBOARD] Cancel request error:', error)
       setRequestsError(error instanceof Error ? error.message : 'Failed to cancel request')
@@ -580,7 +547,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   }
 
   const earningsSummary = useMemo(() => {
-    const rows = completedSessions.slice(0, 10).map((session) => ({
+    // Only count completed sessions for earnings (not cancelled)
+    const completedOnly = sessionHistory.filter(s => s.status === 'completed')
+
+    const rows = completedOnly.slice(0, 10).map((session) => ({
       id: session.id,
       date: session.endedAt ?? session.scheduledEnd ?? session.startedAt ?? session.scheduledStart,
       plan: session.plan,
@@ -589,22 +559,23 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       earningsCents: calculateEarningsCents(session.plan),
     }))
 
-    const totalCents = completedSessions.reduce((sum, session) => {
+    const totalCents = completedOnly.reduce((sum, session) => {
       const value = calculateEarningsCents(session.plan)
       return value ? sum + value : sum
     }, 0)
 
     return { rows, totalCents }
-  }, [completedSessions])
+  }, [sessionHistory])
 
   const stats = useMemo(() => {
     return {
-      pendingRequests: incomingRequests.length,
+      newRequests: newRequests.length,
+      activeSessions: activeSessions.length,
       upcomingSessions: upcomingSessions.length,
-      completedSessions: completedSessions.length,
+      completedSessions: sessionHistory.filter(s => s.status === 'completed').length,
       totalEarnings: earningsSummary.totalCents,
     }
-  }, [incomingRequests.length, upcomingSessions.length, completedSessions.length, earningsSummary.totalCents])
+  }, [newRequests.length, activeSessions.length, upcomingSessions.length, sessionHistory, earningsSummary.totalCents])
 
   const fetchDebugData = async () => {
     setIsLoadingDebug(true)
@@ -879,8 +850,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Pending Requests</p>
-                <p className="mt-2 text-3xl font-bold text-white">{stats.pendingRequests}</p>
+                <p className="text-sm text-slate-400">New Requests</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.newRequests}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
                 <Radio className="h-6 w-6 text-orange-400" />
@@ -891,11 +862,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Upcoming Sessions</p>
-                <p className="mt-2 text-3xl font-bold text-white">{stats.upcomingSessions}</p>
+                <p className="text-sm text-slate-400">Active Sessions</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.activeSessions}</p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
-                <CalendarClock className="h-6 w-6 text-blue-400" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-6 w-6 text-green-400" />
               </div>
             </div>
           </div>
@@ -903,11 +874,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Completed</p>
-                <p className="mt-2 text-3xl font-bold text-white">{stats.completedSessions}</p>
+                <p className="text-sm text-slate-400">Upcoming</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.upcomingSessions}</p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                <CheckCircle2 className="h-6 w-6 text-green-400" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+                <CalendarClock className="h-6 w-6 text-blue-400" />
               </div>
             </div>
           </div>
@@ -928,48 +899,121 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
           {/* Main Content */}
           <div className="space-y-6">
-            {/* Active Session */}
-            {activeSession && (
-              <section className="rounded-3xl border border-green-500/20 bg-gradient-to-br from-green-900/20 to-emerald-900/20 p-6 backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-green-100">Active Session</h2>
-                    <p className="mt-1 text-sm text-green-200/80">
-                      Currently in session with {activeSession.customerName}
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
-                    <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                    Live
-                  </span>
-                </div>
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-6 text-sm text-green-200/80">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>{describePlan(activeSession.plan, activeSession.sessionType)}</span>
+            {/* Active Sessions - Accepted but not started (TOP PRIORITY) */}
+            {activeSessions.length > 0 && (
+              <section className="rounded-3xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-6 shadow-2xl backdrop-blur">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                      <CheckCircle2 className="h-6 w-6 text-white" />
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500"></span>
+                      </span>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Active Sessions</h2>
+                      <p className="text-sm text-green-300">
+                        Accepted requests ready to start
+                      </p>
                     </div>
                   </div>
-                  <Link
-                    href={`/chat/${activeSession.id}`}
-                    className="inline-flex items-center justify-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
-                  >
-                    Rejoin Session
-                  </Link>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                    {activeSessions.length} Active
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {activeSessions.map((item) => (
+                    <article
+                      key={item.id}
+                      className="group relative overflow-hidden rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-5 shadow-lg backdrop-blur transition hover:border-green-400/50"
+                    >
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-lg font-semibold text-white">{item.customerName}</p>
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Accepted
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
+                            <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.acceptedAt ?? item.createdAt)}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-xs font-semibold uppercase text-green-400">{item.sessionType}</span>
+                              {item.intake && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300">
+                                  <FileText className="h-3 w-3" />
+                                  Intake
+                                </span>
+                              )}
+                              {item.files && item.files.length > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">
+                                  <FileText className="h-3 w-3" />
+                                  {item.files.length} file{item.files.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                              if (item.sessionId) {
+                                window.location.href = `/${sessionPath}/${item.sessionId}`
+                              }
+                            }}
+                            disabled={!item.sessionId}
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Start Session
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRequest(item)}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cancelRequest(item.id)}
+                            disabled={cancellingRequestId === item.id}
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            {cancellingRequestId === item.id ? 'Undoing...' : 'Cancel / Unlock'}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
+                  <p className="text-xs text-green-200">
+                    <strong>Tip:</strong> Click &quot;Start Session&quot; to begin helping the customer. Click &quot;Cancel / Unlock&quot; to make this request available to other mechanics.
+                  </p>
                 </div>
               </section>
             )}
 
-            {/* Incoming Requests */}
+            {/* New Requests */}
             <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Incoming Requests</h2>
-                  <p className="mt-1 text-sm text-slate-400">New customers waiting for help</p>
+                  <h2 className="text-xl font-bold text-white">New Requests</h2>
+                  <p className="mt-1 text-sm text-slate-400">Customers waiting for help</p>
                 </div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400">
                   <Radio className="h-3.5 w-3.5" />
-                  {incomingRequests.length} waiting
+                  {newRequests.length} waiting
                 </span>
               </div>
 
@@ -980,13 +1024,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 </p>
               )}
 
-              {isLoadingRequests && incomingRequests.length === 0 ? (
+              {isLoadingRequests && newRequests.length === 0 ? (
                 <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading requests...
                 </div>
               ) : (
                 <div className="mt-6 space-y-3">
-                  {incomingRequests.map((item) => (
+                  {newRequests.map((item) => (
                     <article
                       key={item.id}
                       className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
@@ -1033,7 +1077,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                       </div>
                     </article>
                   ))}
-                  {incomingRequests.length === 0 && !isLoadingRequests && (
+                  {newRequests.length === 0 && !isLoadingRequests && (
                     <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
                       No pending requests at the moment.
                     </div>
@@ -1042,97 +1086,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               )}
             </section>
 
-            {/* Accepted Requests - Ready to Start */}
-            {acceptedRequests.length > 0 && (
-              <section className="rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-900/20 to-emerald-900/10 p-6 backdrop-blur-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Accepted Requests</h2>
-                    <p className="mt-1 text-sm text-green-200">Ready to start - Click &quot;Start Session&quot; or undo to unlock</p>
-                  </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {acceptedRequests.length} accepted
-                  </span>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  {acceptedRequests.map((item) => (
-                    <article
-                      key={item.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-green-500/30 bg-green-900/10 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-white">{item.customerName}</p>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-300">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Accepted
-                            </span>
-                          </div>
-                          <p className="text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
-                          <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.createdAt)}</p>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs font-semibold uppercase text-green-400">{item.sessionType}</span>
-                            {item.intake && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300">
-                                <FileText className="h-3 w-3" />
-                                Intake
-                              </span>
-                            )}
-                            {item.files && item.files.length > 0 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">
-                                <FileText className="h-3 w-3" />
-                                {item.files.length} file{item.files.length > 1 ? 's' : ''}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
-                            if (item.sessionId) {
-                              window.location.href = `/${sessionPath}/${item.sessionId}`
-                            }
-                          }}
-                          className="inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          Start Session
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRequest(item)}
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => cancelRequest(item.id)}
-                          disabled={cancellingRequestId === item.id}
-                          className="inline-flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
-                        >
-                          {cancellingRequestId === item.id ? 'Undoing...' : 'Undo / Unlock'}
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            )}
-
             {/* Upcoming Sessions */}
             <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-white">Upcoming Sessions</h2>
-                  <p className="mt-1 text-sm text-slate-400">Scheduled and waiting sessions</p>
+                  <p className="mt-1 text-sm text-slate-400">Future scheduled sessions</p>
                 </div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-400">
                   <CalendarClock className="h-3.5 w-3.5" />
@@ -1161,23 +1120,93 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                       <div>
                         <p className="font-semibold text-white">{session.customerName}</p>
                         <p className="text-sm text-slate-400">
-                          {describePlan(session.plan, session.sessionType)} • {session.status}
+                          {describePlan(session.plan, session.sessionType)}
                         </p>
                         <p className="text-xs text-slate-500">
                           {formatDateTime(session.scheduledStart)}
                         </p>
                       </div>
                       <Link
-                        href={`/chat/${session.id}`}
+                        href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
                         className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                       >
-                        View Details
+                        View Session
                       </Link>
                     </article>
                   ))}
                   {upcomingSessions.length === 0 && !isLoadingSessions && (
                     <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
-                      No upcoming sessions. Accepted requests will appear here.
+                      No upcoming sessions scheduled.
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Session History - View Only */}
+            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-white">Session History</h2>
+                  <p className="mt-1 text-sm text-slate-400">Completed and cancelled sessions</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-400">
+                  <History className="h-3.5 w-3.5" />
+                  {sessionHistory.length}
+                </span>
+              </div>
+
+              {isLoadingSessions && sessionHistory.length === 0 ? (
+                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
+                </div>
+              ) : (
+                <div className="mt-6 space-y-3">
+                  {sessionHistory.slice(0, 20).map((session) => (
+                    <article
+                      key={session.id}
+                      className="flex flex-col gap-3 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white">{session.customerName}</p>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              session.status === 'completed'
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-slate-500/10 text-slate-400'
+                            }`}>
+                              {session.status === 'completed' ? 'Completed' : 'Cancelled'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            {describePlan(session.plan, session.sessionType)}
+                            {session.durationMinutes && ` • ${session.durationMinutes} min`}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(session.endedAt ?? session.scheduledEnd)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Link>
+                        {session.status === 'completed' && session.plan && (
+                          <span className="text-xs text-green-400 font-semibold">
+                            Earned: {formatCurrencyFromCents(calculateEarningsCents(session.plan))}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {sessionHistory.length === 0 && !isLoadingSessions && (
+                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No session history yet.
                     </div>
                   )}
                 </div>
@@ -1246,52 +1275,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   Sign Out
                 </Link>
               </div>
-            </section>
-
-            {/* Request History */}
-            <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
-                  <History className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Request History</h2>
-                  <p className="text-xs text-slate-400">Past accepted requests</p>
-                </div>
-              </div>
-
-              {isLoadingHistory ? (
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-                </div>
-              ) : requestHistory.length > 0 ? (
-                <div className="space-y-2">
-                  {requestHistory.slice(0, 10).map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-700/30 bg-slate-900/30 p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-white">{item.customer_name}</p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(item.created_at).toLocaleDateString()} • {item.status}
-                          </p>
-                        </div>
-                        <span className={`text-xs font-semibold uppercase ${
-                          item.status === 'accepted' ? 'text-green-400' : 'text-slate-500'
-                        }`}>
-                          {item.session_type}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-slate-700/30 bg-slate-900/20 p-6 text-center text-sm text-slate-500">
-                  No history yet
-                </div>
-              )}
             </section>
           </aside>
         </div>
