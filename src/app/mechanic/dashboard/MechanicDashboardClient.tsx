@@ -21,7 +21,7 @@ import type { SessionRequest } from '@/types/session'
 import type { SessionStatus } from '@/types/session'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
-import RequestDetailModal from '@/components/mechanic/RequestDetailModal'
+import EnhancedRequestDetailModal from '@/components/mechanic/EnhancedRequestDetailModal'
 
 const MECHANIC_SHARE = 0.7
 
@@ -455,33 +455,28 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         throw new Error(message)
       }
 
-      // Get request info and session type
-      let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat' // default
+      // Get request info
       if (payload && typeof payload === 'object' && 'request' in payload) {
         const request = (payload as { request?: { id?: string; sessionType?: string } }).request
         if (request?.id) {
           removeRequest(request.id)
         }
-        // Get session type from request
-        if (request?.sessionType) {
-          sessionType = request.sessionType as 'chat' | 'video' | 'diagnostic'
-        }
       }
 
-      // Redirect to the correct session page based on type
+      // Update selected request with session ID (enables "Start Session" button in modal)
       if (payload && typeof payload === 'object' && 'session' in payload) {
         const session = (payload as { session?: { id?: string } }).session
-        if (session?.id) {
-          // Map session type to URL path
-          const sessionPath = sessionType === 'chat' ? 'chat' : sessionType === 'video' ? 'video' : 'diagnostic'
-          console.log(`[accept-request] Redirecting to ${sessionType} session:`, session.id)
-          // Use window.location.href for full page navigation
-          window.location.href = `/${sessionPath}/${session.id}`
-          return
+        if (session?.id && selectedRequest) {
+          setSelectedRequest({
+            ...selectedRequest,
+            sessionId: session.id
+          })
+          console.log(`[accept-request] Request accepted, session ID:`, session.id)
         }
       }
 
-      // Fallback: Reload sessions to show newly accepted session
+      // Remove from pending requests and reload sessions
+      removeRequest(requestId)
       void loadSessions({ silent: true })
     } catch (error) {
       console.error('Accept request failed', error)
@@ -489,6 +484,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     } finally {
       setAcceptingRequestId(null)
     }
+  }
+
+  const startSession = (sessionId: string, sessionType: string) => {
+    const sessionPath = sessionType === 'chat' ? 'chat' : sessionType === 'video' ? 'video' : 'diagnostic'
+    console.log(`[start-session] Navigating to ${sessionType} session:`, sessionId)
+    window.location.href = `/${sessionPath}/${sessionId}`
   }
 
   const earningsSummary = useMemo(() => {
@@ -949,11 +950,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       </div>
 
       {/* Request Detail Modal */}
-      <RequestDetailModal
+      <EnhancedRequestDetailModal
         request={selectedRequest}
         onClose={() => setSelectedRequest(null)}
         onAccept={acceptRequest}
+        onStartSession={startSession}
         accepting={acceptingRequestId === selectedRequest?.id}
+        accepted={selectedRequest?.sessionId != null}
       />
     </div>
   )
