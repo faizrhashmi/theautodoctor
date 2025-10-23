@@ -99,6 +99,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const [debugData, setDebugData] = useState<any>(null)
   const [isLoadingDebug, setIsLoadingDebug] = useState(false)
 
+  // Pagination state - show 10 items initially, expand by 10
+  const ITEMS_PER_PAGE = 10
+  const [visibleNewRequests, setVisibleNewRequests] = useState(ITEMS_PER_PAGE)
+  const [visibleActiveSessions, setVisibleActiveSessions] = useState(ITEMS_PER_PAGE)
+  const [visibleUpcomingSessions, setVisibleUpcomingSessions] = useState(ITEMS_PER_PAGE)
+  const [visibleHistoryItems, setVisibleHistoryItems] = useState(ITEMS_PER_PAGE)
+
   const requestsChannelRef = useRef<RealtimeChannel | null>(null)
   const sessionsChannelRef = useRef<RealtimeChannel | null>(null)
   const isMountedRef = useRef(true)
@@ -385,6 +392,38 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         // Filter sessions by category
         const now = new Date()
+
+        // Live/Waiting sessions (in progress) - add to active sessions as session objects
+        const liveSessions = mapped
+          .filter((session) => session.status === 'live' || session.status === 'waiting')
+          .map((session) => ({
+            id: session.id,
+            customerId: '', // Not available from session, but not needed for display
+            customerName: session.customerName,
+            customerEmail: undefined,
+            sessionType: session.sessionType,
+            planCode: session.plan ?? 'unknown',
+            status: session.status as any,
+            createdAt: session.startedAt ?? session.scheduledStart ?? new Date().toISOString(),
+            acceptedAt: session.startedAt ?? session.scheduledStart,
+            mechanicId: mechanicId,
+            sessionId: session.id, // Already a started session
+            isLive: true, // Flag to indicate this is an active/live session
+          }))
+
+        // Merge live sessions with accepted requests (from fetchActiveSessions)
+        // Keep existing accepted requests and add any new live sessions
+        setActiveSessions((prev) => {
+          // Filter out any duplicates (sessions that were accepted requests but are now live)
+          const existingAccepted = prev.filter(item => !item.isLive)
+          const liveSessionIds = new Set(liveSessions.map(s => s.sessionId))
+          const filteredAccepted = existingAccepted.filter(item => !liveSessionIds.has(item.sessionId))
+
+          // Combine and sort
+          return [...liveSessions, ...filteredAccepted].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        })
 
         // Upcoming: Future scheduled sessions only
         const upcoming = mapped
@@ -925,7 +964,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 </div>
 
                 <div className="space-y-4">
-                  {activeSessions.map((item) => (
+                  {activeSessions.slice(0, visibleActiveSessions).map((item) => (
                     <article
                       key={item.id}
                       className="group relative overflow-hidden rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-5 shadow-lg backdrop-blur transition hover:border-green-400/50"
@@ -935,10 +974,17 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-lg font-semibold text-white">{item.customerName}</p>
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Accepted
-                              </span>
+                              {item.isLive ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                  Live Now
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Accepted
+                                </span>
+                              )}
                             </div>
                             <p className="mt-1 text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
                             <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.acceptedAt ?? item.createdAt)}</p>
@@ -960,20 +1006,71 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
-                              if (item.sessionId) {
-                                window.location.href = `/${sessionPath}/${item.sessionId}`
-                              }
-                            }}
-                            disabled={!item.sessionId}
-                            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:opacity-50"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Start Session
-                          </button>
+                          {item.isLive ? (
+                            <>
+                              {/* Live session buttons */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                                  window.location.href = `/${sessionPath}/${item.sessionId}`
+                                }}
+                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Join Session
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!confirm('Are you sure you want to end this session?')) return
+                                  try {
+                                    const response = await fetch(`/api/sessions/${item.sessionId}/end`, {
+                                      method: 'POST',
+                                    })
+                                    if (response.ok) {
+                                      // Reload sessions to update UI
+                                      void loadSessions({ silent: true })
+                                    } else {
+                                      alert('Failed to end session. Please try again.')
+                                    }
+                                  } catch (error) {
+                                    console.error('Error ending session:', error)
+                                    alert('An error occurred. Please try again.')
+                                  }
+                                }}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                              >
+                                End Session
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {/* Accepted request buttons */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                                  if (item.sessionId) {
+                                    window.location.href = `/${sessionPath}/${item.sessionId}`
+                                  }
+                                }}
+                                disabled={!item.sessionId}
+                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Start Session
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => cancelRequest(item.id)}
+                                disabled={cancellingRequestId === item.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                              >
+                                {cancellingRequestId === item.id ? 'Undoing...' : 'Cancel / Unlock'}
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
                             onClick={() => setSelectedRequest(item)}
@@ -982,19 +1079,35 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                             <Eye className="h-4 w-4" />
                             View Details
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => cancelRequest(item.id)}
-                            disabled={cancellingRequestId === item.id}
-                            className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
-                          >
-                            {cancellingRequestId === item.id ? 'Undoing...' : 'Cancel / Unlock'}
-                          </button>
                         </div>
                       </div>
                     </article>
                   ))}
                 </div>
+
+                {/* Pagination Controls */}
+                {activeSessions.length > visibleActiveSessions && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleActiveSessions(prev => prev + ITEMS_PER_PAGE)}
+                      className="inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-6 py-2.5 text-sm font-semibold text-green-300 transition hover:bg-green-500/20"
+                    >
+                      View More ({activeSessions.length - visibleActiveSessions} remaining)
+                    </button>
+                  </div>
+                )}
+                {visibleActiveSessions > ITEMS_PER_PAGE && activeSessions.length > 0 && (
+                  <div className="mt-2 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleActiveSessions(ITEMS_PER_PAGE)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
+                    >
+                      Show Less
+                    </button>
+                  </div>
+                )}
 
                 <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                   <p className="text-xs text-green-200">
@@ -1029,60 +1142,86 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading requests...
                 </div>
               ) : (
-                <div className="mt-6 space-y-3">
-                  {newRequests.map((item) => (
-                    <article
-                      key={item.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <p className="font-semibold text-white">{item.customerName}</p>
-                          <p className="text-sm text-slate-400">{describePlan(item.planCode, item.sessionType)}</p>
-                          <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
-                            {item.intake && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
-                                <FileText className="h-3 w-3" />
-                                Intake
-                              </span>
-                            )}
-                            {item.files && item.files.length > 0 && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
-                                <FileText className="h-3 w-3" />
-                                {item.files.length} file{item.files.length > 1 ? 's' : ''}
-                              </span>
-                            )}
+                <>
+                  <div className="mt-6 space-y-3">
+                    {newRequests.slice(0, visibleNewRequests).map((item) => (
+                      <article
+                        key={item.id}
+                        className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="font-semibold text-white">{item.customerName}</p>
+                            <p className="text-sm text-slate-400">{describePlan(item.planCode, item.sessionType)}</p>
+                            <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
+                              {item.intake && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-400">
+                                  <FileText className="h-3 w-3" />
+                                  Intake
+                                </span>
+                              )}
+                              {item.files && item.files.length > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-400">
+                                  <FileText className="h-3 w-3" />
+                                  {item.files.length} file{item.files.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRequest(item)}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => acceptRequest(item.id)}
+                            disabled={acceptingRequestId === item.id}
+                            className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-orange-400"
+                          >
+                            {acceptingRequestId === item.id ? 'Accepting...' : 'Accept Request'}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                    {newRequests.length === 0 && !isLoadingRequests && (
+                      <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                        No pending requests at the moment.
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRequest(item)}
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => acceptRequest(item.id)}
-                          disabled={acceptingRequestId === item.id}
-                          className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-orange-400"
-                        >
-                          {acceptingRequestId === item.id ? 'Accepting...' : 'Accept Request'}
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                  {newRequests.length === 0 && !isLoadingRequests && (
-                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
-                      No pending requests at the moment.
+                    )}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {newRequests.length > visibleNewRequests && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleNewRequests(prev => prev + ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-6 py-2.5 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20"
+                      >
+                        View More ({newRequests.length - visibleNewRequests} remaining)
+                      </button>
                     </div>
                   )}
-                </div>
+                  {visibleNewRequests > ITEMS_PER_PAGE && newRequests.length > 0 && (
+                    <div className="mt-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleNewRequests(ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
+                      >
+                        Show Less
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
 
@@ -1111,35 +1250,61 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading sessions...
                 </div>
               ) : (
-                <div className="mt-6 space-y-3">
-                  {upcomingSessions.map((session) => (
-                    <article
-                      key={session.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4 md:flex-row md:items-center md:justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold text-white">{session.customerName}</p>
-                        <p className="text-sm text-slate-400">
-                          {describePlan(session.plan, session.sessionType)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDateTime(session.scheduledStart)}
-                        </p>
-                      </div>
-                      <Link
-                        href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
-                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                <>
+                  <div className="mt-6 space-y-3">
+                    {upcomingSessions.slice(0, visibleUpcomingSessions).map((session) => (
+                      <article
+                        key={session.id}
+                        className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4 md:flex-row md:items-center md:justify-between"
                       >
-                        View Session
-                      </Link>
-                    </article>
-                  ))}
-                  {upcomingSessions.length === 0 && !isLoadingSessions && (
-                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
-                      No upcoming sessions scheduled.
+                        <div>
+                          <p className="font-semibold text-white">{session.customerName}</p>
+                          <p className="text-sm text-slate-400">
+                            {describePlan(session.plan, session.sessionType)}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(session.scheduledStart)}
+                          </p>
+                        </div>
+                        <Link
+                          href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+                          className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                          View Session
+                        </Link>
+                      </article>
+                    ))}
+                    {upcomingSessions.length === 0 && !isLoadingSessions && (
+                      <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                        No upcoming sessions scheduled.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {upcomingSessions.length > visibleUpcomingSessions && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleUpcomingSessions(prev => prev + ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-6 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/20"
+                      >
+                        View More ({upcomingSessions.length - visibleUpcomingSessions} remaining)
+                      </button>
                     </div>
                   )}
-                </div>
+                  {visibleUpcomingSessions > ITEMS_PER_PAGE && upcomingSessions.length > 0 && (
+                    <div className="mt-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleUpcomingSessions(ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
+                      >
+                        Show Less
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
 
@@ -1161,55 +1326,81 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
                 </div>
               ) : (
-                <div className="mt-6 space-y-3">
-                  {sessionHistory.slice(0, 20).map((session) => (
-                    <article
-                      key={session.id}
-                      className="flex flex-col gap-3 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-white">{session.customerName}</p>
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              session.status === 'completed'
-                                ? 'bg-green-500/10 text-green-400'
-                                : 'bg-slate-500/10 text-slate-400'
-                            }`}>
-                              {session.status === 'completed' ? 'Completed' : 'Cancelled'}
-                            </span>
+                <>
+                  <div className="mt-6 space-y-3">
+                    {sessionHistory.slice(0, visibleHistoryItems).map((session) => (
+                      <article
+                        key={session.id}
+                        className="flex flex-col gap-3 rounded-2xl border border-slate-700/50 bg-slate-900/50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-white">{session.customerName}</p>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                session.status === 'completed'
+                                  ? 'bg-green-500/10 text-green-400'
+                                  : 'bg-slate-500/10 text-slate-400'
+                              }`}>
+                                {session.status === 'completed' ? 'Completed' : 'Cancelled'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                              {describePlan(session.plan, session.sessionType)}
+                              {session.durationMinutes && ` • ${session.durationMinutes} min`}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {formatDateTime(session.endedAt ?? session.scheduledEnd)}
+                            </p>
                           </div>
-                          <p className="text-sm text-slate-400">
-                            {describePlan(session.plan, session.sessionType)}
-                            {session.durationMinutes && ` • ${session.durationMinutes} min`}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDateTime(session.endedAt ?? session.scheduledEnd)}
-                          </p>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Link>
+                          {session.status === 'completed' && session.plan && (
+                            <span className="text-xs text-green-400 font-semibold">
+                              Earned: {formatCurrencyFromCents(calculateEarningsCents(session.plan))}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                    {sessionHistory.length === 0 && !isLoadingSessions && (
+                      <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                        No session history yet.
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={session.sessionType === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Link>
-                        {session.status === 'completed' && session.plan && (
-                          <span className="text-xs text-green-400 font-semibold">
-                            Earned: {formatCurrencyFromCents(calculateEarningsCents(session.plan))}
-                          </span>
-                        )}
-                      </div>
-                    </article>
-                  ))}
-                  {sessionHistory.length === 0 && !isLoadingSessions && (
-                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
-                      No session history yet.
+                    )}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {sessionHistory.length > visibleHistoryItems && (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleHistoryItems(prev => prev + ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-6 py-2.5 text-sm font-semibold text-purple-300 transition hover:bg-purple-500/20"
+                      >
+                        View More ({sessionHistory.length - visibleHistoryItems} remaining)
+                      </button>
                     </div>
                   )}
-                </div>
+                  {visibleHistoryItems > ITEMS_PER_PAGE && sessionHistory.length > 0 && (
+                    <div className="mt-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleHistoryItems(ITEMS_PER_PAGE)}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
+                      >
+                        Show Less
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           </div>
