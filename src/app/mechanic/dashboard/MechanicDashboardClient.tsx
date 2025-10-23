@@ -79,9 +79,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   console.log('[MECHANIC DASHBOARD CLIENT] Component rendered, mechanicId:', mechanicId)
 
   const [incomingRequests, setIncomingRequests] = useState<any[]>([])
+  const [acceptedRequests, setAcceptedRequests] = useState<any[]>([])
   const [isLoadingRequests, setIsLoadingRequests] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
   const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
+  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null)
   const [acceptedSessionId, setAcceptedSessionId] = useState<string | null>(null)
   const [acceptedCustomerName, setAcceptedCustomerName] = useState<string | null>(null)
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
@@ -203,6 +205,46 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     [mechanicId, mapRowToRequest]
   )
 
+  const fetchAcceptedRequests = useCallback(
+    async () => {
+      if (!mechanicId) return
+
+      try {
+        const response = await fetch(`/api/mechanics/requests?status=accepted&mechanicId=${mechanicId}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
+
+        const body = (await response
+          .json()
+          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
+
+        if (!response.ok) {
+          console.error('[MECHANIC DASHBOARD] Failed to load accepted requests', response.status, body ?? {})
+          if (!isMountedRef.current) return
+          setAcceptedRequests([])
+          return
+        }
+
+        if (!isMountedRef.current) return
+
+        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
+
+        setAcceptedRequests(
+          mapped.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        )
+      } catch (error) {
+        console.error('[MECHANIC DASHBOARD] Failed to load accepted requests', error)
+        if (!isMountedRef.current) return
+        setAcceptedRequests([])
+      }
+    },
+    [mechanicId, mapRowToRequest]
+  )
+
   const fetchHistory = useCallback(
     async () => {
       if (!mechanicId) return
@@ -277,15 +319,17 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     []
   )
 
-  // Load incoming requests
+  // Load incoming and accepted requests
   useEffect(() => {
     if (!mechanicId) {
       setIncomingRequests([])
+      setAcceptedRequests([])
       setIsLoadingRequests(false)
       return
     }
 
     void fetchRequests()
+    void fetchAcceptedRequests()
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })
@@ -318,10 +362,13 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
         const id = typeof payload?.id === 'string' ? payload.id : null
         if (id) removeRequest(id)
+        // Reload accepted requests to show newly accepted
+        void fetchAcceptedRequests()
       })
-      .on('broadcast', { event: 'request_cancelled' }, ({ payload }) => {
-        const id = typeof payload?.id === 'string' ? payload.id : null
-        if (id) removeRequest(id)
+      .on('broadcast', { event: 'request_cancelled' }, () => {
+        // Reload both lists - cancelled request goes back to pending
+        void fetchRequests({ silent: true })
+        void fetchAcceptedRequests()
       })
 
     channel.subscribe((status) => {
@@ -337,7 +384,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       supabase.removeChannel(channel)
       requestsChannelRef.current = null
     }
-  }, [fetchRequests, mechanicId, removeRequest, supabase, upsertRequest])
+  }, [fetchRequests, fetchAcceptedRequests, mechanicId, removeRequest, supabase, upsertRequest])
 
   const loadSessions = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -490,6 +537,41 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     const sessionPath = sessionType === 'chat' ? 'chat' : sessionType === 'video' ? 'video' : 'diagnostic'
     console.log(`[start-session] Navigating to ${sessionType} session:`, sessionId)
     window.location.href = `/${sessionPath}/${sessionId}`
+  }
+
+  const cancelRequest = async (requestId: string) => {
+    if (!mechanicId) {
+      setRequestsError('Log in as a mechanic to cancel requests.')
+      return
+    }
+
+    setCancellingRequestId(requestId)
+    setRequestsError(null)
+
+    try {
+      const response = await fetch(`/api/mechanics/requests/${requestId}/cancel`, {
+        method: 'POST',
+      })
+
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        const message =
+          (payload && typeof payload === 'object' && 'error' in payload && typeof (payload as any).error === 'string'
+            ? (payload as any).error
+            : null) || 'Unable to cancel this request.'
+        throw new Error(message)
+      }
+
+      // Reload both lists - request goes back to pending
+      void fetchRequests({ silent: true })
+      void fetchAcceptedRequests()
+    } catch (error) {
+      console.error('[MECHANIC DASHBOARD] Cancel request error:', error)
+      setRequestsError(error instanceof Error ? error.message : 'Failed to cancel request')
+    } finally {
+      setCancellingRequestId(null)
+    }
   }
 
   const earningsSummary = useMemo(() => {
@@ -778,6 +860,91 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 </div>
               )}
             </section>
+
+            {/* Accepted Requests - Ready to Start */}
+            {acceptedRequests.length > 0 && (
+              <section className="rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-900/20 to-emerald-900/10 p-6 backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Accepted Requests</h2>
+                    <p className="mt-1 text-sm text-green-200">Ready to start - Click &quot;Start Session&quot; or undo to unlock</p>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-300">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {acceptedRequests.length} accepted
+                  </span>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  {acceptedRequests.map((item) => (
+                    <article
+                      key={item.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-green-500/30 bg-green-900/10 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-white">{item.customerName}</p>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-300">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Accepted
+                            </span>
+                          </div>
+                          <p className="text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
+                          <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.createdAt)}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-xs font-semibold uppercase text-green-400">{item.sessionType}</span>
+                            {item.intake && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300">
+                                <FileText className="h-3 w-3" />
+                                Intake
+                              </span>
+                            )}
+                            {item.files && item.files.length > 0 && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">
+                                <FileText className="h-3 w-3" />
+                                {item.files.length} file{item.files.length > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                            if (item.sessionId) {
+                              window.location.href = `/${sessionPath}/${item.sessionId}`
+                            }
+                          }}
+                          className="inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Start Session
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRequest(item)}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelRequest(item.id)}
+                          disabled={cancellingRequestId === item.id}
+                          className="inline-flex items-center gap-2 rounded-full border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                        >
+                          {cancellingRequestId === item.id ? 'Undoing...' : 'Undo / Unlock'}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Upcoming Sessions */}
             <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">

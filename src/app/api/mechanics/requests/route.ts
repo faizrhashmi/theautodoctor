@@ -34,6 +34,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Get query parameters for filtering
+  const { searchParams } = new URL(req.url)
+  const statusParam = searchParams.get('status') || 'pending'
+  const status = ['pending', 'accepted', 'cancelled'].includes(statusParam)
+    ? (statusParam as 'pending' | 'accepted' | 'cancelled')
+    : 'pending'
+  const mechanicId = searchParams.get('mechanicId')
+
   // Run comprehensive cleanup to ensure no stale sessions/requests are blocking
   // This uses the centralized cleanup utility for consistency and robustness
   console.log('[mechanics/requests] Running cleanup before fetching requests...')
@@ -43,13 +51,24 @@ export async function GET(req: NextRequest) {
     console.log(`[mechanics/requests] Cleaned up ${cleanupStats.totalCleaned} stale items:`, cleanupStats)
   }
 
-  // Fetch all pending requests (only recent ones now)
-  const { data: requests, error } = await supabaseAdmin
+  // Build query based on parameters
+  let query = supabaseAdmin
     .from('session_requests')
     .select('*')
-    .eq('status', 'pending')
-    .is('mechanic_id', null)
-    .order('created_at', { ascending: true })
+    .eq('status', status)
+
+  // For pending requests, show only unclaimed ones
+  if (status === 'pending') {
+    query = query.is('mechanic_id', null)
+  }
+  // For accepted requests, show only this mechanic's
+  else if (status === 'accepted' && mechanicId) {
+    query = query.eq('mechanic_id', mechanicId)
+  }
+
+  query = query.order('created_at', { ascending: true })
+
+  const { data: requests, error } = await query
 
   if (error) {
     console.error('Failed to fetch session requests for mechanic', error)
