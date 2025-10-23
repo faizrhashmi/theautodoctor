@@ -81,10 +81,10 @@ export async function cleanupExpiredRequests(
 
   console.log(`[sessionCleanup] Cancelling ${expiredRequests.length} expired pending request(s) older than ${maxAgeMinutes} minutes`)
 
-  // Cancel the old requests
+  // Cancel the old requests (note: session_requests table has no updated_at column)
   await supabaseAdmin
     .from('session_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .update({ status: 'cancelled' })
     .eq('status', 'pending')
     .is('mechanic_id', null)
     .lt('created_at', cutoffTime)
@@ -129,11 +129,11 @@ export async function cleanupAcceptedRequests(
 
   // Find old accepted requests (1+ hour old)
   // These were accepted by mechanics but customers never started the session
+  // Also catch data integrity issues: accepted=true but mechanic_id=null
   const { data: oldAcceptedRequests } = await supabaseAdmin
     .from('session_requests')
     .select('id, customer_id, mechanic_id, accepted_at')
     .eq('status', 'accepted')
-    .not('mechanic_id', 'is', null)
     .lt('accepted_at', cutoffTime)
 
   if (!oldAcceptedRequests || oldAcceptedRequests.length === 0) {
@@ -142,12 +142,11 @@ export async function cleanupAcceptedRequests(
 
   console.log(`[sessionCleanup] Cancelling ${oldAcceptedRequests.length} old accepted request(s) older than ${maxAgeMinutes} minutes`)
 
-  // Cancel the old accepted requests
+  // Cancel the old accepted requests (note: session_requests table has no updated_at column)
   await supabaseAdmin
     .from('session_requests')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .update({ status: 'cancelled' })
     .eq('status', 'accepted')
-    .not('mechanic_id', 'is', null)
     .lt('accepted_at', cutoffTime)
 
   return oldAcceptedRequests.length
