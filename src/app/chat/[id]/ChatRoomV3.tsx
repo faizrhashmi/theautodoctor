@@ -692,6 +692,20 @@ export default function ChatRoom({
           </div>
         )}
 
+        {/* DEBUG BANNER - Remove after fixing role issue */}
+        <div className="mb-4 rounded-lg border border-purple-500/50 bg-purple-500/10 p-3 text-xs font-mono">
+          <div className="font-bold text-purple-300 mb-2">🔍 Debug Info (remove in production):</div>
+          <div className="space-y-1 text-purple-200">
+            <div>userRole: <span className="text-purple-100 font-bold">{userRole}</span></div>
+            <div>isMechanic: <span className="text-purple-100 font-bold">{String(isMechanic)}</span></div>
+            <div>userId: {userId}</div>
+            <div>mechanicId: {mechanicId || 'null'}</div>
+            <div>customerId: {customerId || 'null'}</div>
+            <div>mechanicPresent: {String(mechanicPresent)}</div>
+            <div>customerPresent: {String(customerPresent)}</div>
+          </div>
+        </div>
+
         {/* Waiting for Participant Indicator */}
         {currentStatus === 'waiting' && !bothParticipantsPresent && (
           <div className="mb-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-center backdrop-blur-sm">
