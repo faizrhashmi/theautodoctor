@@ -182,15 +182,36 @@ function VideoControls({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const toggleCamera = useCallback(async () => {
-    await localParticipant.setCameraEnabled(!isCameraEnabled)
+    try {
+      console.log('[VideoControls] Toggling camera, current state:', isCameraEnabled)
+      await localParticipant.setCameraEnabled(!isCameraEnabled)
+      console.log('[VideoControls] Camera toggled successfully to:', !isCameraEnabled)
+    } catch (error) {
+      console.error('[VideoControls] Failed to toggle camera:', error)
+      alert('Failed to toggle camera. Please check your camera permissions.')
+    }
   }, [localParticipant, isCameraEnabled])
 
   const toggleMic = useCallback(async () => {
-    await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+    try {
+      console.log('[VideoControls] Toggling mic, current state:', isMicrophoneEnabled)
+      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+      console.log('[VideoControls] Mic toggled successfully to:', !isMicrophoneEnabled)
+    } catch (error) {
+      console.error('[VideoControls] Failed to toggle microphone:', error)
+      alert('Failed to toggle microphone. Please check your microphone permissions.')
+    }
   }, [localParticipant, isMicrophoneEnabled])
 
   const toggleScreenShare = useCallback(async () => {
-    await localParticipant.setScreenShareEnabled(!isScreenShareEnabled)
+    try {
+      console.log('[VideoControls] Toggling screen share, current state:', isScreenShareEnabled)
+      await localParticipant.setScreenShareEnabled(!isScreenShareEnabled)
+      console.log('[VideoControls] Screen share toggled successfully to:', !isScreenShareEnabled)
+    } catch (error) {
+      console.error('[VideoControls] Failed to toggle screen share:', error)
+      alert('Failed to toggle screen share. Please try again.')
+    }
   }, [localParticipant, isScreenShareEnabled])
 
   const toggleFullscreen = useCallback(() => {
@@ -301,13 +322,22 @@ function VideoView({
   const remoteCameraTrack = cameraTracks.find((t) => !t.participant.isLocal)
   const screenShareTrack = screenTracks.find((t) => t.publication.isSubscribed)
 
-  // Main video is remote participant or screen share
-  const mainTrack = screenShareTrack || remoteCameraTrack
-  const pipTrack = screenShareTrack ? remoteCameraTrack : localCameraTrack
+  // FIXED: Main video shows your own camera, PIP shows other person
+  // If someone is screen sharing, screen share is main, other person's camera is PIP
+  const mainTrack = screenShareTrack || localCameraTrack
+  const pipTrack = screenShareTrack ? remoteCameraTrack : remoteCameraTrack
+
+  console.log('[VideoView] Tracks detected:', {
+    hasLocal: !!localCameraTrack,
+    hasRemote: !!remoteCameraTrack,
+    hasScreenShare: !!screenShareTrack,
+    mainIsLocal: mainTrack?.participant.isLocal,
+    pipIsLocal: pipTrack?.participant.isLocal,
+  })
 
   return (
     <div className="relative h-full w-full">
-      {/* Main Video (Remote participant or screen share) */}
+      {/* Main Video (Your camera or screen share) */}
       <div className="absolute inset-0 bg-slate-900">
         {mainTrack ? (
           <VideoTrack
@@ -321,14 +351,14 @@ function VideoView({
                 <UserPlus className="h-12 w-12 text-slate-400" />
               </div>
               <p className="text-lg text-slate-300">
-                Waiting for {userRole === 'mechanic' ? 'customer' : 'mechanic'}...
+                {localCameraTrack ? `Waiting for ${userRole === 'mechanic' ? 'customer' : 'mechanic'}...` : 'Turn on your camera to start'}
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Picture-in-Picture (Local camera or remote when screen sharing) */}
+      {/* Picture-in-Picture (Other person's camera) */}
       {pipTrack && (
         <div className="absolute bottom-4 right-4 z-10 h-48 w-64 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl">
           <VideoTrack
@@ -336,7 +366,7 @@ function VideoView({
             className="h-full w-full object-cover"
           />
           <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white">
-            {pipTrack.participant.isLocal ? 'You' : 'Other participant'}
+            {pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
           </div>
         </div>
       )}
