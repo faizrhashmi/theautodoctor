@@ -2,7 +2,18 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest } from '@/lib/sessionRequests'
 
+// Prevent this from being called during build/static generation
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 export async function GET() {
+  // Only allow in development mode to prevent ghost requests in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({
+      error: 'Test endpoint disabled in production'
+    }, { status: 403 })
+  }
+
   try {
     // Get a customer ID from the database
     const { data: profiles } = await supabaseAdmin
