@@ -1137,18 +1137,61 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 </span>
               </div>
 
-              {/* BUSINESS RULE: Block accepting when mechanic has active/accepted session */}
+              {/* BUSINESS RULE: Block accepting when mechanic has active/accepted session (ONE AT A TIME) */}
               {activeSessions.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-400 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-amber-200">You have an active session</p>
-                      <p className="mt-1 text-sm text-amber-300/80">
-                        Please complete or cancel your current session before accepting new requests.
-                        This ensures quality service for your current customer.
-                      </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-amber-200">You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''}</p>
+                        <p className="mt-1 text-sm text-amber-300/80">
+                          Please complete or cancel your current session before accepting new requests.
+                          This ensures quality service for your current customer.
+                        </p>
+                        <p className="mt-2 text-xs text-amber-200/70">
+                          ↑ Scroll up to see your active session{activeSessions.length > 1 ? 's' : ''} or use the button to force-end if stuck.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(`⚠️ WARNING: This will FORCE-END ${activeSessions.length} active session${activeSessions.length > 1 ? 's' : ''}.\n\nOnly use this if your session is stuck and won't end normally.\n\nCustomers will be notified. Continue?`)) return
+
+                        try {
+                          const endPromises = activeSessions.map(async (session) => {
+                            if (session.sessionId) {
+                              const response = await fetch(`/api/sessions/${session.sessionId}/end`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ force: true })
+                              })
+                              if (!response.ok) {
+                                console.error(`Failed to end session ${session.sessionId}`)
+                              }
+                              return response
+                            }
+                            return null
+                          })
+
+                          await Promise.all(endPromises)
+
+                          // Reload dashboard
+                          void loadSessions({ silent: true })
+                          void fetchActiveSessions()
+                          void fetchNewRequests({ silent: true })
+
+                          alert('✓ All sessions have been force-ended. You can now accept new requests.')
+                        } catch (error) {
+                          console.error('Error force-ending sessions:', error)
+                          alert('❌ Failed to end some sessions. Please refresh the page or contact support.')
+                        }
+                      }}
+                      className="flex-shrink-0 rounded-lg border border-red-400/50 bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/30 whitespace-nowrap"
+                    >
+                      Force End All
+                    </button>
                   </div>
                 </div>
               )}
