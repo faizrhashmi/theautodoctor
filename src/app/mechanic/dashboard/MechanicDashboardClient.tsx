@@ -119,7 +119,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   }, [])
 
   const mapRowToRequest = useCallback(
-    (row: SessionRequestRow): SessionRequest => ({
+    (row: SessionRequestRow & { sessionId?: string | null }): SessionRequest => ({
       id: row.id,
       customerId: row.customer_id,
       customerName: row.customer_name ?? 'Customer',
@@ -130,6 +130,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       createdAt: row.created_at,
       acceptedAt: row.accepted_at ?? undefined,
       mechanicId: row.mechanic_id ?? undefined,
+      sessionId: row.sessionId ?? undefined,
     }),
     []
   )

@@ -31,6 +31,7 @@ export interface SessionRequest {
   createdAt: string
   acceptedAt?: string
   mechanicId?: string
+  sessionId?: string
 }
 
 export interface MechanicAvailabilityBlock {
