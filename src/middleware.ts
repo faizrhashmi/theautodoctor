@@ -86,6 +86,11 @@ export async function middleware(request: NextRequest) {
   // ADMIN ROUTE PROTECTION
   // ==========================================================================
   if (matchesPrefix(pathname, '/admin')) {
+    // Allow access to login page without auth
+    if (pathname === '/admin/login') {
+      return response
+    }
+
     if (!user) {
       const loginUrl = new URL('/admin/login', request.url)
       const next = pathname === '/admin' ? '/admin/intakes' : pathname

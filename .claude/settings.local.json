@@ -20,7 +20,8 @@
       "Bash(tee:*)",
       "Bash(while read file)",
       "Bash(do node -e \"const fs = require(''''fs''''); let content = fs.readFileSync(''''$file'''', ''''utf8''''); if (content.includes(''''request.'''')) { content = content.replace(/_request:/g, ''''request:''''); fs.writeFileSync(''''$file'''', content); console.log(''''Fixed: $file''''); }\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
