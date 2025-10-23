@@ -259,6 +259,16 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const mapSessionRow = useCallback(
     (row: SessionRow): MechanicDashboardSession => {
       const status = normalizeSessionStatus(row.status)
+
+      // DEBUG: Log raw status from database
+      if (row.status === 'completed' || row.status === 'cancelled') {
+        console.log('[MECHANIC DASHBOARD] Found completed/cancelled session:', {
+          id: row.id.substring(0, 8),
+          rawStatus: row.status,
+          normalizedStatus: status
+        })
+      }
+
       const metadata = (row.metadata ?? {}) as Record<string, unknown>
       const nameCandidate = [
         metadata.customer_name,
@@ -390,6 +400,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       } else if (data) {
         const mapped = data.map(mapSessionRow)
 
+        // DEBUG: Log all sessions to see what we're getting
+        console.log('[MECHANIC DASHBOARD] All sessions loaded:', mapped.length)
+        console.log('[MECHANIC DASHBOARD] Session statuses:', mapped.map(s => ({ id: s.id.substring(0, 8), status: s.status })))
+
         // Filter sessions by category
         const now = new Date()
 
@@ -442,6 +456,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         const history = mapped
           .filter((session) => session.status === 'completed' || session.status === 'cancelled')
           .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
+
+        // DEBUG: Log history filtering
+        console.log('[MECHANIC DASHBOARD] Session History filtered:', history.length, 'sessions')
+        console.log('[MECHANIC DASHBOARD] History items:', history.map(s => ({
+          id: s.id.substring(0, 8),
+          status: s.status,
+          customer: s.customerName
+        })))
 
         setUpcomingSessions(upcoming)
         setSessionHistory(history)
