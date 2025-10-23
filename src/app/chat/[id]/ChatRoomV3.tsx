@@ -161,16 +161,28 @@ export default function ChatRoom({
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
         const state = presenceChannel.presenceState()
-        console.log('[ChatRoom] Presence sync:', state)
+        console.log('[ChatRoom] Presence sync - full state:', JSON.stringify(state, null, 2))
+        console.log('[ChatRoom] Looking for mechanicId:', mechanicId, 'customerId:', customerId)
 
-        // Check who's present
-        const mechanicIsPresent = Object.keys(state).some(key => key === mechanicId)
-        const customerIsPresent = Object.keys(state).some(key => key === customerId)
+        // CRITICAL FIX: Check presence payload VALUES, not KEYS
+        // Supabase uses connection UUIDs as keys, we need to check user_id in the payload
+        const mechanicIsPresent = mechanicId && Object.values(state).some(
+          (entries: any) => Array.isArray(entries) && entries.some((entry: any) => entry.user_id === mechanicId)
+        )
+        const customerIsPresent = customerId && Object.values(state).some(
+          (entries: any) => Array.isArray(entries) && entries.some((entry: any) => entry.user_id === customerId)
+        )
 
         setMechanicPresent(mechanicIsPresent)
         setCustomerPresent(customerIsPresent)
 
-        console.log('[ChatRoom] Presence status:', { mechanicIsPresent, customerIsPresent })
+        console.log('[ChatRoom] Presence status:', {
+          mechanicIsPresent,
+          customerIsPresent,
+          mechanicId,
+          customerId,
+          totalPresent: Object.keys(state).length
+        })
       })
       .on('presence', { event: 'join' }, ({ key }) => {
         console.log('[ChatRoom] User joined:', key)

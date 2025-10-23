@@ -21,7 +21,8 @@
       "Bash(while read file)",
       "Bash(do node -e \"const fs = require(''''fs''''); let content = fs.readFileSync(''''$file'''', ''''utf8''''); if (content.includes(''''request.'''')) { content = content.replace(/_request:/g, ''''request:''''); fs.writeFileSync(''''$file'''', content); console.log(''''Fixed: $file''''); }\")",
       "Bash(done)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(timeout 30 bash -c 'while ! grep -q \"\"\"\"Compiled successfully\\|Failed to compile\"\"\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')"
     ],
     "deny": [],
     "ask": []
