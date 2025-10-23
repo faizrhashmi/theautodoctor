@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   LiveKitRoom,
   useLocalParticipant,
+  useRemoteParticipants,
   useTracks,
   VideoTrack,
   RoomAudioRenderer,
@@ -56,21 +57,31 @@ function ParticipantMonitor({
   onCustomerJoined: () => void
   onCustomerLeft: () => void
 }) {
-  const tracks = useTracks([Track.Source.Camera, Track.Source.Microphone])
+  const { localParticipant } = useLocalParticipant()
+  const remoteParticipants = useRemoteParticipants()
 
   useEffect(() => {
-    const mechanicTracks = tracks.filter((track) => {
-      const metadata = track.participant.metadata
+    // Combine local and remote participants
+    const allParticipants = [localParticipant, ...remoteParticipants]
+
+    console.log('[ParticipantMonitor] All participants:', allParticipants.length)
+
+    // Filter for mechanic
+    const mechanicParticipants = allParticipants.filter((participant) => {
+      const metadata = participant.metadata
       try {
         const parsed = metadata ? JSON.parse(metadata) : {}
+        console.log('[ParticipantMonitor] Participant:', participant.identity, 'Role:', parsed.role)
         return parsed.role === 'mechanic'
-      } catch {
+      } catch (error) {
+        console.error('[ParticipantMonitor] Error parsing metadata for', participant.identity, error)
         return false
       }
     })
 
-    const customerTracks = tracks.filter((track) => {
-      const metadata = track.participant.metadata
+    // Filter for customer
+    const customerParticipants = allParticipants.filter((participant) => {
+      const metadata = participant.metadata
       try {
         const parsed = metadata ? JSON.parse(metadata) : {}
         return parsed.role === 'customer'
@@ -79,18 +90,21 @@ function ParticipantMonitor({
       }
     })
 
-    if (mechanicTracks.length > 0) {
+    console.log('[ParticipantMonitor] Mechanic participants:', mechanicParticipants.length)
+    console.log('[ParticipantMonitor] Customer participants:', customerParticipants.length)
+
+    if (mechanicParticipants.length > 0) {
       onMechanicJoined()
     } else {
       onMechanicLeft()
     }
 
-    if (customerTracks.length > 0) {
+    if (customerParticipants.length > 0) {
       onCustomerJoined()
     } else {
       onCustomerLeft()
     }
-  }, [tracks, onMechanicJoined, onMechanicLeft, onCustomerJoined, onCustomerLeft])
+  }, [localParticipant, remoteParticipants, onMechanicJoined, onMechanicLeft, onCustomerJoined, onCustomerLeft])
 
   return null
 }
