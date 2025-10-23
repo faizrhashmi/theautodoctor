@@ -108,3 +108,28 @@ SET role = 'admin'
 WHERE email = 'admin@yourdomain.com';
 Log in at http://localhost:3000/admin/login
 
+Daily Development:
+npm run dev - Start fast server
+Make changes - Test quickly (2-5s reload!)
+Commit when features work
+Before Committing:
+npm run typecheck - Check types
+npm run lint - Fix code issues
+Commit
+Before Deploying:
+npm run validate - Full validation
+Deploy
+
+🆘 Still Slow?
+Try these in order:
+Use Turbopack:
+npm run dev:turbo
+Clear cache:
+npm run clean
+npm run dev
+Check .next size:
+du -sh .next
+# If > 500MB, clear it
+Restart completely:
+npm run dev:clean
+

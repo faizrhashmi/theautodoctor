@@ -191,12 +191,15 @@ export default function ChatRoom({
         console.log('[ChatRoom] User left:', key)
       })
       .subscribe(async (status) => {
+        console.log('[ChatRoom] Channel subscription status:', status)
         if (status === 'SUBSCRIBED') {
+          console.log('[ChatRoom] Tracking presence:', { userId, userRole })
           await presenceChannel.track({
             user_id: userId,
             role: userRole,
             online_at: new Date().toISOString(),
           })
+          console.log('[ChatRoom] Presence tracked successfully')
         }
       })
 
@@ -710,11 +713,18 @@ export default function ChatRoom({
           <div className="space-y-1 text-purple-200">
             <div>userRole: <span className="text-purple-100 font-bold">{userRole}</span></div>
             <div>isMechanic: <span className="text-purple-100 font-bold">{String(isMechanic)}</span></div>
-            <div>userId: {userId}</div>
-            <div>mechanicId: {mechanicId || 'null'}</div>
-            <div>customerId: {customerId || 'null'}</div>
-            <div>mechanicPresent: {String(mechanicPresent)}</div>
-            <div>customerPresent: {String(customerPresent)}</div>
+            <div>userId: <span className="text-purple-100">{userId}</span></div>
+            <div>mechanicId: <span className="text-purple-100">{mechanicId || 'null'}</span></div>
+            <div>customerId: <span className="text-purple-100">{customerId || 'null'}</span></div>
+            <div>mechanicPresent: <span className={mechanicPresent ? "text-green-300 font-bold" : "text-red-300 font-bold"}>{String(mechanicPresent)}</span></div>
+            <div>customerPresent: <span className={customerPresent ? "text-green-300 font-bold" : "text-red-300 font-bold"}>{String(customerPresent)}</span></div>
+            <div className="mt-2 pt-2 border-t border-purple-500/30">
+              <div className="text-purple-300 font-semibold">Expected IDs to match:</div>
+              <div>My userId === {userRole === 'mechanic' ? 'mechanicId' : 'customerId'}?</div>
+              <div className={userId === (userRole === 'mechanic' ? mechanicId : customerId) ? "text-green-300" : "text-red-300 font-bold"}>
+                {userId === (userRole === 'mechanic' ? mechanicId : customerId) ? '✓ IDs Match' : '✗ IDs DO NOT MATCH!'}
+              </div>
+            </div>
           </div>
         </div>
 
