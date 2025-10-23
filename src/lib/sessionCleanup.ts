@@ -11,6 +11,7 @@ import { supabaseAdmin } from './supabaseAdmin'
 export interface CleanupStats {
   oldWaitingSessions: number
   expiredRequests: number
+  acceptedRequests: number
   orphanedSessions: number
   totalCleaned: number
 }
@@ -78,7 +79,7 @@ export async function cleanupExpiredRequests(
     return { requests: 0, sessions: 0 }
   }
 
-  console.log(`[sessionCleanup] Cancelling ${expiredRequests.length} expired request(s) older than ${maxAgeMinutes} minutes`)
+  console.log(`[sessionCleanup] Cancelling ${expiredRequests.length} expired pending request(s) older than ${maxAgeMinutes} minutes`)
 
   // Cancel the old requests
   await supabaseAdmin
@@ -109,6 +110,47 @@ export async function cleanupExpiredRequests(
     requests: expiredRequests.length,
     sessions: sessionsCleaned,
   }
+}
+
+/**
+ * Clean up old ACCEPTED requests that were never started
+ *
+ * When a mechanic accepts a request, it becomes status='accepted'.
+ * If the customer never joins/starts the session, these get stuck as "accepted" forever.
+ * This function cancels accepted requests older than the specified time.
+ *
+ * @param maxAgeMinutes - Maximum age in minutes (default: 60 = 1 hour)
+ * @returns Number of accepted requests cleaned
+ */
+export async function cleanupAcceptedRequests(
+  maxAgeMinutes: number = 60
+): Promise<number> {
+  const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
+
+  // Find old accepted requests (1+ hour old)
+  // These were accepted by mechanics but customers never started the session
+  const { data: oldAcceptedRequests } = await supabaseAdmin
+    .from('session_requests')
+    .select('id, customer_id, mechanic_id, accepted_at')
+    .eq('status', 'accepted')
+    .not('mechanic_id', 'is', null)
+    .lt('accepted_at', cutoffTime)
+
+  if (!oldAcceptedRequests || oldAcceptedRequests.length === 0) {
+    return 0
+  }
+
+  console.log(`[sessionCleanup] Cancelling ${oldAcceptedRequests.length} old accepted request(s) older than ${maxAgeMinutes} minutes`)
+
+  // Cancel the old accepted requests
+  await supabaseAdmin
+    .from('session_requests')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('status', 'accepted')
+    .not('mechanic_id', 'is', null)
+    .lt('accepted_at', cutoffTime)
+
+  return oldAcceptedRequests.length
 }
 
 /**
@@ -179,16 +221,18 @@ export async function cleanupOrphanedSessions(
 export async function runFullCleanup(): Promise<CleanupStats> {
   console.log('[sessionCleanup] Running full cleanup...')
 
-  const [expiredResult, orphanedCount] = await Promise.all([
+  const [expiredResult, acceptedCount, orphanedCount] = await Promise.all([
     cleanupExpiredRequests(120), // 2 hours - give mechanics time to see and accept requests
+    cleanupAcceptedRequests(60), // 1 hour - accepted requests that customers never joined
     cleanupOrphanedSessions(120), // 2 hours - match request cleanup time
   ])
 
   const stats: CleanupStats = {
     oldWaitingSessions: expiredResult.sessions,
     expiredRequests: expiredResult.requests,
+    acceptedRequests: acceptedCount,
     orphanedSessions: orphanedCount,
-    totalCleaned: expiredResult.requests + expiredResult.sessions + orphanedCount,
+    totalCleaned: expiredResult.requests + expiredResult.sessions + acceptedCount + orphanedCount,
   }
 
   if (stats.totalCleaned > 0) {
