@@ -15,7 +15,7 @@ ALTER TABLE public.mechanics
 CREATE TABLE IF NOT EXISTS public.mechanic_reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id uuid REFERENCES public.sessions(id) ON DELETE CASCADE,
-  mechanic_id uuid REFERENCES public.mechanics(user_id) ON DELETE CASCADE,
+  mechanic_id uuid REFERENCES public.mechanics(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   rating int NOT NULL CHECK (rating >= 1 AND rating <= 5),
   review_text text,
@@ -86,7 +86,7 @@ BEGIN
     avg_rating = ROUND(new_avg, 2),
     total_reviews = review_count,
     updated_at = now()
-  WHERE user_id = COALESCE(NEW.mechanic_id, OLD.mechanic_id);
+  WHERE id = COALESCE(NEW.mechanic_id, OLD.mechanic_id);
 
   RETURN COALESCE(NEW, OLD);
 END;

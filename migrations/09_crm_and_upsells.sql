@@ -92,7 +92,7 @@ CREATE OR REPLACE FUNCTION track_crm_interaction(
   p_session_id uuid DEFAULT NULL,
   p_metadata jsonb DEFAULT '{}'::jsonb
 )
-RETURNS uuid AS $
+RETURNS uuid AS $$
 DECLARE
   interaction_id uuid;
 BEGIN
@@ -102,7 +102,7 @@ BEGIN
 
   RETURN interaction_id;
 END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function to create upsell recommendation
 CREATE OR REPLACE FUNCTION create_upsell_recommendation(
@@ -114,7 +114,7 @@ CREATE OR REPLACE FUNCTION create_upsell_recommendation(
   p_price_cents int DEFAULT NULL,
   p_metadata jsonb DEFAULT '{}'::jsonb
 )
-RETURNS uuid AS $
+RETURNS uuid AS $$
 DECLARE
   recommendation_id uuid;
 BEGIN
@@ -140,7 +140,7 @@ BEGIN
 
   RETURN recommendation_id;
 END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Add comments for documentation
 COMMENT ON TABLE public.crm_interactions IS 'Tracks customer journey and conversion funnel events';
