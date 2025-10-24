@@ -27,7 +27,9 @@
       "Bash(npx next lint:*)",
       "Read(//c/Users/**)",
       "Bash(npm run lint:strict:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm audit:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

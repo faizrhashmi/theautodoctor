@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   CheckCircle2,
   XCircle,
@@ -63,11 +63,7 @@ export default function MechanicApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedApp, setSelectedApp] = useState<MechanicApplication | null>(null);
 
-  useEffect(() => {
-    loadApplications();
-  }, [filter, loadApplications]);
-
-  const loadApplications = async () => {
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/mechanics/applications?status=${filter}`);
@@ -80,7 +76,11 @@ export default function MechanicApplicationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
 
   const handleAction = async (
     id: string,

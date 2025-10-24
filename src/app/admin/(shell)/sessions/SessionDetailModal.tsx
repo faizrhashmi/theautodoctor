@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import type { SessionWithParticipants } from './AdminSessionsClient'
 
@@ -20,15 +20,7 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (activeTab === 'chat') {
-      loadChatHistory()
-    } else if (activeTab === 'files') {
-      loadSessionFiles()
-    }
-  }, [activeTab, loadChatHistory, loadSessionFiles])
-
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/admin/sessions/${session.id}/chat`)
@@ -39,9 +31,9 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
     } finally {
       setLoading(false)
     }
-  }
+  }, [session.id])
 
-  const loadSessionFiles = async () => {
+  const loadSessionFiles = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/admin/sessions/${session.id}/files`)
@@ -52,7 +44,15 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
     } finally {
       setLoading(false)
     }
-  }
+  }, [session.id])
+
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      loadChatHistory()
+    } else if (activeTab === 'files') {
+      loadSessionFiles()
+    }
+  }, [activeTab, loadChatHistory, loadSessionFiles])
 
   const handleForceCancel = async () => {
     const reason = prompt('Enter cancellation reason:')
