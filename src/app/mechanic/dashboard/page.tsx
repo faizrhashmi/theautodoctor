@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import MechanicDashboard from './MechanicDashboardComplete'
-import { createClient } from '@/lib/supabase'
 
 type Mech = {
   id: string
@@ -14,48 +13,61 @@ type Mech = {
 }
 
 export default function MechanicDashboardPage() {
-  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const [mechanic, setMechanic] = useState<Mech | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     const run = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/mechanic/login')
-        return
-      }
+      try {
+        const response = await fetch('/api/mechanics/me')
 
-      // Pull a minimal profile; fall back to auth if needed
-      const { data: mechRow } = await supabase
-        .from('mechanics')
-        .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-        .eq('user_id', user.id)
-        .single()
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.replace('/mechanic/login')
+            return
+          }
+          throw new Error('Failed to load mechanic data')
+        }
 
-      const mech: Mech = {
-        id: mechRow?.id ?? user.id,
-        name: mechRow?.name ?? (user.user_metadata?.full_name ?? 'Mechanic'),
-        email: mechRow?.email ?? (user.email ?? 'unknown@example.com'),
-        stripeConnected: !!mechRow?.stripe_account_id,
-        payoutsEnabled: !!mechRow?.stripe_payouts_enabled,
-      }
+        const data = await response.json()
 
-      if (mounted) {
-        setMechanic(mech)
-        setLoading(false)
+        if (mounted) {
+          setMechanic(data)
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Error loading mechanic:', err)
+        if (mounted) {
+          setError('Failed to load dashboard. Please try again.')
+          setLoading(false)
+        }
       }
     }
     run()
     return () => { mounted = false }
-  }, [router, supabase])
+  }, [router])
 
-  if (loading || !mechanic) {
+  if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-slate-400">
         Loading dashboard…
+      </div>
+    )
+  }
+
+  if (error || !mechanic) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <p className="text-red-400">{error || 'Failed to load dashboard'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     )
   }
