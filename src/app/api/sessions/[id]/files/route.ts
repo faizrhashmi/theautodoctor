@@ -71,8 +71,9 @@ export async function GET(
 
         return {
           id: file.id,
-          fileName: file.name,
-          fileSize: file.size,
+          fileName: file.file_name,
+          fileSize: file.file_size,
+          fileType: file.file_type,
           uploadedAt: file.created_at,
           uploadedBy: file.uploaded_by,
           url: data?.signedUrl || null,
@@ -167,10 +168,15 @@ export async function POST(
       .insert({
         session_id: sessionId,
         uploaded_by: user.id,
-        name: file.name,
-        type: file.type,
-        size: file.size,
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
         storage_path: storagePath,
+        metadata: {
+          original_filename: file.name,
+          bytes: file.size,
+          mime_type: file.type,
+        },
       })
       .select()
       .single()
@@ -193,8 +199,9 @@ export async function POST(
       {
         file: {
           id: dbFile.id,
-          fileName: dbFile.name,
-          fileSize: dbFile.size,
+          fileName: dbFile.file_name,
+          fileSize: dbFile.file_size,
+          fileType: dbFile.file_type,
           uploadedAt: dbFile.created_at,
           uploadedBy: dbFile.uploaded_by,
           url: urlData?.signedUrl || null,

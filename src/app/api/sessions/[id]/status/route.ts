@@ -45,7 +45,7 @@ export async function PATCH(
     // Fetch current session
     const { data: session, error: fetchError } = await supabaseAdmin
       .from('sessions')
-      .select('id, status')
+      .select('id, status, started_at, ended_at, metadata')
       .eq('id', sessionId)
       .single()
 
@@ -99,7 +99,7 @@ export async function PATCH(
     // Store reason if provided
     if (reason) {
       updateData.metadata = {
-        ...session.metadata,
+        ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
         status_reason: reason,
       }
     }
@@ -121,7 +121,7 @@ export async function PATCH(
 
     console.log('[STATUS UPDATE] Success:', {
       sessionId,
-      transition: `${currentStatus} → ${newStatus}`,
+      transition: `${currentStatus} -> ${newStatus}`,
       reason: reason || 'none',
     })
 
@@ -141,3 +141,4 @@ export async function PATCH(
     )
   }
 }
+

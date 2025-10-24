@@ -351,7 +351,9 @@ export async function POST(
           mechanic_name: mechanicName,
         }
 
-        console.log(`✅ Stripe transfer created: ${transfer.id} for ${mechanicEarningsCents / 100} USD`)
+        console.log(
+          `[end session] Stripe transfer created: ${transfer.id} for ${mechanicEarningsCents / 100} USD`
+        )
       } else {
         payoutMetadata = {
           ...payoutMetadata,
@@ -500,11 +502,6 @@ export async function POST(
 
     console.log(`[end session] Updated session_request status to cancelled for customer ${session.customer_user_id}`)
   }
-
-  // Check if this is a fetch request (JSON) or form POST (redirect)
-  const contentType = req.headers.get('content-type')
-  const acceptHeader = req.headers.get('accept')
-
   const responseData = {
     success: true,
     message: 'Session ended successfully',
