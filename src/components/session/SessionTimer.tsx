@@ -5,9 +5,9 @@ import { AlertTriangle, Clock } from 'lucide-react'
 
 interface SessionTimerProps {
   /** ISO string for when the session is scheduled to end */
-  endsAt: string
+  endsAt?: string | null
   /** Optional ISO string representing when the session started */
-  startsAt?: string
+  startsAt?: string | null
   onExpire?: () => void
 }
 
@@ -18,7 +18,7 @@ function formatTime(totalSeconds: number) {
 }
 
 export default function SessionTimer({ endsAt, startsAt, onExpire }: SessionTimerProps) {
-  const endTime = useMemo(() => new Date(endsAt).getTime(), [endsAt])
+  const endTime = useMemo(() => (endsAt ? new Date(endsAt).getTime() : Date.now()), [endsAt])
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function SessionTimer({ endsAt, startsAt, onExpire }: SessionTime
         </div>
         <div className="mt-2 flex flex-wrap justify-between text-xs text-slate-500">
           <span>Started {startsAt ? new Date(startsAt).toLocaleTimeString() : 'n/a'}</span>
-          <span>Ends {new Date(endsAt).toLocaleTimeString()}</span>
+          <span>Ends {endsAt ? new Date(endsAt).toLocaleTimeString() : 'n/a'}</span>
         </div>
       </div>
     </div>

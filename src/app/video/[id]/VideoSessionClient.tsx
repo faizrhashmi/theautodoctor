@@ -14,7 +14,7 @@ import { Track } from 'livekit-client'
 import {
   Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, SwitchCamera
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
@@ -215,7 +215,24 @@ function VideoControls({
 }) {
   const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([])
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Enumerate available cameras on mount
+  useEffect(() => {
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const cameras = devices.filter(device => device.kind === 'videoinput')
+        setAvailableCameras(cameras)
+        console.log('[VideoControls] Available cameras:', cameras.length)
+      } catch (error) {
+        console.error('[VideoControls] Failed to enumerate cameras:', error)
+      }
+    }
+    getCameras()
+  }, [])
 
   const toggleCamera = useCallback(async () => {
     try {
@@ -238,6 +255,32 @@ function VideoControls({
       alert('Failed to toggle microphone. Please check your microphone permissions.')
     }
   }, [localParticipant, isMicrophoneEnabled])
+
+  const flipCamera = useCallback(async () => {
+    if (availableCameras.length <= 1) {
+      console.log('[VideoControls] Only one camera available, cannot flip')
+      return
+    }
+
+    try {
+      console.log('[VideoControls] Flipping camera, current index:', currentCameraIndex)
+
+      // Cycle to next camera
+      const nextIndex = (currentCameraIndex + 1) % availableCameras.length
+      const nextCamera = availableCameras[nextIndex]
+
+      console.log('[VideoControls] Switching to camera:', nextCamera.label)
+
+      // Switch camera using LiveKit's switchActiveDevice
+      await localParticipant.switchActiveDevice('videoinput', nextCamera.deviceId)
+
+      setCurrentCameraIndex(nextIndex)
+      console.log('[VideoControls] Camera flipped successfully to:', nextCamera.label)
+    } catch (error) {
+      console.error('[VideoControls] Failed to flip camera:', error)
+      alert('Failed to switch camera. Please try again.')
+    }
+  }, [localParticipant, availableCameras, currentCameraIndex])
 
   const toggleScreenShare = useCallback(async () => {
     try {
@@ -269,53 +312,64 @@ function VideoControls({
   }, [onUploadFile])
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
       {/* Camera Toggle */}
       <button
         onClick={toggleCamera}
-        className={`rounded-lg p-3 transition ${
+        className={`rounded-lg p-2 transition sm:p-3 ${
           isCameraEnabled
             ? 'bg-slate-700/80 text-white hover:bg-slate-600'
             : 'bg-red-500/80 text-white hover:bg-red-600'
         }`}
         title={isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
       >
-        {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        {isCameraEnabled ? <Video className="h-4 w-4 sm:h-5 sm:w-5" /> : <VideoOff className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
+
+      {/* Camera Flip (only show if multiple cameras available) */}
+      {availableCameras.length > 1 && isCameraEnabled && (
+        <button
+          onClick={flipCamera}
+          className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 sm:p-3"
+          title="Switch camera (front/back)"
+        >
+          <SwitchCamera className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      )}
 
       {/* Microphone Toggle */}
       <button
         onClick={toggleMic}
-        className={`rounded-lg p-3 transition ${
+        className={`rounded-lg p-2 transition sm:p-3 ${
           isMicrophoneEnabled
             ? 'bg-slate-700/80 text-white hover:bg-slate-600'
             : 'bg-red-500/80 text-white hover:bg-red-600'
         }`}
         title={isMicrophoneEnabled ? 'Mute microphone' : 'Unmute microphone'}
       >
-        {isMicrophoneEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        {isMicrophoneEnabled ? <Mic className="h-4 w-4 sm:h-5 sm:w-5" /> : <MicOff className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
 
       {/* Screen Share Toggle */}
       <button
         onClick={toggleScreenShare}
-        className={`rounded-lg p-3 transition ${
+        className={`rounded-lg p-2 transition sm:p-3 ${
           isScreenShareEnabled
             ? 'bg-blue-500/80 text-white hover:bg-blue-600'
             : 'bg-slate-700/80 text-white hover:bg-slate-600'
         }`}
         title={isScreenShareEnabled ? 'Stop sharing' : 'Share screen'}
       >
-        {isScreenShareEnabled ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+        {isScreenShareEnabled ? <MonitorOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Monitor className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
 
       {/* Upload File */}
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="rounded-lg bg-slate-700/80 p-3 text-white transition hover:bg-slate-600"
+        className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 sm:p-3"
         title="Share file"
       >
-        <Upload className="h-5 w-5" />
+        <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
       <input
         ref={fileInputRef}
@@ -328,19 +382,19 @@ function VideoControls({
       {/* Fullscreen Toggle */}
       <button
         onClick={toggleFullscreen}
-        className="rounded-lg bg-slate-700/80 p-3 text-white transition hover:bg-slate-600"
+        className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 sm:p-3"
         title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
       >
-        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+        {isFullscreen ? <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
 
       {/* End Session */}
       <button
         onClick={onEndSession}
-        className="ml-2 rounded-lg bg-red-500/80 p-3 text-white transition hover:bg-red-600"
+        className="ml-1 rounded-lg bg-red-500/80 p-2 text-white transition hover:bg-red-600 sm:ml-2 sm:p-3"
         title="End session"
       >
-        <PhoneOff className="h-5 w-5" />
+        <PhoneOff className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
     </div>
   )
@@ -396,12 +450,12 @@ function VideoView({
 
       {/* Picture-in-Picture (Other person's camera) */}
       {pipTrack && (
-        <div className="absolute bottom-4 right-4 z-10 h-48 w-64 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl">
+        <div className="absolute bottom-2 right-2 z-10 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:bottom-3 sm:right-3 sm:h-32 sm:w-40 md:bottom-4 md:right-4 md:h-40 md:w-52 lg:h-48 lg:w-64">
           <VideoTrack
             trackRef={pipTrack}
             className="h-full w-full object-cover"
           />
-          <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-xs text-white">
+          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-xs">
             {pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
           </div>
         </div>
@@ -788,27 +842,27 @@ export default function VideoSessionClient({
       )}
 
       {/* Session Header */}
-      <div className="absolute left-4 right-4 top-4 z-40 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="absolute left-2 right-2 top-2 z-40 flex flex-wrap items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
           <a
             href={dashboardUrl}
-            className="rounded-lg border border-white/10 bg-slate-900/80 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-slate-800"
+            className="rounded-lg border border-white/10 bg-slate-900/80 px-2 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-slate-800 sm:px-4 sm:py-2 sm:text-sm"
           >
-            ← Dashboard
+            ← <span className="hidden sm:inline">Dashboard</span>
           </a>
 
           {/* ROLE INDICATOR - Shows exactly what role you are assigned */}
-          <div className={`rounded-full border-2 px-4 py-2 text-sm font-bold backdrop-blur ${
+          <div className={`rounded-full border-2 px-2 py-1 text-xs font-bold backdrop-blur sm:px-4 sm:py-2 sm:text-sm ${
             _userRole === 'mechanic'
               ? 'border-blue-400 bg-blue-500/20 text-blue-100'
               : 'border-green-400 bg-green-500/20 text-green-100'
           }`}>
-            {_userRole === 'mechanic' ? '🔧 YOU ARE: MECHANIC' : '👤 YOU ARE: CUSTOMER'}
+            {_userRole === 'mechanic' ? '🔧 Mechanic' : '👤 Customer'}
           </div>
 
           {/* Debug info (only in development) */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-200">
+            <div className="hidden rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-xs font-mono text-amber-200 md:block">
               ID: {_userId.slice(0, 8)}
             </div>
           )}
@@ -844,9 +898,9 @@ export default function VideoSessionClient({
 
         {/* Video Controls - Bottom Bar */}
         {sessionStarted && (
-          <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-700/50 bg-slate-900/90 p-4 backdrop-blur">
-            <div className="mx-auto flex max-w-4xl items-center justify-between">
-              <div className="text-sm text-slate-300">
+          <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-700/50 bg-slate-900/90 p-2 backdrop-blur sm:p-3 md:p-4">
+            <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 sm:justify-between">
+              <div className="hidden text-xs text-slate-300 sm:block sm:text-sm">
                 <strong className="text-white">{_planName}</strong>
               </div>
 
@@ -861,7 +915,7 @@ export default function VideoSessionClient({
 
       {/* Shared Files Sidebar */}
       {sharedFiles.length > 0 && (
-        <div className="absolute right-4 top-20 z-40 w-72 rounded-lg border border-slate-700 bg-slate-900/95 p-4 backdrop-blur">
+        <div className="absolute right-2 top-16 z-40 hidden w-64 rounded-lg border border-slate-700 bg-slate-900/95 p-3 backdrop-blur sm:right-3 sm:top-18 sm:w-56 md:right-4 md:top-20 lg:block lg:w-72 lg:p-4">
           <h3 className="mb-3 text-sm font-semibold text-white">Shared Files</h3>
           <div className="space-y-2">
             {sharedFiles.map((file, index) => (

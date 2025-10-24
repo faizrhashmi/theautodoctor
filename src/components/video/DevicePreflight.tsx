@@ -82,8 +82,8 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   const allPassed = isDevelopment ? true : (cameraStatus === 'passed' && micStatus === 'passed' && networkStatus === 'passed')
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur">
-      <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur">
+      <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl sm:p-6 md:p-8">
         {/* ⚠️ TESTING MODE WARNING - REMOVE BEFORE PRODUCTION */}
         {skipPreflight && (
           <div className="mb-6 flex items-center gap-3 rounded-lg border-2 border-red-500 bg-red-500/20 p-4 text-red-200">
@@ -95,19 +95,19 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
           </div>
         )}
 
-        <h2 className="mb-6 text-2xl font-bold text-white">Device Check</h2>
-        <p className="mb-6 text-sm text-slate-400">
+        <h2 className="mb-4 text-xl font-bold text-white sm:mb-6 sm:text-2xl">Device Check</h2>
+        <p className="mb-4 text-xs text-slate-400 sm:mb-6 sm:text-sm">
           We need to test your camera, microphone, and connection before you can join.
         </p>
 
         {/* Camera Preview */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="h-64 w-full rounded-lg border border-slate-700 bg-black object-cover"
+            className="h-48 w-full rounded-lg border border-slate-700 bg-black object-cover sm:h-56 md:h-64"
           />
         </div>
 
@@ -127,13 +127,13 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
         <button
           onClick={onComplete}
           disabled={!allPassed}
-          className="mt-6 w-full rounded-lg bg-green-600 px-6 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:px-6 sm:py-3 sm:text-base"
         >
           {allPassed ? 'Join Session' : 'Fix Issues to Continue'}
         </button>
 
         {!allPassed && (
-          <p className="mt-4 text-center text-sm text-slate-400">
+          <p className="mt-3 text-center text-xs text-slate-400 sm:mt-4 sm:text-sm">
             Please allow camera and microphone access, then check your internet connection.
           </p>
         )}
@@ -154,11 +154,11 @@ function StatusRow({
   detail?: string
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-3 sm:p-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="text-slate-400">{icon}</div>
-        <span className="font-medium text-white">{label}</span>
-        {detail && <span className="text-sm text-slate-400">{detail}</span>}
+        <span className="text-sm font-medium text-white sm:text-base">{label}</span>
+        {detail && <span className="text-xs text-slate-400 sm:text-sm">{detail}</span>}
       </div>
       <div>
         {status === 'checking' && <Loader2 className="h-5 w-5 animate-spin text-blue-400" />}
