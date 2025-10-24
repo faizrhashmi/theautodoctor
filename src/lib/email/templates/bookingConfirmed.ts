@@ -20,7 +20,6 @@ export async function sendBookingConfirmedEmail(params: BookingConfirmedEmailPar
   } = params
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const dashboardUrl = `${appUrl}/customer/dashboard`
 
   const content = `
 <p style="margin: 0 0 24px 0; font-size: 16px; color: #1e293b;">

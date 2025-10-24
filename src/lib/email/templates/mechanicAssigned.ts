@@ -1,4 +1,4 @@
-import { sendEmail, emailLayout, emailButton, emailInfoBox } from '../emailService'
+import { sendEmail, emailLayout, emailButton } from '../emailService'
 
 export interface MechanicAssignedEmailParams {
   customerEmail: string

@@ -1,3 +1,5 @@
+import type { SessionStatus } from '@/types/session'
+
 type JsonPrimitive = string | number | boolean | null
 export type Json = JsonPrimitive | { [key: string]: Json } | Json[]
 
@@ -191,7 +193,7 @@ export type Database = {
           updated_at: string
           plan: string
           type: SessionType
-          status: string | null
+          status: SessionStatus
           stripe_session_id: string
           intake_id: string | null
           customer_user_id: string | null
@@ -202,6 +204,7 @@ export type Database = {
           scheduled_for: string | null
           started_at: string | null
           ended_at: string | null
+          expires_at: string | null
           duration_minutes: number | null
           waiver_accepted: boolean | null
           waiver_accepted_at: string | null
@@ -210,6 +213,8 @@ export type Database = {
           session_notes: string | null
           rating: number | null
           review: string | null
+          parent_session_id: string | null
+          is_follow_up: boolean | null
         }
         Insert: {
           id?: string
@@ -217,7 +222,7 @@ export type Database = {
           updated_at?: string
           plan: string
           type: SessionType
-          status?: string | null
+          status?: SessionStatus
           stripe_session_id: string
           intake_id?: string | null
           customer_user_id?: string | null
@@ -228,6 +233,7 @@ export type Database = {
           scheduled_for?: string | null
           started_at?: string | null
           ended_at?: string | null
+          expires_at?: string | null
           duration_minutes?: number | null
           waiver_accepted?: boolean | null
           waiver_accepted_at?: string | null
@@ -236,6 +242,8 @@ export type Database = {
           session_notes?: string | null
           rating?: number | null
           review?: string | null
+          parent_session_id?: string | null
+          is_follow_up?: boolean | null
         }
         Update: {
           id?: string
@@ -243,7 +251,7 @@ export type Database = {
           updated_at?: string
           plan?: string
           type?: SessionType
-          status?: string | null
+          status?: SessionStatus
           stripe_session_id?: string
           intake_id?: string | null
           customer_user_id?: string | null
@@ -254,6 +262,7 @@ export type Database = {
           scheduled_for?: string | null
           started_at?: string | null
           ended_at?: string | null
+          expires_at?: string | null
           duration_minutes?: number | null
           waiver_accepted?: boolean | null
           waiver_accepted_at?: string | null
@@ -262,6 +271,8 @@ export type Database = {
           session_notes?: string | null
           rating?: number | null
           review?: string | null
+          parent_session_id?: string | null
+          is_follow_up?: boolean | null
         }
         Relationships: []
       }
@@ -277,9 +288,13 @@ export type Database = {
           status: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name: string | null
           customer_email: string | null
+          description: string | null
           notes: string | null
           accepted_at: string | null
           notification_sent_at: string | null
+          parent_session_id: string | null
+          is_follow_up: boolean | null
+          follow_up_type: string | null
           metadata: Json
         }
         Insert: {
@@ -293,9 +308,13 @@ export type Database = {
           status?: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name?: string | null
           customer_email?: string | null
+          description?: string | null
           notes?: string | null
           accepted_at?: string | null
           notification_sent_at?: string | null
+          parent_session_id?: string | null
+          is_follow_up?: boolean | null
+          follow_up_type?: string | null
           metadata?: Json
         }
         Update: {
@@ -309,9 +328,13 @@ export type Database = {
           status?: 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
           customer_name?: string | null
           customer_email?: string | null
+          description?: string | null
           notes?: string | null
           accepted_at?: string | null
           notification_sent_at?: string | null
+          parent_session_id?: string | null
+          is_follow_up?: boolean | null
+          follow_up_type?: string | null
           metadata?: Json
         }
         Relationships: [
@@ -435,6 +458,393 @@ export type Database = {
           sender_id?: string
           content?: string
           attachments?: Json
+        }
+        Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          type: string
+          object: Json
+          livemode: boolean
+          processed_at: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          type: string
+          object: Json
+          livemode?: boolean
+          processed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          type?: string
+          object?: Json
+          livemode?: boolean
+          processed_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      payment_intents: {
+        Row: {
+          id: string
+          session_id: string | null
+          customer_id: string | null
+          amount_cents: number
+          currency: string
+          status: string
+          charge_id: string | null
+          receipt_url: string | null
+          amount_refunded_cents: number
+          refund_status: string | null
+          metadata: Json | null
+          succeeded_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          session_id?: string | null
+          customer_id?: string | null
+          amount_cents: number
+          currency?: string
+          status: string
+          charge_id?: string | null
+          receipt_url?: string | null
+          amount_refunded_cents?: number
+          refund_status?: string | null
+          metadata?: Json | null
+          succeeded_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string | null
+          customer_id?: string | null
+          amount_cents?: number
+          currency?: string
+          status?: string
+          charge_id?: string | null
+          receipt_url?: string | null
+          amount_refunded_cents?: number
+          refund_status?: string | null
+          metadata?: Json | null
+          succeeded_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      refunds: {
+        Row: {
+          id: string
+          payment_intent_id: string | null
+          session_id: string | null
+          amount_cents: number
+          currency: string
+          reason: string | null
+          status: string
+          satisfaction_claim_id: string | null
+          metadata: Json | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id: string
+          payment_intent_id?: string | null
+          session_id?: string | null
+          amount_cents: number
+          currency?: string
+          reason?: string | null
+          status: string
+          satisfaction_claim_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          payment_intent_id?: string | null
+          session_id?: string | null
+          amount_cents?: number
+          currency?: string
+          reason?: string | null
+          status?: string
+          satisfaction_claim_id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
+      satisfaction_claims: {
+        Row: {
+          id: string
+          session_id: string
+          customer_id: string
+          reason: string
+          resolution: string | null
+          status: string
+          refund_id: string | null
+          refund_amount_cents: number | null
+          reviewed_by_admin_id: string | null
+          reviewed_at: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          customer_id: string
+          reason: string
+          resolution?: string | null
+          status?: string
+          refund_id?: string | null
+          refund_amount_cents?: number | null
+          reviewed_by_admin_id?: string | null
+          reviewed_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          customer_id?: string
+          reason?: string
+          resolution?: string | null
+          status?: string
+          refund_id?: string | null
+          refund_amount_cents?: number | null
+          reviewed_by_admin_id?: string | null
+          reviewed_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_interactions: {
+        Row: {
+          id: string
+          customer_id: string | null
+          interaction_type: string
+          session_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id?: string | null
+          interaction_type: string
+          session_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string | null
+          interaction_type?: string
+          session_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      upsell_recommendations: {
+        Row: {
+          id: string
+          customer_id: string | null
+          session_id: string | null
+          recommendation_type: string
+          service_title: string
+          service_description: string | null
+          price_cents: number | null
+          shown_at: string | null
+          clicked_at: string | null
+          purchased_at: string | null
+          dismissed_at: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id?: string | null
+          session_id?: string | null
+          recommendation_type: string
+          service_title: string
+          service_description?: string | null
+          price_cents?: number | null
+          shown_at?: string | null
+          clicked_at?: string | null
+          purchased_at?: string | null
+          dismissed_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string | null
+          session_id?: string | null
+          recommendation_type?: string
+          service_title?: string
+          service_description?: string | null
+          price_cents?: number | null
+          shown_at?: string | null
+          clicked_at?: string | null
+          purchased_at?: string | null
+          dismissed_at?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      session_logs: {
+        Row: {
+          id: string
+          level: string
+          event: string
+          message: string
+          session_id: string | null
+          mechanic_id: string | null
+          customer_id: string | null
+          request_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          level: string
+          event: string
+          message: string
+          session_id?: string | null
+          mechanic_id?: string | null
+          customer_id?: string | null
+          request_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          level?: string
+          event?: string
+          message?: string
+          session_id?: string | null
+          mechanic_id?: string | null
+          customer_id?: string | null
+          request_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      email_consent_log: {
+        Row: {
+          id: string
+          user_id: string | null
+          email: string
+          consent_given: boolean
+          ip_address: string | null
+          method: string | null
+          user_agent: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          email: string
+          consent_given: boolean
+          ip_address?: string | null
+          method?: string | null
+          user_agent?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          email?: string
+          consent_given?: boolean
+          ip_address?: string | null
+          method?: string | null
+          user_agent?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      session_extensions: {
+        Row: {
+          id: string
+          session_id: string
+          minutes: number
+          payment_intent_id: string | null
+          created_at: string
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          minutes: number
+          payment_intent_id?: string | null
+          created_at?: string
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          minutes?: number
+          payment_intent_id?: string | null
+          created_at?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      mechanic_reviews: {
+        Row: {
+          id: string
+          session_id: string
+          mechanic_id: string
+          customer_id: string | null
+          rating: number
+          review_text: string | null
+          helpful_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          mechanic_id: string
+          customer_id?: string | null
+          rating: number
+          review_text?: string | null
+          helpful_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          mechanic_id?: string
+          customer_id?: string | null
+          rating?: number
+          review_text?: string | null
+          helpful_count?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -840,6 +1250,7 @@ export type Database = {
           full_name: string | null
           phone: string | null
           role: string | null
+          email: string | null
           vehicle_info: Json | null
           vehicle_hint: string | null
           is_18_plus: boolean
@@ -859,6 +1270,10 @@ export type Database = {
           stripe_charges_enabled: boolean | null
           stripe_payouts_enabled: boolean | null
           stripe_details_submitted: boolean | null
+          email_marketing_opt_in: boolean
+          sms_marketing_opt_in: boolean
+          consent_timestamp: string | null
+          consent_ip: string | null
           created_at: string
           updated_at: string
         }
@@ -867,6 +1282,7 @@ export type Database = {
           full_name?: string | null
           phone?: string | null
           role?: string | null
+          email?: string | null
           vehicle_info?: Json | null
           vehicle_hint?: string | null
           is_18_plus?: boolean
@@ -886,6 +1302,10 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          email_marketing_opt_in?: boolean
+          sms_marketing_opt_in?: boolean
+          consent_timestamp?: string | null
+          consent_ip?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -894,6 +1314,7 @@ export type Database = {
           full_name?: string | null
           phone?: string | null
           role?: string | null
+          email?: string | null
           vehicle_info?: Json | null
           vehicle_hint?: string | null
           is_18_plus?: boolean
@@ -913,6 +1334,10 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          email_marketing_opt_in?: boolean
+          sms_marketing_opt_in?: boolean
+          consent_timestamp?: string | null
+          consent_ip?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -923,7 +1348,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_create_follow_up: {
+        Args: {
+          p_parent_session_id: string
+          p_customer_id: string
+        }
+        Returns: boolean
+      }
+      create_follow_up_request: {
+        Args: {
+          p_parent_session_id: string
+          p_customer_id: string
+          p_follow_up_type: string
+          p_description: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      track_crm_interaction: {
+        Args: {
+          p_customer_id: string
+          p_interaction_type: string
+          p_session_id?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
+      create_upsell_recommendation: {
+        Args: {
+          p_customer_id: string
+          p_session_id: string
+          p_recommendation_type: string
+          p_service_title: string
+          p_service_description?: string | null
+          p_price_cents?: number | null
+          p_metadata?: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       session_type: SessionType

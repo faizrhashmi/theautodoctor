@@ -57,32 +57,42 @@ export class SessionTransitionError extends Error {
  * - archived: Session is archived (historical record)
  */
 const STATE_TRANSITIONS: Record<SessionState, SessionState[]> = {
-  // SCHEDULED â†’ can start, cancel, or expire
-  scheduled: ['waiting', 'live', 'cancelled', 'expired'],
+  // PENDING – initial state before scheduling
+  pending: ['scheduled', 'cancelled', 'expired', 'unattended'],
 
-  // WAITING â†’ can go live, cancel, or expire (timeout)
+  // SCHEDULED – can move to accepted/waiting, go live directly, cancel, or expire
+  scheduled: ['accepted', 'waiting', 'live', 'cancelled', 'expired'],
+
+  // ACCEPTED – mechanic accepted but not started yet
+  accepted: ['waiting', 'live', 'cancelled', 'expired', 'reconnecting'],
+
+  // WAITING – mechanic accepted, waiting to start
   waiting: ['live', 'cancelled', 'expired'],
 
-  // LIVE â†’ can complete, cancel (emergency), or expire (disconnect)
+  // RECONNECTING – temporary state while participants reconnect
+  reconnecting: ['live', 'cancelled', 'expired'],
+
+  // LIVE – active session
   live: ['completed', 'cancelled', 'expired'],
 
-  // COMPLETED â†’ can refund or archive
+  // COMPLETED – may proceed to refund or archive
   completed: ['refunded', 'archived'],
 
-  // CANCELLED â†’ can refund or archive
+  // CANCELLED – may proceed to refund or archive
   cancelled: ['refunded', 'archived'],
 
-  // EXPIRED â†’ can refund or archive
+  // UNATTENDED – follow-up for sessions never started
+  unattended: ['refunded', 'archived'],
+
+  // EXPIRED – timed out session
   expired: ['refunded', 'archived'],
 
-  // REFUNDED â†’ can only archive
+  // REFUNDED – only archived afterwards
   refunded: ['archived'],
 
-  // ARCHIVED â†’ terminal state (no transitions)
+  // ARCHIVED – terminal state
   archived: [],
-}
-
-// ============================================================================
+}// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -230,3 +240,4 @@ export function canComplete(currentState: SessionState): boolean {
 export function canRefund(currentState: SessionState): boolean {
   return canTransition(currentState, 'refunded')
 }
+

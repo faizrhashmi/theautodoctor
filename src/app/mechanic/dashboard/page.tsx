@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { cookies } from 'next/headers'
-import MechanicDashboardClient from './MechanicDashboardClient'
+import MechanicDashboardRedesigned from './MechanicDashboardRedesigned'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +41,7 @@ export default async function MechanicDashboardPage() {
   }
 
   return (
-    <MechanicDashboardClient
+    <MechanicDashboardRedesigned
       mechanic={{
         id: mechanic.id,
         name: mechanic.name || 'Mechanic',

@@ -39,17 +39,28 @@ export async function GET(req: NextRequest) {
         .eq('status', 'accepted')
         .lt('created_at', threeMinutesAgo.toISOString())
 
-      if (acceptedSessions && acceptedSessions.length > 0) {
-        for (const session of acceptedSessions) {
+      const sessionsToNudge =
+        (acceptedSessions ?? []) as Array<{
+          id: string
+          mechanic_id: string | null
+          created_at: string
+          mechanic?: { email?: string | null; full_name?: string | null } | null
+        }>
+
+      if (sessionsToNudge.length > 0) {
+        for (const session of sessionsToNudge) {
           try {
+            const mechanicInfo = session.mechanic ?? null
+            const minutesWaiting = Math.floor(
+              (now.getTime() - new Date(session.created_at).getTime()) / 60000
+            )
+
             // Send nudge email to mechanic
             await sendNudgeEmail({
               sessionId: session.id,
-              mechanicEmail: session.mechanic?.email || '',
-              mechanicName: session.mechanic?.full_name || 'Mechanic',
-              minutesWaiting: Math.floor(
-                (now.getTime() - new Date(session.created_at).getTime()) / 60000
-              ),
+              mechanicEmail: mechanicInfo?.email ?? '',
+              mechanicName: mechanicInfo?.full_name ?? 'Mechanic',
+              minutesWaiting,
             })
 
             await logInfo(
@@ -57,10 +68,8 @@ export async function GET(req: NextRequest) {
               `Nudged mechanic for session ${session.id}`,
               {
                 sessionId: session.id,
-                mechanicId: session.mechanic_id,
-                minutesWaiting: Math.floor(
-                  (now.getTime() - new Date(session.created_at).getTime()) / 60000
-                ),
+                mechanicId: session.mechanic_id ?? undefined,
+                metadata: { minutesWaiting },
               }
             )
 
@@ -87,13 +96,15 @@ export async function GET(req: NextRequest) {
       if (waitingSessions && waitingSessions.length > 0) {
         for (const session of waitingSessions) {
           try {
+            const minutesStuck = Math.floor(
+              (now.getTime() - new Date(session.created_at).getTime()) / 60000
+            )
+
             // Send support alert
             await sendSupportAlert({
               sessionId: session.id,
               status: session.status,
-              minutesStuck: Math.floor(
-                (now.getTime() - new Date(session.created_at).getTime()) / 60000
-              ),
+              minutesStuck,
             })
 
             await logInfo(
@@ -101,10 +112,10 @@ export async function GET(req: NextRequest) {
               `Support alerted for stuck session ${session.id}`,
               {
                 sessionId: session.id,
-                status: session.status,
-                minutesStuck: Math.floor(
-                  (now.getTime() - new Date(session.created_at).getTime()) / 60000
-                ),
+                metadata: {
+                  status: session.status,
+                  minutesStuck,
+                },
               }
             )
 
@@ -164,8 +175,10 @@ export async function GET(req: NextRequest) {
               `Auto-ended session ${session.id} after 3 hours`,
               {
                 sessionId: session.id,
-                originalStatus: session.status,
-                startedAt: session.started_at,
+                metadata: {
+                  originalStatus: session.status,
+                  startedAt: session.started_at,
+                },
               }
             )
 

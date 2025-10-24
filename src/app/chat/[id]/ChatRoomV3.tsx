@@ -325,7 +325,7 @@ export default function ChatRoom({
       })
       .on('broadcast', { event: 'session:ended' }, (payload) => {
         console.log('[ChatRoom] Session ended by other participant:', payload)
-        const { status, ended_at } = payload.payload
+        const { status } = payload.payload
         setSessionEnded(true)
         setCurrentStatus(status)
 

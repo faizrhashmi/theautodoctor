@@ -1,4 +1,16 @@
-export type SessionStatus = 'scheduled' | 'waiting' | 'live' | 'completed' | 'cancelled'
+export type SessionStatus =
+  | 'scheduled'
+  | 'waiting'
+  | 'live'
+  | 'completed'
+  | 'cancelled'
+  | 'pending'
+  | 'accepted'
+  | 'reconnecting'
+  | 'unattended'
+  | 'expired'
+  | 'refunded'
+  | 'archived'
 
 export interface SessionSummary {
   id: string

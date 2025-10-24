@@ -7,7 +7,7 @@
  * Logs consent changes for audit trail.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 export default function UnsubscribePage() {

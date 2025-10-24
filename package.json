@@ -55,6 +55,7 @@
     "depcheck": "^1.4.7",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.2.33",
+    "@playwright/test": "^1.51.1",
     "typescript": "^5.3.3",
     "zod": "^4.1.12"
   },

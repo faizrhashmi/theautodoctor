@@ -39,7 +39,20 @@ const PLAN_PRICING: Record<PlanKey, number> = {
   diagnostic: 4999, // $49.99
 }
 
-const SESSION_STATUS_VALUES: SessionStatus[] = ['scheduled', 'waiting', 'live', 'completed', 'cancelled']
+const SESSION_STATUS_VALUES: SessionStatus[] = [
+  'scheduled',
+  'pending',
+  'waiting',
+  'live',
+  'completed',
+  'cancelled',
+  'accepted',
+  'reconnecting',
+  'unattended',
+  'expired',
+  'refunded',
+  'archived',
+]
 
 type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
 type SessionRow = Pick<
@@ -699,7 +712,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       // SUCCESS: Session was created atomically!
       // Response: { sessionId, status, request: {...}, session: {...} }
       const sessionId = payload?.sessionId
-      const session = payload?.session
       const request = payload?.request
 
       if (!sessionId) {

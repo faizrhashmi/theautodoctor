@@ -94,6 +94,9 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date().toISOString()
+    const requestMetadata = (request.metadata ?? {}) as Record<string, unknown>
+    const preferredTime =
+      typeof requestMetadata.preferred_time === 'string' ? requestMetadata.preferred_time : null
 
     // 3. ATOMIC TRANSACTION - Update request + Create session
     // This must happen in a transaction to avoid race conditions
@@ -134,13 +137,15 @@ export async function POST(req: NextRequest) {
         status: 'waiting', // FSM: waiting → can transition to live
         plan: request.plan_code,
         type: request.session_type,
-        scheduled_for: request.preferred_time || null,
+        scheduled_for: preferredTime,
         created_at: now,
         updated_at: now,
+        stripe_session_id: `manual-${requestId}`,
         metadata: {
           request_id: requestId,
           accepted_by_mechanic: mechanic.id,
           accepted_at: now,
+          preferred_time: preferredTime,
         },
       })
       .select()
@@ -186,7 +191,7 @@ export async function POST(req: NextRequest) {
     // 4. BROADCAST UPDATE - Notify other clients this request is taken
     try {
       const requestForBroadcast = toSessionRequest(acceptedRequest)
-      await broadcastSessionRequest('UPDATE', requestForBroadcast)
+      await broadcastSessionRequest('request_accepted', { request: requestForBroadcast })
     } catch (broadcastError) {
       console.warn('[ACCEPT] Failed to broadcast update:', broadcastError)
       // Non-critical - don't fail the request

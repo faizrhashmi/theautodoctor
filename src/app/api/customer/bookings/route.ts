@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import type { Database } from '@/types/supabase'
 import { PRICING, type PlanKey } from '@/config/pricing'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
 
   const sessionType = PLAN_TO_SESSION_TYPE[planValue]
 
-  const insertPayload = {
+  const insertPayload: Database['public']['Tables']['sessions']['Insert'] = {
     plan: planValue,
     type: sessionType,
     status: 'scheduled',
