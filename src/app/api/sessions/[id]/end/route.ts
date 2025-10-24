@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
 import { PRICING, type PlanKey } from '@/config/pricing'
 import type { Database } from '@/types/supabase'
+import { assertTransition, canTransition, type SessionStatus } from '@/lib/sessionFsm'
+import { logInfo } from '@/lib/log'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -102,9 +104,94 @@ export async function POST(
     return NextResponse.json({ error: 'Not authorized to end this session' }, { status: 403 })
   }
 
-  // Don't allow ending already completed sessions
-  if (session.status === 'completed') {
-    return NextResponse.json({ error: 'Session already completed' }, { status: 400 })
+  // FSM VALIDATION: Check if transition to 'completed' is valid
+  const currentStatus = session.status as SessionStatus
+
+  // Idempotent: If already completed, return success
+  if (currentStatus === 'completed') {
+    return NextResponse.json({
+      success: true,
+      message: 'Session already completed',
+      session: {
+        id: sessionId,
+        status: 'completed',
+        ended_at: session.ended_at || now,
+      },
+    })
+  }
+
+  // Check if we can transition to completed
+  if (!canTransition(currentStatus, 'completed')) {
+    // Try transitioning to cancelled instead if completed is not allowed
+    if (canTransition(currentStatus, 'cancelled')) {
+      console.log(`[end session] Cannot transition ${currentStatus} → completed, using cancelled instead`)
+
+      const { error: cancelError } = await supabaseAdmin
+        .from('sessions')
+        .update({
+          status: 'cancelled',
+          ended_at: now,
+          updated_at: now,
+          metadata: {
+            ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
+            cancelled_via_end: {
+              original_status: currentStatus,
+              ended_at: now,
+              ended_by: isCustomer ? 'customer' : 'mechanic',
+            },
+          },
+        })
+        .eq('id', sessionId)
+
+      if (cancelError) {
+        console.error('Failed to cancel session', cancelError)
+        return NextResponse.json({ error: cancelError.message }, { status: 500 })
+      }
+
+      await logInfo('session.cancelled', `Session ${sessionId} cancelled (via end request)`, {
+        sessionId,
+        customerId: session.customer_user_id,
+        mechanicId: session.mechanic_id,
+        metadata: { original_status: currentStatus, ended_by: isCustomer ? 'customer' : 'mechanic' },
+      })
+
+      // Broadcast session ended event
+      try {
+        await supabaseAdmin.channel(`session:${sessionId}`).send({
+          type: 'broadcast',
+          event: 'session:ended',
+          payload: {
+            sessionId,
+            status: 'cancelled',
+            ended_at: now,
+          },
+        })
+      } catch (broadcastError) {
+        console.error('[end session] Failed to broadcast session:ended', broadcastError)
+      }
+
+      const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+
+      if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
+        return NextResponse.json({
+          success: true,
+          message: 'Session cancelled successfully',
+          session: { id: sessionId, status: 'cancelled', ended_at: now },
+        })
+      }
+
+      return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Invalid state transition',
+        current: currentStatus,
+        requested: 'completed',
+        message: `Cannot end session in ${currentStatus} status`,
+      },
+      { status: 409 }
+    )
   }
 
   console.log(`[end session] Ending session ${sessionId} with status: ${session.status}`)
@@ -141,6 +228,33 @@ export async function POST(
     if (updateError) {
       console.error('Failed to end no-show session', updateError)
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    // Log no-show completion
+    await logInfo('session.completed', `Session ${sessionId} completed (no-show)`, {
+      sessionId,
+      customerId: session.customer_user_id,
+      mechanicId: session.mechanic_id,
+      metadata: {
+        no_show: true,
+        ended_by: isCustomer ? 'customer' : 'mechanic',
+      },
+    })
+
+    // Broadcast session ended event
+    try {
+      await supabaseAdmin.channel(`session:${sessionId}`).send({
+        type: 'broadcast',
+        event: 'session:ended',
+        payload: {
+          sessionId,
+          status: 'completed',
+          ended_at: now,
+          no_show: true,
+        },
+      })
+    } catch (broadcastError) {
+      console.error('[end session] Failed to broadcast session:ended', broadcastError)
     }
 
     // Mark any associated session request as cancelled (no-show)
@@ -283,6 +397,34 @@ export async function POST(
   if (updateError) {
     console.error('Failed to update session', updateError)
     return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  // Log session completion
+  await logInfo('session.completed', `Session ${sessionId} completed`, {
+    sessionId,
+    customerId: session.customer_user_id,
+    mechanicId: session.mechanic_id,
+    metadata: {
+      duration_minutes: durationMinutes,
+      payout_status: payoutMetadata.status,
+      ended_by: isCustomer ? 'customer' : 'mechanic',
+    },
+  })
+
+  // Broadcast session ended event
+  try {
+    await supabaseAdmin.channel(`session:${sessionId}`).send({
+      type: 'broadcast',
+      event: 'session:ended',
+      payload: {
+        sessionId,
+        status: 'completed',
+        ended_at: now,
+        duration_minutes: durationMinutes,
+      },
+    })
+  } catch (broadcastError) {
+    console.error('[end session] Failed to broadcast session:ended', broadcastError)
   }
 
   // CRITICAL FIX: Also mark the session_request as cancelled

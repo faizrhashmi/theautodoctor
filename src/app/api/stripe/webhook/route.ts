@@ -58,10 +58,17 @@ async function markEventProcessed(event: Stripe.Event): Promise<void> {
 // ============================================================================
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  console.log('[webhook:checkout] Metadata:', session.metadata)
+
+  // Task 4: Handle session extension checkout separately
+  if (session.metadata?.mode === 'extension') {
+    console.log('[webhook:checkout] Extension mode detected - will be processed in payment_intent.succeeded')
+    return
+  }
+
   const plan = (session.metadata?.plan ?? '') as PlanKey
 
   console.log('[webhook:checkout] Plan:', plan)
-  console.log('[webhook:checkout] Metadata:', session.metadata)
 
   if (!plan || !PRICING[plan]) {
     throw new Error('Unknown plan in session metadata')
@@ -104,6 +111,103 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
   if (piError) {
     console.error('[webhook:payment] Error storing payment intent:', piError)
+  }
+
+  // Task 4: Handle session extension
+  if (paymentIntent.metadata?.mode === 'extension') {
+    const sessionId = paymentIntent.metadata?.session_id
+    const extensionMinutes = parseInt(paymentIntent.metadata?.extension_minutes || '0', 10)
+
+    if (!sessionId || !extensionMinutes) {
+      console.error('[webhook:extension] Missing session_id or extension_minutes in metadata')
+      return
+    }
+
+    console.log(`[webhook:extension] Processing extension: +${extensionMinutes} mins for session ${sessionId}`)
+
+    // Idempotent upsert into session_extensions (unique on payment_intent_id)
+    const { error: extError } = await supabaseAdmin
+      .from('session_extensions')
+      .upsert({
+        session_id: sessionId,
+        minutes: extensionMinutes,
+        payment_intent_id: paymentIntent.id,
+        created_at: new Date().toISOString(),
+      })
+      .onConflict('payment_intent_id')
+
+    if (extError) {
+      console.error('[webhook:extension] Error storing extension:', extError)
+      // Don't return - try to update session anyway
+    } else {
+      console.log('[webhook:extension] ✓ Extension record created')
+    }
+
+    // Update session: add minutes to duration and expires_at
+    const { data: session, error: fetchError } = await supabaseAdmin
+      .from('sessions')
+      .select('duration_minutes, expires_at, started_at')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    if (fetchError || !session) {
+      console.error('[webhook:extension] Session not found:', sessionId)
+      return
+    }
+
+    const currentDuration = session.duration_minutes || 0
+    const newDuration = currentDuration + extensionMinutes
+
+    // Calculate new expires_at: GREATEST(now(), current expires_at) + extension
+    // If expires_at is null, calculate from started_at
+    let newExpiresAt: string
+    if (session.expires_at) {
+      const currentExpires = new Date(session.expires_at)
+      const now = new Date()
+      const baseTime = currentExpires > now ? currentExpires : now
+      newExpiresAt = new Date(baseTime.getTime() + extensionMinutes * 60 * 1000).toISOString()
+    } else if (session.started_at) {
+      // Session has no expires_at but has started_at - calculate from started_at + new duration
+      newExpiresAt = new Date(new Date(session.started_at).getTime() + newDuration * 60 * 1000).toISOString()
+    } else {
+      // Session hasn't started yet - just update duration, expires_at will be set when it starts
+      newExpiresAt = session.expires_at
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('sessions')
+      .update({
+        duration_minutes: newDuration,
+        expires_at: newExpiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', sessionId)
+
+    if (updateError) {
+      console.error('[webhook:extension] Error updating session:', updateError)
+      return
+    }
+
+    console.log(`[webhook:extension] ✓ Session extended: ${currentDuration}→${newDuration} mins`)
+
+    // Broadcast session:extended event
+    try {
+      await supabaseAdmin.channel(`session:${sessionId}`).send({
+        type: 'broadcast',
+        event: 'session:extended',
+        payload: {
+          sessionId,
+          extensionMinutes,
+          newDuration,
+          newExpiresAt,
+        },
+      })
+      console.log('[webhook:extension] ✓ Broadcasted session:extended event')
+    } catch (broadcastError) {
+      console.error('[webhook:extension] Failed to broadcast session:extended:', broadcastError)
+    }
+
+    return // Extension handled, skip normal session activation logic
   }
 
   // CRITICAL: Only set session to 'live' after payment succeeds

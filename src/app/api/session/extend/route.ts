@@ -69,8 +69,9 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin}/video/${sessionId}`,
       metadata: {
         session_id: sessionId,
-        extension_duration: duration.toString(),
+        extension_minutes: duration.toString(),
         user_id: user.id,
+        mode: 'extension', // Task 4 requirement
         type: 'session_extension',
       },
       customer_email: user.email,

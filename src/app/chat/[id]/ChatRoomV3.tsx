@@ -90,6 +90,7 @@ export default function ChatRoom({
   const [sessionStartInitiated, setSessionStartInitiated] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   const isMechanic = userRole === 'mechanic'
   const bothParticipantsPresent = mechanicPresent && customerPresent
@@ -234,7 +235,7 @@ export default function ChatRoom({
       })
   }, [bothParticipantsPresent, sessionStartInitiated, currentStatus, sessionId])
 
-  // Timer countdown logic
+  // Timer countdown logic with server-authoritative auto-end
   useEffect(() => {
     if (currentStatus?.toLowerCase() !== 'live' || !currentStartedAt) return
 
@@ -248,15 +249,42 @@ export default function ChatRoom({
 
       setTimeRemaining(Math.ceil(remaining / 1000)) // in seconds
 
-      // Session expired
+      // Session expired - server-authoritative end
       if (remaining <= 0 && !sessionEnded) {
         setSessionEnded(true)
         clearInterval(interval)
+
+        // Auto-call end endpoint
+        console.log('[ChatRoom] Timer expired - auto-ending session')
+        fetch(`/api/sessions/${sessionId}/end`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log('[ChatRoom] Session auto-ended:', data)
+            // Show toast notification
+            alert('Your session time has ended. Redirecting to dashboard...')
+            // Force redirect after brief delay
+            setTimeout(() => {
+              window.location.href = dashboardUrl
+            }, 2000)
+          })
+          .catch((err) => {
+            console.error('[ChatRoom] Failed to auto-end session:', err)
+            // Still redirect even if API fails
+            setTimeout(() => {
+              window.location.href = dashboardUrl
+            }, 3000)
+          })
       }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [sessionId, currentStatus, currentStartedAt, sessionDurationMinutes, sessionEnded, supabase])
+  }, [sessionId, currentStatus, currentStartedAt, sessionDurationMinutes, sessionEnded, dashboardUrl])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -293,6 +321,42 @@ export default function ChatRoom({
               },
             ]
           })
+        }
+      })
+      .on('broadcast', { event: 'session:ended' }, (payload) => {
+        console.log('[ChatRoom] Session ended by other participant:', payload)
+        const { status, ended_at } = payload.payload
+        setSessionEnded(true)
+        setCurrentStatus(status)
+
+        // Show notification to user
+        alert(`Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant. You will be redirected to your dashboard.`)
+
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = dashboardUrl
+        }, 2000)
+      })
+      .on('broadcast', { event: 'session:extended' }, (payload) => {
+        console.log('[ChatRoom] Session extended:', payload)
+        const { extensionMinutes, newExpiresAt } = payload.payload
+
+        // Show notification
+        alert(`Session extended by ${extensionMinutes} minutes!`)
+
+        // Reset timer based on new expiry time
+        if (newExpiresAt && currentStartedAt) {
+          const newExpiry = new Date(newExpiresAt).getTime()
+          const startTime = new Date(currentStartedAt).getTime()
+          const newDurationSeconds = Math.ceil((newExpiry - startTime) / 1000)
+
+          // Update time remaining
+          const now = Date.now()
+          const elapsed = Math.floor((now - startTime) / 1000)
+          const remaining = Math.max(0, newDurationSeconds - elapsed)
+          setTimeRemaining(remaining)
+
+          console.log(`[ChatRoom] Timer updated: ${remaining}s remaining`)
         }
       })
       .on(
@@ -352,8 +416,12 @@ export default function ChatRoom({
         console.log('[ChatRoom] Subscription status:', status)
       })
 
+    // Store channel reference for reuse in broadcasting
+    channelRef.current = channel
+
     return () => {
       console.log('[ChatRoom] Cleaning up subscription')
+      channelRef.current = null
       supabase.removeChannel(channel)
     }
   }, [sessionId, supabase, mechanicName, currentStatus, customerId, isMechanic, mechanicId])
@@ -424,10 +492,9 @@ export default function ChatRoom({
       console.log('[ChatRoom] Message sent successfully:', data.message)
 
       // Broadcast the message to all connected clients (including self)
-      if (data.message) {
-        const channel = supabase.channel(`session-${sessionId}`)
-        await channel.subscribe()
-        await channel.send({
+      // CRITICAL FIX: Reuse existing channel instead of creating a new one to prevent socket leaks
+      if (data.message && channelRef.current) {
+        await channelRef.current.send({
           type: 'broadcast',
           event: 'new_message',
           payload: {
@@ -440,7 +507,7 @@ export default function ChatRoom({
             },
           },
         })
-        console.log('[ChatRoom] Broadcasted message:', data.message.id)
+        console.log('[ChatRoom] Broadcasted message via existing channel:', data.message.id)
       }
 
       setInput('')

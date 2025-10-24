@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import {
   LiveKitRoom,
   useLocalParticipant,
@@ -16,6 +16,7 @@ import {
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
   Maximize2, Minimize2
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -433,8 +434,11 @@ export default function VideoSessionClient({
   const [bothJoinedNotification, setBothJoinedNotification] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [sharedFiles, setSharedFiles] = useState<Array<{ name: string; url: string; size: number }>>([])
+  const [extendedDuration, setExtendedDuration] = useState<number | null>(null) // Track extensions
 
-  const durationMinutes = PLAN_DURATIONS[plan] || 45
+  const baseDuration = PLAN_DURATIONS[plan] || 45
+  const durationMinutes = extendedDuration || baseDuration // Use extended duration if available
+  const supabase = useMemo(() => createClient(), [])
 
   // Auto-update session status to "waiting" when first participant joins
   useEffect(() => {
@@ -463,6 +467,49 @@ export default function VideoSessionClient({
     }
     updateSessionStatus()
   }, [sessionId])
+
+  // Listen for session:ended broadcasts from the other participant
+  useEffect(() => {
+    console.log('[VIDEO] Setting up session:ended broadcast listener')
+
+    const channel = supabase
+      .channel(`session:${sessionId}`, {
+        config: {
+          broadcast: { self: false }, // Don't receive own broadcasts
+        },
+      })
+      .on('broadcast', { event: 'session:ended' }, (payload) => {
+        console.log('[VIDEO] Session ended by other participant:', payload)
+        const { status } = payload.payload
+
+        alert(`Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant. Redirecting to dashboard...`)
+
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.href = dashboardUrl
+        }, 2000)
+      })
+      .on('broadcast', { event: 'session:extended' }, (payload) => {
+        console.log('[VIDEO] Session extended:', payload)
+        const { extensionMinutes, newDuration } = payload.payload
+
+        // Show notification
+        alert(`Session extended by ${extensionMinutes} minutes!`)
+
+        // Update duration state - SessionTimer will automatically recalculate
+        setExtendedDuration(newDuration)
+
+        console.log(`[VIDEO] Duration updated: ${newDuration} minutes`)
+      })
+      .subscribe((status) => {
+        console.log('[VIDEO] Broadcast subscription status:', status)
+      })
+
+    return () => {
+      console.log('[VIDEO] Cleaning up broadcast subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [sessionId, dashboardUrl, supabase])
 
   const handleMechanicJoined = useCallback(() => {
     console.log('[VIDEO] Mechanic joined')
@@ -514,8 +561,30 @@ export default function VideoSessionClient({
 
   const handleTimeUp = useCallback(() => {
     setTimeWarning('Session time has ended')
-    setShowExtendModal(true)
-  }, [])
+
+    // Server-authoritative auto-end
+    console.log('[VIDEO] Timer expired - auto-ending session')
+    fetch(`/api/sessions/${sessionId}/end`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log('[VIDEO] Session auto-ended:', data)
+        alert('Your session time has ended. Redirecting to dashboard...')
+        setTimeout(() => {
+          window.location.href = dashboardUrl
+        }, 2000)
+      })
+      .catch((err) => {
+        console.error('[VIDEO] Failed to auto-end session:', err)
+        // Show extend modal as fallback
+        setShowExtendModal(true)
+      })
+  }, [sessionId, dashboardUrl])
 
   const handleExtendTime = async (duration: number, price: number) => {
     setExtendingSession(true)
