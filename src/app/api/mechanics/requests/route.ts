@@ -75,51 +75,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unable to fetch requests' }, { status: 500 })
   }
 
-  // Enrich requests with intake data and files. Prefer intake_id on the request itself
+  // Enrich requests with intake data and files
   const enrichedRequests = await Promise.all(
     (requests || []).map(async (request) => {
+      // Get the session for this request to find intake_id
+      const { data: session } = await supabaseAdmin
+        .from('sessions')
+        .select('id, intake_id, metadata')
+        .eq('customer_user_id', request.customer_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
       let intakeData: any = null
       let sessionFiles: any[] = []
-      let sessionId: string | null = null
 
-      // If the request already carries an intake_id, use it directly
-      if ((request as any).intake_id) {
+      if (session?.intake_id) {
+        // Fetch intake data
         const { data: intake } = await supabaseAdmin
           .from('intakes')
           .select('*')
-          .eq('id', (request as any).intake_id)
+          .eq('id', session.intake_id)
           .maybeSingle()
 
         intakeData = intake
-      } else {
-        // Fallback: find the most recent session for this customer and use its intake_id
-        const { data: session } = await supabaseAdmin
-          .from('sessions')
-          .select('id, intake_id, metadata')
-          .eq('customer_user_id', request.customer_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (session?.intake_id) {
-          const { data: intake } = await supabaseAdmin
-            .from('intakes')
-            .select('*')
-            .eq('id', session.intake_id)
-            .maybeSingle()
-
-          intakeData = intake
-        }
-
-        if (session?.id) sessionId = session.id
       }
 
-      // If we were able to identify a session id (either via lookup or later), fetch files
-      if (sessionId) {
+      if (session?.id) {
+        // Fetch session files
         const { data: files } = await supabaseAdmin
           .from('session_files')
           .select('id, file_name, file_size, file_type, file_url, created_at, description')
-          .eq('session_id', sessionId)
+          .eq('session_id', session.id)
           .order('created_at', { ascending: false })
 
         sessionFiles = files || []
@@ -129,7 +116,7 @@ export async function GET(req: NextRequest) {
         ...request,
         intake: intakeData,
         files: sessionFiles,
-        sessionId,
+        sessionId: session?.id || null,
       }
     })
   )

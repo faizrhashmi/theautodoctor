@@ -4,28 +4,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   AlertCircle,
-  CalendarClock,
+  CalendarC
   DollarSign,
   Loader2,
   Radio,
   CheckCircle2,
-  AlertTriangle,
-  Eye,
+  AlertTrian  Eye,
   History,
-  FileText,
-  LogOut,
-  RefreshCw,
-  Wifi,
-  WifiOff,
-  XCircle,
+  FileText  LogOut,
+,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { SessionRequest } from '@/types/session'
 import type { SessionStatus } from '@/types/session'
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
-import EnhancedRequestDetailModal from '@/components/mechanic/EnhancedRequestDetailModal'
-// import SessionHistoryModal from '@/components/mechanic/SessionHistoryModal'
+import type { Database } from '@/types/simport EnhancedRequestDetailModal from '@/components/mechanic/EnhancedRequestDetailModal'// import SessionHistoryModal from '@/components/mechanic/SessionHistoryModal'
+
+
+ailModal'
+
 
 const MECHANIC_SHARE = 0.7
 
@@ -38,21 +35,9 @@ const PLAN_PRICING: Record<PlanKey, number> = {
   video15: 2999,    // $29.99
   diagnostic: 4999, // $49.99
 }
+ 'diagnostic']
 
-const SESSION_STATUS_VALUES: SessionStatus[] = [
-  'scheduled',
-  'pending',
-  'waiting',
-  'live',
-  'completed',
-  'cancelled',
-  'accepted',
-  'reconnecting',
-  'unattended',
-  'expired',
-  'refunded',
-  'archived',
-]
+const SESSION_STATUS_VALUES: SessionStatus[] = ['scheduled', 'waiting', 'live', 'completed', 'cancelled']
 
 type SessionRequestRow = Database['public']['Tables']['session_requests']['Row']
 type SessionRow = Pick<
@@ -90,12 +75,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 })
 
 export default function MechanicDashboardClient({ mechanic }: MechanicDashboardClientProps) {
-  const supabase = useMemo(() => createClient(), [])
-  const mechanicId = mechanic.id
-
-  console.log('[MECHANIC DASHBOARD CLIENT] Component rendered, mechanicId:', mechanicId)
-
-  // NEW STATE STRUCTURE: 4 clear sections
+  const supabase =  console.log('[MECHANIC DASHBOARD CLIENT] Component rendered, mechanicId:', m  // NEW STATE STRUCTURE: 4 clear sections
   const [newRequests, setNewRequests] = useState<any[]>([]) // Pending requests (not accepted)
   const [activeSessions, setActiveSessions] = useState<any[]>([]) // Accepted but not started
   const [upcomingSessions, setUpcomingSessions] = useState<MechanicDashboardSession[]>([]) // Future scheduled
@@ -103,48 +83,35 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   const [isLoadingRequests, setIsLoadingRequests] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
-  const [showStuckRequestError, setShowStuckRequestError] = useState(false)
   const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
   const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null)
   const [acceptedSessionId, setAcceptedSessionId] = useState<string | null>(null)
   const [acceptedCustomerName, setAcceptedCustomerName] = useState<string | null>(null)
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
-  // Temporarily disabled for build
+  const [selectedRequest, setSelectedRequest] = useState<an  // Temporarily disabled for build
   // const [selectedHistorySession, setSelectedHistorySession] = useState<MechanicDashboardSession | null>(null)
+)
+| null>(null)
 
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false)
-  const [sessionsError, setSessionsError] = useState<string | null>(null)
-
-  // Debug state
+rdSession[]>([])
+  const [activeSession, setActiveSession] = useState<MechanicDashboardSession | null>(null)
+  const [isLoadingSessions, setI  // Debug state
   const [showDebugPanel, setShowDebugPanel] = useState(false)
   const [debugData, setDebugData] = useState<any>(null)
-  const [isLoadingDebug, setIsLoadingDebug] = useState(false)
-
-  // Refresh and connection state
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date())
-  const [isForceClosing, setIsForceClosing] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [realtimeConnected, setRealtimeConnected] = useState(true)
-
-  // Pagination state - show 10 items initially, expand by 10
+  const [isLoadingDebug, setIsLoadingDebug] =  // Pagination state - show 10 items initially, expand by 10
   const ITEMS_PER_PAGE = 10
-  const [visibleNewRequests, setVisibleNewRequests] = useState(ITEMS_PER_PAGE)
-  // Active Sessions: Show only 1 (the most recent) - no pagination needed
+  const [visibleNewRequests, setVisibleNewRequests] = useState(ITEMS_PER_PAGE  // Active Sessions: Show only 1 (the most recent) - no pagination needed
+E)
   const [visibleUpcomingSessions, setVisibleUpcomingSessions] = useState(ITEMS_PER_PAGE)
   const [visibleHistoryItems, setVisibleHistoryItems] = useState(ITEMS_PER_PAGE)
 
+ useState(false)
+
+sLoadingSessions] = useState(false)
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
+
   const requestsChannelRef = useRef<RealtimeChannel | null>(null)
   const sessionsChannelRef = useRef<RealtimeChannel | null>(null)
-  const isMountedRef = useRef(true)
-
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  const mapRowToRequest = useCallback(
-    (row: SessionRequestRow & { sessionId?: string | null }): SessionRequest => ({
+  const isMountedRef    (row: SessionRequestRow & { sessionId?: string | null }): SessionRequest => ({
       id: row.id,
       customerId: row.customer_id,
       customerName: row.customer_name ?? 'Customer',
@@ -156,13 +123,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       acceptedAt: row.accepted_at ?? undefined,
       mechanicId: row.mechanic_id ?? undefined,
       sessionId: row.sessionId ?? undefined,
-    }),
-    []
-  )
-
-  const upsertRequest = useCallback(
-    (row: SessionRequestRow) => {
-      setNewRequests((prev) => {
+code,
+      status: row.status,
+      createdAt: row.created_at,
+      acceptedAt: row.accepted_at       setNewRequests((prev) => {
         if (row.status !== 'pending') {
           return prev.filter((item) => item.id !== row.id)
         }
@@ -184,10 +148,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   )
 
   const removeRequest = useCallback((id: string) => {
-    setNewRequests((prev) => prev.filter((item) => item.id !== id))
-  }, [])
-
-  // Fetch NEW REQUESTS (pending, not accepted by anyone)
+    setNewRequests((prev) => prev.filter((item) => item.  // Fetch NEW REQUESTS (pending, not accepted by anyone)
   const fetchNewRequests = useCallback(
     async (options?: { silent?: boolean }) => {
       if (!mechanicId) return
@@ -198,34 +159,21 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       setRequestsError(null)
 
       try {
-        // Fetch both 'pending' and 'unattended' requests
-        // 'unattended' = requests that timed out but customers are still waiting
-        const [pendingResponse, unattendedResponse] = await Promise.all([
-          fetch('/api/mechanics/requests?status=pending', {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-            cache: 'no-store',
-          }),
-          fetch('/api/mechanics/requests?status=unattended', {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-            cache: 'no-store',
-          }),
-        ])
+        const response = await fetch('/api/mechanics/requests?status=pending', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
 
-        const pendingBody = (await pendingResponse
+        const body = (await response
           .json()
           .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
 
-        const unattendedBody = (await unattendedResponse
-          .json()
-          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
-
-        if (!pendingResponse.ok && !unattendedResponse.ok) {
+        if (!response.ok) {
           console.error(
             '[MECHANIC DASHBOARD] Failed to load new requests',
-            pendingResponse.status,
-            pendingBody ?? {}
+            response.status,
+            body ?? {}
           )
           if (!isMountedRef.current) return
           setRequestsError('Unable to load new requests right now.')
@@ -235,12 +183,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         if (!isMountedRef.current) return
 
-        // Combine pending and unattended requests
-        const pendingRequests = Array.isArray(pendingBody?.requests) ? pendingBody.requests : []
-        const unattendedRequests = Array.isArray(unattendedBody?.requests) ? unattendedBody.requests : []
-        const allRequests = [...pendingRequests, ...unattendedRequests]
-
-        const mapped = allRequests.map(mapRowToRequest)
+        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
 
         setNewRequests(
           mapped.sort(
@@ -261,146 +204,62 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     [mechanicId, mapRowToRequest]
   )
 
-  // Fetch ACTIVE SESSIONS - query sessions table directly (source of truth)
-  // Shows: waiting (accepted but not started) + live (in progress)
+  // Fetch ACTIVE SESSIONS (accepted but not started)
   const fetchActiveSessions = useCallback(
     async () => {
       if (!mechanicId) return
 
-      console.log('[fetchActiveSessions] Fetching active sessions for mechanic:', mechanicId)
-
       try {
-        // Query sessions table for active work (waiting + live)
-        const { data: sessions, error } = await supabase
-          .from('sessions')
-          .select('id, status, type, plan, customer_user_id, created_at, started_at, metadata, intake_id')
-          .eq('mechanic_id', mechanicId)
-          .in('status', ['waiting', 'live']) // Both waiting (not started) and live (in progress)
-          .order('created_at', { ascending: false })
+        const response = await fetch(`/api/mechanics/requests?status=accepted&mechanicId=${mechanicId}`, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
 
-        if (error) {
-          console.error('[fetchActiveSessions] Error:', error)
+        const body = (await response
+          .json()
+          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
+
+        if (!response.ok) {
+          console.error('[MECHANIC DASHBOARD] Failed to load active sessions', response.status, body ?? {})
           if (!isMountedRef.current) return
           setActiveSessions([])
           return
         }
 
-        // CRITICAL FIX: Also fetch accepted requests that don't have sessions yet
-        // This prevents "hidden" accepted requests from blocking mechanics
-        const { data: acceptedRequests, error: requestsError } = await supabase
-          .from('session_requests')
-          .select('id, customer_id, customer_name, customer_email, session_type, plan_code, created_at, accepted_at, metadata')
-          .eq('mechanic_id', mechanicId)
-          .eq('status', 'accepted')
-          .order('accepted_at', { ascending: false })
-
-        if (requestsError) {
-          console.error('[fetchActiveSessions] Error fetching accepted requests:', requestsError)
-        }
-
-        console.log('[fetchActiveSessions] Found sessions:', sessions?.length || 0)
-        console.log('[fetchActiveSessions] Found accepted requests:', acceptedRequests?.length || 0)
-
         if (!isMountedRef.current) return
 
-        // Enrich with customer info and intake data
-        const enriched = await Promise.all(
-          (sessions || []).map(async (session) => {
-            const metadata = (session.metadata || {}) as Record<string, unknown>
-            let customerName = 'Customer'
+        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
 
-            // Try to get customer name from metadata
-            if (metadata.customer_name) customerName = String(metadata.customer_name)
-            else if (metadata.customerName) customerName = String(metadata.customerName)
-
-            // Get intake data if available
-            let intakeData: any = null
-            if (session.intake_id) {
-              const { data: intake } = await supabase
-                .from('intakes')
-                .select('*')
-                .eq('id', session.intake_id)
-                .maybeSingle()
-
-              intakeData = intake
-            }
-
-            // Get files
-            let files: any[] = []
-            const { data: sessionFiles } = await supabase
-              .from('session_files')
-              .select('id, file_name, file_size, file_type, file_url, created_at, description')
-              .eq('session_id', session.id)
-              .order('created_at', { ascending: false })
-
-            files = sessionFiles || []
-
-            return {
-              id: session.id, // This is the session ID
-              sessionId: session.id,
-              customerName,
-              customerId: session.customer_user_id,
-              sessionType: session.type,
-              planCode: session.plan,
-              status: session.status,
-              createdAt: session.created_at,
-              acceptedAt: session.created_at, // When session was created = when it was accepted
-              isLive: session.status === 'live',
-              intake: intakeData,
-              files,
-            }
-          })
+        setActiveSessions(
+          mapped.sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
         )
-
-        // CRITICAL FIX: Merge accepted requests into active sessions
-        // These are requests the mechanic accepted but customer hasn't joined yet
-        const enrichedRequests = (acceptedRequests || []).map((request) => ({
-          id: request.id, // This is the request ID (not session ID)
-          sessionId: null, // No session created yet
-          customerName: request.customer_name || request.customer_email || 'Customer',
-          customerId: request.customer_id,
-          sessionType: request.session_type,
-          planCode: request.plan_code,
-          status: 'accepted', // Request status, not session status
-          createdAt: request.created_at,
-          acceptedAt: request.accepted_at,
-          isLive: false, // Accepted requests are not live yet
-          intake: null,
-          files: [],
-          isAcceptedRequest: true, // Flag to identify this is a request, not a session
-        }))
-
-        const combined = [...enriched, ...enrichedRequests]
-
-        console.log('[fetchActiveSessions] Enriched sessions:', enriched.length)
-        console.log('[fetchActiveSessions] Enriched accepted requests:', enrichedRequests.length)
-        console.log('[fetchActiveSessions] Total active items:', combined.length)
-        setActiveSessions(combined)
       } catch (error) {
-        console.error('[fetchActiveSessions] Failed to load active sessions', error)
-        if (!isMountedRef.current) return
-        setActiveSessions([])
+        console.error('[MECHANIC DASHBOARD] Failed to load active sessions', error)
+        if (!isMountedRef.current) r.error('[MECHANIC DASHBOARD] Failed to load request history', error)
+      } finally {
+        if (isMountedRef.current) {
+          se     }
+
+tIsLoadingHistory(false)
+        }
       }
     },
-    [mechanicId, supabase]
+    [mechanicId]
   )
 
-  // Manual refresh function (defined before loadSessions to avoid circular dependency)
-  const handleManualRefresh = useCallback(async () => {
-    console.log('[MECHANIC DASHBOARD] Manual refresh triggered')
-    setIsRefreshing(true)
-    try {
-      await Promise.all([
-        fetchNewRequests({ silent: true }),
-        fetchActiveSessions()
-      ])
-      setLastRefreshTime(new Date())
-    } catch (error) {
-      console.error('[MECHANIC DASHBOARD] Manual refresh failed:', error)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }, [fetchNewRequests, fetchActiveSessions])
+alse)
+        }
+      }
+    },
+    [mechanicId, mapRowToRequest]
+  )
+
+onst removeRequest = useCallback((id: string) => {
+    setIncomingRequests((prev) => prev.filter((item) => item.id !== id))
+  }, [])
 
   const mapSessionRow = useCallback(
     (row: SessionRow): MechanicDashboardSession => {
@@ -423,28 +282,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       const computedDuration =
         row.duration_minutes ??
         diffInMinutes(startedAt, endedAt) ??
-        diffInMinutes(scheduledStart, scheduledEnd)
-
-      return {
-        id: row.id,
-        customerName: typeof nameCandidate === 'string' ? nameCandidate : 'Customer',
-        plan: row.plan ?? null,
-        sessionType: row.type,
-        status,
-        scheduledStart,
-        scheduledEnd,
-        startedAt,
-        endedAt,
-        durationMinutes: computedDuration,
-      }
-    },
-    []
-  )
-
-  // Load incoming and accepted requests
-  useEffect(() => {
-    if (!mechanicId) {
-      setNewRequests([])
+        diffInMinutes(scheduledStart      setNewRequests([])
       setActiveSessions([])
       setIsLoadingRequests(false)
       return
@@ -452,6 +290,19 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
     void fetchNewRequests()
     void fetchActiveSessions()
+   setAcceptedRequests([])
+      setIsLoadingRequests(false)
+      return
+    }
+
+    void fetchRequests()
+    void fetchAcceptedRequests()
+  scheduledStart,
+            setIsLoadingRequests(false)
+      return
+    }
+
+    void fetchRequests()
 
     const channel = supabase
       .channel('session_requests_feed', { config: { broadcast: { self: false } } })
@@ -468,17 +319,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         }
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'session_requests' }, (payload) => {
-        const row = payload.old as SessionRequestRow | undefined
-        if (row?.id) {
-          removeRequest(row.id)
-        }
-      })
-      .on('broadcast', { event: 'new_request' }, ({ payload }) => {
-        const row = extractSessionRequestRow(payload)
-        if (row) {
-          upsertRequest(row)
-        } else {
-          void fetchNewRequests({ silent: true })
+        const row = payload.old as SessionReque          void fetchNewRequests({ silent: true })
         }
       })
       .on('broadcast', { event: 'request_accepted' }, ({ payload }) => {
@@ -491,30 +332,19 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         // Reload both lists - cancelled request goes back to pending
         void fetchNewRequests({ silent: true })
         void fetchActiveSessions()
+    // Reload both lists - cancelled request goes back to pending
+        void fetchRequests({ silent: tru        void fetchAcceptedRequests()
+ue })
+vent: 'request_cancelled' }, ({ payload }) => {
+        const id = typeof payload?.id === 'string' ? payload.id : null
+        if (id) removeRequest(id)
       })
 
     channel.subscribe((status) => {
-      console.log('[MECHANIC DASHBOARD] Realtime channel status:', status)
-      if (status === 'SUBSCRIBED') {
-        setRealtimeConnected(true)
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        setRealtimeConnected(false)
-        setRequestsError('Realtime updates unavailable. Refresh to see new requests.')
+      if (status === 'CHANNEL_ERROR' || status  }, [fetchNewRequests, fetchActiveSessions, mechanicId, removeRequest, supabase, upsertRequest])
+e. Refresh to see new requests.')
       }
-    })
-
-    requestsChannelRef.current = channel
-
-    return () => {
-      void channel.unsubscribe()
-      supabase.removeChannel(channel)
-      requestsChannelRef.current = null
-    }
-  }, [fetchNewRequests, fetchActiveSessions, mechanicId, removeRequest, supabase, upsertRequest])
-
-  const loadSessions = useCallback(
-    async (options?: { silent?: boolean }) => {
-      console.log('[loadSessions] Starting, mechanicId:', mechanicId)
+         console.log('[loadSessions] Starting, mechanicId:', mechanicId)
       if (!mechanicId) return
 
       if (!options?.silent) {
@@ -532,8 +362,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         console.log('[loadSessions] Query result:', { dataCount: data?.length, error })
 
-        // FIX: Removed isMountedRef check - React 18 StrictMode causes false unmount detection
-        // If we have data from the query, we should update state regardless
+        if (!isMountedRef.current) {
+          console.log('[loadSessions] Component unmounted, aborting')
+          return
+        }
 
         if (error) {
           console.error('Failed to load mechanic sessions', error)
@@ -563,30 +395,21 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               acceptedAt: session.startedAt ?? session.scheduledStart,
               mechanicId: mechanicId,
               sessionId: session.id, // Already a started session
-              isLive: session.status === 'live', // FIXED: Derive from actual status
-              isWaiting: session.status === 'waiting', // NEW: Flag for waiting sessions
-              isAcceptedRequest: false, // This is a real session, not just an accepted request
+              isLive: true, // Flag to indicate this is an active/live session
             }))
 
           // Merge live sessions with accepted requests (from fetchActiveSessions)
           // Keep existing accepted requests and add any new live sessions
           setActiveSessions((prev) => {
             // Filter out any duplicates (sessions that were accepted requests but are now live)
-            const existingAccepted = prev.filter(item => item.isAcceptedRequest === true)
+            const existingAccepted = prev.filter(item => !item.isLive)
             const liveSessionIds = new Set(liveSessions.map(s => s.sessionId))
             const filteredAccepted = existingAccepted.filter(item => !liveSessionIds.has(item.sessionId))
 
-            // FIXED: Combine and sort to prioritize actionable work
-            // 1. Sessions with sessionId come first (they're actionable)
-            // 2. Within each group, newest first
-            return [...liveSessions, ...filteredAccepted].sort((a, b) => {
-              // Prioritize items with sessionId (real sessions over accepted-request stubs)
-              if (a.sessionId && !b.sessionId) return -1
-              if (!a.sessionId && b.sessionId) return 1
-
-              // Both have or both don't have sessionId - sort by newest first
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            })
+            // Combine and sort
+            return [...liveSessions, ...filteredAccepted].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            )
           })
 
           // Upcoming: Future scheduled sessions only
@@ -613,6 +436,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           setUpcomingSessions(upcoming)
           setSessionHistory(history)
           console.log('[loadSessions] State updated - upcoming:', upcoming.length, 'history:', history.length)
+.customerName
+          })))
+
+          setUpcomingSessions(upcoming)
+          setSessionHistory(history)
         }
 
         if (!options?.silent && isMountedRef.current) {
@@ -626,6 +454,27 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         if (!options?.silent && isMountedRef.current) {
           setIsLoadingSessions(false)
         }
+(history)
+ata.map(mapSessionRow)
+        const active = mapped.find((session) => session.status === 'live') ?? null
+        const upcoming = mapped
+          .filter((session) => session.status === 'scheduled' || session.status === 'waiting')
+          .sort((a, b) => {
+            const aTime = toTimeValue(a.scheduledStart)
+            const bTime = toTimeValue(b.scheduledStart)
+            return aTime - bTime
+          })
+        const completed = mapped
+          .filter((session) => session.status === 'completed')
+          .sort((a, b) => toTimeValue(b.endedAt ?? b.scheduledEnd) - toTimeValue(a.endedAt ?? a.scheduledEnd))
+
+        setActiveSession(active)
+        setUpcomingSessions(upcoming)
+        setCompletedSessions(completed)
+      }
+
+      if (!options?.silent && isMountedRef.current) {
+        setIsLoadingSessions(false)
       }
     },
     [mechanicId, mapSessionRow, supabase]
@@ -634,16 +483,16 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   useEffect(() => {
     void loadSessions()
 
-    if (!mechanicId) {
-      return
-    }
-
-    const channel = supabase
-      .channel(`mechanic_sessions_${mechanicId}`)
+    if (!mechanicId){mechanicId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sessions', filter: `mechanic_id=eq.${mechanicId}` },
-        () => {
+   // Load request history
+  useEffect(() => {
+    void fetchHistory()
+  }, [fetchHistory])
+
+       () => {
           void loadSessions({ silent: true })
         }
       )
@@ -663,22 +512,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }, [loadSessions, mechanicId, supabase])
 
-  // Auto-refresh fallback every 60 seconds
-  useEffect(() => {
-    const AUTO_REFRESH_INTERVAL = 60000 // 60 seconds
-
-    const intervalId = setInterval(() => {
-      if (!isRefreshing) {
-        console.log('[MECHANIC DASHBOARD] Auto-refresh triggered')
-        void handleManualRefresh()
-      }
-    }, AUTO_REFRESH_INTERVAL)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [handleManualRefresh, isRefreshing])
-
   const acceptRequest = async (requestId: string) => {
     if (!mechanicId) {
       setRequestsError('Log in as a mechanic to accept requests.')
@@ -689,108 +522,40 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     setRequestsError(null)
 
     try {
-      // Use new atomic accept endpoint that creates session in one transaction
-      const response = await fetch('/api/mechanic/accept', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId }),
-      })
+      const response       // Get request info
+      if (payload && typeof payload === 'object' && 'request' in payload) {
+        const request = (payload as { request?: { id?: string; sessionType?: string } }).request
+        if (request?.id) {
+          removeRequest(request.id)
+agnostic'
+              // Update selected request with session ID (enables "Start Session" button in modal)
+      if (payload && typeof payload === 'object' && 'session' in payload) {
+        const session = (payload as { session?: { id?: string } }).session
+        if (session?.id && selectedRequest) {
+          setSelectedRequest({
+            ...selectedRequest,
+            sessionId: session.id
+          })
+          console.log(`[accept-request] Request accepted, session ID:`, session.id)
+        }
+      }
 
-      const payload = await response.json().catch(() => null)
+      // Remove from pending requests and reload sessions
+      removeRequest(requestId)
+true })
+n.id}`
+          return
+        }
+      }
 
-      if (!response.ok) {
-        const message =
-          (payload && typeof payload === 'object' && 'error' in payload && typeof (payload as any).error === 'string'
-            ? (payload as any).error
+      // Fallback: Reload sessions to show newly accepted session
+ as any).error
             : null) ||
           (response.status === 409
             ? 'Another mechanic already accepted this request.'
-            : 'Unable to accept this request right now.')
-        throw new Error(message)
-      }
-
-      // SUCCESS: Session was created atomically!
-      // Response: { sessionId, status, request: {...}, session: {...} }
-      const sessionId = payload?.sessionId
-      const request = payload?.request
-
-      if (!sessionId) {
-        throw new Error('Server did not return sessionId')
-      }
-
-      console.log(`[accept-request] ✓ Accepted request ${requestId}, created session ${sessionId}`)
-
-      // Remove from pending requests list
-      removeRequest(requestId)
-
-      // Update selected request with session ID (enables "Start Session" button in modal)
-      if (selectedRequest && selectedRequest.id === requestId) {
-        setSelectedRequest({
-          ...selectedRequest,
-          sessionId: sessionId,
-        })
-      }
-
-      // CRITICAL: Inject sessionId into activeSessions immediately
-      // This makes the "Start Session" button enabled right away
-      setActiveSessions((prev) => {
-        const existing = prev.find((item) => item.id === requestId && item.isAcceptedRequest)
-
-        if (existing) {
-          // Update existing item with sessionId
-          return prev.map((item) =>
-            item.id === requestId && item.isAcceptedRequest
-              ? { ...item, sessionId: sessionId, isWaiting: true, status: 'waiting' }
-              : item
-          )
-        } else {
-          // Add new item to activeSessions
-          return [
-            {
-              id: requestId,
-              sessionId: sessionId,
-              isLive: false,
-              isWaiting: true,
-              isAcceptedRequest: true,
-              status: 'waiting',
-              sessionType: request?.type || 'chat',
-              plan: request?.plan || 'chat10',
-              createdAt: new Date().toISOString(),
-              scheduledFor: null,
-            },
-            ...prev,
-          ]
-        }
-      })
-
-      // Reload sessions in background to sync with server state
-      void loadSessions({ silent: true })
-
-      console.log(`[accept-request] ✓ Session ${sessionId} ready - Start button enabled`)
-    } catch (error) {
-      console.error('[accept-request] Failed:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unable to accept this request right now.'
-      setRequestsError(errorMessage)
-
-      // Detect the specific "stuck accepted request" or "active session" error
-      if (
-        errorMessage.includes('already have an accepted request') ||
-        errorMessage.includes('already have an active session')
-      ) {
-        setShowStuckRequestError(true)
-      }
-    } finally {
-      setAcceptingRequestId(null)
-    }
-  }
-
-  const startSession = (sessionId: string, sessionType: string) => {
+        const startSession = (sessionId: string, sessionType: string) => {
     const sessionPath = sessionType === 'chat' ? 'chat' : sessionType === 'video' ? 'video' : 'diagnostic'
-    console.log(`[start-session] Navigating to ${sessionType} session:`, sessionId)
-    window.location.href = `/${sessionPath}/${sessionId}`
-  }
-
-  const cancelRequest = async (requestId: string) => {
+    console.log(`[start-session] Navigating to ${sessionType} session:`, ses  const cancelRequest = async (requestId: string) => {
     if (!mechanicId) {
       setRequestsError('Log in as a mechanic to cancel requests.')
       return
@@ -808,25 +573,18 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
       if (!response.ok) {
         const message =
-          (payload && typeof payload === 'object' && 'error' in payload && typeof (payload as any).error === 'string'
-            ? (payload as any).error
-            : null) || 'Unable to cancel this request.'
+          (payload && typeof payload === 'object' && 'error' in payload && t      // Reload both lists - request goes back to pending (new requests)
+      void fetchNewRequests({ silent: true })
+      void fetchActiveSessions()
+
         throw new Error(message)
       }
 
-      // Reload both lists - request goes back to pending (new requests)
-      void fetchNewRequests({ silent: true })
-      void fetchActiveSessions()
+      // Reload both lists - request goes back to pending
+      void fetchR      void fetchAcceptedRequests()
+Requests({ silent: true })
     } catch (error) {
-      console.error('[MECHANIC DASHBOARD] Cancel request error:', error)
-      setRequestsError(error instanceof Error ? error.message : 'Failed to cancel request')
-    } finally {
-      setCancellingRequestId(null)
-    }
-  }
-
-  const earningsSummary = useMemo(() => {
-    // Only count completed sessions for earnings (not cancelled)
+      console.error('[MECHANIC DASHBOARD] Cancel re    // Only count completed sessions for earnings (not cancelled)
     const completedOnly = sessionHistory.filter(s => s.status === 'completed')
 
     const rows = completedOnly.slice(0, 10).map((session) => ({
@@ -846,26 +604,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     return { rows, totalCents }
   }, [sessionHistory])
 
-  // ACTIONABLE QUEUE SORTING
-  // Sort activeSessions by actionability: items with sessionId first, then by newest
-  const sortedActiveSessions = useMemo(() => {
-    const byActionability = (a: any, b: any) => {
-      // Prioritize items with sessionId (actionable work)
-      const aid = a.sessionId ? 1 : 0
-      const bid = b.sessionId ? 1 : 0
-      if (aid !== bid) return bid - aid
-
-      // Within same actionability, newest first
-      return new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime()
-    }
-
-    return [...activeSessions].sort(byActionability)
-  }, [activeSessions])
-
-  // Split into top actionable item and queue
-  const topActionableItem = sortedActiveSessions[0] || null
-  const queueItems = sortedActiveSessions.slice(1, 4) // Next 3 items
-
   const stats = useMemo(() => {
     return {
       newRequests: newRequests.length,
@@ -875,8 +613,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       totalEarnings: earningsSummary.totalCents,
     }
   }, [newRequests.length, activeSessions.length, upcomingSessions.length, sessionHistory, earningsSummary.totalCents])
-
-  const fetchDebugData = async () => {
+ingsSummary = useMemo(() => {
+    const rows = completedSessions.slice(0, 10).map((session) => ({
+      id: session.id,
+      date: session.endedAt ?? session.scheduledEnd ?? sessi  const fetchDebugData = async () => {
     setIsLoadingDebug(true)
     try {
       const response = await fetch('/api/debug/mechanic-requests', {
@@ -894,7 +634,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }
 
-  const handleLogout = async () => {
+on.startedAt ?? session.scheduledStart,
+      plan: session.plan,
+      sessionType: session.sessionType,
+      durationMinutes: session.durationMinutes  const handleLogout = async () => {
     try {
       await fetch('/api/mechanics/logout', {
         method: 'POST',
@@ -908,207 +651,25 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }
 
-  const handleForceCloseAll = async () => {
-    const activeCount = activeSessions.length
+,
+      earningsCents: calculateEarningsCents(session.plan),
+    }))
 
-    if (activeCount === 0) {
-      alert('✓ You have no active sessions to close.')
-      return
-    }
+    const totalCents = completedSessions.reduce((sum, session) => {
+      const value = calculateEarningsCents(session.plan)
+      return value ? sum + value : sum
+    }, 0)
 
-    const confirmed = confirm(
-      `⚠️ FORCE CLOSE ALL SESSIONS\n\n` +
-      `This will immediately terminate ${activeCount} active session${activeCount > 1 ? 's' : ''}:\n` +
-      `• Sessions will be cancelled\n` +
-      `• Accepted requests will be cancelled\n` +
-      `• You'll be able to accept new requests\n\n` +
-      `Use this if you're stuck or need to start fresh.\n\n` +
-      `Continue?`
-    )
+    return { rows, totalCents }
+  }, [completedSessions])
 
-    if (!confirmed) return
-
-    setIsForceClosing(true)
-    try {
-      console.log('[FORCE CLOSE ALL] Calling API for mechanic:', mechanicId)
-
-      const response = await fetch('/api/mechanic/force-end-all', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mechanicId })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to force close sessions')
-      }
-
-      console.log('[FORCE CLOSE ALL] Success:', data)
-
-      // Refresh all data
-      await Promise.all([
-        fetchActiveSessions(),
-        fetchNewRequests({ silent: true }),
-        loadSessions({ silent: true })
-      ])
-
-      alert(
-        `✓ Success!\n\n` +
-        `${data.results.sessionsCancelled} session(s) cancelled\n` +
-        `${data.results.requestsCancelled} request(s) cancelled\n\n` +
-        `You can now accept new requests.`
-      )
-    } catch (error: any) {
-      console.error('[FORCE CLOSE ALL] Error:', error)
-      alert(`❌ Failed to close sessions: ${error.message}\n\nPlease refresh the page or contact support.`)
-    } finally {
-      setIsForceClosing(false)
-    }
-  }
-
-  const handleClearStuckRequests = async () => {
-    try {
-      console.log('[CLEAR STUCK REQUESTS] Calling API for mechanic:', mechanicId)
-
-      const response = await fetch('/api/mechanic/clear-stuck-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mechanicId })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to clear stuck requests')
-      }
-
-      console.log('[CLEAR STUCK REQUESTS] Success:', data)
-
-      // Hide error banner
-      setShowStuckRequestError(false)
-      setRequestsError(null)
-
-      // Refresh all data
-      await Promise.all([
-        fetchActiveSessions(),
-        fetchNewRequests({ silent: true }),
-        loadSessions({ silent: true })
-      ])
-
-      alert(`✓ Cleared ${data.cleared} stuck request(s)!\n\nYou can now accept new requests.`)
-    } catch (error: any) {
-      console.error('[CLEAR STUCK REQUESTS] Error:', error)
-      alert(`❌ Failed to clear stuck requests: ${error.message}`)
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Welcome back, {mechanic.name}</h1>
-              <div className="mt-1 flex items-center gap-3">
-                <p className="text-sm text-slate-400">Mechanic Dashboard</p>
-                {/* Connection Status */}
-                <div className="flex items-center gap-1.5">
-                  {realtimeConnected ? (
-                    <>
-                      <Wifi className="h-3.5 w-3.5 text-green-400" />
-                      <span className="text-xs text-green-400">Live</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-3.5 w-3.5 text-amber-400" />
-                      <span className="text-xs text-amber-400">Offline</span>
-                    </>
-                  )}
-                </div>
-                {/* Last Refresh */}
-                <span className="text-xs text-slate-500">
-                  Updated {formatTimeAgo(lastRefreshTime)}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Force Close All Sessions Button - ALWAYS VISIBLE */}
-              <button
-                onClick={handleForceCloseAll}
-                disabled={isForceClosing}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
-                  activeSessions.length > 0
-                    ? 'border-red-500/50 bg-red-500/20 text-red-200 hover:bg-red-500/30'
-                    : 'border-slate-600/50 bg-slate-800/30 text-slate-400 hover:bg-slate-700/30'
-                }`}
-                title={activeSessions.length > 0 ? `Force close ${activeSessions.length} active session(s)` : 'No active sessions to close'}
-              >
-                <XCircle className={`h-4 w-4 ${isForceClosing ? 'animate-spin' : ''}`} />
-                {isForceClosing ? 'Closing...' : 'Force Close All'}
-                {activeSessions.length > 0 && (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
-                    {activeSessions.length}
-                  </span>
-                )}
-              </button>
-              {/* Refresh Button */}
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white disabled:opacity-50"
-                title="Refresh dashboard"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
-              {/* Sign Out Button */}
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* EMERGENCY: Stuck Request Error Banner */}
-        {showStuckRequestError && (
-          <div className="mb-6 rounded-3xl border-2 border-red-500/50 bg-gradient-to-r from-red-900/50 to-orange-900/50 p-6 backdrop-blur-sm animate-pulse">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/20">
-                <AlertCircle className="h-7 w-7 text-red-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-red-100">🚨 Stuck Request Detected</h3>
-                <p className="mt-2 text-sm text-red-200/90">
-                  You have an orphaned accepted request blocking you from accepting new work.
-                  This happens when a session ends but the request wasn&apos;t properly cleaned up.
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    onClick={handleClearStuckRequests}
-                    className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Clear Stuck Requests (Fix Now)
-                  </button>
-                  <button
-                    onClick={() => setShowStuckRequestError(false)}
-                    className="text-sm text-red-200/70 underline hover:text-red-100"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Debug Panel Toggle Button */}
+  const stats = useMemo(() => {
+    return {
+      pendingRequests: incomingRequests.length,
+      upcomingSessions: upcomingSessions.length,
+      completedSession            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover        {/* Debug Panel Toggle Button */}
         <div className="mb-4 flex justify-end">
           <button
             onClick={() => {
@@ -1179,8 +740,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
                 {/* Breakdown */}
                 <div className="rounded-2xl border border-red-400/20 bg-red-900/30 p-4">
-                  <h4 className="font-bold text-red-100 mb-3">Breakdown by Status</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="rounded-lg bg-red-900/20 p-3">
                       <p className="text-xs text-red-300/60">Pending</p>
                       <p className="text-xl font-bold text-green-300">{debugData.breakdown?.byStatus?.pending ?? 0}</p>
@@ -1192,16 +752,15 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                     <div className="rounded-lg bg-red-900/20 p-3">
                       <p className="text-xs text-red-300/60">Cancelled</p>
                       <p className="text-xl font-bold text-amber-300">{debugData.breakdown?.byStatus?.cancelled ?? 0}</p>
+"text-xl font-bold text-slate-300">{debugData.breakdown?.byStatus?.completed ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-red-900/20 p-3">
                       <p className="text-xs text-red-300/60">Other</p>
                       <p className="text-xl font-bold text-purple-300">{debugData.breakdown?.byStatus?.other ?? 0}</p>
                     </div>
                   </div>
-                </div>
-
-                {/* Issues Found */}
-                {(debugData.issues?.badStateRequests?.length > 0 ||
+                </div>.issues?.badStateRequests?.length > 0 ||
+                  debugData.issues?.orphanedSessions?.length > 0 ||
                   debugData.issues?.oldPendingRequests?.length > 0) && (
                   <div className="rounded-2xl border border-amber-400/30 bg-amber-900/20 p-4">
                     <h4 className="font-bold text-amber-100 mb-3 flex items-center gap-2">
@@ -1266,6 +825,29 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           </div>
         )}
 
+:bg-slate-700/50 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
+s: completedSessions.length,
+      totalEarnings: earningsSummary.totalCents,
+    }
+  }, [incomingRequests.length, upcomingSessions.length, completedSessions.length, earningsSummary.totalCents])
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white">Welcome back, {mechanic.name}</h1>
+              <p className="mt-1 text-sm text-slate-400">Mechanic Dashboard</p>
+            </div>
+          </div>
+        </header>
+
         {/* Stripe Connect Banner */}
         {!mechanic.payoutsEnabled && (
           <div className="mb-6 rounded-3xl border border-amber-400/20 bg-gradient-to-r from-amber-900/20 to-orange-900/20 p-6 backdrop-blur-sm">
@@ -1274,22 +856,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 <AlertTriangle className="h-6 w-6 text-amber-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-amber-100">Connect Your Bank to Receive Payouts</h3>
-                <p className="mt-1 text-sm text-amber-200/80">
-                  You earn 70% per session. Complete Stripe onboarding to receive automatic payouts 3-7 days after each session.
-                </p>
-                <Link
-                  href="/mechanic/onboarding/stripe"
-                  className="mt-3 inline-flex items-center rounded-full bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-700"
-                >
-                  Connect Stripe Account
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Request Accepted Success Banner */}
+                <h3 className="font-bold text-amber-100">Conne        {/* Request Accepted Success Banner */}
         {acceptedSessionId && acceptedCustomerName && (
           <div className="mb-6 rounded-3xl border border-green-400/30 bg-gradient-to-r from-green-900/30 to-emerald-900/30 p-6 backdrop-blur-sm">
             <div className="flex items-start gap-4">
@@ -1297,14 +864,16 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 <CheckCircle2 className="h-6 w-6 text-green-400" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-green-100">Request Accepted Successfully!</h3>
-                <p className="mt-1 text-sm text-green-200/80">
-                  You&apos;ve accepted the session request from <span className="font-semibold">{acceptedCustomerName}</span>. The session is now in your active sessions below.
+                <h3 className="font-bold text-green-100">Request Accepted Success                  You&apos;ve accepted the session request from <span className="font-semibold">{acceptedCustomerName}</span>. The session is now in your active sessions below.
+eptedCustomerName}</span>. The session is now in your active sessions below.
                 </p>
                 <div className="mt-4 flex gap-3">
                   <Link
-                    href={`/chat/${acceptedSessionId}`}
-                    className="inline-flex items-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
+                    href={`/chat/${acceptedSions Error: <span className="font-mono font-bold">{sessionsError || 'None'}</span></div>
+          </div>
+        </div>
+
+m font-semibold text-white transition hover:bg-green-700"
                   >
                     Join Session Now
                   </Link>
@@ -1313,24 +882,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                     onClick={() => {
                       setAcceptedSessionId(null)
                       setAcceptedCustomerName(null)
-                    }}
-                    className="inline-flex items-center rounded-full border border-green-400/30 bg-green-500/10 px-5 py-2.5 text-sm font-semibold text-green-200 transition hover:bg-green-500/20"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Pending Requests</p>
-                <p className="mt-1 text-xs text-slate-500">Available for all mechanics</p>
+                 <p className="text-sm text-slate-400">New Requests</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.newRequests}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
@@ -1342,8 +894,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">My Active Work</p>
-                <p className="mt-1 text-xs text-slate-500">Waiting + In Progress</p>
+                <p className="text-sm text-slate-400">Active Sessions</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.activeSessions}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
@@ -1360,6 +911,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
                 <CalendarClock className="h-6 w-6 text-blue-400" />
+h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
+                <Radio className="h-6 w-6 text-orange-400" />
               </div>
             </div>
           </div>
@@ -1367,186 +920,104 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Total Earnings</p>
-                <p className="mt-2 text-3xl font-bold text-green-400">{formatCurrencyFromCents(stats.totalEarnings)}</p>
+                <p className="text-sm text-slate-400">Upcoming Sessions</p>
+                <p className="mt-2 text-3xl font-bold text-white">{stats.upcomingSessions}</p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                <DollarSign className="h-6 w-6 text-green-400" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
+                <CalendarClock className="h-6 w-6 text-blue-400" />
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* Active Sessions - Accepted but not started (TOP PRIORITY - MUST BE HIGHLY VISIBLE) */}
+                   {/* Active Sessions - Accepted but not started (TOP PRIORITY) */}
             {activeSessions.length > 0 && (
-              <section className="space-y-4">
-                {/* ⚡ BIG UNMISSABLE ALERT BANNER ⚡ */}
-                <div className="rounded-2xl border-4 border-green-500 bg-gradient-to-r from-green-600/30 via-emerald-600/30 to-teal-600/30 p-6 shadow-2xl shadow-green-500/30">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg animate-pulse">
-                        <Radio className="h-8 w-8 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-white">
-                          ⚡ MY ACTIVE WORK: {activeSessions.length}
-                        </h3>
-                        <p className="mt-1 text-base font-semibold text-green-100">
-                          Sessions assigned to you (persists across logout/login)
-                        </p>
-                      </div>
+              <section className="rounded-3xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-6 shadow-2xl backdrop-blur">
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                      <CheckCircle2 className="h-6 w-6 text-white" />
+                      <span className="absolute -right-1 -top-1 flex h-4 w-4">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500"></span>
+                      </span>
                     </div>
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500 shadow-xl ring-4 ring-green-400/50">
-                      <span className="text-4xl font-black text-white">{activeSessions.length}</span>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Active Sessions</h2>
+                      <p className="text-sm text-green-300">
+                        Accepted requests ready to start
+                      </p>
                     </div>
                   </div>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                                {activeSessions.slice(0, 1).map((item) => (
+                 {activeSessions.length} Active
+                  </span>
                 </div>
 
-                {/* Active Sessions List */}
-                <div className="rounded-3xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-6 shadow-2xl backdrop-blur">
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
-                        <CheckCircle2 className="h-6 w-6 text-white" />
-                        <span className="absolute -right-1 -top-1 flex h-4 w-4">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                          <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500"></span>
-                        </span>
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-white">Your Committed Work</h2>
-                        <p className="text-sm text-green-300">
-                          Must complete or cancel to accept new requests
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
-                        <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                        {activeSessions.length} Assigned
-                      </span>
-                      <span className="text-xs text-green-300/70">
-                        {activeSessions.filter(s => s.isLive).length} Live • {activeSessions.filter(s => !s.isLive).length} Waiting
-                      </span>
-                    </div>
-                  </div>
-
-                <div className="space-y-4">
-                  {/* TOP ACTIONABLE ITEM - Always show the most actionable job */}
-                  {topActionableItem && (
+                             {activeSessions.slice(0, visibleActiveSessions).map((item) => (
                     <article
-                      key={topActionableItem.id}
+                      key={item.id}
                       className="group relative overflow-hidden rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-5 shadow-lg backdrop-blur transition hover:border-green-400/50"
                     >
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="text-lg font-semibold text-white">{topActionableItem.customerName}</p>
-                              {topActionableItem.isLive ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">
-                                  <span className="inline-flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-                                  🔴 Live Now
+                              <p className="text-lg font-semi                              {item.isLive ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                  Live Now
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
                                   <CheckCircle2 className="h-3 w-3" />
-                                  ⏳ Waiting to Start
+                                  Accepted
                                 </span>
                               )}
+epted
+                              </span>
                             </div>
-                            <p className="mt-1 text-sm text-green-200">{describePlan(topActionableItem.planCode, topActionableItem.sessionType)}</p>
-                            <p className="text-xs text-green-300/70">Accepted {formatRequestAge(topActionableItem.acceptedAt ?? topActionableItem.createdAt)}</p>
+                            <p className="mt-1 text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
+                            <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.acceptedAt ?? item.createdAt)}</p>
                             <div className="mt-2 flex items-center gap-2">
-                              <span className="text-xs font-semibold uppercase text-green-400">{topActionableItem.sessionType}</span>
-                              {topActionableItem.intake && (
+                              <span className="text-xs font-semibold uppercase text-green-400">{item.sessionType}</span>
+                              {item.intake && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300">
                                   <FileText className="h-3 w-3" />
                                   Intake
                                 </span>
                               )}
-                              {topActionableItem.files && topActionableItem.files.length > 0 && (
+                              {item.files && item.files.length > 0 && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">
                                   <FileText className="h-3 w-3" />
-                                  {topActionableItem.files.length} file{topActionableItem.files.length > 1 ? 's' : ''}
+                                  {item.files.length} file{item.files.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {/* D2: CTA MATRIX - State-based button logic */}
-                          {/* waiting/accepted → Start Session */}
-                          {(topActionableItem.status === 'waiting' || topActionableItem.isWaiting) && (
+                                    {item.isLive ? (
                             <>
-                              <div className="relative group">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const sessionPath = topActionableItem.sessionType === 'chat' ? 'chat' : topActionableItem.sessionType === 'video' ? 'video' : 'diagnostic'
-                                    if (topActionableItem.sessionId) {
-                                      window.location.href = `/${sessionPath}/${topActionableItem.sessionId}`
-                                    }
-                                  }}
-                                  disabled={!topActionableItem.sessionId}
-                                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-green-600 disabled:hover:to-green-700"
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Start Session
-                                </button>
-                                {!topActionableItem.sessionId && (
-                                  <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                                    Awaiting session ID—try Accept again or Refresh
-                                  </div>
-                                )}
-                              </div>
+                              {/* Live session buttons */}
                               <button
                                 type="button"
-                                onClick={() => cancelRequest(topActionableItem.id)}
-                                disabled={cancellingRequestId === topActionableItem.id}
-                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                                onClick={() => {
+                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                                  window.location.href = `/${sessionPath}/${item.sessionId}`
+                                }}
+                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50"
                               >
-                                {cancellingRequestId === topActionableItem.id ? 'Undoing...' : 'Cancel / Unlock'}
+                                <CheckCircle2 className="h-4 w-4" />
+                                Join Session
                               </button>
-                            </>
-                          )}
-
-                          {/* live/reconnecting → Join + End */}
-                          {(topActionableItem.status === 'live' || topActionableItem.isLive) && (
-                            <>
-                              <div className="relative group">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const sessionPath = topActionableItem.sessionType === 'chat' ? 'chat' : topActionableItem.sessionType === 'video' ? 'video' : 'diagnostic'
-                                    if (topActionableItem.sessionId) {
-                                      window.location.href = `/${sessionPath}/${topActionableItem.sessionId}`
-                                    }
-                                  }}
-                                  disabled={!topActionableItem.sessionId}
-                                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-green-600 disabled:hover:to-green-700"
-                                >
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  Join Session
-                                </button>
-                                {!topActionableItem.sessionId && (
-                                  <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                                    Awaiting session ID—try Accept again or Refresh
-                                  </div>
-                                )}
-                              </div>
                               <button
                                 type="button"
                                 onClick={async () => {
                                   if (!confirm('Are you sure you want to end this session?')) return
                                   try {
-                                    const response = await fetch(`/api/sessions/${topActionableItem.sessionId}/end`, {
+                                    const response = await fetch(`/api/sessions/${item.sessionId}/end`, {
                                       method: 'POST',
                                     })
                                     if (response.ok) {
+                                      // Reload sessions to update UI
                                       void loadSessions({ silent: true })
                                     } else {
                                       alert('Failed to end session. Please try again.')
@@ -1561,163 +1032,93 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                                 End Session
                               </button>
                             </>
+                          ) : (
+                            <>
+                              {/* Accepted request buttons */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
+                                  if (item.sessionId) {
+                                    window.location.href = `/${sessionPath}/${item.sessionId}`
+                                  }
+                                }}
+                                disabled={!item.sessionId}
+                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Start Session
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => cancelRequest(item.id)}
+                                disabled={cancellingRequestId === item.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+                              >
+                                {cancellingRequestId === item.id ? 'Undoing...' : 'Cancel / Unlock'}
+                              </button>
+                            </>
                           )}
-
-                          {/* ended (completed/cancelled) → View Summary */}
-                          {(topActionableItem.status === 'completed' || topActionableItem.status === 'cancelled') && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRequest(topActionableItem)}
-                              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-700 hover:to-blue-800"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Summary
-                            </button>
-                          )}
-
-                          {/* Always show View Details as secondary action */}
-                          {topActionableItem.status !== 'completed' && topActionableItem.status !== 'cancelled' && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedRequest(topActionableItem)}
-                              className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                            >
-                              <Eye className="h-4 w-4" />
-                              View Details
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  )}
-
-                  {/* COMPACT QUEUE - Show next 3 items */}
-                  {queueItems.length > 0 && (
-                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
-                      <p className="mb-3 text-sm font-semibold text-green-200">
-                        📋 Queued Sessions ({queueItems.length} of {activeSessions.length - 1} more)
-                      </p>
-                      <div className="space-y-2">
-                        {queueItems.map((item, index) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between rounded-lg border border-green-500/10 bg-green-500/5 p-3 hover:bg-green-500/10 transition"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRequest(item)}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                           >
-                            <div className="flex items-center gap-3">
-                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/20 text-xs font-bold text-green-200">
-                                {index + 2}
-                              </span>
-                              <div>
-                                <p className="text-sm font-medium text-white">{item.customerName || 'Customer'}</p>
-                                <p className="text-xs text-green-300/70">{describePlan(item.planCode, item.sessionType)}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {item.sessionId ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  Ready
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                                  Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {activeSessions.length > 4 && (
-                        <p className="mt-2 text-center text-xs text-green-300/60">
-                          +{activeSessions.length - 4} more in queue
-                        </p>
-                      )}
-                    </div>
-                  )}
+                                         {/* Show notification if there are more sessions */}
+                {activeSessions.length > 1 && (
+                  <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-3 text-center">
+                    <p className="text-sm text-green-200">
+                      +{activeSessions.length - 1} more session{activeSessions.length - 1 > 1 ? 's' : ''} waiting. Complete this one first.
+                    </p>
+utton"
+                      onClick={() => setVisibleActiveSessions(ITEMS_PER_PAGE)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2 text-sm font-semibold text-slate-400 transition hover:bg-slate-700"
+                    >
+                      Show Less
+                    </button>
+                  </div>
+                )}
+                 </div>
+                    </article>
+                  ))}
                 </div>
 
                 <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                   <p className="text-xs text-green-200">
-                    <strong>💡 How It Works:</strong> Sessions assigned to you remain here even after logout/login.
-                    Click &quot;Start Session&quot; to begin work, or &quot;Cancel / Unlock&quot; to release back to all mechanics.
-                    You must complete or cancel before accepting new requests.
+                    <strong>Tip:</strong> Click &quot;Start Session&quot; to begin helping the customer. Click &quot;Cancel / Unlock&quot; to make this request available to other mechanics.
                   </p>
-                </div>
                 </div>
               </section>
             )}
 
-            {/* Pending Requests - Available to ALL mechanics */}
+            {/* New Requests */}
             <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-white">Pending Requests</h2>
-                  <p className="mt-1 text-sm text-slate-400">Available for ANY mechanic to claim</p>
-                </div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400">
-                  <Radio className="h-3.5 w-3.5" />
-                  {newRequests.length} unclaimed
-                </span>
-              </div>
-
-              {/* BUSINESS RULE: Block accepting when mechanic has active work (ONE AT A TIME) */}
+                          {/* BUSINESS RULE: Block accepting when mechanic has active/accepted session */}
               {activeSessions.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-400 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-semibold text-amber-200">🔒 You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''} assigned to you</p>
-                        <p className="mt-1 text-sm text-amber-300/80">
-                          Complete or cancel your current work before accepting new requests.
-                          Your active sessions persist even if you logout/login - they&apos;re your responsibility.
-                        </p>
-                        <p className="mt-2 text-xs text-amber-200/70">
-                          ↑ Scroll up to &quot;MY ACTIVE WORK&quot; section or use &quot;Force End All&quot; if stuck
-                        </p>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-400 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-200">You have an active session</p>
+                      <p className="mt-1 text-sm text-amber-300/80">
+                        Please complete or cancel your current session before accepting new requests.
+                        This ensures quality service for your current customer.
+                      </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!confirm(`⚠️ WARNING: This will FORCE-END ${activeSessions.length} active session${activeSessions.length > 1 ? 's' : ''}.\n\nOnly use this if your session is stuck and won't end normally.\n\nCustomers will be notified. Continue?`)) return
-
-                        try {
-                          const endPromises = activeSessions.map(async (session) => {
-                            if (session.sessionId) {
-                              const response = await fetch(`/api/sessions/${session.sessionId}/end`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ force: true })
-                              })
-                              if (!response.ok) {
-                                console.error(`Failed to end session ${session.sessionId}`)
-                              }
-                              return response
-                            }
-                            return null
-                          })
-
-                          await Promise.all(endPromises)
-
-                          // Reload dashboard
-                          void loadSessions({ silent: true })
-                          void fetchActiveSessions()
-                          void fetchNewRequests({ silent: true })
-
-                          alert('✓ All sessions have been force-ended. You can now accept new requests.')
-                        } catch (error) {
-                          console.error('Error force-ending sessions:', error)
-                          alert('❌ Failed to end some sessions. Please refresh the page or contact support.')
-                        }
-                      }}
-                      className="flex-shrink-0 rounded-lg border border-red-400/50 bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/30 whitespace-nowrap"
-                    >
-                      Force End All
-                    </button>
                   </div>
                 </div>
               )}
+
+    <div>
+                  <h2 className="text-xl font-bold text-white">New Requests</h2>
+                  <p className="mt-1 text-sm text-slate-400">Customers waiting for help</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400">
+                  <Radio className="h-3.5 w-3.5" />
+                  {newRequests.length} waiting
+                </span>
+              </div>
 
               {requestsError && (
                 <p className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
@@ -1727,11 +1128,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               )}
 
               {isLoadingRequests && newRequests.length === 0 ? (
-                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading requests...
-                </div>
-              ) : (
-                <>
+                <div className="mt-6 flex items-center gap-2 text-sm text-slat                <>
                   <div className="mt-6 space-y-3">
                     {newRequests.slice(0, visibleNewRequests).map((item) => (
                       <article
@@ -1743,9 +1140,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                             <p className="font-semibold text-white">{item.customerName}</p>
                             <p className="text-sm text-slate-400">{describePlan(item.planCode, item.sessionType)}</p>
                             <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
-                            {item.intake?.concern && (
-                              <p className="mt-2 text-sm text-slate-300 line-clamp-2">{(item.intake.concern.length > 140) ? `${item.intake.concern.slice(0,140)}…` : item.intake.concern}</p>
-                            )}
                             <div className="mt-2 flex items-center gap-2">
                               <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
                               {item.intake && (
@@ -1767,16 +1161,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                           <button
                             type="button"
                             onClick={() => setSelectedRequest(item)}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Details
-                          </button>
+                            className="inline-flex items-center gap-2 roun                            disabled={acceptingRequestId === item.id || activeSessions.length > 0}
+                            className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+     </button>
                           <button
                             type="button"
                             onClick={() => acceptRequest(item.id)}
-                            disabled={acceptingRequestId === item.id || activeSessions.length > 0}
-                            className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={acceptingRequestId === item.id}
+                            className="inline-flex items-center justify-center rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:bg-orange-400"
                           >
                             {acceptingRequestId === item.id ? 'Accepting...' : 'Accept Request'}
                           </button>
@@ -1814,6 +1206,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                     </div>
                   )}
                 </>
+0 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No pending requests at the moment.
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
@@ -1832,17 +1229,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
               {sessionsError && (
                 <p className="mt-4 flex items-center gap-2 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
-                  <AlertCircle className="h-4 w-4" />
-                  {sessionsError}
-                </p>
-              )}
-
-              {isLoadingSessions && upcomingSessions.length === 0 ? (
-                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading sessions...
-                </div>
-              ) : (
-                <>
+                  <AlertC                <>
                   <div className="mt-6 space-y-3">
                     {upcomingSessions.slice(0, visibleUpcomingSessions).map((session) => (
                       <article
@@ -1897,6 +1284,17 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                     </div>
                   )}
                 </>
+      </Link>
+                    </article>
+                  ))}
+                  {upcomingSessions.length === 0 && !isLoadingSessions && (
+          tory.length} in history | Loading: {isLoadingSessions ? 'Yes' : 'No'} | Error: {sessionsError || 'None'}
+                  </p>
+ate-500">
+                      No upcoming sessions scheduled.
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
@@ -1907,18 +1305,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   <h2 className="text-xl font-bold text-white">Session History</h2>
                   <p className="mt-1 text-sm text-slate-400">Completed and cancelled sessions</p>
                 </div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-400">
-                  <History className="h-3.5 w-3.5" />
-                  {sessionHistory.length}
-                </span>
-              </div>
-
-              {isLoadingSessions && sessionHistory.length === 0 ? (
-                <div className="mt-6 flex items-center gap-2 text-sm text-slate-400">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading history...
-                </div>
-              ) : (
-                <>
+                <span className="inline-flex items-center gap-2 rounded-full                 <>
                   <div className="mt-6 space-y-3">
                     {sessionHistory.slice(0, visibleHistoryItems).map((session) => (
                       <article
@@ -1940,30 +1327,20 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                             <p className="text-sm text-slate-400">
                               {describePlan(session.plan, session.sessionType)}
                               {session.durationMinutes && ` • ${session.durationMinutes} min`}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {formatDateTime(session.endedAt ?? session.scheduledEnd)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => alert('Session history detail view temporarily disabled')}
+                                              <button
+                                                     onClick={() => alert('Session history detail view temporarily disabled')}
+Session(session)}
                             className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                           >
                             <Eye className="h-4 w-4" />
                             View Details
                           </button>
-                          {session.status === 'completed' && session.plan && (
-                            <span className="text-xs text-green-400 font-semibold">
-                              Earned: {formatCurrencyFromCents(calculateEarningsCents(session.plan))}
-                            </span>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+           className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                          >
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Link>
+                          {session.status === 'c                  </div>
 
                   {/* Empty State - Moved outside to prevent hydration errors */}
                   {sessionHistory.length === 0 && !isLoadingSessions && (
@@ -1971,6 +1348,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                       No session history yet.
                     </div>
                   )}
+e>
+                    ))}
+                    {sessionHistory.length === 0 && !isLoadingSessions && (
+                      <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                        No session history yet.
+                      </div>
+                    )}
+                  </div>
 
                   {/* Pagination Controls */}
                   {sessionHistory.length > visibleHistoryItems && (
@@ -1996,6 +1381,18 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                     </div>
                   )}
                 </>
+urrencyFromCents(calculateEarningsCents(session.plan))}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {sessionHistory.length === 0 && !isLoadingSessions && (
+                    <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-900/30 p-8 text-center text-sm text-slate-500">
+                      No session history yet.
+                    </div>
+                  )}
+                </div>
               )}
             </section>
           </div>
@@ -2049,6 +1446,68 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                 {!mechanic.payoutsEnabled && (
                   <Link
                     href="/mechanic/onboarding/stripe"
+                      {/* Session History Detail Modal - Temporarily disabled */}
+      {/* {selectedHistorySession && (
+        <SessionHistoryModal
+          sessionId={selectedHistorySession.id}
+          sessionType={selectedHistorySession.sessionType}
+          customerName={selectedHistorySession.customerName}
+          plan={selectedHistorySession.plan}
+          status={selectedHistorySession.status}
+          startedAt={selectedHistorySession.startedAt}
+          endedAt={selectedHistorySession.endedAt}
+          durationMinutes={selectedHistorySession.durationMinutes}
+          onClose={() => setSelectedHistorySession(null)}
+        />
+      )} */}
+ull)}
+        />
+      )}
+="block rounded-xl border border-amber-500/20 bg-amber-900/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-900/20"
+                  >
+                    Setup Stripe Payouts
+                  </Link>
+                )}
+                          >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white">{item.customer_name}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(item.created_at).toLocaleDateString()} • {item.status}
+                          </p>
+                        </div>
+                        <span className={`text-xs font-semibold uppercase ${
+                          item.status === 'accepted' ? 'text-green-400' : 'text-slate-500'
+                        }`}>
+                          {item.session_type}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-700/30 bg-slate-900/20 p-6 text-center text-sm text-slate-500">
+                  No history yet
+                </div>
+            <EnhancedRequestDetailModal
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        onAccept={acceptRequest}
+        onStartSession={startSession}
+        accepting={acceptingRequestId === selectedRequest?.id}
+        accepted={selectedRequest?.sessionId != null}
+ => setSelectedRequest(null)}
+        onAccept={acceptRequest}
+        accepting={acceptingRequestId === selectedRequest?.id}
+      />
+p-blur-sm">
+              <h2 className="text-lg font-bold text-orange-100">Quick Links</h2>
+              <p className="mt-1 text-sm text-orange-200/60">Common actions and tools</p>
+
+              <div className="mt-4 space-y-2">
+                {!mechanic.payoutsEnabled && (
+                  <Link
+                    href="/mechanic/onboarding/stripe"
                     className="block rounded-xl border border-amber-500/20 bg-amber-900/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-900/20"
                   >
                     Setup Stripe Payouts
@@ -2065,31 +1524,6 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           </aside>
         </div>
       </div>
-
-      {/* Request Detail Modal */}
-      <EnhancedRequestDetailModal
-        request={selectedRequest}
-        onClose={() => setSelectedRequest(null)}
-        onAccept={acceptRequest}
-        onStartSession={startSession}
-        accepting={acceptingRequestId === selectedRequest?.id}
-        accepted={selectedRequest?.sessionId != null}
-      />
-
-      {/* Session History Detail Modal - Temporarily disabled */}
-      {/* {selectedHistorySession && (
-        <SessionHistoryModal
-          sessionId={selectedHistorySession.id}
-          sessionType={selectedHistorySession.sessionType}
-          customerName={selectedHistorySession.customerName}
-          plan={selectedHistorySession.plan}
-          status={selectedHistorySession.status}
-          startedAt={selectedHistorySession.startedAt}
-          endedAt={selectedHistorySession.endedAt}
-          durationMinutes={selectedHistorySession.durationMinutes}
-          onClose={() => setSelectedHistorySession(null)}
-        />
-      )} */}
     </div>
   )
 }
@@ -2105,7 +1539,37 @@ function normalizeSessionStatus(value: string | null): SessionStatus {
 
 function describePlan(planCode: string | null | undefined, sessionType: string) {
   switch (planCode) {
-    case 'chat10':
+    case 'chfunction extractSessionRequestRow(payload: unknown): SessionRequestRow | null {
+  if (!payload || typeof payload !== 'object') {
+    return null
+    const payloadRecord = payload as Record<string, unknown>
+  const source =
+    payloadRecord.request && typeof payloadRecord.request === 'object'
+      ? (payloadRecord.request as Record<string, unknown>)
+      : payloadRecord
+payload
+
+  if (!source || typeof source !== 'object') {
+    return null
+  }
+
+  const candidate = source as Record<string, unknown>
+
+  if (
+    typeof candidate.id === 'string' &&
+    typeof candidate.status === 'string' &&
+    typeof candidate.session_type === 'string' &&
+    typeof candidate.plan_code === 'string' &&
+    typeof candidate.created_at === 'string' &&
+    typeof candidate.customer_id === 'string'
+  ) {
+    return candidate as SessionRequestRow
+  }
+
+  return null
+}
+
+at10':
       return 'Quick Chat (30 min)'
     case 'video15':
       return 'Standard Video (45 min)'
@@ -2133,41 +1597,9 @@ function formatRequestAge(iso: string) {
   if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`
 
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`
-
-  const days = Math.round(hours / 24)
+  if (hours < 24) return `${hours} hr${hours === 1 ?   const base = PLAN_PRICING[planKey]
+hours / 24)
   return `${days} day${days === 1 ? '' : 's'} ago`
-}
-
-function extractSessionRequestRow(payload: unknown): SessionRequestRow | null {
-  if (!payload || typeof payload !== 'object') {
-    return null
-  }
-
-  const payloadRecord = payload as Record<string, unknown>
-  const source =
-    payloadRecord.request && typeof payloadRecord.request === 'object'
-      ? (payloadRecord.request as Record<string, unknown>)
-      : payloadRecord
-
-  if (!source || typeof source !== 'object') {
-    return null
-  }
-
-  const candidate = source as Record<string, unknown>
-
-  if (
-    typeof candidate.id === 'string' &&
-    typeof candidate.status === 'string' &&
-    typeof candidate.session_type === 'string' &&
-    typeof candidate.plan_code === 'string' &&
-    typeof candidate.created_at === 'string' &&
-    typeof candidate.customer_id === 'string'
-  ) {
-    return candidate as SessionRequestRow
-  }
-
-  return null
 }
 
 function diffInMinutes(startIso: string | null, endIso: string | null) {
@@ -2190,7 +1622,7 @@ function toTimeValue(iso: string | null) {
 function calculateEarningsCents(plan: string | null) {
   const planKey = asPlanKey(plan)
   if (!planKey) return null
-  const base = PLAN_PRICING[planKey]
+  const base = PRICING[planKey]?.priceCents
   if (typeof base !== 'number') return null
   return Math.round(base * MECHANIC_SHARE)
 }
@@ -2217,21 +1649,41 @@ function formatDate(iso: string | null | undefined) {
   const value = new Date(iso)
   if (Number.isNaN(value.getTime())) return '—'
   return value.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+anKey]?.priceCents
+  if (typeof base !== 'number') return null
+  return Math.round(base * MECHANIC_SHARE)
 }
 
-function formatTimeAgo(date: Date) {
-  const now = new Date()
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+function asPlanKey(value: string | null | undefined): PlanKey | null {
+  if (!value) return null
+  return PLAN_KEYS.includes(value as PlanKey) ? (value as PlanKey) : null
+}
 
-  if (seconds < 10) return 'just now'
-  if (seconds < 60) return `${seconds}s ago`
+function formatCurrencyFromCents(cents: number | null) {
+  if (cents == null) return '—'
+  return currencyFormatter.format(cents / 100)
+}
 
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
+function formatDateTime(iso: string | null) {
+  if (!iso) return 'To be scheduled'
+  const value = new Date(iso)
+  if (Number.isNaN(value.getTime())) return 'To be scheduled'
+  return value.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
 
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—'
+  const value = new Date(iso)
+  if (Number.isNaN(value.getTime())) return '—'
+  return value.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+function formatAvailabilityTime(time: string) {
+  if (!time) return '—'
+  const [hourString, minuteString] = time.split(':')
+  const hour = Number.parseInt(hourString ?? '0', 10)
+  const minute = Number.parseInt(minuteString ?? '0', 10)
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return time
+  const date = new Date(Date.UTC(1970, 0, 1, hour, minute))
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }

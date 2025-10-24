@@ -184,7 +184,6 @@ export async function POST(req: NextRequest) {
             .from('session_requests')
             .insert({
               customer_id: user.id,
-              intake_id: intakeId,
               session_type: 'chat',
               plan_code: plan,
               status: 'pending',
