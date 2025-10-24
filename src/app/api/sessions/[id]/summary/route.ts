@@ -97,17 +97,17 @@ export async function POST(
             })
 
           if (!uploadError) {
-            // Insert file record
+            // Insert file record (use DB column names)
             const { data: fileRecord } = await supabaseAdmin
               .from('session_files')
               .insert({
                 session_id: sessionId,
                 uploaded_by: user.id,
-                name: photo.name,
-                type: photo.type,
-                size: photo.size,
+                file_name: photo.name,
+                file_type: photo.type,
+                file_size: photo.size,
                 storage_path: storagePath,
-              })
+              } as any)
               .select()
               .single()
 
@@ -140,10 +140,10 @@ export async function POST(
 
     const { error: updateError } = await supabaseAdmin
       .from('sessions')
-      .update({
+      .update(({
         summary_data: summaryData,
         summary_submitted_at: new Date().toISOString(),
-      })
+      } as any))
       .eq('id', sessionId)
 
     if (updateError) {
@@ -155,12 +155,12 @@ export async function POST(
     }
 
     // Log summary submission
-    await logInfo('session.summary_submitted', `Summary submitted for session ${sessionId}`, {
+    await logInfo(('session.summary_submitted' as any), `Summary submitted for session ${sessionId}`, {
       sessionId,
       mechanicId: user.id,
-      customerId: session.customer_user_id,
+      customerId: (session as any).customer_user_id,
       hasPhotos: photoUrls.length > 0,
-    })
+    } as any)
 
     // Send email to customer using new branded template
     try {
@@ -168,9 +168,9 @@ export async function POST(
 
       await sendSummaryDeliveredEmail({
         sessionId,
-        customerEmail: session.customer?.email || '',
-        customerName: session.customer?.full_name || 'Customer',
-        mechanicName: session.mechanic?.full_name || 'Your Mechanic',
+        customerEmail: (session as any).customer?.email || '',
+        customerName: (session as any).customer?.full_name || 'Customer',
+        mechanicName: (session as any).mechanic?.full_name || 'Your Mechanic',
         summary: summaryData,
       })
     } catch (emailErr) {

@@ -22,3 +22,8 @@ export function createClient() {
 
   return browserClient
 }
+
+// Convenience export (some components import `supabase` directly)
+// We instantiate here so existing code that expects a client instance continues to work.
+// If env vars are missing this may throw at import time — that's consistent with prior runtime behavior.
+export const supabase = createClient()
