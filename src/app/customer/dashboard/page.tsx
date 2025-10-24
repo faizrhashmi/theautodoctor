@@ -901,7 +901,11 @@ function isJoinable(session: CustomerDashboardSession, referenceDate = new Date(
 }
 
 function UpcomingSessionCard({ session }: { session: CustomerDashboardSession }) {
-  const joinRoute = session.type === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`
+  // Route to correct session type page
+  const joinRoute =
+    session.type === 'chat' ? `/chat/${session.id}` :
+    session.type === 'diagnostic' ? `/diagnostic/${session.id}` :
+    `/video/${session.id}`
   const joinable = isJoinable(session)
   const scheduledText = session.scheduledStart
     ? `Scheduled for ${new Date(session.scheduledStart).toLocaleString()}`

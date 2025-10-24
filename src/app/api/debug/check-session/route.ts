@@ -62,17 +62,9 @@ export async function GET(req: NextRequest) {
     requestData = request
   }
 
-  // Get customer info
-  let customerData = null
-  if (session.customer_user_id) {
-    const { data: customer } = await supabaseAdmin
-      .from('customers')
-      .select('id, full_name, email')
-      .eq('user_id', session.customer_user_id)
-      .maybeSingle()
-
-    customerData = customer
-  }
+  // Customer info available via profiles table if needed
+  // Omitted from debug endpoint for simplicity
+  const customerData = null
 
   return NextResponse.json({
     found: true,

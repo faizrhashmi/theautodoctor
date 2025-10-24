@@ -166,12 +166,12 @@ export default function ChatRoom({
 
         // CRITICAL FIX: Check presence payload VALUES, not KEYS
         // Supabase uses connection UUIDs as keys, we need to check user_id in the payload
-        const mechanicIsPresent = mechanicId && Object.values(state).some(
+        const mechanicIsPresent = !!(mechanicId && Object.values(state).some(
           (entries: any) => Array.isArray(entries) && entries.some((entry: any) => entry.user_id === mechanicId)
-        )
-        const customerIsPresent = customerId && Object.values(state).some(
+        ))
+        const customerIsPresent = !!(customerId && Object.values(state).some(
           (entries: any) => Array.isArray(entries) && entries.some((entry: any) => entry.user_id === customerId)
-        )
+        ))
 
         setMechanicPresent(mechanicIsPresent)
         setCustomerPresent(customerIsPresent)
