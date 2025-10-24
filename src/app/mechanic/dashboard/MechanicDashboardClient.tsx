@@ -676,8 +676,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     setRequestsError(null)
 
     try {
-      const response = await fetch(`/api/mechanics/requests/${requestId}/accept`, {
+      // Use new atomic accept endpoint that creates session in one transaction
+      const response = await fetch('/api/mechanic/accept', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId }),
       })
 
       const payload = await response.json().catch(() => null)
@@ -693,54 +696,75 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         throw new Error(message)
       }
 
-      // Get request info
-      if (payload && typeof payload === 'object' && 'request' in payload) {
-        const request = (payload as { request?: { id?: string; sessionType?: string } }).request
-        if (request?.id) {
-          removeRequest(request.id)
-        }
+      // SUCCESS: Session was created atomically!
+      // Response: { sessionId, status, request: {...}, session: {...} }
+      const sessionId = payload?.sessionId
+      const session = payload?.session
+      const request = payload?.request
+
+      if (!sessionId) {
+        throw new Error('Server did not return sessionId')
       }
+
+      console.log(`[accept-request] ✓ Accepted request ${requestId}, created session ${sessionId}`)
+
+      // Remove from pending requests list
+      removeRequest(requestId)
 
       // Update selected request with session ID (enables "Start Session" button in modal)
-      if (payload && typeof payload === 'object' && 'session' in payload) {
-        const session = (payload as { session?: { id?: string } }).session
-        if (session?.id && selectedRequest) {
-          setSelectedRequest({
-            ...selectedRequest,
-            sessionId: session.id
-          })
-          console.log(`[accept-request] Request accepted, session ID:`, session.id)
-        }
+      if (selectedRequest && selectedRequest.id === requestId) {
+        setSelectedRequest({
+          ...selectedRequest,
+          sessionId: sessionId,
+        })
       }
 
-      // FIX #3: HYDRATE activeSessions with sessionId from accept response
-      // This makes the accepted request immediately actionable (enables "Start Session")
-      if (payload && typeof payload === 'object' && 'session' in payload) {
-        const session = (payload as { session?: { id?: string } }).session
-        const request = (payload as { request?: { id?: string } }).request
+      // CRITICAL: Inject sessionId into activeSessions immediately
+      // This makes the "Start Session" button enabled right away
+      setActiveSessions((prev) => {
+        const existing = prev.find((item) => item.id === requestId && item.isAcceptedRequest)
 
-        if (session?.id && request?.id) {
-          console.log(`[accept-request] Hydrating activeSessions with sessionId:`, session.id)
-
-          // Inject sessionId into the accepted request row in activeSessions
-          setActiveSessions((prev) => prev.map((item) =>
-            item.id === request.id && item.isAcceptedRequest
-              ? { ...item, sessionId: session.id, isWaiting: true }
+        if (existing) {
+          // Update existing item with sessionId
+          return prev.map((item) =>
+            item.id === requestId && item.isAcceptedRequest
+              ? { ...item, sessionId: sessionId, isWaiting: true, status: 'waiting' }
               : item
-          ))
+          )
+        } else {
+          // Add new item to activeSessions
+          return [
+            {
+              id: requestId,
+              sessionId: sessionId,
+              isLive: false,
+              isWaiting: true,
+              isAcceptedRequest: true,
+              status: 'waiting',
+              sessionType: request?.type || 'chat',
+              plan: request?.plan || 'chat10',
+              createdAt: new Date().toISOString(),
+              scheduledFor: null,
+            },
+            ...prev,
+          ]
         }
-      }
+      })
 
-      // Remove from pending requests and reload sessions
-      removeRequest(requestId)
+      // Reload sessions in background to sync with server state
       void loadSessions({ silent: true })
+
+      console.log(`[accept-request] ✓ Session ${sessionId} ready - Start button enabled`)
     } catch (error) {
-      console.error('Accept request failed', error)
+      console.error('[accept-request] Failed:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unable to accept this request right now.'
       setRequestsError(errorMessage)
 
-      // Detect the specific "stuck accepted request" error
-      if (errorMessage.includes('already have an accepted request')) {
+      // Detect the specific "stuck accepted request" or "active session" error
+      if (
+        errorMessage.includes('already have an accepted request') ||
+        errorMessage.includes('already have an active session')
+      ) {
         setShowStuckRequestError(true)
       }
     } finally {
@@ -809,6 +833,26 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
     return { rows, totalCents }
   }, [sessionHistory])
+
+  // ACTIONABLE QUEUE SORTING
+  // Sort activeSessions by actionability: items with sessionId first, then by newest
+  const sortedActiveSessions = useMemo(() => {
+    const byActionability = (a: any, b: any) => {
+      // Prioritize items with sessionId (actionable work)
+      const aid = a.sessionId ? 1 : 0
+      const bid = b.sessionId ? 1 : 0
+      if (aid !== bid) return bid - aid
+
+      // Within same actionability, newest first
+      return new Date(b.createdAt || b.created_at || 0).getTime() - new Date(a.createdAt || a.created_at || 0).getTime()
+    }
+
+    return [...activeSessions].sort(byActionability)
+  }, [activeSessions])
+
+  // Split into top actionable item and queue
+  const topActionableItem = sortedActiveSessions[0] || null
+  const queueItems = sortedActiveSessions.slice(1, 4) // Next 3 items
 
   const stats = useMemo(() => {
     return {
@@ -1379,17 +1423,18 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                   </div>
 
                 <div className="space-y-4">
-                  {activeSessions.slice(0, 1).map((item) => (
+                  {/* TOP ACTIONABLE ITEM - Always show the most actionable job */}
+                  {topActionableItem && (
                     <article
-                      key={item.id}
+                      key={topActionableItem.id}
                       className="group relative overflow-hidden rounded-xl border border-green-400/30 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 p-5 shadow-lg backdrop-blur transition hover:border-green-400/50"
                     >
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="text-lg font-semibold text-white">{item.customerName}</p>
-                              {item.isLive ? (
+                              <p className="text-lg font-semibold text-white">{topActionableItem.customerName}</p>
+                              {topActionableItem.isLive ? (
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">
                                   <span className="inline-flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
                                   🔴 Live Now
@@ -1401,50 +1446,95 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                                 </span>
                               )}
                             </div>
-                            <p className="mt-1 text-sm text-green-200">{describePlan(item.planCode, item.sessionType)}</p>
-                            <p className="text-xs text-green-300/70">Accepted {formatRequestAge(item.acceptedAt ?? item.createdAt)}</p>
+                            <p className="mt-1 text-sm text-green-200">{describePlan(topActionableItem.planCode, topActionableItem.sessionType)}</p>
+                            <p className="text-xs text-green-300/70">Accepted {formatRequestAge(topActionableItem.acceptedAt ?? topActionableItem.createdAt)}</p>
                             <div className="mt-2 flex items-center gap-2">
-                              <span className="text-xs font-semibold uppercase text-green-400">{item.sessionType}</span>
-                              {item.intake && (
+                              <span className="text-xs font-semibold uppercase text-green-400">{topActionableItem.sessionType}</span>
+                              {topActionableItem.intake && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300">
                                   <FileText className="h-3 w-3" />
                                   Intake
                                 </span>
                               )}
-                              {item.files && item.files.length > 0 && (
+                              {topActionableItem.files && topActionableItem.files.length > 0 && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-300">
                                   <FileText className="h-3 w-3" />
-                                  {item.files.length} file{item.files.length > 1 ? 's' : ''}
+                                  {topActionableItem.files.length} file{topActionableItem.files.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          {item.isLive ? (
+                          {/* D2: CTA MATRIX - State-based button logic */}
+                          {/* waiting/accepted → Start Session */}
+                          {(topActionableItem.status === 'waiting' || topActionableItem.isWaiting) && (
                             <>
-                              {/* Live session buttons */}
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const sessionPath = topActionableItem.sessionType === 'chat' ? 'chat' : topActionableItem.sessionType === 'video' ? 'video' : 'diagnostic'
+                                    if (topActionableItem.sessionId) {
+                                      window.location.href = `/${sessionPath}/${topActionableItem.sessionId}`
+                                    }
+                                  }}
+                                  disabled={!topActionableItem.sessionId}
+                                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-green-600 disabled:hover:to-green-700"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Start Session
+                                </button>
+                                {!topActionableItem.sessionId && (
+                                  <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                                    Awaiting session ID—try Accept again or Refresh
+                                  </div>
+                                )}
+                              </div>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
-                                  window.location.href = `/${sessionPath}/${item.sessionId}`
-                                }}
-                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50"
+                                onClick={() => cancelRequest(topActionableItem.id)}
+                                disabled={cancellingRequestId === topActionableItem.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
                               >
-                                <CheckCircle2 className="h-4 w-4" />
-                                Join Session
+                                {cancellingRequestId === topActionableItem.id ? 'Undoing...' : 'Cancel / Unlock'}
                               </button>
+                            </>
+                          )}
+
+                          {/* live/reconnecting → Join + End */}
+                          {(topActionableItem.status === 'live' || topActionableItem.isLive) && (
+                            <>
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const sessionPath = topActionableItem.sessionType === 'chat' ? 'chat' : topActionableItem.sessionType === 'video' ? 'video' : 'diagnostic'
+                                    if (topActionableItem.sessionId) {
+                                      window.location.href = `/${sessionPath}/${topActionableItem.sessionId}`
+                                    }
+                                  }}
+                                  disabled={!topActionableItem.sessionId}
+                                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-green-600 disabled:hover:to-green-700"
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  Join Session
+                                </button>
+                                {!topActionableItem.sessionId && (
+                                  <div className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                                    Awaiting session ID—try Accept again or Refresh
+                                  </div>
+                                )}
+                              </div>
                               <button
                                 type="button"
                                 onClick={async () => {
                                   if (!confirm('Are you sure you want to end this session?')) return
                                   try {
-                                    const response = await fetch(`/api/sessions/${item.sessionId}/end`, {
+                                    const response = await fetch(`/api/sessions/${topActionableItem.sessionId}/end`, {
                                       method: 'POST',
                                     })
                                     if (response.ok) {
-                                      // Reload sessions to update UI
                                       void loadSessions({ silent: true })
                                     } else {
                                       alert('Failed to end session. Please try again.')
@@ -1459,55 +1549,80 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                                 End Session
                               </button>
                             </>
-                          ) : (
-                            <>
-                              {/* Accepted request buttons */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const sessionPath = item.sessionType === 'chat' ? 'chat' : item.sessionType === 'video' ? 'video' : 'diagnostic'
-                                  if (item.sessionId) {
-                                    window.location.href = `/${sessionPath}/${item.sessionId}`
-                                  }
-                                }}
-                                disabled={!item.sessionId}
-                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50 disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                                Start Session
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => cancelRequest(item.id)}
-                                disabled={cancellingRequestId === item.id}
-                                className="inline-flex items-center justify-center gap-2 rounded-full border border-red-400/50 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
-                              >
-                                {cancellingRequestId === item.id ? 'Undoing...' : 'Cancel / Unlock'}
-                              </button>
-                            </>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRequest(item)}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View Details
-                          </button>
+
+                          {/* ended (completed/cancelled) → View Summary */}
+                          {(topActionableItem.status === 'completed' || topActionableItem.status === 'cancelled') && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRequest(topActionableItem)}
+                              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-700 hover:to-blue-800"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Summary
+                            </button>
+                          )}
+
+                          {/* Always show View Details as secondary action */}
+                          {topActionableItem.status !== 'completed' && topActionableItem.status !== 'cancelled' && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedRequest(topActionableItem)}
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View Details
+                            </button>
+                          )}
                         </div>
                       </div>
                     </article>
-                  ))}
-                </div>
+                  )}
 
-                {/* Show notification if there are more sessions */}
-                {activeSessions.length > 1 && (
-                  <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-3 text-center">
-                    <p className="text-sm text-green-200">
-                      +{activeSessions.length - 1} more session{activeSessions.length - 1 > 1 ? 's' : ''} waiting. Complete this one first.
-                    </p>
-                  </div>
-                )}
+                  {/* COMPACT QUEUE - Show next 3 items */}
+                  {queueItems.length > 0 && (
+                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+                      <p className="mb-3 text-sm font-semibold text-green-200">
+                        📋 Queued Sessions ({queueItems.length} of {activeSessions.length - 1} more)
+                      </p>
+                      <div className="space-y-2">
+                        {queueItems.map((item, index) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between rounded-lg border border-green-500/10 bg-green-500/5 p-3 hover:bg-green-500/10 transition"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/20 text-xs font-bold text-green-200">
+                                {index + 2}
+                              </span>
+                              <div>
+                                <p className="text-sm font-medium text-white">{item.customerName || 'Customer'}</p>
+                                <p className="text-xs text-green-300/70">{describePlan(item.planCode, item.sessionType)}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {item.sessionId ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Ready
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {activeSessions.length > 4 && (
+                        <p className="mt-2 text-center text-xs text-green-300/60">
+                          +{activeSessions.length - 4} more in queue
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                   <p className="text-xs text-green-200">

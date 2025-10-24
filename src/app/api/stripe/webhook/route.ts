@@ -1,8 +1,282 @@
+/**
+ * IDEMPOTENT STRIPE WEBHOOK HANDLER
+ *
+ * F1: Webhook Hardening
+ * - Store payment_intent_id and ignore duplicates
+ * - Only set session status='live' after payment_intent.succeeded
+ * - On refund/chargeback, set status='refunded' and flag for review
+ *
+ * Events handled:
+ * 1. checkout.session.completed - Create session request
+ * 2. payment_intent.succeeded - Activate session (status → 'live')
+ * 3. charge.refunded - Mark session as refunded
+ * 4. charge.dispute.created - Flag for review
+ */
+
 import type Stripe from 'stripe'
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { type PlanKey, PRICING } from '@/config/pricing'
 import { fulfillCheckout } from '@/lib/fulfillment'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+
+// ============================================================================
+// IDEMPOTENCY: Check if event already processed
+// ============================================================================
+
+async function isEventProcessed(eventId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('stripe_events')
+    .select('id')
+    .eq('id', eventId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[webhook] Error checking event:', error)
+    return false
+  }
+
+  return !!data
+}
+
+async function markEventProcessed(event: Stripe.Event): Promise<void> {
+  const { error } = await supabaseAdmin.from('stripe_events').insert({
+    id: event.id,
+    type: event.type,
+    object: event.data.object as any,
+    livemode: event.livemode,
+    processed_at: new Date().toISOString(),
+  })
+
+  if (error) {
+    console.error('[webhook] Error marking event processed:', error)
+  }
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const plan = (session.metadata?.plan ?? '') as PlanKey
+
+  console.log('[webhook:checkout] Plan:', plan)
+  console.log('[webhook:checkout] Metadata:', session.metadata)
+
+  if (!plan || !PRICING[plan]) {
+    throw new Error('Unknown plan in session metadata')
+  }
+
+  const result = await fulfillCheckout(plan, {
+    stripeSessionId: session.id,
+    intakeId: session.metadata?.intake_id ?? session.client_reference_id ?? null,
+    supabaseUserId:
+      typeof session.metadata?.supabase_user_id === 'string' && session.metadata?.supabase_user_id
+        ? session.metadata.supabase_user_id
+        : null,
+    customerEmail:
+      session.customer_details?.email ??
+      (typeof session.metadata?.customer_email === 'string' ? session.metadata.customer_email : null),
+    amountTotal: session.amount_total ?? null,
+    currency: session.currency ?? null,
+    slotId: typeof session.metadata?.slot_id === 'string' ? session.metadata.slot_id : null,
+  })
+
+  console.log('[webhook:checkout] ✓ Fulfillment completed. Session ID:', result.sessionId)
+}
+
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  console.log('[webhook:payment] Payment succeeded:', paymentIntent.id)
+
+  // Store payment intent
+  const { error: piError } = await supabaseAdmin.from('payment_intents').upsert({
+    id: paymentIntent.id,
+    amount_cents: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    status: paymentIntent.status,
+    charge_id: typeof paymentIntent.latest_charge === 'string' ? paymentIntent.latest_charge : null,
+    customer_id: paymentIntent.metadata?.customer_id || null,
+    session_id: paymentIntent.metadata?.session_id || null,
+    succeeded_at: new Date().toISOString(),
+    metadata: paymentIntent.metadata as any,
+    updated_at: new Date().toISOString(),
+  })
+
+  if (piError) {
+    console.error('[webhook:payment] Error storing payment intent:', piError)
+  }
+
+  // CRITICAL: Only set session to 'live' after payment succeeds
+  const sessionId = paymentIntent.metadata?.session_id
+
+  if (sessionId) {
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('sessions')
+      .select('id, status')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    if (sessionError || !session) {
+      console.warn('[webhook:payment] Session not found:', sessionId)
+      return
+    }
+
+    // Only transition if currently in 'waiting' or 'scheduled' status
+    if (session.status === 'waiting' || session.status === 'scheduled') {
+      const { error: updateError } = await supabaseAdmin
+        .from('sessions')
+        .update({
+          status: 'live',
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...(session as any).metadata,
+            payment_intent_id: paymentIntent.id,
+            payment_confirmed_at: new Date().toISOString(),
+          },
+        })
+        .eq('id', sessionId)
+
+      if (updateError) {
+        console.error('[webhook:payment] Error updating session:', updateError)
+      } else {
+        console.log('[webhook:payment] ✓ Session activated:', sessionId)
+      }
+    } else {
+      console.log('[webhook:payment] Session already in state:', session.status, '(skipping transition to live)')
+    }
+  }
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  console.log('[webhook:refund] Charge refunded:', charge.id)
+
+  const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null
+
+  if (!paymentIntentId) {
+    console.warn('[webhook:refund] No payment_intent on charge')
+    return
+  }
+
+  // Get payment intent to find session
+  const { data: paymentIntent } = await supabaseAdmin
+    .from('payment_intents')
+    .select('session_id, customer_id')
+    .eq('id', paymentIntentId)
+    .maybeSingle()
+
+  if (!paymentIntent?.session_id) {
+    console.warn('[webhook:refund] No session linked to payment intent')
+    return
+  }
+
+  // Store refund record
+  if (charge.refunds?.data?.[0]) {
+    const refund = charge.refunds.data[0]
+
+    const { error: refundError } = await supabaseAdmin.from('refunds').insert({
+      id: refund.id,
+      payment_intent_id: paymentIntentId,
+      session_id: paymentIntent.session_id,
+      amount_cents: refund.amount,
+      currency: refund.currency,
+      reason: (refund.reason as any) || 'requested_by_customer',
+      status: refund.status === 'succeeded' ? 'succeeded' : 'pending',
+      metadata: refund.metadata as any,
+      created_at: new Date(refund.created * 1000).toISOString(),
+    })
+
+    if (refundError) {
+      console.error('[webhook:refund] Error storing refund:', refundError)
+    }
+  }
+
+  // Update payment intent
+  const { error: piError } = await supabaseAdmin
+    .from('payment_intents')
+    .update({
+      amount_refunded_cents: charge.amount_refunded,
+      refund_status: charge.refunded ? 'full' : charge.amount_refunded > 0 ? 'partial' : 'none',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', paymentIntentId)
+
+  if (piError) {
+    console.error('[webhook:refund] Error updating payment intent:', piError)
+  }
+
+  // Mark session as refunded (will be done by trigger in migration)
+  console.log('[webhook:refund] ✓ Refund processed for session:', paymentIntent.session_id)
+}
+
+async function handleDisputeCreated(dispute: Stripe.Dispute) {
+  console.log('[webhook:dispute] Dispute created:', dispute.id)
+
+  const chargeId = typeof dispute.charge === 'string' ? dispute.charge : null
+
+  if (!chargeId) {
+    console.warn('[webhook:dispute] No charge on dispute')
+    return
+  }
+
+  // Find payment intent by charge ID
+  const { data: paymentIntent } = await supabaseAdmin
+    .from('payment_intents')
+    .select('id, session_id')
+    .eq('charge_id', chargeId)
+    .maybeSingle()
+
+  if (!paymentIntent?.session_id) {
+    console.warn('[webhook:dispute] No session linked to charge')
+    return
+  }
+
+  // Flag session for review
+  const { error: sessionError } = await supabaseAdmin
+    .from('sessions')
+    .update({
+      metadata: {
+        dispute_id: dispute.id,
+        dispute_reason: dispute.reason,
+        dispute_status: dispute.status,
+        flagged_for_review: true,
+        flagged_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', paymentIntent.session_id)
+
+  if (sessionError) {
+    console.error('[webhook:dispute] Error flagging session:', sessionError)
+  } else {
+    console.log('[webhook:dispute] ✓ Session flagged for review:', paymentIntent.session_id)
+  }
+
+  // Store as a refund record with chargeback reason
+  const { error: refundError } = await supabaseAdmin.from('refunds').insert({
+    id: `dispute_${dispute.id}`,
+    payment_intent_id: paymentIntent.id,
+    session_id: paymentIntent.session_id,
+    amount_cents: dispute.amount,
+    currency: dispute.currency,
+    reason: 'chargeback',
+    status: 'pending',
+    metadata: {
+      dispute_id: dispute.id,
+      dispute_reason: dispute.reason,
+      dispute_status: dispute.status,
+    } as any,
+    notes: `Chargeback/Dispute: ${dispute.reason}`,
+  })
+
+  if (refundError) {
+    console.error('[webhook:dispute] Error storing dispute refund:', refundError)
+  }
+}
+
+// ============================================================================
+// MAIN WEBHOOK HANDLER
+// ============================================================================
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get('stripe-signature')
@@ -18,40 +292,48 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, secret)
   } catch (error: any) {
+    console.error('[webhook] Signature verification failed:', error.message)
     return NextResponse.json({ error: `Webhook Error: ${error.message}` }, { status: 400 })
   }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session
-    const plan = (session.metadata?.plan ?? '') as PlanKey
+  console.log('[webhook] Event received:', event.type, event.id)
 
-    console.log('[stripe:webhook] checkout.session.completed received for plan:', plan)
-    console.log('[stripe:webhook] Metadata:', session.metadata)
-
-    if (!plan || !PRICING[plan]) {
-      return NextResponse.json({ error: 'Unknown plan in session metadata' }, { status: 400 })
-    }
-
-    try {
-      const result = await fulfillCheckout(plan, {
-        stripeSessionId: session.id,
-        intakeId: session.metadata?.intake_id ?? session.client_reference_id ?? null,
-        supabaseUserId: typeof session.metadata?.supabase_user_id === 'string' && session.metadata?.supabase_user_id
-          ? session.metadata.supabase_user_id
-          : null,
-        customerEmail:
-          session.customer_details?.email ??
-          (typeof session.metadata?.customer_email === 'string' ? session.metadata.customer_email : null),
-        amountTotal: session.amount_total ?? null,
-        currency: session.currency ?? null,
-        slotId: typeof session.metadata?.slot_id === 'string' ? session.metadata.slot_id : null,
-      })
-      console.log('[stripe:webhook] Fulfillment completed successfully. Session ID:', result.sessionId)
-    } catch (error: any) {
-      console.error('[stripe:webhook] fulfillment error', error)
-      return NextResponse.json({ error: error?.message ?? 'Checkout fulfillment failed' }, { status: 500 })
-    }
+  // IDEMPOTENCY CHECK - Prevent duplicate processing
+  const alreadyProcessed = await isEventProcessed(event.id)
+  if (alreadyProcessed) {
+    console.log('[webhook] ⚠️  Event already processed, skipping:', event.id)
+    return NextResponse.json({ received: true, skipped: true, reason: 'already_processed' })
   }
 
-  return NextResponse.json({ received: true })
+  // Process event based on type
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
+        break
+
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent)
+        break
+
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge)
+        break
+
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event.data.object as Stripe.Dispute)
+        break
+
+      default:
+        console.log('[webhook] Unhandled event type:', event.type)
+    }
+
+    // Mark event as processed
+    await markEventProcessed(event)
+
+    return NextResponse.json({ received: true })
+  } catch (error: any) {
+    console.error('[webhook] Error processing event:', error)
+    return NextResponse.json({ error: error?.message ?? 'Event processing failed' }, { status: 500 })
+  }
 }

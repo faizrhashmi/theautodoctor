@@ -29,7 +29,8 @@
       "Bash(npm run lint:strict:*)",
       "Bash(grep:*)",
       "Bash(npm audit:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
