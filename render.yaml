@@ -1,0 +1,84 @@
+services:
+  # Main web service
+  - type: web
+    name: theautodoctor
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: The Auto Doctor <noreply@theautodoctor.com>
+      - key: SUPPORT_EMAIL
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+
+  # Cron job for session monitoring
+  - type: cron
+    name: session-monitor-cron
+    env: node
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    buildCommand: npm install
+    startCommand: node scripts/run-cron.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: NEXT_PUBLIC_SUPABASE_URL
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: SUPABASE_SERVICE_ROLE_KEY
+      - key: RESEND_API_KEY
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: RESEND_API_KEY
+      - key: EMAIL_FROM
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: EMAIL_FROM
+      - key: SUPPORT_EMAIL
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: SUPPORT_EMAIL
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: CRON_SECRET
+      - key: APP_URL
+        fromService:
+          type: web
+          name: theautodoctor
+          envVarKey: NEXT_PUBLIC_APP_URL

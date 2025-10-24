@@ -478,7 +478,7 @@ export default function ChatRoom({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          content: trimmed || '📎 Attachment',
+          content: trimmed || 'Attachment',
           attachments: uploadedFiles.length > 0 ? uploadedFiles : [],
         }),
       })
@@ -773,27 +773,6 @@ export default function ChatRoom({
             </p>
           </div>
         )}
-
-        {/* DEBUG BANNER - Remove after fixing role issue */}
-        <div className="mb-4 rounded-lg border border-purple-500/50 bg-purple-500/10 p-3 text-xs font-mono">
-          <div className="font-bold text-purple-300 mb-2">🔍 Debug Info (remove in production):</div>
-          <div className="space-y-1 text-purple-200">
-            <div>userRole: <span className="text-purple-100 font-bold">{userRole}</span></div>
-            <div>isMechanic: <span className="text-purple-100 font-bold">{String(isMechanic)}</span></div>
-            <div>userId: <span className="text-purple-100">{userId}</span></div>
-            <div>mechanicId: <span className="text-purple-100">{mechanicId || 'null'}</span></div>
-            <div>customerId: <span className="text-purple-100">{customerId || 'null'}</span></div>
-            <div>mechanicPresent: <span className={mechanicPresent ? "text-green-300 font-bold" : "text-red-300 font-bold"}>{String(mechanicPresent)}</span></div>
-            <div>customerPresent: <span className={customerPresent ? "text-green-300 font-bold" : "text-red-300 font-bold"}>{String(customerPresent)}</span></div>
-            <div className="mt-2 pt-2 border-t border-purple-500/30">
-              <div className="text-purple-300 font-semibold">Expected IDs to match:</div>
-              <div>My userId === {userRole === 'mechanic' ? 'mechanicId' : 'customerId'}?</div>
-              <div className={userId === (userRole === 'mechanic' ? mechanicId : customerId) ? "text-green-300" : "text-red-300 font-bold"}>
-                {userId === (userRole === 'mechanic' ? mechanicId : customerId) ? '✓ IDs Match' : '✗ IDs DO NOT MATCH!'}
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Waiting for Participant Indicator */}
         {currentStatus === 'waiting' && !bothParticipantsPresent && (

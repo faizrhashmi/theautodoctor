@@ -17,6 +17,7 @@ import {
   Maximize2, Minimize2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { DevicePreflight } from '@/components/video/DevicePreflight'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -435,6 +436,9 @@ export default function VideoSessionClient({
   const [uploadingFile, setUploadingFile] = useState(false)
   const [sharedFiles, setSharedFiles] = useState<Array<{ name: string; url: string; size: number }>>([])
   const [extendedDuration, setExtendedDuration] = useState<number | null>(null) // Track extensions
+  const [showPreflight, setShowPreflight] = useState(true) // Task 6: Device preflight
+  const [preflightPassed, setPreflightPassed] = useState(false)
+  const [showReconnectBanner, setShowReconnectBanner] = useState(false) // Task 6: Reconnect UX
 
   const baseDuration = PLAN_DURATIONS[plan] || 45
   const durationMinutes = extendedDuration || baseDuration // Use extended duration if available
@@ -510,6 +514,15 @@ export default function VideoSessionClient({
       supabase.removeChannel(channel)
     }
   }, [sessionId, dashboardUrl, supabase])
+
+  // Task 6: Monitor for disconnections
+  useEffect(() => {
+    if (sessionStarted && (!mechanicPresent || !customerPresent)) {
+      setShowReconnectBanner(true)
+    } else {
+      setShowReconnectBanner(false)
+    }
+  }, [mechanicPresent, customerPresent, sessionStarted])
 
   const handleMechanicJoined = useCallback(() => {
     console.log('[VIDEO] Mechanic joined')
@@ -664,6 +677,18 @@ export default function VideoSessionClient({
     }
   }, [sessionId])
 
+  // Task 6: Show preflight panel before joining
+  if (showPreflight && !preflightPassed) {
+    return (
+      <DevicePreflight
+        onComplete={() => {
+          setPreflightPassed(true)
+          setShowPreflight(false)
+        }}
+      />
+    )
+  }
+
   return (
     <div className="relative h-screen w-full bg-slate-950">
       {/* Waiting Room Overlay */}
@@ -721,6 +746,24 @@ export default function VideoSessionClient({
           <div className="flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/20 px-4 py-2 text-amber-200 shadow-lg backdrop-blur">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm font-semibold">{timeWarning}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Reconnect Banner */}
+      {showReconnectBanner && (
+        <div className="absolute inset-x-0 top-20 z-50 mx-4">
+          <div className="rounded-lg border border-amber-500/50 bg-amber-500/20 p-4 text-center backdrop-blur">
+            <p className="font-semibold text-amber-200">Connection Lost</p>
+            <p className="mt-1 text-sm text-amber-300">
+              {mechanicPresent ? 'Customer' : 'Mechanic'} disconnected. Waiting for reconnection...
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+            >
+              Retry Connection
+            </button>
           </div>
         </div>
       )}
