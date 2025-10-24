@@ -25,7 +25,9 @@
       "Bash(timeout 30 bash -c 'while ! grep -q \"\"\"\"Compiled successfully\\|Failed to compile\"\"\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')",
       "Bash(pkill -f \"npm run build\")",
       "Bash(npx next lint:*)",
-      "Read(//c/Users/**)"
+      "Read(//c/Users/**)",
+      "Bash(npm run lint:strict:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

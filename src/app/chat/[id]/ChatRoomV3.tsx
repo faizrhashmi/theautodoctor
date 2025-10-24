@@ -356,7 +356,7 @@ export default function ChatRoom({
       console.log('[ChatRoom] Cleaning up subscription')
       supabase.removeChannel(channel)
     }
-  }, [sessionId, supabase, mechanicName])
+  }, [sessionId, supabase, mechanicName, currentStatus, customerId, isMechanic, mechanicId])
 
   async function uploadFile(file: File): Promise<{ name: string; url: string; size: number; type: string }> {
     const fileExt = file.name.split('.').pop()

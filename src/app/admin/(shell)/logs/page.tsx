@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { LogLevel, LogSource, LogEntry } from '@/lib/adminLogger'
 
 const LOG_LEVELS: LogLevel[] = ['error', 'warn', 'info', 'debug']
@@ -25,7 +25,7 @@ export default function LogsPage() {
   const [stats, setStats] = useState<any>(null)
   const logsEndRef = useRef<HTMLDivElement>(null)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (selectedLevels.length > 0) params.set('level', selectedLevels.join(','))
@@ -41,7 +41,7 @@ export default function LogsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedLevels, selectedSources, searchQuery])
 
   const fetchStats = async () => {
     try {
@@ -61,7 +61,7 @@ export default function LogsPage() {
       fetchStats()
     }, 5000) // Refresh every 5 seconds
     return () => clearInterval(interval)
-  }, [selectedLevels, selectedSources, searchQuery])
+  }, [selectedLevels, selectedSources, searchQuery, fetchLogs])
 
   useEffect(() => {
     if (autoScroll && logsEndRef.current) {

@@ -65,7 +65,7 @@ export default function MechanicApplicationsPage() {
 
   useEffect(() => {
     loadApplications();
-  }, [filter]);
+  }, [filter, loadApplications]);
 
   const loadApplications = async () => {
     setLoading(true);

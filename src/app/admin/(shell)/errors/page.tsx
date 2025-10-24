@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface AdminError {
   id: string
@@ -32,7 +32,7 @@ export default function ErrorsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('open')
   const [sourceFilter, setSourceFilter] = useState<string>('')
 
-  const fetchErrors = async () => {
+  const fetchErrors = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
@@ -46,13 +46,13 @@ export default function ErrorsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sourceFilter])
 
   useEffect(() => {
     fetchErrors()
     const interval = setInterval(fetchErrors, 10000) // Refresh every 10 seconds
     return () => clearInterval(interval)
-  }, [statusFilter, sourceFilter])
+  }, [statusFilter, sourceFilter, fetchErrors])
 
   const updateErrorStatus = async (errorId: string, status: string, notes?: string) => {
     try {

@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -149,14 +149,6 @@ export default function MechanicSignup() {
   const [savingDraft, setSavingDraft] = useState(false);
   const router = useRouter();
 
-  // Auto-save draft every 30 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      saveDraft();
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [form]);
-
   // Load draft on mount
   useEffect(() => {
     const draft = localStorage.getItem('mechanic_signup_draft');
@@ -171,7 +163,7 @@ export default function MechanicSignup() {
     }
   }, []);
 
-  const saveDraft = async () => {
+  const saveDraft = useCallback(async () => {
     setSavingDraft(true);
     localStorage.setItem(
       'mechanic_signup_draft',
@@ -190,7 +182,15 @@ export default function MechanicSignup() {
       }
     }
     setTimeout(() => setSavingDraft(false), 1000);
-  };
+  }, [form, currentStep]);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      saveDraft();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [saveDraft]);
 
   const updateForm = (updates: Partial<SignupFormData>) => {
     setForm({ ...form, ...updates });

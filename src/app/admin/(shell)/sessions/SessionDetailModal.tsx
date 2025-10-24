@@ -26,7 +26,7 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
     } else if (activeTab === 'files') {
       loadSessionFiles()
     }
-  }, [activeTab])
+  }, [activeTab, loadChatHistory, loadSessionFiles])
 
   const loadChatHistory = async () => {
     setLoading(true)

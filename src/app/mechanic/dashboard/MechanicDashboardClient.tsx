@@ -254,7 +254,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       console.log('[fetchActiveSessions] Fetching active sessions for mechanic:', mechanicId)
 
       try {
-        // Query sessions table directly - this is the source of truth
+        // Query sessions table for active work (waiting + live)
         const { data: sessions, error } = await supabase
           .from('sessions')
           .select('id, status, type, plan, customer_user_id, created_at, started_at, metadata, intake_id')
@@ -269,9 +269,23 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           return
         }
 
-        if (!isMountedRef.current) return
+        // CRITICAL FIX: Also fetch accepted requests that don't have sessions yet
+        // This prevents "hidden" accepted requests from blocking mechanics
+        const { data: acceptedRequests, error: requestsError } = await supabase
+          .from('session_requests')
+          .select('id, customer_id, customer_name, customer_email, session_type, plan_code, created_at, accepted_at, metadata')
+          .eq('mechanic_id', mechanicId)
+          .eq('status', 'accepted')
+          .order('accepted_at', { ascending: false })
+
+        if (requestsError) {
+          console.error('[fetchActiveSessions] Error fetching accepted requests:', requestsError)
+        }
 
         console.log('[fetchActiveSessions] Found sessions:', sessions?.length || 0)
+        console.log('[fetchActiveSessions] Found accepted requests:', acceptedRequests?.length || 0)
+
+        if (!isMountedRef.current) return
 
         // Enrich with customer info and intake data
         const enriched = await Promise.all(
@@ -322,8 +336,30 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           })
         )
 
+        // CRITICAL FIX: Merge accepted requests into active sessions
+        // These are requests the mechanic accepted but customer hasn't joined yet
+        const enrichedRequests = (acceptedRequests || []).map((request) => ({
+          id: request.id, // This is the request ID (not session ID)
+          sessionId: null, // No session created yet
+          customerName: request.customer_name || request.customer_email || 'Customer',
+          customerId: request.customer_id,
+          sessionType: request.session_type,
+          planCode: request.plan_code,
+          status: 'accepted', // Request status, not session status
+          createdAt: request.created_at,
+          acceptedAt: request.accepted_at,
+          isLive: false, // Accepted requests are not live yet
+          intake: null,
+          files: [],
+          isAcceptedRequest: true, // Flag to identify this is a request, not a session
+        }))
+
+        const combined = [...enriched, ...enrichedRequests]
+
         console.log('[fetchActiveSessions] Enriched sessions:', enriched.length)
-        setActiveSessions(enriched)
+        console.log('[fetchActiveSessions] Enriched accepted requests:', enrichedRequests.length)
+        console.log('[fetchActiveSessions] Total active items:', combined.length)
+        setActiveSessions(combined)
       } catch (error) {
         console.error('[fetchActiveSessions] Failed to load active sessions', error)
         if (!isMountedRef.current) return
