@@ -440,6 +440,14 @@ export default function VideoSessionClient({
   const [preflightPassed, setPreflightPassed] = useState(false)
   const [showReconnectBanner, setShowReconnectBanner] = useState(false) // Task 6: Reconnect UX
 
+  // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
+  // Check URL parameter to skip preflight checks (for same-laptop testing)
+  const skipPreflight = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    const params = new URLSearchParams(window.location.search)
+    return params.get('skipPreflight') === 'true'
+  }, [])
+
   const baseDuration = PLAN_DURATIONS[plan] || 45
   const durationMinutes = extendedDuration || baseDuration // Use extended duration if available
   const supabase = useMemo(() => createClient(), [])
@@ -685,6 +693,7 @@ export default function VideoSessionClient({
           setPreflightPassed(true)
           setShowPreflight(false)
         }}
+        skipPreflight={skipPreflight} // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
       />
     )
   }
