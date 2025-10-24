@@ -1,6 +1,6 @@
 'use client'
 
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import type { CustomerDashboardFile, CustomerDashboardFileWithUrl } from './dashboard-types'
 
 export const CUSTOMER_FILES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_USER_FILES_BUCKET || 'user-files'
@@ -11,6 +11,8 @@ export async function generateSignedFileList(
   if (!files || files.length === 0) {
     return []
   }
+
+  const supabase = createClient()
 
   const enriched = await Promise.all(
     files.map(async (file) => {

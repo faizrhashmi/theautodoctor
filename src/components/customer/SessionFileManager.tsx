@@ -1,8 +1,8 @@
 'use client'
 
 import type { ChangeEvent } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 import type { SessionFile } from '@/types/supabase'
 import type {
   CustomerDashboardFile,
@@ -59,6 +59,7 @@ export function SessionFileManager({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const supabase = useMemo(() => createClient(), [])
 
   const hydrate = useCallback(async (source: CustomerDashboardFile[]) => {
     setLoading(true)

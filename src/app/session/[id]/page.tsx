@@ -30,7 +30,7 @@ import SessionTimer from '@/components/session/SessionTimer'
 import FileSharePanel from '@/components/session/FileSharePanel'
 import SessionExtensionPanel from '@/components/session/SessionExtensionPanel'
 import type { SessionFile, SessionSummary } from '@/types/session'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 
 const SESSION_FILES_BUCKET = process.env.NEXT_PUBLIC_SESSION_FILES_BUCKET ?? 'session-files'
 
@@ -77,6 +77,8 @@ export default function SessionWorkspacePage() {
 
   const [endingSession, setEndingSession] = useState(false)
   const [endSessionError, setEndSessionError] = useState<string | null>(null)
+
+  const supabase = useMemo(() => createClient(), [])
 
   const [sessionStartedAt, setSessionStartedAt] = useState<string | undefined>(undefined)
   const hasStartedRef = useRef(false)

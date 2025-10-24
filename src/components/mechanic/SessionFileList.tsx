@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type {
   CustomerDashboardFile,
   CustomerDashboardFileWithUrl,
-} from './dashboard-types'
+} from '../customer/dashboard-types'
 import { formatFileSize, generateSignedFileList } from './sessionFilesHelpers'
 
 type Props = {

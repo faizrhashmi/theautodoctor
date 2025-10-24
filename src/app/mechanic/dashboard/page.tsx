@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import MechanicDashboard from './MechanicDashboardRedesigned'
+import MechanicDashboard from './MechanicDashboardComplete'
 import { createClient } from '@/lib/supabase'
 
 type Mech = {
