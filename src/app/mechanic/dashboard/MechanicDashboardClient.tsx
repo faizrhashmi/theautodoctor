@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
+  XCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { SessionRequest } from '@/types/session'
@@ -107,6 +108,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   // Refresh and connection state
   const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date())
+  const [isForceClosing, setIsForceClosing] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [realtimeConnected, setRealtimeConnected] = useState(true)
 
@@ -816,6 +818,65 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }
 
+  const handleForceCloseAll = async () => {
+    const activeCount = activeSessions.length
+
+    if (activeCount === 0) {
+      alert('✓ You have no active sessions to close.')
+      return
+    }
+
+    const confirmed = confirm(
+      `⚠️ FORCE CLOSE ALL SESSIONS\n\n` +
+      `This will immediately terminate ${activeCount} active session${activeCount > 1 ? 's' : ''}:\n` +
+      `• Sessions will be cancelled\n` +
+      `• Accepted requests will be cancelled\n` +
+      `• You'll be able to accept new requests\n\n` +
+      `Use this if you're stuck or need to start fresh.\n\n` +
+      `Continue?`
+    )
+
+    if (!confirmed) return
+
+    setIsForceClosing(true)
+    try {
+      console.log('[FORCE CLOSE ALL] Calling API for mechanic:', mechanicId)
+
+      const response = await fetch('/api/mechanic/force-end-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mechanicId })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to force close sessions')
+      }
+
+      console.log('[FORCE CLOSE ALL] Success:', data)
+
+      // Refresh all data
+      await Promise.all([
+        fetchActiveSessions(),
+        fetchNewRequests({ silent: true }),
+        loadSessions({ silent: true })
+      ])
+
+      alert(
+        `✓ Success!\n\n` +
+        `${data.results.sessionsCancelled} session(s) cancelled\n` +
+        `${data.results.requestsCancelled} request(s) cancelled\n\n` +
+        `You can now accept new requests.`
+      )
+    } catch (error: any) {
+      console.error('[FORCE CLOSE ALL] Error:', error)
+      alert(`❌ Failed to close sessions: ${error.message}\n\nPlease refresh the page or contact support.`)
+    } finally {
+      setIsForceClosing(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-7xl">
@@ -847,6 +908,25 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Force Close All Sessions Button - ALWAYS VISIBLE */}
+              <button
+                onClick={handleForceCloseAll}
+                disabled={isForceClosing}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 ${
+                  activeSessions.length > 0
+                    ? 'border-red-500/50 bg-red-500/20 text-red-200 hover:bg-red-500/30'
+                    : 'border-slate-600/50 bg-slate-800/30 text-slate-400 hover:bg-slate-700/30'
+                }`}
+                title={activeSessions.length > 0 ? `Force close ${activeSessions.length} active session(s)` : 'No active sessions to close'}
+              >
+                <XCircle className={`h-4 w-4 ${isForceClosing ? 'animate-spin' : ''}`} />
+                {isForceClosing ? 'Closing...' : 'Force Close All'}
+                {activeSessions.length > 0 && (
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+                    {activeSessions.length}
+                  </span>
+                )}
+              </button>
               {/* Refresh Button */}
               <button
                 onClick={handleManualRefresh}
