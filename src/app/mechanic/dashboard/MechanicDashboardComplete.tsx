@@ -642,11 +642,191 @@ function HistorySection({ sessions }: { sessions: Session[] }) {
 
 // 5. FILES SECTION
 function FilesSection({ mechanicId }: { mechanicId: string }) {
+  const supabase = useMemo(() => createClient(), [])
+  const [files, setFiles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filterTab, setFilterTab] = useState<'session' | 'date'>('session')
+  const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    const loadFiles = async () => {
+      setLoading(true)
+      try {
+        // Load files from mechanic's sessions
+        const { data: sessions } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('mechanic_user_id', mechanicId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+
+        if (!sessions || sessions.length === 0) {
+          setFiles([])
+          setLoading(false)
+          return
+        }
+
+        const sessionIds = sessions.map((s) => s.id)
+
+        const { data: sessionFiles } = await supabase
+          .from('session_files')
+          .select('id, created_at, session_id, file_name, file_size, file_type, storage_path')
+          .in('session_id', sessionIds)
+          .order('created_at', { ascending: false })
+          .limit(100)
+
+        setFiles(sessionFiles || [])
+      } catch (error) {
+        console.error('Failed to load files:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFiles()
+  }, [mechanicId, supabase])
+
+  const filteredFiles = files.filter((file) => {
+    if (searchTerm && !file.file_name.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false
+    }
+    return true
+  })
+
+  const groupedBySession = filteredFiles.reduce((acc, file) => {
+    const sessionId = file.session_id
+    if (!acc[sessionId]) {
+      acc[sessionId] = []
+    }
+    acc[sessionId].push(file)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  const groupedByDate = filteredFiles.reduce((acc, file) => {
+    const date = new Date(file.created_at).toLocaleDateString()
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push(file)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return '0 KB'
+    const kb = bytes / 1024
+    if (kb < 1024) return `${kb.toFixed(1)} KB`
+    return `${(kb / 1024).toFixed(1)} MB`
+  }
+
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-12 text-center">
-      <FolderOpen className="mx-auto h-16 w-16 text-slate-600" />
-      <h3 className="mt-4 text-lg font-semibold text-white">Files Browser</h3>
-      <p className="mt-2 text-slate-400">File management coming soon</p>
+    <div className="space-y-4">
+      {/* Filter Tabs and Search */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilterTab('session')}
+            className={`rounded-lg px-4 py-2 font-medium transition ${
+              filterTab === 'session'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            By Session
+          </button>
+          <button
+            onClick={() => setFilterTab('date')}
+            className={`rounded-lg px-4 py-2 font-medium transition ${
+              filterTab === 'date'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            By Date
+          </button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search files..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-lg border border-slate-600 bg-slate-700 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none sm:w-64"
+          />
+        </div>
+      </div>
+
+      {/* Files Display */}
+      {loading ? (
+        <div className="flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800/50 p-12">
+          <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
+        </div>
+      ) : filteredFiles.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-slate-700 bg-slate-800/50 p-12">
+          <FolderOpen className="h-16 w-16 text-slate-600" />
+          <p className="mt-4 text-slate-400">
+            {searchTerm ? 'No files match your search' : 'No files uploaded yet'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {filterTab === 'session'
+            ? Object.entries(groupedBySession).map(([sessionId, sessionFiles]) => (
+                <div key={sessionId} className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+                    <FileText className="h-4 w-4" />
+                    Session {sessionId.slice(0, 8)}
+                    <span className="text-slate-400">({sessionFiles.length} files)</span>
+                  </h4>
+                  <div className="space-y-2">
+                    {sessionFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between rounded-lg bg-slate-700/50 p-3"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{file.file_name}</p>
+                          <p className="text-xs text-slate-400">
+                            {formatFileSize(file.file_size)} • {new Date(file.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <button className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            : Object.entries(groupedByDate).map(([date, dateFiles]) => (
+                <div key={date} className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+                  <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+                    <Calendar className="h-4 w-4" />
+                    {date}
+                    <span className="text-slate-400">({dateFiles.length} files)</span>
+                  </h4>
+                  <div className="space-y-2">
+                    {dateFiles.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between rounded-lg bg-slate-700/50 p-3"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{file.file_name}</p>
+                          <p className="text-xs text-slate-400">
+                            Session {file.session_id.slice(0, 8)} • {formatFileSize(file.file_size)}
+                          </p>
+                        </div>
+                        <button className="rounded-lg bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -693,11 +873,240 @@ function ProfileSection({ mechanic }: any) {
 
 // 7. AVAILABILITY SECTION
 function AvailabilitySection({ mechanicId }: { mechanicId: string }) {
+  const supabase = useMemo(() => createClient(), [])
+  const [isAway, setIsAway] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [availability, setAvailability] = useState<Record<string, Record<string, boolean>>>({
+    monday: {},
+    tuesday: {},
+    wednesday: {},
+    thursday: {},
+    friday: {},
+    saturday: {},
+    sunday: {},
+  })
+
+  const timeSlots = [
+    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
+  ]
+
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+  useEffect(() => {
+    const loadAvailability = async () => {
+      try {
+        const { data } = await supabase
+          .from('mechanics')
+          .select('availability_schedule, is_away')
+          .eq('user_id', mechanicId)
+          .single()
+
+        if (data) {
+          setIsAway(data.is_away || false)
+          if (data.availability_schedule) {
+            setAvailability(data.availability_schedule)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load availability:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAvailability()
+  }, [mechanicId, supabase])
+
+  const toggleAwayMode = async () => {
+    setSaving(true)
+    try {
+      const newAwayStatus = !isAway
+      await supabase
+        .from('mechanics')
+        .update({ is_away: newAwayStatus })
+        .eq('user_id', mechanicId)
+
+      setIsAway(newAwayStatus)
+    } catch (error) {
+      console.error('Failed to toggle away mode:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleTimeSlot = async (day: string, time: string) => {
+    const dayKey = day.toLowerCase()
+    const newAvailability = {
+      ...availability,
+      [dayKey]: {
+        ...availability[dayKey],
+        [time]: !availability[dayKey]?.[time]
+      }
+    }
+
+    setAvailability(newAvailability)
+
+    try {
+      await supabase
+        .from('mechanics')
+        .update({ availability_schedule: newAvailability })
+        .eq('user_id', mechanicId)
+    } catch (error) {
+      console.error('Failed to update availability:', error)
+    }
+  }
+
+  const setDayAvailability = async (day: string, available: boolean) => {
+    const dayKey = day.toLowerCase()
+    const newDaySchedule: Record<string, boolean> = {}
+    timeSlots.forEach(slot => {
+      newDaySchedule[slot] = available
+    })
+
+    const newAvailability = {
+      ...availability,
+      [dayKey]: newDaySchedule
+    }
+
+    setAvailability(newAvailability)
+
+    try {
+      await supabase
+        .from('mechanics')
+        .update({ availability_schedule: newAvailability })
+        .eq('user_id', mechanicId)
+    } catch (error) {
+      console.error('Failed to update availability:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800/50 p-12">
+        <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-12 text-center">
-      <CalendarClock className="mx-auto h-16 w-16 text-slate-600" />
-      <h3 className="mt-4 text-lg font-semibold text-white">Availability Calendar</h3>
-      <p className="mt-2 text-slate-400">Availability management coming soon</p>
+    <div className="space-y-6">
+      {/* Away Mode Toggle */}
+      <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Away Mode</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Turn this on when you're unavailable to accept new requests
+            </p>
+          </div>
+          <button
+            onClick={toggleAwayMode}
+            disabled={saving}
+            className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+              isAway ? 'bg-orange-600' : 'bg-slate-600'
+            } ${saving ? 'opacity-50' : ''}`}
+          >
+            <span
+              className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                isAway ? 'translate-x-7' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        {isAway && (
+          <div className="mt-4 rounded-lg bg-orange-500/20 p-3 text-sm text-orange-300">
+            You are currently away. Customers won't be able to send you new requests.
+          </div>
+        )}
+      </div>
+
+      {/* Weekly Schedule */}
+      <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-white">Weekly Schedule</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="border border-slate-700 bg-slate-900 p-2 text-left text-sm font-semibold text-white">
+                  Day
+                </th>
+                {timeSlots.map(slot => (
+                  <th key={slot} className="border border-slate-700 bg-slate-900 p-2 text-center text-xs text-white">
+                    {slot}
+                  </th>
+                ))}
+                <th className="border border-slate-700 bg-slate-900 p-2 text-center text-sm text-white">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {days.map(day => {
+                const dayKey = day.toLowerCase()
+                const availableSlots = timeSlots.filter(slot => availability[dayKey]?.[slot]).length
+
+                return (
+                  <tr key={day}>
+                    <td className="border border-slate-700 bg-slate-800 p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">{day}</span>
+                        <span className="text-xs text-slate-400">
+                          ({availableSlots}/{timeSlots.length})
+                        </span>
+                      </div>
+                    </td>
+                    {timeSlots.map(slot => {
+                      const isAvailable = availability[dayKey]?.[slot]
+                      return (
+                        <td key={slot} className="border border-slate-700 p-1">
+                          <button
+                            onClick={() => toggleTimeSlot(day, slot)}
+                            className={`h-8 w-full rounded transition ${
+                              isAvailable
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : 'bg-slate-700 hover:bg-slate-600'
+                            }`}
+                            title={isAvailable ? 'Available' : 'Unavailable'}
+                          >
+                            {isAvailable && <Check className="mx-auto h-4 w-4 text-white" />}
+                          </button>
+                        </td>
+                      )
+                    })}
+                    <td className="border border-slate-700 p-2">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setDayAvailability(day, true)}
+                          className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
+                          title="Mark all available"
+                        >
+                          All
+                        </button>
+                        <button
+                          onClick={() => setDayAvailability(day, false)}
+                          className="rounded bg-slate-600 px-2 py-1 text-xs text-white hover:bg-slate-700"
+                          title="Mark all unavailable"
+                        >
+                          None
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 flex items-start gap-2 text-xs text-slate-400">
+          <Info className="h-4 w-4 flex-shrink-0" />
+          <p>
+            Click on time slots to toggle availability. Green indicates you're available for sessions during that time.
+            Changes are saved automatically.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
