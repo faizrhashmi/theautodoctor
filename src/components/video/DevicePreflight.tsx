@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { CheckCircle, XCircle, Loader2, Video, Mic, AlertTriangle } from 'lucide-react'
 
 type PreflightStatus = 'checking' | 'passed' | 'failed'
+type NetworkQuality = 'excellent' | 'good' | 'fair' | 'poor' | 'critical'
 
 interface DevicePreflightProps {
   onComplete: () => void
@@ -15,8 +16,18 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   const [micStatus, setMicStatus] = useState<PreflightStatus>('checking')
   const [networkStatus, setNetworkStatus] = useState<PreflightStatus>('checking')
   const [networkRTT, setNetworkRTT] = useState<number | null>(null)
+  const [networkQuality, setNetworkQuality] = useState<NetworkQuality | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  // Helper function to determine network quality
+  function getNetworkQuality(rtt: number): NetworkQuality {
+    if (rtt < 100) return 'excellent'
+    if (rtt < 300) return 'good'
+    if (rtt < 500) return 'fair'
+    if (rtt < 1000) return 'poor'
+    return 'critical'
+  }
 
   useEffect(() => {
     // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
@@ -26,6 +37,7 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
       setMicStatus('passed')
       setNetworkStatus('passed')
       setNetworkRTT(50)
+      setNetworkQuality('excellent')
       return
     }
 
@@ -68,18 +80,41 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
       await fetch('/api/health', { method: 'GET' })
       const rtt = Date.now() - start
       setNetworkRTT(rtt)
-      // In development, accept up to 1000ms RTT for local testing
-      const threshold = process.env.NODE_ENV === 'development' ? 1000 : 300
-      setNetworkStatus(rtt < threshold ? 'passed' : 'failed')
+      const quality = getNetworkQuality(rtt)
+      setNetworkQuality(quality)
+      // Only fail if network is completely offline (no response or > 2000ms)
+      setNetworkStatus(rtt < 2000 ? 'passed' : 'failed')
     } catch (err) {
       console.error('Network test failed:', err)
       setNetworkStatus('failed')
+      setNetworkQuality(null)
     }
   }
 
-  // DEVELOPMENT MODE: Allow joining even if some checks fail
+  // Only block on camera/mic failures - network warnings are shown but don't block
   const isDevelopment = process.env.NODE_ENV === 'development'
-  const allPassed = isDevelopment ? true : (cameraStatus === 'passed' && micStatus === 'passed' && networkStatus === 'passed')
+  const canJoin = isDevelopment ? true : (cameraStatus === 'passed' && micStatus === 'passed')
+  const hasNetworkWarning = networkQuality && ['fair', 'poor', 'critical'].includes(networkQuality)
+
+  // Helper function to get network warning message
+  function getNetworkWarningMessage(quality: NetworkQuality | null): string | null {
+    if (!quality) return null
+    switch (quality) {
+      case 'excellent':
+      case 'good':
+        return null
+      case 'fair':
+        return 'Your connection is slower than recommended. You may experience minor delays.'
+      case 'poor':
+        return 'Your connection is slow. You may experience significant lag and audio drops.'
+      case 'critical':
+        return 'Your connection is very slow. You may experience severe quality issues. Consider switching networks or moving closer to your router.'
+      default:
+        return null
+    }
+  }
+
+  const networkWarning = getNetworkWarningMessage(networkQuality)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur">
@@ -123,18 +158,84 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
           />
         </div>
 
+        {/* Network Warning Banner */}
+        {networkWarning && (
+          <div className={`mt-4 rounded-lg border p-3 sm:p-4 ${
+            networkQuality === 'fair'
+              ? 'border-yellow-500/50 bg-yellow-500/10'
+              : networkQuality === 'poor'
+              ? 'border-orange-500/50 bg-orange-500/10'
+              : 'border-red-500/50 bg-red-500/10'
+          }`}>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertTriangle className={`h-5 w-5 flex-shrink-0 ${
+                networkQuality === 'fair'
+                  ? 'text-yellow-400'
+                  : networkQuality === 'poor'
+                  ? 'text-orange-400'
+                  : 'text-red-400'
+              }`} />
+              <div>
+                <p className={`text-sm font-semibold sm:text-base ${
+                  networkQuality === 'fair'
+                    ? 'text-yellow-200'
+                    : networkQuality === 'poor'
+                    ? 'text-orange-200'
+                    : 'text-red-200'
+                }`}>
+                  {networkQuality === 'fair' ? 'Fair Connection' : networkQuality === 'poor' ? 'Poor Connection' : 'Critical Connection'}
+                </p>
+                <p className={`mt-1 text-xs sm:text-sm ${
+                  networkQuality === 'fair'
+                    ? 'text-yellow-300'
+                    : networkQuality === 'poor'
+                    ? 'text-orange-300'
+                    : 'text-red-300'
+                }`}>
+                  {networkWarning}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Join Button */}
         <button
           onClick={onComplete}
-          disabled={!allPassed}
-          className="mt-4 w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:px-6 sm:py-3 sm:text-base"
+          disabled={!canJoin}
+          className={`mt-4 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:px-6 sm:py-3 sm:text-base ${
+            !canJoin
+              ? 'bg-slate-600 hover:bg-slate-700'
+              : hasNetworkWarning && networkQuality === 'critical'
+              ? 'bg-red-600 hover:bg-red-700'
+              : hasNetworkWarning && networkQuality === 'poor'
+              ? 'bg-orange-600 hover:bg-orange-700'
+              : hasNetworkWarning && networkQuality === 'fair'
+              ? 'bg-yellow-600 hover:bg-yellow-700'
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
         >
-          {allPassed ? 'Join Session' : 'Fix Issues to Continue'}
+          {!canJoin
+            ? 'Fix Issues to Continue'
+            : hasNetworkWarning
+            ? 'Join Anyway'
+            : 'Join Session'
+          }
         </button>
 
-        {!allPassed && (
+        {/* Retry Test Button */}
+        {hasNetworkWarning && (
+          <button
+            onClick={testDevices}
+            className="mt-3 w-full rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 sm:text-base"
+          >
+            🔄 Retry Connection Test
+          </button>
+        )}
+
+        {!canJoin && (
           <p className="mt-3 text-center text-xs text-slate-400 sm:mt-4 sm:text-sm">
-            Please allow camera and microphone access, then check your internet connection.
+            Please allow camera and microphone access to continue.
           </p>
         )}
       </div>
