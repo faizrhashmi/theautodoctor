@@ -11,8 +11,6 @@ import {
   LogOut,
   PlayCircle,
   RefreshCw,
-  XCircle,
-  Eye,
   Calendar,
   TrendingUp,
   Activity,
@@ -37,7 +35,7 @@ type SessionRequest = {
   id: string
   customer_name: string | null
   customer_email: string | null
-  description: string
+  description: string | null
   session_type: string
   plan_code: string
   status: string
@@ -46,7 +44,7 @@ type SessionRequest = {
 
 type Session = {
   id: string
-  customer_user_id: string
+  customer_user_id: string | null
   status: SessionStatus
   plan: string | null
   type: string

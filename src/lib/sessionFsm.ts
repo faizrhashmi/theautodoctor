@@ -57,40 +57,40 @@ export class SessionTransitionError extends Error {
  * - archived: Session is archived (historical record)
  */
 const STATE_TRANSITIONS: Record<SessionState, SessionState[]> = {
-  // PENDING – initial state before scheduling
+  // PENDING - initial state before scheduling
   pending: ['scheduled', 'cancelled', 'expired', 'unattended'],
 
-  // SCHEDULED – can move to accepted/waiting, go live directly, cancel, or expire
+  // SCHEDULED - can move to accepted/waiting, go live directly, cancel, or expire
   scheduled: ['accepted', 'waiting', 'live', 'cancelled', 'expired'],
 
-  // ACCEPTED – mechanic accepted but not started yet
+  // ACCEPTED - mechanic accepted but not started yet
   accepted: ['waiting', 'live', 'cancelled', 'expired', 'reconnecting'],
 
-  // WAITING – mechanic accepted, waiting to start
+  // WAITING - mechanic accepted, waiting to start
   waiting: ['live', 'cancelled', 'expired'],
 
-  // RECONNECTING – temporary state while participants reconnect
+  // RECONNECTING - temporary state while participants reconnect
   reconnecting: ['live', 'cancelled', 'expired'],
 
-  // LIVE – active session
+  // LIVE - active session
   live: ['completed', 'cancelled', 'expired'],
 
-  // COMPLETED – may proceed to refund or archive
+  // COMPLETED - may proceed to refund or archive
   completed: ['refunded', 'archived'],
 
-  // CANCELLED – may proceed to refund or archive
+  // CANCELLED - may proceed to refund or archive
   cancelled: ['refunded', 'archived'],
 
-  // UNATTENDED – follow-up for sessions never started
+  // UNATTENDED - follow-up for sessions never started
   unattended: ['refunded', 'archived'],
 
-  // EXPIRED – timed out session
+  // EXPIRED - timed out session
   expired: ['refunded', 'archived'],
 
-  // REFUNDED – only archived afterwards
+  // REFUNDED - only archived afterwards
   refunded: ['archived'],
 
-  // ARCHIVED – terminal state
+  // ARCHIVED - terminal state
   archived: [],
 }// ============================================================================
 // PUBLIC API

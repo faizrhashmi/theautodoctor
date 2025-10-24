@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText, Upload, X, Loader2, CheckCircle } from 'lucide-react'
+import { Upload, X, Loader2, CheckCircle } from 'lucide-react'
 
 interface SummaryFormData {
   findings: string
