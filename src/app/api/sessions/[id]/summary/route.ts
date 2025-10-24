@@ -162,9 +162,11 @@ export async function POST(
       hasPhotos: photoUrls.length > 0,
     })
 
-    // Send email to customer
+    // Send email to customer using new branded template
     try {
-      await sendSummaryEmail({
+      const { sendSummaryDeliveredEmail } = await import('@/lib/email/templates')
+
+      await sendSummaryDeliveredEmail({
         sessionId,
         customerEmail: session.customer?.email || '',
         customerName: session.customer?.full_name || 'Customer',

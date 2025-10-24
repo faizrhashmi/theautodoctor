@@ -1,0 +1,98 @@
+TASKS TO BE PERFORMED:
+
+CRON JOB
+🚀 How to Deploy on Render
+Quick Start (Recommended)
+Push to GitHub:
+git add .
+git commit -m "Add Render deployment config"
+git push
+Deploy via Blueprint:
+Go to Render Dashboard
+Click "New +" → "Blueprint"
+Select your repository
+Click "Apply"
+Render auto-creates web service + cron job
+Add Environment Variables:
+Go to your web service settings
+Add all required env vars (see RENDER_DEPLOYMENT.md)
+Copy the CRON_SECRET to the cron job service
+Run Database Migrations:
+In Supabase Studio, run migrations/06_session_extensions_and_files.sql
+Run migrations/07_session_summaries.sql
+Create Storage Bucket:
+Create session-files bucket in Supabase Storage
+Add RLS policies (see deployment guide)
+Test:
+Visit your Render app URL
+Trigger the cron job manually to test
+Verify logs show successful execution
+📊 Cron Job on Render
+Your cron job will:
+Run every 5 minutes automatically
+Call /api/cron/monitor-sessions endpoint
+Nudge mechanics if sessions stuck (3+ min)
+Alert support if issues detected (2+ min)
+Auto-end sessions running too long (3+ hours)
+Send emails via Resend API
+Log all actions to Render logs
+Cost: $1/month for the cron job service
+Alternative: Free External Cron
+If you want to save $1/month, you can use a free external cron service instead:
+Delete Render cron job service
+Sign up at cron-job.org (free)
+Create cron job:
+URL: https://your-app.onrender.com/api/cron/monitor-sessions
+Schedule: Every 5 minutes
+Header: Authorization: Bearer YOUR_CRON_SECRET
+See the RENDER_DEPLOYMENT.md guide for detailed instructions.
+
+
+🚀 Remaining Steps Before Production
+1. Run Migration 07 (2 min)
+-- In Supabase Studio → SQL Editor
+-- Run migrations/07_session_summaries.sql
+2. Configure Environment Variables
+Add to your .env.local and Vercel:
+# Email service (Resend)
+RESEND_API_KEY=re_xxxxx
+EMAIL_FROM=The Auto Doctor <noreply@theautodoctor.com>
+
+# Support email for alerts
+SUPPORT_EMAIL=support@theautodoctor.com
+
+# Cron security
+CRON_SECRET=your-random-secret-here
+3. Setup Playwright (optional - for testing)
+npm install -D @playwright/test
+npx playwright install chromium
+4. Deploy to Vercel
+The vercel.json cron will automatically start running every 5 minutes in production.
+📊 Complete Feature Set
+You now have a production-grade session management system with: Tasks 1-6 (from previous session):
+✅ Server-authoritative timers
+✅ Idempotent Stripe extensions
+✅ Real file storage (Supabase)
+✅ WebSocket efficiency (channel reuse)
+✅ FSM-validated state transitions
+✅ Device preflight + reconnect UX
+✅ Production polish (no debug banners)
+Tasks 7-9 (just completed):
+✅ Post-session summary workflow with email
+✅ Proactive cron monitoring & alerts
+✅ Comprehensive E2E test coverage
+🎯 Test Checklist
+Before deploying, test these flows: Task 7:
+ Mechanic can submit summary after session ends
+ Photos upload successfully
+ Customer receives email with summary
+ Cannot submit summary twice
+Task 8:
+ Cron runs every 5 minutes (check Vercel logs)
+ Nudge emails sent for stuck sessions
+ Support alerts for problematic sessions
+ Auto-end works for 3+ hour sessions
+Task 9:
+ Run npx playwright test locally
+ All test scenarios pass
+ CI/CD pipeline includes tests

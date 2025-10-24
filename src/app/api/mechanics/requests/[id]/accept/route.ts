@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
+import { sendMechanicAssignedEmail } from '@/lib/email/templates'
 
 // Helper to get mechanic from custom auth cookie
 async function getMechanicFromCookie(_req: NextRequest) {
@@ -184,6 +185,22 @@ export async function POST(
     mechanicId: accepted.mechanic_id,
     mechanicName: mechanic.name ?? mechanic.email ?? 'Mechanic',
   })
+
+  // Send mechanic assigned email to customer
+  if (sessionRow && accepted.customer_email) {
+    try {
+      await sendMechanicAssignedEmail({
+        customerEmail: accepted.customer_email,
+        customerName: accepted.customer_name ?? 'Customer',
+        mechanicName: mechanic.name ?? mechanic.email ?? 'Your Mechanic',
+        sessionId: sessionRow.id,
+        estimatedStartTime: undefined, // Can be added later if we track estimated start times
+      })
+    } catch (emailError) {
+      console.error('[accept-request] Failed to send mechanic assigned email:', emailError)
+      // Don't fail the request if email fails
+    }
+  }
 
   return NextResponse.json({
     request: toSessionRequest(accepted),

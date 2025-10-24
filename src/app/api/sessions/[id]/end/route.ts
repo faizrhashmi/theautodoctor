@@ -6,6 +6,7 @@ import { PRICING, type PlanKey } from '@/config/pricing'
 import type { Database } from '@/types/supabase'
 import { assertTransition, canTransition, type SessionStatus } from '@/lib/sessionFsm'
 import { logInfo } from '@/lib/log'
+import { sendSessionEndedEmail } from '@/lib/email/templates'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -425,6 +426,43 @@ export async function POST(
     })
   } catch (broadcastError) {
     console.error('[end session] Failed to broadcast session:ended', broadcastError)
+  }
+
+  // Send session ended email to customer
+  try {
+    // Fetch customer and mechanic details for email
+    const { data: customer } = await supabaseAdmin
+      .from('users')
+      .select('email, full_name')
+      .eq('id', session.customer_user_id)
+      .single()
+
+    const { data: mechanic } = await supabaseAdmin
+      .from('mechanics')
+      .select('name, email')
+      .eq('user_id', session.mechanic_id)
+      .single()
+
+    if (customer?.email && mechanic) {
+      // Format duration for display
+      const hours = Math.floor(durationMinutes / 60)
+      const minutes = durationMinutes % 60
+      const durationStr = hours > 0
+        ? `${hours}h ${minutes}m`
+        : `${minutes} minutes`
+
+      await sendSessionEndedEmail({
+        customerEmail: customer.email,
+        customerName: customer.full_name || 'Customer',
+        mechanicName: mechanic.name || mechanic.email || 'Your Mechanic',
+        sessionId,
+        duration: durationStr,
+        hasSummary: false, // Will be updated when summary is submitted
+      })
+    }
+  } catch (emailError) {
+    console.error('[end session] Failed to send session ended email:', emailError)
+    // Don't fail the request if email fails
   }
 
   // CRITICAL FIX: Also mark the session_request as cancelled
