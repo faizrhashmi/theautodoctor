@@ -143,15 +143,16 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // Cancel any associated session request if it exists
+    // Mark any associated session request as completed
+    // CRITICAL FIX: Update ALL request statuses (pending, accepted, unattended)
     await supabaseAdmin
       .from('session_requests')
       .update({
-        status: 'cancelled',
+        status: 'completed',
         updated_at: now,
       })
       .eq('session_id', sessionId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'accepted', 'unattended']) // Update all active statuses
 
     const responseData = {
       success: true,
@@ -281,6 +282,19 @@ export async function POST(
     console.error('Failed to update session', updateError)
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
+
+  // CRITICAL FIX: Also mark the session_request as completed
+  // This prevents orphaned "accepted" requests from blocking mechanics
+  await supabaseAdmin
+    .from('session_requests')
+    .update({
+      status: 'completed',
+      updated_at: now,
+    })
+    .eq('session_id', sessionId)
+    .in('status', ['pending', 'accepted', 'unattended'])
+
+  console.log(`[end session] Updated session_request status to completed for session ${sessionId}`)
 
   // Check if this is a fetch request (JSON) or form POST (redirect)
   const contentType = req.headers.get('content-type')

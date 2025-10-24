@@ -1324,10 +1324,10 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                         <p className="font-semibold text-amber-200">🔒 You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''} assigned to you</p>
                         <p className="mt-1 text-sm text-amber-300/80">
                           Complete or cancel your current work before accepting new requests.
-                          Your active sessions persist even if you logout/login - they're your responsibility.
+                          Your active sessions persist even if you logout/login - they&apos;re your responsibility.
                         </p>
                         <p className="mt-2 text-xs text-amber-200/70">
-                          ↑ Scroll up to "MY ACTIVE WORK" section or use "Force End All" if stuck
+                          ↑ Scroll up to &quot;MY ACTIVE WORK&quot; section or use &quot;Force End All&quot; if stuck
                         </p>
                       </div>
                     </div>

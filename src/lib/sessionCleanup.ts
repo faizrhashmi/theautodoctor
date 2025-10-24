@@ -15,6 +15,7 @@ export interface CleanupStats {
   orphanedSessions: number
   unattendedRequests: number
   expiredTokens: number
+  orphanedAcceptedRequests: number
   totalCleaned: number
 }
 
@@ -184,6 +185,68 @@ export async function expireOldStripeTokens(
 }
 
 /**
+ * Clean up ORPHANED accepted requests (request accepted but session completed/cancelled)
+ *
+ * CRITICAL FIX: Sometimes when sessions end, the session_request isn't updated from 'accepted' to 'completed'.
+ * This leaves orphaned 'accepted' requests that block mechanics from accepting new requests.
+ * This function finds and fixes those orphaned requests.
+ *
+ * @returns Number of orphaned requests fixed
+ */
+export async function cleanupOrphanedAcceptedRequests(): Promise<number> {
+  // Find accepted requests where the corresponding session is completed or cancelled
+  const { data: acceptedRequests } = await supabaseAdmin
+    .from('session_requests')
+    .select('id, session_id, mechanic_id, accepted_at')
+    .eq('status', 'accepted')
+
+  if (!acceptedRequests || acceptedRequests.length === 0) {
+    return 0
+  }
+
+  const orphanedRequestIds: string[] = []
+
+  // Check each accepted request to see if its session is still active
+  for (const request of acceptedRequests) {
+    if (!request.session_id) {
+      // No session_id at all - definitely orphaned
+      orphanedRequestIds.push(request.id)
+      continue
+    }
+
+    // Check if the session is completed or cancelled
+    const { data: session } = await supabaseAdmin
+      .from('sessions')
+      .select('id, status')
+      .eq('id', request.session_id)
+      .maybeSingle()
+
+    if (!session || ['completed', 'cancelled'].includes(session.status?.toLowerCase() || '')) {
+      // Session doesn't exist or is completed/cancelled - this request is orphaned
+      orphanedRequestIds.push(request.id)
+      console.log(
+        `[sessionCleanup] Found orphaned accepted request ${request.id} ` +
+        `(session ${request.session_id} is ${session?.status || 'missing'})`
+      )
+    }
+  }
+
+  if (orphanedRequestIds.length === 0) {
+    return 0
+  }
+
+  console.log(`[sessionCleanup] Fixing ${orphanedRequestIds.length} orphaned accepted request(s)`)
+
+  // Mark orphaned requests as completed
+  await supabaseAdmin
+    .from('session_requests')
+    .update({ status: 'completed' })
+    .in('id', orphanedRequestIds)
+
+  return orphanedRequestIds.length
+}
+
+/**
  * Clean up old ACCEPTED requests that were never started
  *
  * REAL-TIME BUSINESS RULE: Accepted requests expire after 30 minutes.
@@ -295,11 +358,12 @@ export async function cleanupOrphanedSessions(
 export async function runFullCleanup(): Promise<CleanupStats> {
   console.log('[sessionCleanup] Running full cleanup...')
 
-  const [unattendedCount, expiredTokens, acceptedCount, orphanedCount] = await Promise.all([
+  const [unattendedCount, expiredTokens, acceptedCount, orphanedCount, orphanedAcceptedCount] = await Promise.all([
     markUnattendedRequests(), // Uses plan duration (30/45/60 min) - give customers full paid time
     expireOldStripeTokens(120), // 120 minutes (2 hours) - expire Stripe payment tokens
     cleanupAcceptedRequests(30), // 30 minutes - accepted requests that customers never joined
     cleanupOrphanedSessions(60), // 60 minutes - orphaned waiting sessions
+    cleanupOrphanedAcceptedRequests(), // CRITICAL: Fix orphaned accepted requests blocking mechanics
   ])
 
   const stats: CleanupStats = {
@@ -309,7 +373,8 @@ export async function runFullCleanup(): Promise<CleanupStats> {
     orphanedSessions: orphanedCount,
     unattendedRequests: unattendedCount,
     expiredTokens: expiredTokens,
-    totalCleaned: unattendedCount + expiredTokens + acceptedCount + orphanedCount,
+    orphanedAcceptedRequests: orphanedAcceptedCount,
+    totalCleaned: unattendedCount + expiredTokens + acceptedCount + orphanedCount + orphanedAcceptedCount,
   }
 
   if (stats.totalCleaned > 0) {
