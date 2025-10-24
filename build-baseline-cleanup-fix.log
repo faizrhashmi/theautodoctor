@@ -1,0 +1,37 @@
+
+> theautodoctor@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · turbo
+
+   Creating an optimized production build ...
+
+
+Source path: c:\Users\Faiz Hashmi\theautodoctor\src\app\globals.css
+Setting up new context...
+Finding changed files: 224.941ms
+Reading changed files: 3.325s
+Sorting candidates: 73.364ms
+Generate rules: 2.016s
+Build stylesheet: 27.017ms
+Potential classes:  15904
+Active contexts:  1
+JIT TOTAL: 6.937s
+
+
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/150) ...
+   Generating static pages (37/150) 
+[fix-schema] Dropping old foreign key constraint...
+[fix-schema] Attempting manual fix - please run this SQL in Supabase Studio:
+   Generating static pages (74/150) 
+   Generating static pages (112/150) 
+ ✓ Generating static pages (150/150)
+   Finalizing page optimization ...
+   Collecting build traces ...

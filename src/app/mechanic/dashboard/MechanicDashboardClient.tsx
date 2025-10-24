@@ -14,6 +14,9 @@ import {
   History,
   FileText,
   LogOut,
+  RefreshCw,
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import type { SessionRequest } from '@/types/session'
@@ -102,6 +105,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
   const [debugData, setDebugData] = useState<any>(null)
   const [isLoadingDebug, setIsLoadingDebug] = useState(false)
 
+  // Refresh and connection state
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date())
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [realtimeConnected, setRealtimeConnected] = useState(true)
+
   // Pagination state - show 10 items initially, expand by 10
   const ITEMS_PER_PAGE = 10
   const [visibleNewRequests, setVisibleNewRequests] = useState(ITEMS_PER_PAGE)
@@ -174,21 +182,34 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       setRequestsError(null)
 
       try {
-        const response = await fetch('/api/mechanics/requests?status=pending', {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        })
+        // Fetch both 'pending' and 'unattended' requests
+        // 'unattended' = requests that timed out but customers are still waiting
+        const [pendingResponse, unattendedResponse] = await Promise.all([
+          fetch('/api/mechanics/requests?status=pending', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          }),
+          fetch('/api/mechanics/requests?status=unattended', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          }),
+        ])
 
-        const body = (await response
+        const pendingBody = (await pendingResponse
           .json()
           .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
 
-        if (!response.ok) {
+        const unattendedBody = (await unattendedResponse
+          .json()
+          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
+
+        if (!pendingResponse.ok && !unattendedResponse.ok) {
           console.error(
             '[MECHANIC DASHBOARD] Failed to load new requests',
-            response.status,
-            body ?? {}
+            pendingResponse.status,
+            pendingBody ?? {}
           )
           if (!isMountedRef.current) return
           setRequestsError('Unable to load new requests right now.')
@@ -198,7 +219,12 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         if (!isMountedRef.current) return
 
-        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
+        // Combine pending and unattended requests
+        const pendingRequests = Array.isArray(pendingBody?.requests) ? pendingBody.requests : []
+        const unattendedRequests = Array.isArray(unattendedBody?.requests) ? unattendedBody.requests : []
+        const allRequests = [...pendingRequests, ...unattendedRequests]
+
+        const mapped = allRequests.map(mapRowToRequest)
 
         setNewRequests(
           mapped.sort(
@@ -219,24 +245,25 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     [mechanicId, mapRowToRequest]
   )
 
-  // Fetch ACTIVE SESSIONS (accepted but not started)
+  // Fetch ACTIVE SESSIONS - query sessions table directly (source of truth)
+  // Shows: waiting (accepted but not started) + live (in progress)
   const fetchActiveSessions = useCallback(
     async () => {
       if (!mechanicId) return
 
+      console.log('[fetchActiveSessions] Fetching active sessions for mechanic:', mechanicId)
+
       try {
-        const response = await fetch(`/api/mechanics/requests?status=accepted&mechanicId=${mechanicId}`, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          cache: 'no-store',
-        })
+        // Query sessions table directly - this is the source of truth
+        const { data: sessions, error } = await supabase
+          .from('sessions')
+          .select('id, status, type, plan, customer_user_id, created_at, started_at, metadata, intake_id')
+          .eq('mechanic_id', mechanicId)
+          .in('status', ['waiting', 'live']) // Both waiting (not started) and live (in progress)
+          .order('created_at', { ascending: false })
 
-        const body = (await response
-          .json()
-          .catch(() => null)) as { requests?: SessionRequestRow[] | null } | null
-
-        if (!response.ok) {
-          console.error('[MECHANIC DASHBOARD] Failed to load active sessions', response.status, body ?? {})
+        if (error) {
+          console.error('[fetchActiveSessions] Error:', error)
           if (!isMountedRef.current) return
           setActiveSessions([])
           return
@@ -244,21 +271,84 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
         if (!isMountedRef.current) return
 
-        const mapped = Array.isArray(body?.requests) ? body.requests.map(mapRowToRequest) : []
+        console.log('[fetchActiveSessions] Found sessions:', sessions?.length || 0)
 
-        setActiveSessions(
-          mapped.sort(
-            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
+        // Enrich with customer info and intake data
+        const enriched = await Promise.all(
+          (sessions || []).map(async (session) => {
+            const metadata = (session.metadata || {}) as Record<string, unknown>
+            let customerName = 'Customer'
+
+            // Try to get customer name from metadata
+            if (metadata.customer_name) customerName = String(metadata.customer_name)
+            else if (metadata.customerName) customerName = String(metadata.customerName)
+
+            // Get intake data if available
+            let intakeData: any = null
+            if (session.intake_id) {
+              const { data: intake } = await supabase
+                .from('intakes')
+                .select('*')
+                .eq('id', session.intake_id)
+                .maybeSingle()
+
+              intakeData = intake
+            }
+
+            // Get files
+            let files: any[] = []
+            const { data: sessionFiles } = await supabase
+              .from('session_files')
+              .select('id, file_name, file_size, file_type, file_url, created_at, description')
+              .eq('session_id', session.id)
+              .order('created_at', { ascending: false })
+
+            files = sessionFiles || []
+
+            return {
+              id: session.id, // This is the session ID
+              sessionId: session.id,
+              customerName,
+              customerId: session.customer_user_id,
+              sessionType: session.type,
+              planCode: session.plan,
+              status: session.status,
+              createdAt: session.created_at,
+              acceptedAt: session.created_at, // When session was created = when it was accepted
+              isLive: session.status === 'live',
+              intake: intakeData,
+              files,
+            }
+          })
         )
+
+        console.log('[fetchActiveSessions] Enriched sessions:', enriched.length)
+        setActiveSessions(enriched)
       } catch (error) {
-        console.error('[MECHANIC DASHBOARD] Failed to load active sessions', error)
+        console.error('[fetchActiveSessions] Failed to load active sessions', error)
         if (!isMountedRef.current) return
         setActiveSessions([])
       }
     },
-    [mechanicId, mapRowToRequest]
+    [mechanicId, supabase]
   )
+
+  // Manual refresh function (defined before loadSessions to avoid circular dependency)
+  const handleManualRefresh = useCallback(async () => {
+    console.log('[MECHANIC DASHBOARD] Manual refresh triggered')
+    setIsRefreshing(true)
+    try {
+      await Promise.all([
+        fetchNewRequests({ silent: true }),
+        fetchActiveSessions()
+      ])
+      setLastRefreshTime(new Date())
+    } catch (error) {
+      console.error('[MECHANIC DASHBOARD] Manual refresh failed:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [fetchNewRequests, fetchActiveSessions])
 
   const mapSessionRow = useCallback(
     (row: SessionRow): MechanicDashboardSession => {
@@ -352,7 +442,11 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       })
 
     channel.subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      console.log('[MECHANIC DASHBOARD] Realtime channel status:', status)
+      if (status === 'SUBSCRIBED') {
+        setRealtimeConnected(true)
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setRealtimeConnected(false)
         setRequestsError('Realtime updates unavailable. Refresh to see new requests.')
       }
     })
@@ -507,6 +601,22 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
       sessionsChannelRef.current = null
     }
   }, [loadSessions, mechanicId, supabase])
+
+  // Auto-refresh fallback every 60 seconds
+  useEffect(() => {
+    const AUTO_REFRESH_INTERVAL = 60000 // 60 seconds
+
+    const intervalId = setInterval(() => {
+      if (!isRefreshing) {
+        console.log('[MECHANIC DASHBOARD] Auto-refresh triggered')
+        void handleManualRefresh()
+      }
+    }, AUTO_REFRESH_INTERVAL)
+
+    return () => {
+      clearInterval(intervalId)
+    }
+  }, [handleManualRefresh, isRefreshing])
 
   const acceptRequest = async (requestId: string) => {
     if (!mechanicId) {
@@ -678,15 +788,48 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Welcome back, {mechanic.name}</h1>
-              <p className="mt-1 text-sm text-slate-400">Mechanic Dashboard</p>
+              <div className="mt-1 flex items-center gap-3">
+                <p className="text-sm text-slate-400">Mechanic Dashboard</p>
+                {/* Connection Status */}
+                <div className="flex items-center gap-1.5">
+                  {realtimeConnected ? (
+                    <>
+                      <Wifi className="h-3.5 w-3.5 text-green-400" />
+                      <span className="text-xs text-green-400">Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="h-3.5 w-3.5 text-amber-400" />
+                      <span className="text-xs text-amber-400">Offline</span>
+                    </>
+                  )}
+                </div>
+                {/* Last Refresh */}
+                <span className="text-xs text-slate-500">
+                  Updated {formatTimeAgo(lastRefreshTime)}
+                </span>
+              </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Refresh Button */}
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white disabled:opacity-50"
+                title="Refresh dashboard"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+              {/* Sign Out Button */}
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800/50 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-700/50 hover:text-white"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
           </div>
         </header>
 
@@ -911,7 +1054,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">New Requests</p>
+                <p className="text-sm text-slate-400">Pending Requests</p>
+                <p className="mt-1 text-xs text-slate-500">Available for all mechanics</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.newRequests}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/10">
@@ -923,7 +1067,8 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
           <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-400">Active Sessions</p>
+                <p className="text-sm text-slate-400">My Active Work</p>
+                <p className="mt-1 text-xs text-slate-500">Waiting + In Progress</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.activeSessions}</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
@@ -960,30 +1105,59 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
           {/* Main Content */}
           <div className="space-y-6">
-            {/* Active Sessions - Accepted but not started (TOP PRIORITY) */}
+            {/* Active Sessions - Accepted but not started (TOP PRIORITY - MUST BE HIGHLY VISIBLE) */}
             {activeSessions.length > 0 && (
-              <section className="rounded-3xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-6 shadow-2xl backdrop-blur">
-                <div className="mb-5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
-                      <CheckCircle2 className="h-6 w-6 text-white" />
-                      <span className="absolute -right-1 -top-1 flex h-4 w-4">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500"></span>
-                      </span>
+              <section className="space-y-4">
+                {/* ⚡ BIG UNMISSABLE ALERT BANNER ⚡ */}
+                <div className="rounded-2xl border-4 border-green-500 bg-gradient-to-r from-green-600/30 via-emerald-600/30 to-teal-600/30 p-6 shadow-2xl shadow-green-500/30">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg animate-pulse">
+                        <Radio className="h-8 w-8 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-white">
+                          ⚡ MY ACTIVE WORK: {activeSessions.length}
+                        </h3>
+                        <p className="mt-1 text-base font-semibold text-green-100">
+                          Sessions assigned to you (persists across logout/login)
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Active Sessions</h2>
-                      <p className="text-sm text-green-300">
-                        Accepted requests ready to start
-                      </p>
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500 shadow-xl ring-4 ring-green-400/50">
+                      <span className="text-4xl font-black text-white">{activeSessions.length}</span>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                    {activeSessions.length} Active
-                  </span>
                 </div>
+
+                {/* Active Sessions List */}
+                <div className="rounded-3xl border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/5 p-6 shadow-2xl backdrop-blur">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                        <CheckCircle2 className="h-6 w-6 text-white" />
+                        <span className="absolute -right-1 -top-1 flex h-4 w-4">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500"></span>
+                        </span>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-white">Your Committed Work</h2>
+                        <p className="text-sm text-green-300">
+                          Must complete or cancel to accept new requests
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                        <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                        {activeSessions.length} Assigned
+                      </span>
+                      <span className="text-xs text-green-300/70">
+                        {activeSessions.filter(s => s.isLive).length} Live • {activeSessions.filter(s => !s.isLive).length} Waiting
+                      </span>
+                    </div>
+                  </div>
 
                 <div className="space-y-4">
                   {activeSessions.slice(0, 1).map((item) => (
@@ -997,14 +1171,14 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                             <div className="flex items-center gap-2">
                               <p className="text-lg font-semibold text-white">{item.customerName}</p>
                               {item.isLive ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
-                                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                                  Live Now
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">
+                                  <span className="inline-flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                                  🔴 Live Now
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
                                   <CheckCircle2 className="h-3 w-3" />
-                                  Accepted
+                                  ⏳ Waiting to Start
                                 </span>
                               )}
                             </div>
@@ -1118,39 +1292,42 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
                 <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/10 p-3">
                   <p className="text-xs text-green-200">
-                    <strong>Tip:</strong> Click &quot;Start Session&quot; to begin helping the customer. Click &quot;Cancel / Unlock&quot; to make this request available to other mechanics.
+                    <strong>💡 How It Works:</strong> Sessions assigned to you remain here even after logout/login.
+                    Click &quot;Start Session&quot; to begin work, or &quot;Cancel / Unlock&quot; to release back to all mechanics.
+                    You must complete or cancel before accepting new requests.
                   </p>
+                </div>
                 </div>
               </section>
             )}
 
-            {/* New Requests */}
+            {/* Pending Requests - Available to ALL mechanics */}
             <section className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-white">New Requests</h2>
-                  <p className="mt-1 text-sm text-slate-400">Customers waiting for help</p>
+                  <h2 className="text-xl font-bold text-white">Pending Requests</h2>
+                  <p className="mt-1 text-sm text-slate-400">Available for ANY mechanic to claim</p>
                 </div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-400">
                   <Radio className="h-3.5 w-3.5" />
-                  {newRequests.length} waiting
+                  {newRequests.length} unclaimed
                 </span>
               </div>
 
-              {/* BUSINESS RULE: Block accepting when mechanic has active/accepted session (ONE AT A TIME) */}
+              {/* BUSINESS RULE: Block accepting when mechanic has active work (ONE AT A TIME) */}
               {activeSessions.length > 0 && (
                 <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-400 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-semibold text-amber-200">You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''}</p>
+                        <p className="font-semibold text-amber-200">🔒 You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''} assigned to you</p>
                         <p className="mt-1 text-sm text-amber-300/80">
-                          Please complete or cancel your current session before accepting new requests.
-                          This ensures quality service for your current customer.
+                          Complete or cancel your current work before accepting new requests.
+                          Your active sessions persist even if you logout/login - they're your responsibility.
                         </p>
                         <p className="mt-2 text-xs text-amber-200/70">
-                          ↑ Scroll up to see your active session{activeSessions.length > 1 ? 's' : ''} or use the button to force-end if stuck.
+                          ↑ Scroll up to "MY ACTIVE WORK" section or use "Force End All" if stuck
                         </p>
                       </div>
                     </div>
@@ -1691,4 +1868,21 @@ function formatDate(iso: string | null | undefined) {
   const value = new Date(iso)
   if (Number.isNaN(value.getTime())) return '—'
   return value.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatTimeAgo(date: Date) {
+  const now = new Date()
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (seconds < 10) return 'just now'
+  if (seconds < 60) return `${seconds}s ago`
+
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }

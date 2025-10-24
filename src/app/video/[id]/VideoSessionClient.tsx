@@ -60,46 +60,80 @@ function ParticipantMonitor({
   const { localParticipant } = useLocalParticipant()
   const remoteParticipants = useRemoteParticipants()
 
+  // Track previous state to only log changes
+  const prevMechanicPresent = useRef<boolean | null>(null)
+  const prevCustomerPresent = useRef<boolean | null>(null)
+
   useEffect(() => {
     // Combine local and remote participants
-    const allParticipants = [localParticipant, ...remoteParticipants]
+    const allParticipants = [localParticipant, ...remoteParticipants].filter(Boolean)
 
-    console.log('[ParticipantMonitor] All participants:', allParticipants.length)
+    // Helper function to determine role from both metadata AND identity pattern
+    const getParticipantRole = (participant: any): 'mechanic' | 'customer' | null => {
+      if (!participant) return null
 
-    // Filter for mechanic
-    const mechanicParticipants = allParticipants.filter((participant) => {
-      const metadata = participant.metadata
-      try {
-        const parsed = metadata ? JSON.parse(metadata) : {}
-        console.log('[ParticipantMonitor] Participant:', participant.identity, 'Role:', parsed.role)
-        return parsed.role === 'mechanic'
-      } catch (error) {
-        console.error('[ParticipantMonitor] Error parsing metadata for', participant.identity, error)
-        return false
+      // Method 1: Try to parse metadata (preferred method)
+      if (participant.metadata) {
+        try {
+          const parsed = JSON.parse(participant.metadata)
+          if (parsed.role === 'mechanic' || parsed.role === 'customer') {
+            return parsed.role
+          }
+        } catch {
+          // Silently fail and try fallback
+        }
       }
-    })
 
-    // Filter for customer
-    const customerParticipants = allParticipants.filter((participant) => {
-      const metadata = participant.metadata
-      try {
-        const parsed = metadata ? JSON.parse(metadata) : {}
-        return parsed.role === 'customer'
-      } catch {
-        return false
+      // Method 2: FALLBACK - Parse identity pattern (mechanic-{id} or customer-{id})
+      if (participant.identity) {
+        const identity = String(participant.identity)
+        if (identity.startsWith('mechanic-')) return 'mechanic'
+        if (identity.startsWith('customer-')) return 'customer'
       }
-    })
 
-    console.log('[ParticipantMonitor] Mechanic participants:', mechanicParticipants.length)
-    console.log('[ParticipantMonitor] Customer participants:', customerParticipants.length)
+      return null
+    }
 
-    if (mechanicParticipants.length > 0) {
+    // Filter for mechanic and customer using the robust detection method
+    const mechanicParticipants = allParticipants.filter((p) => getParticipantRole(p) === 'mechanic')
+    const customerParticipants = allParticipants.filter((p) => getParticipantRole(p) === 'customer')
+
+    const mechanicPresent = mechanicParticipants.length > 0
+    const customerPresent = customerParticipants.length > 0
+
+    // ONLY LOG WHEN STATE CHANGES (prevents console spam)
+    if (prevMechanicPresent.current !== mechanicPresent || prevCustomerPresent.current !== customerPresent) {
+      console.log('[ParticipantMonitor] ===== PRESENCE STATE CHANGE =====')
+      console.log('[ParticipantMonitor] Total participants:', allParticipants.length)
+
+      // Log each participant's detected role
+      allParticipants.forEach((p) => {
+        const role = getParticipantRole(p)
+        console.log(`[ParticipantMonitor]   - ${p.identity}: ${role || 'UNKNOWN'}`, {
+          metadata: p.metadata,
+          hasMetadata: !!p.metadata,
+          identity: p.identity
+        })
+      })
+
+      console.log('[ParticipantMonitor] Results:')
+      console.log(`[ParticipantMonitor]   Mechanic present: ${mechanicPresent} (was: ${prevMechanicPresent.current})`)
+      console.log(`[ParticipantMonitor]   Customer present: ${customerPresent} (was: ${prevCustomerPresent.current})`)
+      console.log('[ParticipantMonitor] ================================')
+
+      // Update tracked state
+      prevMechanicPresent.current = mechanicPresent
+      prevCustomerPresent.current = customerPresent
+    }
+
+    // Update presence state
+    if (mechanicPresent) {
       onMechanicJoined()
     } else {
       onMechanicLeft()
     }
 
-    if (customerParticipants.length > 0) {
+    if (customerPresent) {
       onCustomerJoined()
     } else {
       onCustomerLeft()
@@ -641,6 +675,22 @@ export default function VideoSessionClient({
           >
             ← Dashboard
           </a>
+
+          {/* ROLE INDICATOR - Shows exactly what role you are assigned */}
+          <div className={`rounded-full border-2 px-4 py-2 text-sm font-bold backdrop-blur ${
+            _userRole === 'mechanic'
+              ? 'border-blue-400 bg-blue-500/20 text-blue-100'
+              : 'border-green-400 bg-green-500/20 text-green-100'
+          }`}>
+            {_userRole === 'mechanic' ? '🔧 YOU ARE: MECHANIC' : '👤 YOU ARE: CUSTOMER'}
+          </div>
+
+          {/* Debug info (only in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-200">
+              ID: {_userId.slice(0, 8)}
+            </div>
+          )}
         </div>
 
         {sessionStarted && sessionStartTime && (

@@ -21,6 +21,9 @@ export interface CleanupStats {
 /**
  * Clean up old "waiting" sessions for a specific customer
  *
+ * CRITICAL SAFETY RULE: NEVER cancel sessions if a mechanic has been assigned!
+ * Only clean up truly abandoned sessions where NO mechanic accepted.
+ *
  * @param customerId - The customer user ID
  * @param maxAgeMinutes - Maximum age in minutes (default: 15)
  * @returns Number of sessions cleaned
@@ -31,76 +34,106 @@ export async function cleanupCustomerWaitingSessions(
 ): Promise<number> {
   const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
 
+  // SAFETY: Only find sessions with NO mechanic assigned (truly abandoned)
   const { data: oldSessions } = await supabaseAdmin
     .from('sessions')
-    .select('id, created_at')
+    .select('id, created_at, mechanic_id')
     .eq('customer_user_id', customerId)
     .eq('status', 'waiting')
+    .is('mechanic_id', null) // CRITICAL: Only unassigned sessions
     .lt('created_at', cutoffTime)
 
   if (!oldSessions || oldSessions.length === 0) {
     return 0
   }
 
-  console.log(`[sessionCleanup] Cancelling ${oldSessions.length} old waiting session(s) for customer ${customerId}`)
+  console.log(`[sessionCleanup] Cancelling ${oldSessions.length} old UNASSIGNED waiting session(s) for customer ${customerId}`)
 
   await supabaseAdmin
     .from('sessions')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('customer_user_id', customerId)
     .eq('status', 'waiting')
+    .is('mechanic_id', null) // SAFETY: Only cancel unassigned sessions
     .lt('created_at', cutoffTime)
 
   return oldSessions.length
 }
 
 /**
- * Mark unattended session requests (no mechanic accepted within 5 minutes)
+ * Mark unattended session requests based on PLAN DURATION
  *
- * REAL-TIME BUSINESS RULE: Pending requests not accepted after 5 minutes become 'unattended'.
- * These are hidden from mechanics but visible to admins for manual assignment.
- * Stripe payment token is still valid for 2 hours, so admin can reassign within that window.
+ * IMPROVED BUSINESS RULE: Customers paid for a specific session duration (30/45/60 min).
+ * Give them the FULL DURATION they paid for before marking as unattended.
+ * - chat10: 30 minutes paid → wait 30 minutes before marking unattended
+ * - video15: 45 minutes paid → wait 45 minutes before marking unattended
+ * - diagnostic: 60 minutes paid → wait 60 minutes before marking unattended
  *
- * @param maxAgeMinutes - Maximum age in minutes (default: 5 minutes for real-time business)
+ * After unattended, requests remain valid until Stripe token expires (120 min total).
+ * This gives customers and mechanics their full paid time to join the session.
+ *
  * @returns Number of requests marked as unattended
  */
-export async function markUnattendedRequests(
-  maxAgeMinutes: number = 5
-): Promise<number> {
-  const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
-
-  // Find old pending requests (> 5 minutes old by default)
-  // Real-time business: if no mechanic accepts within 5 minutes, mark as unattended
-  const { data: oldRequests } = await supabaseAdmin
+export async function markUnattendedRequests(): Promise<number> {
+  // Get all pending requests with their session info
+  const { data: pendingRequests } = await supabaseAdmin
     .from('session_requests')
-    .select('id, customer_id')
+    .select('id, customer_id, created_at, plan_code')
     .eq('status', 'pending')
     .is('mechanic_id', null)
-    .lt('created_at', cutoffTime)
 
-  if (!oldRequests || oldRequests.length === 0) {
+  if (!pendingRequests || pendingRequests.length === 0) {
     return 0
   }
 
-  console.log(`[sessionCleanup] Marking ${oldRequests.length} pending request(s) as unattended (older than ${maxAgeMinutes} minutes)`)
+  // Map plan codes to their durations (in minutes)
+  const planDurations: Record<string, number> = {
+    'chat10': 30,      // Quick Chat: 30 minutes
+    'video15': 45,     // Standard Video: 45 minutes
+    'diagnostic': 60,  // Full Diagnostic: 60 minutes
+  }
 
-  // Mark as unattended (don't cancel - admin can still assign)
+  const now = Date.now()
+  const requestsToMarkUnattended: string[] = []
+
+  // Check each request individually based on its plan duration
+  for (const request of pendingRequests) {
+    const planDuration = planDurations[request.plan_code] || 30 // Default to 30 min
+    const requestAge = (now - new Date(request.created_at).getTime()) / (1000 * 60) // Age in minutes
+
+    if (requestAge > planDuration) {
+      requestsToMarkUnattended.push(request.id)
+      console.log(
+        `[sessionCleanup] Request ${request.id} (plan: ${request.plan_code}, duration: ${planDuration}min) ` +
+        `is ${Math.round(requestAge)}min old → marking as unattended`
+      )
+    }
+  }
+
+  if (requestsToMarkUnattended.length === 0) {
+    return 0
+  }
+
+  console.log(`[sessionCleanup] Marking ${requestsToMarkUnattended.length} pending request(s) as unattended (exceeded plan duration)`)
+
+  // Mark as unattended (don't cancel - mechanics/admins can still accept)
   await supabaseAdmin
     .from('session_requests')
     .update({ status: 'unattended' })
-    .eq('status', 'pending')
-    .is('mechanic_id', null)
-    .lt('created_at', cutoffTime)
+    .in('id', requestsToMarkUnattended)
 
-  return oldRequests.length
+  return requestsToMarkUnattended.length
 }
 
 /**
  * Expire requests with old Stripe tokens (> 2 hours)
  *
+ * CRITICAL SAFETY RULE: NEVER expire requests or cancel sessions if a mechanic has been assigned!
+ * Only clean up truly abandoned requests where NO mechanic accepted.
+ *
  * BUSINESS RULE: Stripe payment sessions expire after 2 hours.
  * After that, the payment token is no longer valid and customer must re-request.
- * This applies to both 'pending' and 'unattended' requests.
+ * This applies to both 'pending' and 'unattended' requests WHERE NO MECHANIC WAS ASSIGNED.
  *
  * @param maxAgeMinutes - Maximum age in minutes (default: 120 minutes = 2 hours)
  * @returns Number of requests expired
@@ -110,35 +143,40 @@ export async function expireOldStripeTokens(
 ): Promise<number> {
   const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000).toISOString()
 
-  // Find requests with expired Stripe tokens (> 2 hours old)
+  // SAFETY: Only find requests with NO mechanic assigned (truly abandoned)
   const { data: expiredRequests } = await supabaseAdmin
     .from('session_requests')
-    .select('id, customer_id')
+    .select('id, customer_id, mechanic_id')
     .in('status', ['pending', 'unattended'])
+    .is('mechanic_id', null) // CRITICAL: Only unassigned requests
     .lt('created_at', cutoffTime)
 
   if (!expiredRequests || expiredRequests.length === 0) {
     return 0
   }
 
-  console.log(`[sessionCleanup] Expiring ${expiredRequests.length} request(s) with old Stripe tokens (older than ${maxAgeMinutes} minutes)`)
+  console.log(`[sessionCleanup] Expiring ${expiredRequests.length} UNASSIGNED request(s) with old Stripe tokens (older than ${maxAgeMinutes} minutes)`)
 
   // Mark as expired (payment token no longer valid)
   await supabaseAdmin
     .from('session_requests')
     .update({ status: 'expired' })
     .in('status', ['pending', 'unattended'])
+    .is('mechanic_id', null) // SAFETY: Only unassigned
     .lt('created_at', cutoffTime)
 
-  // Cancel associated waiting sessions
+  // SAFETY: Only cancel sessions that have NO mechanic assigned
   const customerIds = [...new Set(expiredRequests.map(r => r.customer_id))]
 
   if (customerIds.length > 0) {
+    console.log(`[sessionCleanup] Cancelling waiting sessions for ${customerIds.length} customer(s) with no mechanic assigned`)
+
     await supabaseAdmin
       .from('sessions')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .in('customer_user_id', customerIds)
       .eq('status', 'waiting')
+      .is('mechanic_id', null) // CRITICAL: Only cancel sessions with no mechanic
       .lt('created_at', cutoffTime)
   }
 
@@ -246,8 +284,8 @@ export async function cleanupOrphanedSessions(
  * Comprehensive cleanup - runs all cleanup operations
  * Safe to call frequently, will only clean up problematic sessions
  *
- * TWO-TIER TIMEOUT SYSTEM:
- * - Pending requests → unattended: 5 minutes (no mechanic accepted, needs admin assignment)
+ * IMPROVED TIMEOUT SYSTEM (Plan Duration-Based):
+ * - Pending requests → unattended: Plan duration (30/45/60 min based on what customer paid for)
  * - Unattended → expired: 120 minutes (Stripe token expires, customer must re-request)
  * - Accepted requests: 30 minutes (if customer doesn't join, free up mechanic)
  * - Orphaned sessions: 60 minutes (waiting sessions without valid requests)
@@ -258,7 +296,7 @@ export async function runFullCleanup(): Promise<CleanupStats> {
   console.log('[sessionCleanup] Running full cleanup...')
 
   const [unattendedCount, expiredTokens, acceptedCount, orphanedCount] = await Promise.all([
-    markUnattendedRequests(5), // 5 minutes - mark as unattended for admin assignment
+    markUnattendedRequests(), // Uses plan duration (30/45/60 min) - give customers full paid time
     expireOldStripeTokens(120), // 120 minutes (2 hours) - expire Stripe payment tokens
     cleanupAcceptedRequests(30), // 30 minutes - accepted requests that customers never joined
     cleanupOrphanedSessions(60), // 60 minutes - orphaned waiting sessions
@@ -310,25 +348,41 @@ export async function checkCustomerSessionStatus(customerId: string): Promise<{
 
   const session = activeSessions[0]!
 
-  // Double-check: If it's a waiting session, make sure it's recent
-  if (session.status === 'waiting') {
-    const sessionAge = Date.now() - new Date(session.created_at).getTime()
+  // Fetch full session details to check mechanic assignment
+  const { data: fullSession } = await supabaseAdmin
+    .from('sessions')
+    .select('id, status, created_at, mechanic_id')
+    .eq('id', session.id)
+    .maybeSingle()
+
+  if (!fullSession) {
+    return { blocked: false }
+  }
+
+  // CRITICAL SAFETY: If it's a waiting session, check if it's assigned before cancelling
+  if (fullSession.status === 'waiting') {
+    const sessionAge = Date.now() - new Date(fullSession.created_at).getTime()
     const fifteenMinutes = 15 * 60 * 1000
 
     if (sessionAge > fifteenMinutes) {
-      // This should have been cleaned up already, but force clean it now
-      console.log(`[sessionCleanup] Force-cancelling stale waiting session ${session.id}`)
-      await supabaseAdmin
-        .from('sessions')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', session.id)
+      // SAFETY CHECK: Only cancel if NO mechanic is assigned
+      if (!fullSession.mechanic_id) {
+        console.log(`[sessionCleanup] Force-cancelling stale UNASSIGNED waiting session ${fullSession.id}`)
+        await supabaseAdmin
+          .from('sessions')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('id', fullSession.id)
+          .is('mechanic_id', null) // SAFETY: Double-check no mechanic assigned
 
-      return { blocked: false }
+        return { blocked: false }
+      } else {
+        console.log(`[sessionCleanup] Session ${fullSession.id} is old but has mechanic ${fullSession.mechanic_id} assigned - NOT cancelling`)
+      }
     }
   }
 
   return {
     blocked: true,
-    session: { id: session.id, status: session.status ?? 'unknown', created_at: session.created_at },
+    session: { id: fullSession.id, status: fullSession.status ?? 'unknown', created_at: fullSession.created_at },
   }
 }

@@ -46,11 +46,13 @@ export async function POST(
 
   const now = new Date().toISOString()
 
+  // Allow accepting both 'pending' and 'unattended' requests
+  // 'unattended' = request timed out but customer is still waiting
   const { data: accepted, error: updateError} = await supabaseAdmin
     .from('session_requests')
     .update({ mechanic_id: mechanic.id, status: 'accepted', accepted_at: now })
     .eq('id', requestId)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'unattended'])
     .is('mechanic_id', null)
     .select()
     .maybeSingle()

@@ -1,0 +1,39 @@
+
+> theautodoctor@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · turbo
+
+   Creating an optimized production build ...
+
+
+Source path: c:\Users\Faiz Hashmi\theautodoctor\src\app\globals.css
+Setting up new context...
+Finding changed files: 420.528ms
+Reading changed files: 4.354s
+Sorting candidates: 204.889ms
+Generate rules: 2.709s
+Build stylesheet: 41.639ms
+Potential classes:  15904
+Active contexts:  1
+JIT TOTAL: 9.608s
+
+
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+unhandledRejection Error [PageNotFoundError]: Cannot find module for page: /_document
+    at getPagePath (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\require.js:94:15)
+    at requirePage (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\require.js:99:22)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\load-components.js:72:65
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\load-components.js:71:33)
+    at async Object.hasCustomGetInitialProps (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\build\utils.js:1274:24) {
+  type: 'PageNotFoundError',
+  code: 'ENOENT'
+}

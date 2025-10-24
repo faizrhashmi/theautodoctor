@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
   // Get query parameters for filtering
   const { searchParams } = new URL(req.url)
   const statusParam = searchParams.get('status') || 'pending'
-  const status = ['pending', 'accepted', 'cancelled'].includes(statusParam)
-    ? (statusParam as 'pending' | 'accepted' | 'cancelled')
+  const status = ['pending', 'accepted', 'cancelled', 'unattended'].includes(statusParam)
+    ? (statusParam as 'pending' | 'accepted' | 'cancelled' | 'unattended')
     : 'pending'
   const mechanicId = searchParams.get('mechanicId')
 
