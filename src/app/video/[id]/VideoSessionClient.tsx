@@ -10,11 +10,12 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
-import { Track } from 'livekit-client'
+import { Track, ConnectionQuality } from 'livekit-client'
 import {
   Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
-  Maximize2, Minimize2, SwitchCamera
+  Maximize2, Minimize2, SwitchCamera, Flashlight, Camera, Wifi, WifiOff,
+  MessageCircle, Send
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
@@ -46,6 +47,35 @@ interface VideoSessionClientProps {
   mechanicId: string | null
   customerId: string | null
   dashboardUrl: string
+}
+
+// Connection Quality Indicator Component
+function ConnectionQualityBadge() {
+  const { connectionQuality } = useLocalParticipant()
+
+  const getQualityInfo = (quality: ConnectionQuality) => {
+    switch (quality) {
+      case ConnectionQuality.Excellent:
+        return { label: 'Excellent', color: 'bg-green-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
+      case ConnectionQuality.Good:
+        return { label: 'Good', color: 'bg-green-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
+      case ConnectionQuality.Poor:
+        return { label: 'Poor', color: 'bg-orange-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
+      case ConnectionQuality.Lost:
+        return { label: 'Reconnecting', color: 'bg-red-500', icon: <WifiOff className="h-3 w-3 sm:h-4 sm:w-4" /> }
+      default:
+        return { label: 'Unknown', color: 'bg-slate-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
+    }
+  }
+
+  const quality = getQualityInfo(connectionQuality)
+
+  return (
+    <div className={`flex items-center gap-1.5 rounded-full ${quality.color} px-2 py-1 text-white sm:gap-2 sm:px-3 sm:py-1.5`}>
+      {quality.icon}
+      <span className="text-[10px] font-medium sm:text-xs">{quality.label}</span>
+    </div>
+  )
 }
 
 function ParticipantMonitor({
@@ -209,14 +239,26 @@ function SessionTimer({
 function VideoControls({
   onEndSession,
   onUploadFile,
+  onCaptureScreenshot,
+  capturingScreenshot,
+  showChat,
+  onToggleChat,
+  unreadCount,
 }: {
   onEndSession: () => void
   onUploadFile: (file: File) => void
+  onCaptureScreenshot: (blob: Blob) => void
+  capturingScreenshot: boolean
+  showChat: boolean
+  onToggleChat: () => void
+  unreadCount: number
 }) {
   const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([])
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0)
+  const [isFlashlightOn, setIsFlashlightOn] = useState(false)
+  const [torchSupported, setTorchSupported] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Enumerate available cameras on mount
@@ -232,6 +274,30 @@ function VideoControls({
       }
     }
     getCameras()
+  }, [])
+
+  // Check if device supports torch (flashlight)
+  useEffect(() => {
+    async function checkTorchSupport() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        })
+        const track = stream.getVideoTracks()[0]
+        const capabilities = track.getCapabilities()
+
+        // @ts-ignore - torch is not in TypeScript types yet
+        if (capabilities.torch) {
+          setTorchSupported(true)
+          console.log('[VideoControls] Torch supported')
+        }
+
+        track.stop()
+      } catch (error) {
+        console.log('[VideoControls] Torch not supported or error checking:', error)
+      }
+    }
+    checkTorchSupport()
   }, [])
 
   const toggleCamera = useCallback(async () => {
@@ -282,6 +348,37 @@ function VideoControls({
     }
   }, [localParticipant, availableCameras, currentCameraIndex])
 
+  const toggleFlashlight = useCallback(async () => {
+    if (!torchSupported) {
+      console.log('[VideoControls] Torch not supported on this device')
+      return
+    }
+
+    try {
+      console.log('[VideoControls] Toggling flashlight, current state:', isFlashlightOn)
+
+      // Get the current video track from LiveKit
+      const videoTrack = await localParticipant.getTrack(Track.Source.Camera)
+      if (!videoTrack || !videoTrack.mediaStreamTrack) {
+        console.error('[VideoControls] No camera track available')
+        return
+      }
+
+      const track = videoTrack.mediaStreamTrack as MediaStreamTrack
+
+      // @ts-ignore - torch is not in TypeScript types yet
+      await track.applyConstraints({
+        advanced: [{ torch: !isFlashlightOn }]
+      })
+
+      setIsFlashlightOn(!isFlashlightOn)
+      console.log('[VideoControls] Flashlight toggled successfully to:', !isFlashlightOn)
+    } catch (error) {
+      console.error('[VideoControls] Failed to toggle flashlight:', error)
+      // Silently fail - not critical enough for alert
+    }
+  }, [localParticipant, torchSupported, isFlashlightOn])
+
   const toggleScreenShare = useCallback(async () => {
     try {
       console.log('[VideoControls] Toggling screen share, current state:', isScreenShareEnabled)
@@ -311,6 +408,57 @@ function VideoControls({
     }
   }, [onUploadFile])
 
+  const captureScreenshot = useCallback(async () => {
+    try {
+      console.log('[VideoControls] Capturing screenshot')
+
+      // Find the main video element (not PIP)
+      const videos = document.querySelectorAll('video')
+      let mainVideo: HTMLVideoElement | null = null
+
+      // Find the largest video element (main view)
+      videos.forEach((video) => {
+        if (!mainVideo || video.clientWidth > mainVideo.clientWidth) {
+          mainVideo = video
+        }
+      })
+
+      if (!mainVideo || mainVideo.videoWidth === 0) {
+        console.error('[VideoControls] No video element found or video not ready')
+        alert('Unable to capture screenshot. Please ensure video is playing.')
+        return
+      }
+
+      // Create canvas with video dimensions
+      const canvas = document.createElement('canvas')
+      canvas.width = mainVideo.videoWidth
+      canvas.height = mainVideo.videoHeight
+
+      // Draw video frame to canvas
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        console.error('[VideoControls] Failed to get canvas context')
+        return
+      }
+
+      ctx.drawImage(mainVideo, 0, 0, canvas.width, canvas.height)
+
+      // Convert canvas to blob
+      canvas.toBlob((blob) => {
+        if (blob) {
+          console.log('[VideoControls] Screenshot captured successfully')
+          onCaptureScreenshot(blob)
+        } else {
+          console.error('[VideoControls] Failed to create blob from canvas')
+          alert('Failed to capture screenshot')
+        }
+      }, 'image/png')
+    } catch (error) {
+      console.error('[VideoControls] Error capturing screenshot:', error)
+      alert('Failed to capture screenshot. Please try again.')
+    }
+  }, [onCaptureScreenshot])
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
       {/* Camera Toggle */}
@@ -334,6 +482,21 @@ function VideoControls({
           title="Switch camera (front/back)"
         >
           <SwitchCamera className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      )}
+
+      {/* Flashlight Toggle (only show if torch supported) */}
+      {torchSupported && isCameraEnabled && (
+        <button
+          onClick={toggleFlashlight}
+          className={`rounded-lg p-2 transition sm:p-3 ${
+            isFlashlightOn
+              ? 'bg-yellow-500/80 text-white hover:bg-yellow-600'
+              : 'bg-slate-700/80 text-white hover:bg-slate-600'
+          }`}
+          title={isFlashlightOn ? 'Turn off flashlight' : 'Turn on flashlight'}
+        >
+          <Flashlight className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
       )}
 
@@ -379,6 +542,34 @@ function VideoControls({
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
 
+      {/* Screenshot Capture */}
+      <button
+        onClick={captureScreenshot}
+        disabled={capturingScreenshot}
+        className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50 sm:p-3"
+        title="Capture screenshot"
+      >
+        <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
+      </button>
+
+      {/* Chat Toggle */}
+      <button
+        onClick={onToggleChat}
+        className={`relative rounded-lg p-2 transition sm:p-3 ${
+          showChat
+            ? 'bg-blue-500/80 text-white hover:bg-blue-600'
+            : 'bg-slate-700/80 text-white hover:bg-slate-600'
+        }`}
+        title={showChat ? 'Close chat' : 'Open chat'}
+      >
+        <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+        {unreadCount > 0 && !showChat && (
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+
       {/* Fullscreen Toggle */}
       <button
         onClick={toggleFullscreen}
@@ -412,10 +603,10 @@ function VideoView({
   const remoteCameraTrack = cameraTracks.find((t) => !t.participant.isLocal)
   const screenShareTrack = screenTracks.find((t) => t.publication.isSubscribed)
 
-  // FIXED: Main video shows your own camera, PIP shows other person
-  // If someone is screen sharing, screen share is main, other person's camera is PIP
-  const mainTrack = screenShareTrack || localCameraTrack
-  const pipTrack = screenShareTrack ? remoteCameraTrack : remoteCameraTrack
+  // Main video shows OTHER person's camera (or screen share), PIP shows your own camera
+  // If someone is screen sharing, screen share is main, your camera is PIP
+  const mainTrack = screenShareTrack || remoteCameraTrack
+  const pipTrack = screenShareTrack ? localCameraTrack : localCameraTrack
 
   console.log('[VideoView] Tracks detected:', {
     hasLocal: !!localCameraTrack,
@@ -453,7 +644,7 @@ function VideoView({
         <div className="absolute bottom-2 right-2 z-10 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:bottom-3 sm:right-3 sm:h-32 sm:w-40 md:bottom-4 md:right-4 md:h-40 md:w-52 lg:h-48 lg:w-64">
           <VideoTrack
             trackRef={pipTrack}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
           <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-xs">
             {pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
@@ -488,11 +679,17 @@ export default function VideoSessionClient({
   const [timeWarning, setTimeWarning] = useState<string | null>(null)
   const [bothJoinedNotification, setBothJoinedNotification] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false)
   const [sharedFiles, setSharedFiles] = useState<Array<{ name: string; url: string; size: number }>>([])
   const [extendedDuration, setExtendedDuration] = useState<number | null>(null) // Track extensions
   const [showPreflight, setShowPreflight] = useState(true) // Task 6: Device preflight
   const [preflightPassed, setPreflightPassed] = useState(false)
   const [showReconnectBanner, setShowReconnectBanner] = useState(false) // Task 6: Reconnect UX
+  const [showChat, setShowChat] = useState(false) // Chat panel visibility
+  const [messages, setMessages] = useState<Array<{ sender: string; senderRole: string; text: string; timestamp: number }>>([])
+  const [messageInput, setMessageInput] = useState('')
+  const [unreadCount, setUnreadCount] = useState(0) // Unread message count
+  const chatContainerRef = useRef<HTMLDivElement>(null)
 
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
@@ -585,6 +782,45 @@ export default function VideoSessionClient({
       setShowReconnectBanner(false)
     }
   }, [mechanicPresent, customerPresent, sessionStarted])
+
+  // Chat: Subscribe to realtime messages
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chat:${sessionId}`)
+      .on('broadcast', { event: 'message' }, (payload) => {
+        const message = payload.payload
+        console.log('[CHAT] Received message:', message)
+
+        setMessages((prev) => [...prev, message])
+
+        // Increment unread count if chat is closed and message is from other person
+        if (!showChat && message.sender !== _userId) {
+          setUnreadCount((prev) => prev + 1)
+        }
+      })
+      .subscribe()
+
+    console.log('[CHAT] Subscribed to chat channel:', sessionId)
+
+    return () => {
+      console.log('[CHAT] Unsubscribing from chat channel')
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, sessionId, _userId, showChat])
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+    }
+  }, [messages])
+
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (showChat) {
+      setUnreadCount(0)
+    }
+  }, [showChat])
 
   const handleMechanicJoined = useCallback(() => {
     console.log('[VIDEO] Mechanic joined')
@@ -738,6 +974,72 @@ export default function VideoSessionClient({
       setUploadingFile(false)
     }
   }, [sessionId])
+
+  const handleScreenshotCapture = useCallback(async (blob: Blob) => {
+    setCapturingScreenshot(true)
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      const filename = `screenshot-${timestamp}.png`
+
+      const formData = new FormData()
+      formData.append('file', blob, filename)
+      formData.append('sessionId', sessionId)
+
+      const response = await fetch('/api/sessions/' + sessionId + '/files', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setSharedFiles((prev) => [...prev, {
+          name: filename,
+          url: data.url,
+          size: blob.size,
+        }])
+        // Show success feedback
+        alert('Screenshot captured and saved!')
+      } else {
+        alert('Failed to save screenshot')
+      }
+    } catch (error) {
+      console.error('Error capturing screenshot:', error)
+      alert('Failed to capture screenshot')
+    } finally {
+      setCapturingScreenshot(false)
+    }
+  }, [sessionId])
+
+  // Chat: Send message
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInput.trim()) return
+
+    const message = {
+      sender: _userId,
+      senderRole: _userRole,
+      text: messageInput.trim(),
+      timestamp: Date.now(),
+    }
+
+    try {
+      // Broadcast message to channel
+      await supabase
+        .channel(`chat:${sessionId}`)
+        .send({
+          type: 'broadcast',
+          event: 'message',
+          payload: message,
+        })
+
+      console.log('[CHAT] Sent message:', message)
+
+      // Clear input
+      setMessageInput('')
+    } catch (error) {
+      console.error('[CHAT] Error sending message:', error)
+      alert('Failed to send message. Please try again.')
+    }
+  }, [messageInput, _userId, _userRole, sessionId, supabase])
 
   // Task 6: Show preflight panel before joining
   if (showPreflight && !preflightPassed) {
@@ -896,6 +1198,13 @@ export default function VideoSessionClient({
         <VideoView userRole={_userRole} />
         <RoomAudioRenderer />
 
+        {/* Connection Quality Indicator - Top Right */}
+        {sessionStarted && (
+          <div className="absolute right-2 top-2 z-40 sm:right-3 sm:top-3 md:right-4 md:top-4">
+            <ConnectionQualityBadge />
+          </div>
+        )}
+
         {/* Video Controls - Bottom Bar */}
         {sessionStarted && (
           <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-700/50 bg-slate-900/90 p-2 backdrop-blur sm:p-3 md:p-4">
@@ -907,6 +1216,11 @@ export default function VideoSessionClient({
               <VideoControls
                 onEndSession={handleEndSession}
                 onUploadFile={handleFileUpload}
+                onCaptureScreenshot={handleScreenshotCapture}
+                capturingScreenshot={capturingScreenshot}
+                showChat={showChat}
+                onToggleChat={() => setShowChat(!showChat)}
+                unreadCount={unreadCount}
               />
             </div>
           </div>
@@ -934,6 +1248,98 @@ export default function VideoSessionClient({
                 </a>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Panel */}
+      {showChat && (
+        <div className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
+          {/* Chat Header */}
+          <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 p-3 sm:p-4">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-blue-400" />
+              <h3 className="font-semibold text-white">Chat</h3>
+            </div>
+            <button
+              onClick={() => setShowChat(false)}
+              className="rounded p-1 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Messages Container */}
+          <div
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto p-3 sm:p-4"
+          >
+            {messages.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-center text-sm text-slate-400">
+                  No messages yet. Start the conversation!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((msg, index) => {
+                  const isOwn = msg.sender === _userId
+                  return (
+                    <div
+                      key={index}
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                          isOwn
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-100'
+                        }`}
+                      >
+                        <div className="mb-1 flex items-center gap-2">
+                          <span className="text-xs font-semibold">
+                            {isOwn ? 'You' : msg.senderRole === 'mechanic' ? 'Mechanic' : 'Customer'}
+                          </span>
+                          <span className="text-[10px] opacity-70">
+                            {new Date(msg.timestamp).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="break-words text-sm">{msg.text}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Message Input */}
+          <div className="border-t border-slate-700 bg-slate-800 p-3 sm:p-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSendMessage()
+                  }
+                }}
+                placeholder="Type a message..."
+                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={!messageInput.trim()}
+                className="rounded-lg bg-blue-500 p-2 text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
