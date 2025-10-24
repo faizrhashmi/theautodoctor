@@ -549,21 +549,30 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
               acceptedAt: session.startedAt ?? session.scheduledStart,
               mechanicId: mechanicId,
               sessionId: session.id, // Already a started session
-              isLive: true, // Flag to indicate this is an active/live session
+              isLive: session.status === 'live', // FIXED: Derive from actual status
+              isWaiting: session.status === 'waiting', // NEW: Flag for waiting sessions
+              isAcceptedRequest: false, // This is a real session, not just an accepted request
             }))
 
           // Merge live sessions with accepted requests (from fetchActiveSessions)
           // Keep existing accepted requests and add any new live sessions
           setActiveSessions((prev) => {
             // Filter out any duplicates (sessions that were accepted requests but are now live)
-            const existingAccepted = prev.filter(item => !item.isLive)
+            const existingAccepted = prev.filter(item => item.isAcceptedRequest === true)
             const liveSessionIds = new Set(liveSessions.map(s => s.sessionId))
             const filteredAccepted = existingAccepted.filter(item => !liveSessionIds.has(item.sessionId))
 
-            // Combine and sort
-            return [...liveSessions, ...filteredAccepted].sort(
-              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            )
+            // FIXED: Combine and sort to prioritize actionable work
+            // 1. Sessions with sessionId come first (they're actionable)
+            // 2. Within each group, newest first
+            return [...liveSessions, ...filteredAccepted].sort((a, b) => {
+              // Prioritize items with sessionId (real sessions over accepted-request stubs)
+              if (a.sessionId && !b.sessionId) return -1
+              if (!a.sessionId && b.sessionId) return 1
+
+              // Both have or both don't have sessionId - sort by newest first
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            })
           })
 
           // Upcoming: Future scheduled sessions only

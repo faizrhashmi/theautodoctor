@@ -220,6 +220,28 @@ export async function cleanupAcceptedRequests(
     .eq('status', 'accepted')
     .lt('accepted_at', cutoffTime)
 
+  // CRITICAL FIX: Also release mechanics from associated waiting sessions
+  // This prevents mechanics from being deadlocked for 30+ minutes
+  const mechanicIds = [...new Set(oldAcceptedRequests.map(r => r.mechanic_id).filter(Boolean))]
+  const customerIds = oldAcceptedRequests.map(r => r.customer_id)
+
+  if (mechanicIds.length > 0 && customerIds.length > 0) {
+    console.log(`[sessionCleanup] Releasing ${mechanicIds.length} mechanic(s) from stale waiting sessions`)
+
+    // Find and cancel waiting sessions that match these mechanics + customers
+    await supabaseAdmin
+      .from('sessions')
+      .update({
+        status: 'cancelled',
+        mechanic_id: null, // CRITICAL: Release the mechanic
+        ended_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .in('customer_user_id', customerIds)
+      .in('mechanic_id', mechanicIds)
+      .eq('status', 'waiting')
+  }
+
   return oldAcceptedRequests.length
 }
 
