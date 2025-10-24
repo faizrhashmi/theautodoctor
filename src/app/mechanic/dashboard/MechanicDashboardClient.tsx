@@ -90,6 +90,7 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
 
   const [isLoadingRequests, setIsLoadingRequests] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
+  const [showStuckRequestError, setShowStuckRequestError] = useState(false)
   const [acceptingRequestId, setAcceptingRequestId] = useState<string | null>(null)
   const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null)
   const [acceptedSessionId, setAcceptedSessionId] = useState<string | null>(null)
@@ -712,12 +713,36 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
         }
       }
 
+      // FIX #3: HYDRATE activeSessions with sessionId from accept response
+      // This makes the accepted request immediately actionable (enables "Start Session")
+      if (payload && typeof payload === 'object' && 'session' in payload) {
+        const session = (payload as { session?: { id?: string } }).session
+        const request = (payload as { request?: { id?: string } }).request
+
+        if (session?.id && request?.id) {
+          console.log(`[accept-request] Hydrating activeSessions with sessionId:`, session.id)
+
+          // Inject sessionId into the accepted request row in activeSessions
+          setActiveSessions((prev) => prev.map((item) =>
+            item.id === request.id && item.isAcceptedRequest
+              ? { ...item, sessionId: session.id, isWaiting: true }
+              : item
+          ))
+        }
+      }
+
       // Remove from pending requests and reload sessions
       removeRequest(requestId)
       void loadSessions({ silent: true })
     } catch (error) {
       console.error('Accept request failed', error)
-      setRequestsError(error instanceof Error ? error.message : 'Unable to accept this request right now.')
+      const errorMessage = error instanceof Error ? error.message : 'Unable to accept this request right now.'
+      setRequestsError(errorMessage)
+
+      // Detect the specific "stuck accepted request" error
+      if (errorMessage.includes('already have an accepted request')) {
+        setShowStuckRequestError(true)
+      }
     } finally {
       setAcceptingRequestId(null)
     }
@@ -886,6 +911,42 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
     }
   }
 
+  const handleClearStuckRequests = async () => {
+    try {
+      console.log('[CLEAR STUCK REQUESTS] Calling API for mechanic:', mechanicId)
+
+      const response = await fetch('/api/mechanic/clear-stuck-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mechanicId })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to clear stuck requests')
+      }
+
+      console.log('[CLEAR STUCK REQUESTS] Success:', data)
+
+      // Hide error banner
+      setShowStuckRequestError(false)
+      setRequestsError(null)
+
+      // Refresh all data
+      await Promise.all([
+        fetchActiveSessions(),
+        fetchNewRequests({ silent: true }),
+        loadSessions({ silent: true })
+      ])
+
+      alert(`✓ Cleared ${data.cleared} stuck request(s)!\n\nYou can now accept new requests.`)
+    } catch (error: any) {
+      console.error('[CLEAR STUCK REQUESTS] Error:', error)
+      alert(`❌ Failed to clear stuck requests: ${error.message}`)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-7xl">
@@ -957,6 +1018,39 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
             </div>
           </div>
         </header>
+
+        {/* EMERGENCY: Stuck Request Error Banner */}
+        {showStuckRequestError && (
+          <div className="mb-6 rounded-3xl border-2 border-red-500/50 bg-gradient-to-r from-red-900/50 to-orange-900/50 p-6 backdrop-blur-sm animate-pulse">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/20">
+                <AlertCircle className="h-7 w-7 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-100">🚨 Stuck Request Detected</h3>
+                <p className="mt-2 text-sm text-red-200/90">
+                  You have an orphaned accepted request blocking you from accepting new work.
+                  This happens when a session ends but the request wasn&apos;t properly cleaned up.
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <button
+                    onClick={handleClearStuckRequests}
+                    className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Clear Stuck Requests (Fix Now)
+                  </button>
+                  <button
+                    onClick={() => setShowStuckRequestError(false)}
+                    className="text-sm text-red-200/70 underline hover:text-red-100"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Debug Panel Toggle Button */}
         <div className="mb-4 flex justify-end">
