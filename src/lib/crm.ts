@@ -74,7 +74,7 @@ export async function trackInteraction({
     const { data, error } = await supabaseAdmin.rpc('track_crm_interaction', {
       p_customer_id: customerId,
       p_interaction_type: interactionType,
-      p_session_id: sessionId || null,
+  p_session_id: sessionId as any,
       p_metadata: metadata as any,
     })
 
