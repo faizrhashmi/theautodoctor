@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { CheckCircle, XCircle, Loader2, Video, Mic } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Video, Mic, AlertTriangle } from 'lucide-react'
 
 type PreflightStatus = 'checking' | 'passed' | 'failed'
 
 interface DevicePreflightProps {
   onComplete: () => void
+  skipPreflight?: boolean // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
 }
 
-export function DevicePreflight({ onComplete }: DevicePreflightProps) {
+export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePreflightProps) {
   const [cameraStatus, setCameraStatus] = useState<PreflightStatus>('checking')
   const [micStatus, setMicStatus] = useState<PreflightStatus>('checking')
   const [networkStatus, setNetworkStatus] = useState<PreflightStatus>('checking')
@@ -18,6 +19,16 @@ export function DevicePreflight({ onComplete }: DevicePreflightProps) {
   const streamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
+    // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
+    // If skipPreflight is enabled, bypass all checks
+    if (skipPreflight) {
+      setCameraStatus('passed')
+      setMicStatus('passed')
+      setNetworkStatus('passed')
+      setNetworkRTT(50)
+      return
+    }
+
     testDevices()
     return () => {
       // Cleanup
@@ -25,7 +36,7 @@ export function DevicePreflight({ onComplete }: DevicePreflightProps) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
     }
-  }, [])
+  }, [skipPreflight])
 
   async function testDevices() {
     // Test camera
@@ -73,6 +84,17 @@ export function DevicePreflight({ onComplete }: DevicePreflightProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur">
       <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-2xl">
+        {/* ⚠️ TESTING MODE WARNING - REMOVE BEFORE PRODUCTION */}
+        {skipPreflight && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border-2 border-red-500 bg-red-500/20 p-4 text-red-200">
+            <AlertTriangle className="h-6 w-6 flex-shrink-0" />
+            <div>
+              <p className="font-bold">⚠️ TESTING MODE - PREFLIGHT CHECKS BYPASSED</p>
+              <p className="text-sm">Remove ?skipPreflight=true before production deployment</p>
+            </div>
+          </div>
+        )}
+
         <h2 className="mb-6 text-2xl font-bold text-white">Device Check</h2>
         <p className="mb-6 text-sm text-slate-400">
           We need to test your camera, microphone, and connection before you can join.
