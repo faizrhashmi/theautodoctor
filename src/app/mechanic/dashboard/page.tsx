@@ -24,12 +24,19 @@ export default function MechanicDashboardPage() {
       try {
         const response = await fetch('/api/mechanics/me')
 
+        console.log('[Dashboard] API response status:', response.status)
+
         if (!response.ok) {
           if (response.status === 401) {
             router.replace('/mechanic/login')
             return
           }
-          throw new Error('Failed to load mechanic data')
+          if (response.status === 404) {
+            throw new Error('API route not found - Please restart your dev server')
+          }
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+          console.error('[Dashboard] API error:', errorData)
+          throw new Error(errorData.error || 'Failed to load mechanic data')
         }
 
         const data = await response.json()

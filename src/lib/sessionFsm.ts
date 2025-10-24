@@ -58,7 +58,7 @@ export class SessionTransitionError extends Error {
  */
 const STATE_TRANSITIONS: Record<SessionState, SessionState[]> = {
   // PENDING - initial state before scheduling
-  pending: ['scheduled', 'cancelled', 'expired', 'unattended'],
+  pending: ['waiting', 'scheduled', 'cancelled', 'expired', 'unattended'],
 
   // SCHEDULED - can move to accepted/waiting, go live directly, cancel, or expire
   scheduled: ['accepted', 'waiting', 'live', 'cancelled', 'expired'],

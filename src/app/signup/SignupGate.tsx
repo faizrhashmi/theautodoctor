@@ -262,30 +262,50 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     setError(null);
     setMessage(null);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError) {
-      setError(signInError.message);
-      setLoading(false);
-      return;
-    }
+      if (signInError) {
+        throw signInError;
+      }
 
-    if (data?.user && !data.user.email_confirmed_at) {
-      await supabase.auth.signOut();
-      setError("Please confirm your email before logging in.");
-      setLoading(false);
-      return;
-    }
+      if (data?.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        throw new Error("Please confirm your email before logging in.");
+      }
 
-    if (redirectTo) {
-      router.replace(redirectTo);
-    } else {
-      router.replace("/customer/dashboard");
+      // Ensure we have a session object from Supabase
+      const session = (data as any)?.session
+      if (!session || !session.access_token) {
+        throw new Error('No session returned from Supabase')
+      }
+
+      // Post the session tokens to the server so middleware can set cookies
+      const setRes = await fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }),
+      })
+
+      if (!setRes.ok) {
+        const text = await setRes.text()
+        throw new Error('Failed to set server session: ' + text)
+      }
+
+      // Do a hard redirect so the middleware runs and picks up the auth cookie
+      if (redirectTo) {
+        window.location.href = redirectTo
+      } else {
+        window.location.href = '/customer/dashboard'
+      }
+    } catch (error: any) {
+      console.error('[login] error:', error)
+      setError(error?.message || 'Login failed')
+      setLoading(false)
     }
-    setLoading(false);
   }
 
   async function handleOAuth(provider: "google" | "facebook" | "apple") {

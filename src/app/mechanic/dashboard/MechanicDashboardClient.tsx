@@ -1743,6 +1743,9 @@ export default function MechanicDashboardClient({ mechanic }: MechanicDashboardC
                             <p className="font-semibold text-white">{item.customerName}</p>
                             <p className="text-sm text-slate-400">{describePlan(item.planCode, item.sessionType)}</p>
                             <p className="text-xs text-slate-500">Requested {formatRequestAge(item.createdAt)}</p>
+                            {item.intake?.concern && (
+                              <p className="mt-2 text-sm text-slate-300 line-clamp-2">{(item.intake.concern.length > 140) ? `${item.intake.concern.slice(0,140)}…` : item.intake.concern}</p>
+                            )}
                             <div className="mt-2 flex items-center gap-2">
                               <span className="text-xs font-semibold uppercase text-slate-500">{item.sessionType}</span>
                               {item.intake && (

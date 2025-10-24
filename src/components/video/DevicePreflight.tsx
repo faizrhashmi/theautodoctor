@@ -57,14 +57,18 @@ export function DevicePreflight({ onComplete }: DevicePreflightProps) {
       await fetch('/api/health', { method: 'GET' })
       const rtt = Date.now() - start
       setNetworkRTT(rtt)
-      setNetworkStatus(rtt < 300 ? 'passed' : 'failed')
+      // In development, accept up to 1000ms RTT for local testing
+      const threshold = process.env.NODE_ENV === 'development' ? 1000 : 300
+      setNetworkStatus(rtt < threshold ? 'passed' : 'failed')
     } catch (err) {
       console.error('Network test failed:', err)
       setNetworkStatus('failed')
     }
   }
 
-  const allPassed = cameraStatus === 'passed' && micStatus === 'passed' && networkStatus === 'passed'
+  // DEVELOPMENT MODE: Allow joining even if some checks fail
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const allPassed = isDevelopment ? true : (cameraStatus === 'passed' && micStatus === 'passed' && networkStatus === 'passed')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur">

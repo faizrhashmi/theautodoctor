@@ -30,7 +30,10 @@
       "Bash(grep:*)",
       "Bash(npm audit:*)",
       "Bash(npx tsx:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(taskkill:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

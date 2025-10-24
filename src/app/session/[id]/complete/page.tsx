@@ -1,7 +1,10 @@
 import Link from 'next/link'
 import SessionSummaryCard from '@/components/session/SessionSummaryCard'
+import UpsellRecommendations from '@/components/session/UpsellRecommendations'
 import type { SessionSummary } from '@/types/session'
 import { ArrowLeft, Download, Sparkles } from 'lucide-react'
+import { trackInteraction } from '@/lib/crm'
+import { requireCustomer } from '@/lib/auth/guards'
 
 const MOCK_SUMMARY: SessionSummary = {
   id: 'summary-1',
@@ -16,7 +19,19 @@ const MOCK_SUMMARY: SessionSummary = {
   extensionBalance: 0
 }
 
-export default function SessionCompletePage() {
+export default async function SessionCompletePage({ params }: { params: { id: string } }) {
+  // Track that customer viewed the summary
+  const customer = await requireCustomer()
+  if (customer) {
+    void trackInteraction({
+      customerId: customer.id,
+      interactionType: 'summary_viewed',
+      sessionId: params.id,
+      metadata: {
+        viewed_at: new Date().toISOString(),
+      },
+    })
+  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-4 py-16 text-white">
       <div className="mx-auto flex max-w-4xl flex-col gap-8">
@@ -37,6 +52,9 @@ export default function SessionCompletePage() {
         </header>
 
         <SessionSummaryCard summary={MOCK_SUMMARY} variant="dark" />
+
+        {/* Upsell Recommendations */}
+        {customer && <UpsellRecommendations sessionId={params.id} />}
 
         <section className="grid gap-4 rounded-3xl border border-slate-700 bg-slate-900/80 p-8 shadow-xl md:grid-cols-2">
           <div>

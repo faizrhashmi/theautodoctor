@@ -8,6 +8,7 @@ import { canTransition } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
 import { logInfo } from '@/lib/log'
 import { sendSessionEndedEmail } from '@/lib/email/templates'
+import { trackInteraction, generateUpsellsForSession } from '@/lib/crm'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -412,6 +413,25 @@ export async function POST(
       ended_by: isCustomer ? 'customer' : 'mechanic',
     },
   })
+
+  // Track session completion in CRM
+  if (session.customer_user_id) {
+    void trackInteraction({
+      customerId: session.customer_user_id,
+      interactionType: 'session_completed',
+      sessionId: session.id,
+      metadata: {
+        duration_minutes: durationMinutes,
+        mechanic_id: session.mechanic_id,
+        plan: session.plan,
+        session_type: session.type,
+        ended_by: isCustomer ? 'customer' : 'mechanic',
+      },
+    })
+
+    // Generate upsell recommendations for this completed session
+    void generateUpsellsForSession(session.id)
+  }
 
   // Broadcast session ended event
   try {

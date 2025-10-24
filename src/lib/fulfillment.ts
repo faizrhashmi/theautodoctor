@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { type PlanKey } from '@/config/pricing'
 import type { Database, Json } from '@/types/supabase'
 import { broadcastSessionRequest } from '@/lib/sessionRequests'
+import { trackInteraction } from '@/lib/crm'
 
 type SessionType = 'chat' | 'video' | 'diagnostic'
 type SessionInsert = Database['public']['Tables']['sessions']['Insert']
@@ -199,6 +200,20 @@ export async function fulfillCheckout(
       sessionType,
       planCode: plan,
       customerEmail,
+    })
+
+    // Track checkout completion in CRM
+    void trackInteraction({
+      customerId: supabaseUserId,
+      interactionType: 'checkout_completed',
+      sessionId: insert.data.id,
+      metadata: {
+        plan,
+        session_type: sessionType,
+        amount_total: amountTotal,
+        currency: currency || 'usd',
+        stripe_session_id: stripeSessionId,
+      },
     })
   } else {
     console.warn('[fulfillment] No supabaseUserId - cannot create session_request')

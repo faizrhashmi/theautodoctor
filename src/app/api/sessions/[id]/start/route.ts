@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { assertTransition, getTransitionMessage } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
+import { trackInteraction } from '@/lib/crm'
 
 /**
  * POST /api/sessions/:id/start
@@ -94,6 +95,19 @@ export async function POST(
     }
 
     console.log(`[start-session] Session ${sessionId} transitioned ${currentStatus} → live at ${now}`)
+
+    // Track session start in CRM
+    if (session.customer_user_id) {
+      void trackInteraction({
+        customerId: session.customer_user_id,
+        interactionType: 'session_started',
+        sessionId: session.id,
+        metadata: {
+          mechanic_id: session.mechanic_id,
+          previous_status: currentStatus,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,

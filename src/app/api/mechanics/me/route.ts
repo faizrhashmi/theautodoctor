@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     // Get mechanic data
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('id, name, email, stripe_account_id, stripe_payouts_enabled, user_id')
+      .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
       .eq('id', session.mechanic_id)
       .single()
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      id: mechanic.user_id || mechanic.id,
+      id: mechanic.id,
       name: mechanic.name,
       email: mechanic.email,
       stripeConnected: !!mechanic.stripe_account_id,

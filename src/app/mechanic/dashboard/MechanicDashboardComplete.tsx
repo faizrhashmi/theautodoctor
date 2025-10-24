@@ -121,12 +121,12 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
       setIsLoading(true)
       setError(null)
 
-      // Fetch pending requests
+      // Fetch pending requests (unassigned ones that you can accept)
       const { data: requests, error: reqError } = await supabase
         .from('session_requests')
         .select('*')
-        .eq('mechanic_id', mechanic.id)
-        .in('status', ['pending', 'accepted'])
+        .is('mechanic_id', null)
+        .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
       if (reqError) throw reqError

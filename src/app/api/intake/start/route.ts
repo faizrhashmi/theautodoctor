@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { createServerClient } from '@supabase/ssr';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Database, Json } from '@/types/supabase';
+import { trackInteraction } from '@/lib/crm';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
@@ -72,6 +73,21 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabaseAdmin.from('intakes').insert(payload).select('id').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     intakeId = data.id;
+
+    // Track intake submission in CRM
+    if (user?.id && intakeId) {
+      void trackInteraction({
+        customerId: user.id,
+        interactionType: 'intake_submitted',
+        metadata: {
+          intake_id: intakeId,
+          plan,
+          vehicle: vin ? `VIN: ${vin}` : `${year} ${make} ${model}`,
+          has_files: files.length > 0,
+          file_count: files.length,
+        },
+      });
+    }
   } else {
     intakeId = `local-${Date.now()}`;
   }
@@ -168,6 +184,7 @@ export async function POST(req: NextRequest) {
             .from('session_requests')
             .insert({
               customer_id: user.id,
+              intake_id: intakeId,
               session_type: 'chat',
               plan_code: plan,
               status: 'pending',
