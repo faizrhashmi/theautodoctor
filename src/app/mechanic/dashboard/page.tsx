@@ -31,16 +31,16 @@ export default function MechanicDashboardPage() {
       // Pull a minimal profile; fall back to auth if needed
       const { data: mechRow } = await supabase
         .from('mechanics')
-        .select('user_id, full_name, email, stripe_connected, payouts_enabled')
+        .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
         .eq('user_id', user.id)
         .single()
 
       const mech: Mech = {
-        id: user.id,
-        name: mechRow?.full_name ?? (user.user_metadata?.full_name ?? 'Mechanic'),
+        id: mechRow?.id ?? user.id,
+        name: mechRow?.name ?? (user.user_metadata?.full_name ?? 'Mechanic'),
         email: mechRow?.email ?? (user.email ?? 'unknown@example.com'),
-        stripeConnected: !!mechRow?.stripe_connected,
-        payoutsEnabled: !!mechRow?.payouts_enabled,
+        stripeConnected: !!mechRow?.stripe_account_id,
+        payoutsEnabled: !!mechRow?.stripe_payouts_enabled,
       }
 
       if (mounted) {
