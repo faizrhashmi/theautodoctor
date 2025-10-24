@@ -143,16 +143,18 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // Mark any associated session request as completed
-    // CRITICAL FIX: Update ALL request statuses (pending, accepted, unattended)
-    await supabaseAdmin
-      .from('session_requests')
-      .update({
-        status: 'completed',
-        updated_at: now,
-      })
-      .eq('session_id', sessionId)
-      .in('status', ['pending', 'accepted', 'unattended']) // Update all active statuses
+    // Mark any associated session request as cancelled (no-show)
+    // CRITICAL FIX: Match by customer_id since session_requests has no session_id column
+    if (session.customer_user_id) {
+      await supabaseAdmin
+        .from('session_requests')
+        .update({
+          status: 'cancelled',
+          updated_at: now,
+        })
+        .eq('customer_id', session.customer_user_id)
+        .in('status', ['pending', 'accepted', 'unattended']) // Update all active statuses
+    }
 
     const responseData = {
       success: true,
@@ -283,18 +285,22 @@ export async function POST(
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // CRITICAL FIX: Also mark the session_request as completed
+  // CRITICAL FIX: Also mark the session_request as cancelled
   // This prevents orphaned "accepted" requests from blocking mechanics
-  await supabaseAdmin
-    .from('session_requests')
-    .update({
-      status: 'completed',
-      updated_at: now,
-    })
-    .eq('session_id', sessionId)
-    .in('status', ['pending', 'accepted', 'unattended'])
+  // Match by customer_id + mechanic_id since session_requests has no session_id column
+  if (session.mechanic_id && session.customer_user_id) {
+    await supabaseAdmin
+      .from('session_requests')
+      .update({
+        status: 'cancelled',
+        updated_at: now,
+      })
+      .eq('customer_id', session.customer_user_id)
+      .eq('mechanic_id', session.mechanic_id)
+      .in('status', ['pending', 'accepted', 'unattended'])
 
-  console.log(`[end session] Updated session_request status to completed for session ${sessionId}`)
+    console.log(`[end session] Updated session_request status to cancelled for customer ${session.customer_user_id}`)
+  }
 
   // Check if this is a fetch request (JSON) or form POST (redirect)
   const contentType = req.headers.get('content-type')
