@@ -68,6 +68,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (!session.mechanic_id) {
+      return NextResponse.json(
+        { error: 'Session has no assigned mechanic to review' },
+        { status: 400 }
+      )
+    }
+
     // Check if review already exists (unique constraint on session_id)
     const { data: existingReview } = await supabaseAdmin
       .from('mechanic_reviews')

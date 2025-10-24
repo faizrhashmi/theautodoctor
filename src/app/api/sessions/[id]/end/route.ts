@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
 import { PRICING, type PlanKey } from '@/config/pricing'
 import type { Database } from '@/types/supabase'
-import { assertTransition, canTransition, type SessionStatus } from '@/lib/sessionFsm'
+import { canTransition } from '@/lib/sessionFsm'
+import type { SessionStatus } from '@/types/session'
 import { logInfo } from '@/lib/log'
 import { sendSessionEndedEmail } from '@/lib/email/templates'
 
@@ -82,7 +83,7 @@ export async function POST(
   // Fetch full session details using admin client (bypasses RLS)
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
-    .select('id, status, plan, type, started_at, mechanic_id, customer_user_id, metadata')
+    .select('id, status, plan, type, started_at, ended_at, duration_minutes, mechanic_id, customer_user_id, metadata')
     .eq('id', sessionId)
     .single()
 
@@ -105,6 +106,10 @@ export async function POST(
     return NextResponse.json({ error: 'Not authorized to end this session' }, { status: 403 })
   }
 
+  const now = new Date().toISOString()
+  const acceptHeader = req.headers.get('accept')
+  const contentType = req.headers.get('content-type')
+
   // FSM VALIDATION: Check if transition to 'completed' is valid
   const currentStatus = session.status as SessionStatus
 
@@ -125,7 +130,7 @@ export async function POST(
   if (!canTransition(currentStatus, 'completed')) {
     // Try transitioning to cancelled instead if completed is not allowed
     if (canTransition(currentStatus, 'cancelled')) {
-      console.log(`[end session] Cannot transition ${currentStatus} → completed, using cancelled instead`)
+      console.log(`[end session] Cannot transition ${currentStatus} -> completed, using cancelled instead`)
 
       const { error: cancelError } = await supabaseAdmin
         .from('sessions')
@@ -198,10 +203,8 @@ export async function POST(
   console.log(`[end session] Ending session ${sessionId} with status: ${session.status}`)
 
   // If session was never started (pending/waiting), mark as completed with no-show metadata
-  const shouldMarkNoShow = !session.started_at && ['pending', 'waiting'].includes(session.status?.toLowerCase() || '')
-
-  const now = new Date().toISOString()
-  const durationMinutes = calculateDuration(session.started_at, now)
+  const shouldMarkNoShow = !session.started_at && ['pending', 'waiting'].includes(currentStatus)
+  const durationMinutes = calculateDuration(session.started_at, now) ?? 0
 
   // If session should be marked as no-show (never started), mark as completed
   if (shouldMarkNoShow) {
@@ -280,10 +283,6 @@ export async function POST(
         ended_at: now,
       },
     }
-
-    // Check if this is a fetch request (JSON) or form POST (redirect)
-    const acceptHeader = req.headers.get('accept')
-    const contentType = req.headers.get('content-type')
 
     if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
       return NextResponse.json(responseData)
@@ -430,31 +429,51 @@ export async function POST(
 
   // Send session ended email to customer
   try {
-    // Fetch customer and mechanic details for email
-    const { data: customer } = await supabaseAdmin
-      .from('users')
-      .select('email, full_name')
-      .eq('id', session.customer_user_id)
-      .single()
+    // Fetch customer profile (Supabase auth) if available
+    let customerEmail: string | null = null
+    let customerName: string | null = null
 
-    const { data: mechanic } = await supabaseAdmin
-      .from('mechanics')
-      .select('name, email')
-      .eq('user_id', session.mechanic_id)
-      .single()
+    if (session.customer_user_id) {
+      const { data: customerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', session.customer_user_id)
+        .single()
 
-    if (customer?.email && mechanic) {
+      customerEmail = customerProfile?.email ?? null
+      customerName = customerProfile?.full_name ?? null
+    }
+
+    // Fetch mechanic contact info from mechanics table
+    let mechanicName: string | null = null
+    let mechanicEmail: string | null = null
+
+    if (session.mechanic_id) {
+      const { data: mechanicRecord } = await supabaseAdmin
+        .from('mechanics')
+        .select('name, email')
+        .eq('id', session.mechanic_id)
+        .single()
+
+      mechanicName = mechanicRecord?.name ?? null
+      mechanicEmail = mechanicRecord?.email ?? null
+    }
+
+    if (customerEmail) {
       // Format duration for display
       const hours = Math.floor(durationMinutes / 60)
       const minutes = durationMinutes % 60
-      const durationStr = hours > 0
-        ? `${hours}h ${minutes}m`
-        : `${minutes} minutes`
+      const durationStr =
+        durationMinutes > 0
+          ? hours > 0
+            ? `${hours}h ${minutes}m`
+            : `${minutes} minutes`
+          : 'Duration unavailable'
 
       await sendSessionEndedEmail({
-        customerEmail: customer.email,
-        customerName: customer.full_name || 'Customer',
-        mechanicName: mechanic.name || mechanic.email || 'Your Mechanic',
+        customerEmail,
+        customerName: customerName || 'Customer',
+        mechanicName: mechanicName || mechanicEmail || 'Your Mechanic',
         sessionId,
         duration: durationStr,
         hasSummary: false, // Will be updated when summary is submitted
@@ -508,3 +527,4 @@ export async function POST(
   const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
   return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
 }
+

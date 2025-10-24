@@ -1,4 +1,5 @@
 'use client'
+// AAD patch placeholder: we'll extend tabs & overview in next step
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -435,7 +436,9 @@ export default function MechanicDashboardRedesigned({ mechanic }: MechanicDashbo
               ))
             )}
           </div>
-        )}
+        )
+
+        }
 
         {/* Active Sessions Tab */}
         {activeTab === 'active' && (

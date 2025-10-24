@@ -861,6 +861,11 @@ export type Database = {
           stripe_charges_enabled: boolean | null
           stripe_payouts_enabled: boolean | null
           stripe_details_submitted: boolean | null
+          avg_rating: number | null
+          total_reviews: number | null
+          response_sla_minutes: number | null
+          bio: string | null
+          years_experience: number | null
           // Personal information
           full_address: string | null
           city: string | null
@@ -1302,6 +1307,11 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          avg_rating?: number | null
+          total_reviews?: number | null
+          response_sla_minutes?: number | null
+          bio?: string | null
+          years_experience?: number | null
           email_marketing_opt_in?: boolean
           sms_marketing_opt_in?: boolean
           consent_timestamp?: string | null
@@ -1334,6 +1344,11 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_payouts_enabled?: boolean | null
           stripe_details_submitted?: boolean | null
+          avg_rating?: number | null
+          total_reviews?: number | null
+          response_sla_minutes?: number | null
+          bio?: string | null
+          years_experience?: number | null
           email_marketing_opt_in?: boolean
           sms_marketing_opt_in?: boolean
           consent_timestamp?: string | null
