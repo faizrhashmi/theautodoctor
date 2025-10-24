@@ -1,5 +1,5 @@
-export interface MechanicPresencePayload {
+export type MechanicPresencePayload = {
   user_id: string
   status: 'online' | 'offline'
-  name?: string
+  last_seen_at?: string
 }

@@ -1,0 +1,2 @@
+.dropdown-portal, .radix-dropdown-content, .radix-popover-content { z-index: 9999 !important; }
+.modal-root { z-index: 10000; }

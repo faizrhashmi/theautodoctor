@@ -1,72 +1,22 @@
 export type SessionStatus =
-  | 'scheduled'
   | 'waiting'
   | 'live'
+  | 'reconnecting'
   | 'completed'
   | 'cancelled'
-  | 'pending'
-  | 'accepted'
-  | 'reconnecting'
-  | 'unattended'
-  | 'expired'
-  | 'refunded'
-  | 'archived'
 
-export interface SessionSummary {
-  id: string
-  vehicle: string
-  customerName: string
-  mechanicName: string
-  scheduledStart: string
-  scheduledEnd: string
-  status: SessionStatus
-  concernSummary: string
-  waiverAccepted: boolean
-  extensionBalance: number
-}
-
-export interface SessionQueueItem extends SessionSummary {
-  queuePosition: number
-  waitingSince?: string
-}
-
-export type SessionRequestStatus = 'pending' | 'accepted' | 'cancelled' | 'unattended' | 'expired'
-
-export interface SessionRequest {
-  id: string
-  customerId: string
-  customerName: string
-  customerEmail?: string
-  sessionType: 'chat' | 'video' | 'diagnostic'
-  planCode: string
-  status: SessionRequestStatus
-  createdAt: string
-  acceptedAt?: string
-  mechanicId?: string
-  sessionId?: string
-}
-
-export interface MechanicAvailabilityBlock {
-  id: string
-  weekday: number
-  startTime: string
-  endTime: string
-  isActive: boolean
-}
-
-export interface SessionFile {
+export type SessionFile = {
   id: string
   fileName: string
   fileSize: number
   uploadedAt: string
   uploadedBy: string
-  url?: string
-  storagePath?: string
+  url?: string | null
 }
 
-export interface SessionExtensionRequest {
+export type SessionExtensionRequest = {
   id: string
   minutes: number
-  status: 'pending' | 'approved' | 'declined' | 'paid'
+  status: 'pending' | 'approved' | 'declined'
   requestedAt: string
 }

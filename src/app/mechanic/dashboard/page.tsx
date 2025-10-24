@@ -1,54 +1,64 @@
-import { redirect } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { cookies } from 'next/headers'
-import MechanicDashboardRedesigned from './MechanicDashboardRedesigned'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import MechanicDashboard from './MechanicDashboardRedesigned'
+import { createClient } from '@/lib/supabase'
 
-/**
- * Server component: Verify mechanic authentication and load initial data
- */
-export default async function MechanicDashboardPage() {
-  // Get mechanic from custom auth system (aad_mech cookie)
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+type Mech = {
+  id: string
+  name: string
+  email: string
+  stripeConnected: boolean
+  payoutsEnabled: boolean
+}
 
-  if (!token) {
-    redirect('/mechanic/login?redirect=/mechanic/dashboard')
+export default function MechanicDashboardPage() {
+  const supabase = useMemo(() => createClient(), [])
+  const router = useRouter()
+  const [mechanic, setMechanic] = useState<Mech | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/mechanic/login')
+        return
+      }
+
+      // Pull a minimal profile; fall back to auth if needed
+      const { data: mechRow } = await supabase
+        .from('mechanics')
+        .select('user_id, full_name, email, stripe_connected, payouts_enabled')
+        .eq('user_id', user.id)
+        .single()
+
+      const mech: Mech = {
+        id: user.id,
+        name: mechRow?.full_name ?? (user.user_metadata?.full_name ?? 'Mechanic'),
+        email: mechRow?.email ?? (user.email ?? 'unknown@example.com'),
+        stripeConnected: !!mechRow?.stripe_connected,
+        payoutsEnabled: !!mechRow?.payouts_enabled,
+      }
+
+      if (mounted) {
+        setMechanic(mech)
+        setLoading(false)
+      }
+    }
+    run()
+    return () => { mounted = false }
+  }, [router, supabase])
+
+  if (loading || !mechanic) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center text-slate-400">
+        Loading dashboard…
+      </div>
+    )
   }
 
-  // Verify session is valid
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) {
-    redirect('/mechanic/login?redirect=/mechanic/dashboard')
-  }
-
-  // Load mechanic profile
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-    .eq('id', session.mechanic_id)
-    .single()
-
-  if (!mechanic) {
-    redirect('/mechanic/login')
-  }
-
-  return (
-    <MechanicDashboardRedesigned
-      mechanic={{
-        id: mechanic.id,
-        name: mechanic.name || 'Mechanic',
-        email: mechanic.email,
-        stripeConnected: Boolean(mechanic.stripe_account_id),
-        payoutsEnabled: Boolean(mechanic.stripe_payouts_enabled),
-      }}
-    />
-  )
+  return <MechanicDashboard mechanic={mechanic} />
 }
