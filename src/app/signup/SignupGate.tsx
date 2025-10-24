@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import WaiverModal from "@/components/customer/WaiverModal";
 
@@ -62,7 +62,11 @@ interface SignupGateProps {
 export default function SignupGate({ redirectTo }: SignupGateProps) {
   const router = useRouter();
   const supabase = createClient();
-  const [mode, setMode] = useState<Mode>("login");
+  const searchParams = useSearchParams();
+
+  // Read mode from URL, default to "signup" (not "login")
+  const initialMode = searchParams.get('mode') === 'login' ? 'login' : 'signup';
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [form, setForm] = useState<SignupFormState>(EMPTY_FORM);
@@ -358,7 +362,14 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         <p className="mt-2 text-sm text-slate-400">
           {mode === "login"
             ? "Sign in to access your diagnostic sessions"
-            : "Get started with your first auto diagnostic session"}
+            : (
+                <>
+                  Create your account to book a mechanic session.{" "}
+                  <span className="text-orange-400 font-semibold">
+                    Start with a FREE 5-minute trial!
+                  </span>
+                </>
+              )}
         </p>
       </div>
 

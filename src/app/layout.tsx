@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="ml-auto flex items-center gap-3 md:gap-4">
               {/* Login link for existing customers */}
               <Link
-                href="/login"
+                href="/signup?mode=login"
                 className="hidden text-sm font-medium text-slate-300 transition hover:text-white md:block"
               >
                 Log In
@@ -67,7 +67,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 href="/signup"
                 className="group ml-2 md:ml-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
               >
-                Book Now
+                Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
 
@@ -129,7 +129,7 @@ function MobileMenu() {
 
           {/* Login link for existing customers */}
           <Link
-            href="/login"
+            href="/signup?mode=login"
             className="rounded-xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white"
           >
             Log In
