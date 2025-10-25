@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
         full_name: fullName,
         phone,
         role: 'customer',
+        account_type: 'individual_customer', // For B2C → B2B2C transition tracking
+        source: 'direct', // Track signup source
       },
     })
 
@@ -71,6 +73,11 @@ export async function POST(req: NextRequest) {
         full_name: fullName,
         phone,
         role: 'customer',
+        // Account type tracking (for B2C → B2B2C transition)
+        account_type: 'individual_customer',
+        source: 'direct',
+        organization_id: null,
+        referred_by_workshop_id: null,
         // Address fields
         address_line1: address?.line1,
         address_line2: address?.line2,

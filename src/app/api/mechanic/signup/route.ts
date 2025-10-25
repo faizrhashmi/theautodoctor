@@ -2,18 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { hashPassword, makeSessionToken } from '@/lib/auth';
+import { encryptPII } from '@/lib/encryption';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
-}
-
-// Helper function to encrypt sensitive data (SIN/Business Number)
-// In production, use a proper encryption library like crypto
-function encryptSensitiveData(data: string): string {
-  // TODO: Implement proper encryption
-  // For now, we'll just store it as-is (NOT RECOMMENDED FOR PRODUCTION)
-  // Use a library like 'crypto-js' or Node's 'crypto' module with a secret key
-  return data;
 }
 
 export async function POST(req: NextRequest) {
@@ -78,8 +70,8 @@ export async function POST(req: NextRequest) {
     // Hash password
     const password_hash = hashPassword(password);
 
-    // Encrypt sensitive data
-    const encryptedSIN = encryptSensitiveData(sinOrBusinessNumber);
+    // Encrypt sensitive data (SIN/Business Number)
+    const encryptedSIN = sinOrBusinessNumber ? encryptPII(sinOrBusinessNumber) : null;
 
     // Build full address
     const full_address = `${address}, ${city}, ${province} ${postalCode}, ${country}`;
@@ -99,6 +91,13 @@ export async function POST(req: NextRequest) {
         phone,
         password_hash,
 
+        // Account type tracking (for B2C → B2B2C transition)
+        account_type: 'individual_mechanic',
+        source: 'direct',
+        workshop_id: null,
+        requires_sin_collection: true,
+        sin_collection_completed_at: encryptedSIN ? new Date().toISOString() : null,
+
         // Personal details
         full_address,
         city,
@@ -106,7 +105,7 @@ export async function POST(req: NextRequest) {
         postal_code: postalCode,
         country,
         date_of_birth: dateOfBirth,
-        sin_or_business_number: encryptedSIN,
+        sin_encrypted: encryptedSIN, // Using encrypted column instead of sin_or_business_number
 
         // Credentials
         red_seal_certified: redSealCertified || false,

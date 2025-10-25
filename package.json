@@ -30,6 +30,8 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.75.1",
     "@types/react-signature-canvas": "^1.0.7",
+    "@upstash/ratelimit": "^2.0.6",
+    "@upstash/redis": "^1.35.6",
     "autoprefixer": "^10.4.16",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.18.2",

@@ -234,6 +234,8 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       options: {
         data: {
           role: "customer",
+          account_type: "individual_customer", // Track account type for B2C/B2B2C/B2B SaaS
+          source: "direct", // Track signup source (direct, workshop_referral, invitation)
           full_name: fullName,
           phone: form.phone.trim(),
           vehicle_hint: form.vehicle.trim(),

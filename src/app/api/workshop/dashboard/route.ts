@@ -1,0 +1,196 @@
+// @ts-nocheck
+import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseServer } from '@/lib/supabaseServer'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+
+function bad(msg: string, status = 400) {
+  return NextResponse.json({ error: msg }, { status })
+}
+
+export async function GET(req: NextRequest) {
+  if (!supabaseAdmin) return bad('Supabase not configured', 500)
+
+  try {
+    // Get authenticated user
+    const supabase = getSupabaseServer()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.log('[WORKSHOP DASHBOARD] Unauthorized access attempt')
+      return bad('Unauthorized', 401)
+    }
+
+    console.log('[WORKSHOP DASHBOARD] User authenticated:', user.id)
+
+    // Get user's organization membership
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from('organization_members')
+      .select(`
+        id,
+        role,
+        status,
+        organization_id,
+        organizations (
+          id,
+          organization_type,
+          name,
+          slug,
+          email,
+          phone,
+          address,
+          city,
+          province,
+          postal_code,
+          coverage_postal_codes,
+          service_radius_km,
+          mechanic_capacity,
+          commission_rate,
+          status,
+          verification_status,
+          stripe_account_id,
+          stripe_account_status,
+          logo_url,
+          website,
+          industry
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single()
+
+    if (membershipError || !membership) {
+      console.log('[WORKSHOP DASHBOARD] No organization membership found for user:', user.id)
+      return bad('No workshop found for this account', 404)
+    }
+
+    if (!membership.organizations || membership.organizations.organization_type !== 'workshop') {
+      return bad('This account is not associated with a workshop', 403)
+    }
+
+    if (!['owner', 'admin'].includes(membership.role)) {
+      return bad('Insufficient permissions to access dashboard', 403)
+    }
+
+    const organization = membership.organizations
+    console.log('[WORKSHOP DASHBOARD] Fetching data for organization:', organization.id)
+
+    // Fetch mechanics belonging to this workshop
+    const { data: mechanics, error: mechanicsError } = await supabaseAdmin
+      .from('mechanics')
+      .select(`
+        id,
+        name,
+        email,
+        phone,
+        years_of_experience,
+        specializations,
+        red_seal_certified,
+        red_seal_number,
+        red_seal_province,
+        application_status,
+        created_at,
+        date_of_birth,
+        account_type
+      `)
+      .eq('workshop_id', organization.id)
+      .order('created_at', { ascending: false })
+
+    if (mechanicsError) {
+      console.error('[WORKSHOP DASHBOARD] Error fetching mechanics:', mechanicsError)
+    }
+
+    // Fetch pending invitations
+    const { data: pendingInvites, error: invitesError } = await supabaseAdmin
+      .from('organization_members')
+      .select(`
+        id,
+        invite_code,
+        invite_email,
+        invited_at,
+        invite_expires_at,
+        status
+      `)
+      .eq('organization_id', organization.id)
+      .eq('status', 'pending')
+      .order('invited_at', { ascending: false })
+
+    if (invitesError) {
+      console.error('[WORKSHOP DASHBOARD] Error fetching invites:', invitesError)
+    }
+
+    // Calculate statistics
+    const totalMechanics = mechanics?.length || 0
+    const activeMechanics =
+      mechanics?.filter((m) => m.application_status === 'approved').length || 0
+    const pendingInvitesCount = pendingInvites?.length || 0
+
+    // Fetch session statistics (if sessions table exists)
+    // For now, we'll use placeholder values
+    // TODO: Implement session tracking and revenue calculation
+    const totalSessions = 0
+    const totalRevenue = 0
+    const workshopRevenue = 0
+
+    // Alternatively, query sessions if table exists:
+    /*
+    const { data: sessions } = await supabaseAdmin
+      .from('sessions')
+      .select('id, total_amount, workshop_commission')
+      .eq('workshop_id', organization.id)
+      .eq('status', 'completed')
+
+    const totalSessions = sessions?.length || 0
+    const totalRevenue = sessions?.reduce((sum, s) => sum + (s.total_amount || 0), 0) || 0
+    const workshopRevenue = sessions?.reduce((sum, s) => sum + (s.workshop_commission || 0), 0) || 0
+    */
+
+    const responseData = {
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        email: organization.email,
+        phone: organization.phone,
+        address: organization.address,
+        city: organization.city,
+        province: organization.province,
+        postal_code: organization.postal_code,
+        coverage_postal_codes: organization.coverage_postal_codes || [],
+        service_radius_km: organization.service_radius_km,
+        mechanic_capacity: organization.mechanic_capacity,
+        commission_rate: organization.commission_rate,
+        status: organization.status,
+        verification_status: organization.verification_status,
+        stripe_account_id: organization.stripe_account_id,
+        stripe_account_status: organization.stripe_account_status,
+        logo_url: organization.logo_url,
+        website: organization.website,
+        industry: organization.industry,
+      },
+      mechanics: mechanics || [],
+      pendingInvites: pendingInvites || [],
+      stats: {
+        totalMechanics,
+        activeMechanics,
+        pendingInvites: pendingInvitesCount,
+        totalSessions,
+        totalRevenue,
+        workshopRevenue,
+      },
+      userRole: membership.role,
+    }
+
+    console.log('[WORKSHOP DASHBOARD] Successfully fetched dashboard data')
+
+    return NextResponse.json({
+      success: true,
+      data: responseData,
+    })
+  } catch (e: any) {
+    console.error('[WORKSHOP DASHBOARD] Error:', e)
+    return bad(e.message || 'Failed to load dashboard', 500)
+  }
+}
