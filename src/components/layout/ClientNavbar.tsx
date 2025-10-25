@@ -41,17 +41,9 @@ export default function ClientNavbar() {
   }, [])
 
   const renderCTA = () => {
-    // Hide CTA on homepage (hero has prominent CTAs already)
-    if (isHomepage) return null
-
-    if (loading) {
-      return (
-        <div className="h-10 w-32 animate-pulse rounded-full bg-white/10" />
-      )
-    }
-
+    // Only show Dashboard button for logged-in users
+    // "Get Started Free" removed as it was too prominent/repetitive
     if (user) {
-      // User is logged in - show Dashboard
       return (
         <Link
           href="/customer/dashboard"
@@ -63,16 +55,8 @@ export default function ClientNavbar() {
       )
     }
 
-    // User not logged in - show Get Started Free
-    return (
-      <Link
-        href="/signup"
-        className="group ml-2 md:ml-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
-      >
-        Get Started Free
-        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-      </Link>
-    )
+    // Logged-out users: no CTA button (they have Login link instead)
+    return null
   }
 
   return (
@@ -108,7 +92,7 @@ export default function ClientNavbar() {
 
         <div className="ml-auto flex items-center gap-3 md:gap-4">
           {/* Login link for existing customers - hide if logged in */}
-          {!user && (
+          {!user && !loading && (
             <Link
               href="/signup?mode=login"
               className="hidden text-sm font-medium text-slate-300 transition hover:text-white md:block"
@@ -117,7 +101,7 @@ export default function ClientNavbar() {
             </Link>
           )}
 
-          {/* Context-aware CTA - hidden on homepage */}
+          {/* Dashboard button for logged-in users only */}
           {renderCTA()}
 
           {/* For Mechanics - Visually distinct from customer nav */}
@@ -177,7 +161,7 @@ function MobileMenu({ user, loading }: { user: any; loading: boolean }) {
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-right-2 duration-200"
+          className="z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl animate-slide-in-right"
         >
           {/* Navigation Items */}
           {NAV_ITEMS.map((item) => (

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
-import ChatBubble from '@/components/chat/ChatBubble';
+// import ChatBubble from '@/components/chat/ChatBubble'; // Hidden temporarily
 import SiteFooter from '@/components/layout/SiteFooter';
 import ClientNavbar from '@/components/layout/ClientNavbar';
 
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Push content below the fixed header */}
         <main className="pt-16">{children}</main>
         <SiteFooter />
-        <ChatBubble />
+        {/* <ChatBubble /> */} {/* Hidden temporarily - needs real backend integration */}
       </body>
     </html>
   );
