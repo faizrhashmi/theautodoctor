@@ -85,7 +85,7 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700">
               Email
