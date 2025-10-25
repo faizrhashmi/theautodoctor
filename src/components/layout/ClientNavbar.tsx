@@ -46,10 +46,10 @@ export default function ClientNavbar() {
       return (
         <Link
           href="/customer/dashboard"
-          className="group ml-2 md:ml-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
+          className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-3 sm:px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
         >
           <LayoutDashboard className="h-4 w-4" />
-          Dashboard
+          <span className="hidden sm:inline">Dashboard</span>
         </Link>
       )
     }
@@ -70,13 +70,13 @@ export default function ClientNavbar() {
             priority
             className="transition-transform group-hover:scale-110"
           />
-          <span className="text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
+          <span className="hidden sm:inline text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
             AskAutoDoctor
           </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex flex-1 items-center justify-end gap-8">
+        <nav className="hidden md:flex md:ml-auto items-center gap-8 md:mr-6">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -99,7 +99,7 @@ export default function ClientNavbar() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 md:gap-4">
+        <div className="ml-auto md:ml-0 flex items-center gap-3 md:gap-4">
           {/* Login link for existing customers - hide if logged in */}
           {!user && !loading && (
             <Link
@@ -139,20 +139,22 @@ export default function ClientNavbar() {
 function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; pathname: string }) {
   const [open, setOpen] = useState(false)
 
-  // Auto-close menu when user scrolls (with debouncing for performance)
+  // Auto-close menu when user scrolls
   useEffect(() => {
     if (!open) return
 
-    let timeoutId: NodeJS.Timeout
     const handleScroll = () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => setOpen(false), 50)
+      setOpen(false)
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    // Small delay to prevent closing immediately on menu open
+    const timeoutId = setTimeout(() => {
+      window.addEventListener('scroll', handleScroll, { passive: true })
+    }, 100)
+
     return () => {
-      window.removeEventListener('scroll', handleScroll)
       clearTimeout(timeoutId)
+      window.removeEventListener('scroll', handleScroll)
     }
   }, [open])
 
@@ -160,7 +162,7 @@ function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; 
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
       <DropdownMenu.Trigger asChild>
         <button
-          className="md:hidden flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-slate-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="md:hidden flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-400 flex-shrink-0"
           aria-label="Toggle navigation menu"
         >
           {open ? (
