@@ -8,14 +8,22 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
   try {
-    // Support both form data and URL-encoded data
+    // Support JSON, form data, and URL-encoded data
     const contentType = request.headers.get('content-type') || ''
     let email: string
     let password: string
     let redirectTo: string
+    let isJsonRequest = false
 
-    if (contentType.includes('application/x-www-form-urlencoded')) {
-      // Handle URL-encoded data from client-side fetch
+    if (contentType.includes('application/json')) {
+      // Handle JSON data from client-side fetch
+      const data = await request.json()
+      email = data.email
+      password = data.password
+      redirectTo = data.redirect || '/admin/intakes'
+      isJsonRequest = true
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      // Handle URL-encoded data
       const text = await request.text()
       const params = new URLSearchParams(text)
       email = params.get('email') as string
@@ -29,22 +37,46 @@ export async function POST(request: NextRequest) {
       redirectTo = formData.get('redirect') as string || '/admin/intakes'
     }
 
-    console.log('Login attempt:', { email, redirectTo })
+    console.log('Login attempt:', { email, redirectTo, isJsonRequest })
+
+    // Validate input
+    if (!email || !password) {
+      if (isJsonRequest) {
+        return NextResponse.json(
+          { success: false, error: 'Email and password are required.' },
+          { status: 400 }
+        )
+      }
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (request.headers.get('x-forwarded-proto') || 'https') + '://' +
+        request.headers.get('host')
+      const url = new URL('/admin/login', baseUrl)
+      url.searchParams.set('error', encodeURIComponent('Email and password are required.'))
+      return NextResponse.redirect(url, { status: 303 })
+    }
 
     // Use NEXT_PUBLIC_APP_URL if available, otherwise construct from request headers
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
       (request.headers.get('x-forwarded-proto') || 'https') + '://' +
       request.headers.get('host')
 
-    // Prepare a redirect response with proper URL
-    const successRedirect = NextResponse.redirect(new URL(redirectTo, baseUrl), { status: 303 })
-
     // Determine if we're in production (HTTPS)
     const isProduction = process.env.NODE_ENV === 'production' ||
       baseUrl.startsWith('https') ||
       request.headers.get('x-forwarded-proto') === 'https'
 
-    // Attach cookies to the response so Supabase can set the auth cookie
+    // Create response based on request type
+    let response: NextResponse
+
+    if (isJsonRequest) {
+      // For JSON requests, prepare a JSON response
+      response = NextResponse.json({ success: true, redirect: redirectTo })
+    } else {
+      // For form submissions, prepare a redirect response
+      response = NextResponse.redirect(new URL(redirectTo, baseUrl), { status: 303 })
+    }
+
+    // Create Supabase client with cookie handling
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       cookies: {
         get(name: string) {
@@ -61,7 +93,7 @@ export async function POST(request: NextRequest) {
             // Set domain to work with both www and non-www
             domain: isProduction ? '.askautodoctor.com' : undefined
           }
-          successRedirect.cookies.set({ name, value, ...cookieOptions })
+          response.cookies.set({ name, value, ...cookieOptions })
         },
         remove(name: string, options: any) {
           const cookieOptions = {
@@ -74,21 +106,24 @@ export async function POST(request: NextRequest) {
             // Set domain to work with both www and non-www
             domain: isProduction ? '.askautodoctor.com' : undefined
           }
-          successRedirect.cookies.set({ name, value: '', ...cookieOptions })
+          response.cookies.set({ name, value: '', ...cookieOptions })
         },
       },
     })
 
-    if (!email || !password) {
-      const url = new URL('/admin/login', baseUrl)
-      url.searchParams.set('error', encodeURIComponent('Email and password are required.'))
-      return NextResponse.redirect(url, { status: 303 })
-    }
-
+    // Attempt login
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       console.error('Supabase auth error:', error.message)
+
+      if (isJsonRequest) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: 401 }
+        )
+      }
+
       const url = new URL('/admin/login', baseUrl)
       url.searchParams.set('error', encodeURIComponent(error.message))
       return NextResponse.redirect(url, { status: 303 })
@@ -97,31 +132,41 @@ export async function POST(request: NextRequest) {
     // Verify the session was created
     if (!data.session) {
       console.error('No session created after successful login')
+
+      if (isJsonRequest) {
+        return NextResponse.json(
+          { success: false, error: 'Session creation failed. Please try again.' },
+          { status: 500 }
+        )
+      }
+
       const url = new URL('/admin/login', baseUrl)
       url.searchParams.set('error', encodeURIComponent('Session creation failed. Please try again.'))
       return NextResponse.redirect(url, { status: 303 })
     }
 
-    console.log('Login successful, redirecting to:', redirectTo)
-    console.log('Session created:', { userId: data.user?.id, email: data.user?.email })
-    console.log('Redirect URL:', new URL(redirectTo, baseUrl).toString())
-
-    // Add a small delay to ensure cookies are set
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Ensure we're redirecting to the full URL
-    const finalRedirectUrl = new URL(redirectTo, baseUrl)
-    console.log('Final redirect URL:', finalRedirectUrl.toString())
-
-    return NextResponse.redirect(finalRedirectUrl, {
-      status: 303,
-      headers: {
-        'Location': finalRedirectUrl.toString()
-      }
+    console.log('Login successful:', {
+      userId: data.user?.id,
+      email: data.user?.email,
+      redirectTo,
+      isJsonRequest
     })
+
+    // Return the appropriate response
+    return response
 
   } catch (error) {
     console.error('POST /api/admin/login error:', error)
+
+    // For JSON requests, return JSON error
+    if (request.headers.get('content-type')?.includes('application/json')) {
+      return NextResponse.json(
+        { success: false, error: 'Login failed. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    // For form submissions, redirect with error
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
       (request.headers.get('x-forwarded-proto') || 'https') + '://' +
       request.headers.get('host')

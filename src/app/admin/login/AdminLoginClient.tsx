@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -15,58 +15,51 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
   const [password, setPassword] = useState('')
   const [error, setError] = useState(initialError || '')
   const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    // Prevent any default form submission
+    if (!isMounted) return false
+
     setError('')
     setIsLoading(true)
 
     try {
-      // Make login request
+      // Make login request with JSON
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           email,
           password,
           redirect: redirectTo,
         }),
         credentials: 'include',
-        redirect: 'manual', // Don't follow redirects automatically
       })
 
-      // Check if login was successful
-      if (response.ok || response.status === 303 || response.status === 302) {
-        // Successful login - manually redirect
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Successful login
         console.log('Login successful, redirecting to:', redirectTo)
 
-        // Give cookies time to be set
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Small delay to ensure cookies are set
+        await new Promise(resolve => setTimeout(resolve, 200))
 
-        // Use router.push for client-side navigation
-        router.push(redirectTo)
-
-        // Also set window.location as fallback
-        setTimeout(() => {
-          window.location.href = redirectTo
-        }, 500)
+        // Force navigation using window.location for reliability
+        window.location.href = redirectTo
       } else {
-        // Try to get error from response
-        const text = await response.text()
-
-        // Check if it's a redirect response with error
-        if (text.includes('error=')) {
-          const errorMatch = text.match(/error=([^&]+)/)
-          if (errorMatch) {
-            setError(decodeURIComponent(errorMatch[1]))
-          } else {
-            setError('Invalid login credentials')
-          }
-        } else {
-          setError('Invalid login credentials')
-        }
+        // Login failed
+        setError(data.error || 'Invalid login credentials')
       }
     } catch (err) {
       console.error('Login error:', err)
@@ -74,6 +67,8 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
     } finally {
       setIsLoading(false)
     }
+
+    return false
   }
 
   return (
