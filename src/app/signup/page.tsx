@@ -52,7 +52,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
               </h1>
 
               <p className="mt-6 text-lg text-slate-300 leading-relaxed">
-                Connect with ASE-certified mechanics instantly. Get professional diagnostics,
+                Connect with Red Seal mechanics instantly. Get professional diagnostics,
                 troubleshooting, and repair guidance from the comfort of your home.
               </p>
 
