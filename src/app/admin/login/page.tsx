@@ -1,10 +1,10 @@
 // src/app/admin/login/page.tsx
-'use client'
-
 import Link from 'next/link'
-import { useEffect } from 'react'
 
-// Removed metadata since client components can't export metadata
+export const metadata = {
+  title: 'Admin Login — AskAutoDoctor',
+  description: 'Sign in to the AskAutoDoctor admin dashboard.',
+}
 
 type SearchParams = Promise<{ error?: string; next?: string }>
 
@@ -27,22 +27,7 @@ export default async function AdminLoginPage(props: { searchParams: SearchParams
           </div>
         )}
 
-        <form
-          action="/api/admin/login"
-          method="POST"
-          className="space-y-4"
-          onSubmit={async (e) => {
-            // Fallback client-side redirect if server redirect fails
-            const form = e.currentTarget as HTMLFormElement
-            setTimeout(() => {
-              // Check if we're still on login page after 2 seconds
-              if (window.location.pathname === '/admin/login') {
-                // Try direct navigation
-                window.location.href = '/admin/intakes'
-              }
-            }, 2000)
-          }}
-        >
+        <form action="/api/admin/login" method="POST" className="space-y-4">
           <input type="hidden" name="redirect" value={redirect} />
 
           <div>
