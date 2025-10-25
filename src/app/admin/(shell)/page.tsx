@@ -44,6 +44,15 @@ interface DashboardData {
     revenueTrend: Array<{ date: string; revenue: number }>
     customerAcquisition: Array<{ date: string; customers: number }>
   }
+  revenueDetails: {
+    platformEarnings: number
+    workshopEarnings: number
+    mechanicEarnings: number
+    pendingPayouts: number
+    completedPayouts: number
+    topWorkshops: Array<{ name: string; revenue: number }>
+    topMechanics: Array<{ name: string; revenue: number }>
+  }
 }
 
 async function getDashboardData(): Promise<DashboardData> {
@@ -119,6 +128,164 @@ async function getDashboardData(): Promise<DashboardData> {
     .select('*', { count: 'exact', head: true })
 
   if (mechanicsError) throw new Error(mechanicsError.message)
+
+  // Fetch online mechanics
+  const { count: onlineMechanics, error: onlineMechanicsError } = await supabaseAdmin
+    .from('mechanics')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_online', true)
+
+  // ===== REVENUE CALCULATIONS =====
+
+  // Fetch today's revenue from workshop_earnings
+  const { data: todayWorkshopEarnings } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('gross_amount_cents, platform_fee_cents, workshop_net_cents')
+    .gte('created_at', today.toISOString())
+
+  const todayWorkshopRevenue = todayWorkshopEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  // Fetch today's revenue from mechanic_earnings (for independent mechanics)
+  const { data: todayMechanicEarnings } = await supabaseAdmin
+    .from('mechanic_earnings')
+    .select('gross_amount_cents')
+    .is('workshop_id', null) // Only independent mechanics
+    .gte('created_at', today.toISOString())
+
+  const todayMechanicRevenue = todayMechanicEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  const todayRevenue = (todayWorkshopRevenue + todayMechanicRevenue) / 100 // Convert cents to dollars
+
+  // Fetch week's revenue
+  const { data: weekWorkshopEarnings } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('gross_amount_cents')
+    .gte('created_at', weekAgo.toISOString())
+
+  const weekWorkshopRevenue = weekWorkshopEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  const { data: weekMechanicEarnings } = await supabaseAdmin
+    .from('mechanic_earnings')
+    .select('gross_amount_cents')
+    .is('workshop_id', null)
+    .gte('created_at', weekAgo.toISOString())
+
+  const weekMechanicRevenue = weekMechanicEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  const weekRevenue = (weekWorkshopRevenue + weekMechanicRevenue) / 100
+
+  // Fetch month's revenue
+  const { data: monthWorkshopEarnings } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('gross_amount_cents')
+    .gte('created_at', monthAgo.toISOString())
+
+  const monthWorkshopRevenue = monthWorkshopEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  const { data: monthMechanicEarnings } = await supabaseAdmin
+    .from('mechanic_earnings')
+    .select('gross_amount_cents')
+    .is('workshop_id', null)
+    .gte('created_at', monthAgo.toISOString())
+
+  const monthMechanicRevenue = monthMechanicEarnings?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0
+
+  const monthRevenue = (monthWorkshopRevenue + monthMechanicRevenue) / 100
+
+  // Fetch platform earnings (platform fees)
+  const { data: platformEarnings } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('platform_fee_cents')
+    .gte('created_at', monthAgo.toISOString())
+
+  const totalPlatformEarnings = (platformEarnings?.reduce((sum, e) => sum + (e.platform_fee_cents || 0), 0) || 0) / 100
+
+  // Fetch pending payouts
+  const { data: pendingWorkshopPayouts } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('workshop_net_cents')
+    .eq('payout_status', 'pending')
+
+  const { data: pendingMechanicPayouts } = await supabaseAdmin
+    .from('mechanic_earnings')
+    .select('mechanic_net_cents')
+    .eq('payout_status', 'pending')
+
+  const totalPendingPayouts =
+    ((pendingWorkshopPayouts?.reduce((sum, e) => sum + (e.workshop_net_cents || 0), 0) || 0) +
+    (pendingMechanicPayouts?.reduce((sum, e) => sum + (e.mechanic_net_cents || 0), 0) || 0)) / 100
+
+  // Fetch completed payouts
+  const { data: completedWorkshopPayouts } = await supabaseAdmin
+    .from('workshop_earnings')
+    .select('workshop_net_cents')
+    .eq('payout_status', 'paid')
+    .gte('created_at', monthAgo.toISOString())
+
+  const { data: completedMechanicPayouts } = await supabaseAdmin
+    .from('mechanic_earnings')
+    .select('mechanic_net_cents')
+    .eq('payout_status', 'paid')
+    .gte('created_at', monthAgo.toISOString())
+
+  const totalCompletedPayouts =
+    ((completedWorkshopPayouts?.reduce((sum, e) => sum + (e.workshop_net_cents || 0), 0) || 0) +
+    (completedMechanicPayouts?.reduce((sum, e) => sum + (e.mechanic_net_cents || 0), 0) || 0)) / 100
+
+  // Fetch top workshops
+  const { data: topWorkshopsData } = await supabaseAdmin
+    .from('workshop_earnings_summary')
+    .select('workshop_name, total_net_cents')
+    .order('total_net_cents', { ascending: false })
+    .limit(5)
+
+  const topWorkshops = topWorkshopsData?.map(w => ({
+    name: w.workshop_name || 'Unknown',
+    revenue: (w.total_net_cents || 0) / 100
+  })) || []
+
+  // Fetch top mechanics
+  const { data: topMechanicsData } = await supabaseAdmin
+    .from('mechanic_earnings_summary')
+    .select('mechanic_name, total_net_cents')
+    .order('total_net_cents', { ascending: false })
+    .limit(5)
+
+  const topMechanics = topMechanicsData?.map(m => ({
+    name: m.mechanic_name || 'Unknown',
+    revenue: (m.total_net_cents || 0) / 100
+  })) || []
+
+  // Calculate revenue trend (last 7 days)
+  const revenueTrend = await Promise.all(
+    Array.from({ length: 7 }, async (_, i) => {
+      const date = new Date(weekAgo.getTime() + i * 24 * 60 * 60 * 1000)
+      const dateStr = date.toISOString().split('T')[0]
+      const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000)
+
+      const { data: dayWorkshopRevenue } = await supabaseAdmin
+        .from('workshop_earnings')
+        .select('gross_amount_cents')
+        .gte('created_at', date.toISOString())
+        .lt('created_at', nextDate.toISOString())
+
+      const { data: dayMechanicRevenue } = await supabaseAdmin
+        .from('mechanic_earnings')
+        .select('gross_amount_cents')
+        .is('workshop_id', null)
+        .gte('created_at', date.toISOString())
+        .lt('created_at', nextDate.toISOString())
+
+      const dayTotal =
+        ((dayWorkshopRevenue?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0) +
+        (dayMechanicRevenue?.reduce((sum, e) => sum + (e.gross_amount_cents || 0), 0) || 0)) / 100
+
+      return {
+        date: dateStr,
+        revenue: dayTotal
+      }
+    })
+  )
 
   // Calculate session types breakdown
   const sessionTypes = [
@@ -221,12 +388,12 @@ async function getDashboardData(): Promise<DashboardData> {
       activeSessions: activeSessions?.length || 0,
       totalCustomers: totalCustomers || 0,
       totalMechanics: totalMechanics || 0,
-      onlineMechanics: 0, // TODO: Implement online status
+      onlineMechanics: onlineMechanics || 0,
       pendingRequests: pendingRequests?.length || 0,
       unattendedRequests: unattendedRequests?.length || 0,
-      todayRevenue: 0, // TODO: Implement revenue tracking
-      weekRevenue: 0,
-      monthRevenue: 0,
+      todayRevenue,
+      weekRevenue,
+      monthRevenue,
       customerTrend24h,
       customerTrend7d,
       customerTrend30d,
@@ -242,15 +409,23 @@ async function getDashboardData(): Promise<DashboardData> {
     chartData: {
       sessionsOverTime,
       sessionTypes,
-      revenueTrend: [], // TODO: Implement revenue tracking
+      revenueTrend,
       customerAcquisition,
     },
+    revenueDetails: {
+      platformEarnings: totalPlatformEarnings,
+      workshopEarnings: topWorkshops.reduce((sum, w) => sum + w.revenue, 0),
+      mechanicEarnings: topMechanics.reduce((sum, m) => sum + m.revenue, 0),
+      pendingPayouts: totalPendingPayouts,
+      completedPayouts: totalCompletedPayouts,
+      topWorkshops,
+      topMechanics,
+    }
   }
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboard() {
   const supabase = getSupabaseServer()
-
   const {
     data: { user },
     error: userError,
@@ -260,7 +435,30 @@ export default async function AdminDashboardPage() {
     redirect('/admin/login')
   }
 
-  const dashboardData = await getDashboardData()
+  // TODO: Add actual admin role checking
+  // const { data: profile } = await supabase
+  //   .from('profiles')
+  //   .select('role')
+  //   .eq('id', user.id)
+  //   .single()
+  //
+  // if (!profile || profile.role !== 'admin') {
+  //   redirect('/admin/login')
+  // }
 
-  return <DashboardClient data={dashboardData} />
+  try {
+    const data = await getDashboardData()
+    return <DashboardClient data={data} />
+  } catch (error) {
+    console.error('Dashboard error:', error)
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold text-slate-900 mb-4">Dashboard Error</h1>
+        <p className="text-red-600">Failed to load dashboard data. Please try again later.</p>
+        <pre className="mt-4 p-4 bg-red-50 text-red-900 rounded">
+          {error instanceof Error ? error.message : String(error)}
+        </pre>
+      </div>
+    )
+  }
 }

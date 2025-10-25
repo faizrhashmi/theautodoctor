@@ -69,6 +69,15 @@ interface DashboardData {
     revenueTrend: Array<{ date: string; revenue: number }>
     customerAcquisition: Array<{ date: string; customers: number }>
   }
+  revenueDetails?: {
+    platformEarnings: number
+    workshopEarnings: number
+    mechanicEarnings: number
+    pendingPayouts: number
+    completedPayouts: number
+    topWorkshops: Array<{ name: string; revenue: number }>
+    topMechanics: Array<{ name: string; revenue: number }>
+  }
 }
 
 interface DashboardClientProps {
@@ -340,20 +349,138 @@ export function DashboardClient({ data: initialData }: DashboardClientProps) {
           </div>
         </div>
 
-        {/* Revenue Trend - Placeholder */}
+        {/* Revenue Trend */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900">Revenue Trend</h3>
           <p className="mt-1 text-sm text-slate-600">Last 7 days earnings</p>
-          <div className="mt-6 flex h-80 items-center justify-center">
-            <div className="text-center">
-              <DollarSign className="mx-auto h-12 w-12 text-slate-300" />
-              <p className="mt-4 text-sm text-slate-600">
-                Revenue tracking coming soon
-              </p>
-            </div>
+          <div className="mt-6 h-80">
+            {initialData.chartData.revenueTrend && initialData.chartData.revenueTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={initialData.chartData.revenueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatDate}
+                    stroke="#64748b"
+                    fontSize={12}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={12}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value) => [`$${value}`, 'Revenue']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke={COLORS.success}
+                    strokeWidth={2}
+                    dot={{ fill: COLORS.success }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <DollarSign className="mx-auto h-12 w-12 text-slate-300" />
+                  <p className="mt-4 text-sm text-slate-600">No revenue data yet</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Financial Details Section */}
+      {initialData.revenueDetails && (
+        <div className="grid gap-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900 mb-6">Financial Overview</h3>
+
+            {/* Revenue Breakdown */}
+            <div className="grid gap-4 md:grid-cols-5 mb-8">
+              <div className="p-4 bg-emerald-50 rounded-lg">
+                <p className="text-sm text-emerald-700 font-medium">Platform Earnings</p>
+                <p className="text-2xl font-bold text-emerald-900 mt-1">
+                  ${initialData.revenueDetails.platformEarnings.toFixed(2)}
+                </p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700 font-medium">Workshop Earnings</p>
+                <p className="text-2xl font-bold text-blue-900 mt-1">
+                  ${initialData.revenueDetails.workshopEarnings.toFixed(2)}
+                </p>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <p className="text-sm text-purple-700 font-medium">Mechanic Earnings</p>
+                <p className="text-2xl font-bold text-purple-900 mt-1">
+                  ${initialData.revenueDetails.mechanicEarnings.toFixed(2)}
+                </p>
+              </div>
+              <div className="p-4 bg-amber-50 rounded-lg">
+                <p className="text-sm text-amber-700 font-medium">Pending Payouts</p>
+                <p className="text-2xl font-bold text-amber-900 mt-1">
+                  ${initialData.revenueDetails.pendingPayouts.toFixed(2)}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-700 font-medium">Completed Payouts</p>
+                <p className="text-2xl font-bold text-green-900 mt-1">
+                  ${initialData.revenueDetails.completedPayouts.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            {/* Top Performers */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Top Workshops */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-3">Top Workshops</h4>
+                <div className="space-y-2">
+                  {initialData.revenueDetails.topWorkshops.length > 0 ? (
+                    initialData.revenueDetails.topWorkshops.map((workshop, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <span className="text-sm text-slate-700">{workshop.name}</span>
+                        <span className="text-sm font-semibold text-slate-900">
+                          ${workshop.revenue.toFixed(2)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">No workshop earnings yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Top Mechanics */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-3">Top Mechanics</h4>
+                <div className="space-y-2">
+                  {initialData.revenueDetails.topMechanics.length > 0 ? (
+                    initialData.revenueDetails.topMechanics.map((mechanic, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <span className="text-sm text-slate-700">{mechanic.name}</span>
+                        <span className="text-sm font-semibold text-slate-900">
+                          ${mechanic.revenue.toFixed(2)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">No mechanic earnings yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* System Health and Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-2">
