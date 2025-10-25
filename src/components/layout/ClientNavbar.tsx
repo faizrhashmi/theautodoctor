@@ -77,16 +77,26 @@ export default function ClientNavbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex flex-1 items-center justify-end gap-8">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group relative text-sm font-medium text-slate-300 transition hover:text-white"
-            >
-              {item.label}
-              <span className="pointer-events-none absolute inset-x-0 -bottom-1 h-px scale-x-0 bg-gradient-to-r from-orange-400 via-red-500 to-indigo-500 transition-transform duration-300 ease-out group-hover:scale-x-100" />
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? 'page' : undefined}
+                className={`group relative text-sm font-medium transition ${
+                  isActive
+                    ? 'text-orange-400 font-semibold'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                {item.label}
+                <span className={`pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-gradient-to-r from-orange-400 via-red-500 to-indigo-500 transition-transform duration-300 ease-out ${
+                  isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                }`} />
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="ml-auto flex items-center gap-3 md:gap-4">
@@ -112,7 +122,7 @@ export default function ClientNavbar() {
           </Link>
 
           {/* Mobile Menu */}
-          <MobileMenu user={user} loading={loading} />
+          <MobileMenu user={user} loading={loading} pathname={pathname} />
         </div>
       </div>
     </header>
@@ -126,19 +136,24 @@ export default function ClientNavbar() {
  * - Slides in from the right side
  * - Non-persistent (closes on navigation/scroll)
  */
-function MobileMenu({ user, loading }: { user: any; loading: boolean }) {
+function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; pathname: string }) {
   const [open, setOpen] = useState(false)
 
-  // Auto-close menu when user scrolls
+  // Auto-close menu when user scrolls (with debouncing for performance)
   useEffect(() => {
     if (!open) return
 
+    let timeoutId: NodeJS.Timeout
     const handleScroll = () => {
-      setOpen(false)
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => setOpen(false), 50)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      clearTimeout(timeoutId)
+    }
   }, [open])
 
   return (
@@ -163,18 +178,26 @@ function MobileMenu({ user, loading }: { user: any; loading: boolean }) {
           className="z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl animate-slide-in-right"
         >
           {/* Navigation Items */}
-          {NAV_ITEMS.map((item) => (
-            <DropdownMenu.Item key={item.href} asChild>
-              <Link
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus:bg-white/5"
-              >
-                <item.icon className="h-4 w-4 text-slate-400" />
-                {item.label}
-              </Link>
-            </DropdownMenu.Item>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <DropdownMenu.Item key={item.href} asChild>
+                <Link
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition focus:outline-none ${
+                    isActive
+                      ? 'bg-orange-500/10 text-orange-400 font-semibold'
+                      : 'text-slate-200 hover:bg-white/5 hover:text-white focus:bg-white/5'
+                  }`}
+                >
+                  <item.icon className={`h-4 w-4 ${isActive ? 'text-orange-400' : 'text-slate-400'}`} />
+                  {item.label}
+                </Link>
+              </DropdownMenu.Item>
+            )
+          })}
 
           <DropdownMenu.Separator className="my-2 h-px bg-white/10" />
 
