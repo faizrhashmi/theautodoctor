@@ -8,12 +8,26 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse as form data since that's what the HTML form sends
-    const formData = await request.formData()
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    // Redirect to the actual admin intakes page that exists
-    const redirectTo = formData.get('redirect') as string || '/admin/intakes'
+    // Support both form data and URL-encoded data
+    const contentType = request.headers.get('content-type') || ''
+    let email: string
+    let password: string
+    let redirectTo: string
+
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      // Handle URL-encoded data from client-side fetch
+      const text = await request.text()
+      const params = new URLSearchParams(text)
+      email = params.get('email') as string
+      password = params.get('password') as string
+      redirectTo = params.get('redirect') as string || '/admin/intakes'
+    } else {
+      // Handle form data from HTML form
+      const formData = await request.formData()
+      email = formData.get('email') as string
+      password = formData.get('password') as string
+      redirectTo = formData.get('redirect') as string || '/admin/intakes'
+    }
 
     console.log('Login attempt:', { email, redirectTo })
 
