@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, Home, DollarSign, BookOpen, Mail, Wrench, Menu, X, LayoutDashboard } from 'lucide-react'
+import { ArrowRight, Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { createClient } from '@/lib/supabase'
 
@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { label: 'How It Works', href: '/how-it-works', icon: Home },
   { label: 'Services & Pricing', href: '/pricing', icon: DollarSign },
   { label: 'Knowledge Base', href: '/knowledge-base', icon: BookOpen },
-  { label: 'Contact', href: '/contact', icon: Mail },
 ]
 
 export default function ClientNavbar() {
