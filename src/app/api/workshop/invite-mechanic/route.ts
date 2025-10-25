@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { sendEmail } from '@/lib/email/emailService'
+import { mechanicInviteEmail } from '@/lib/email/workshopTemplates'
+import { trackInvitationEvent, trackEmailEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -9,6 +12,8 @@ function bad(msg: string, status = 400) {
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured', 500)
+
+  const timer = new EventTimer()
 
   try {
     // Get authenticated user
@@ -107,7 +112,61 @@ export async function POST(req: NextRequest) {
 
     console.log('[WORKSHOP INVITE] Created invite:', invite.invite_code)
 
-    // TODO: Send invitation email to mechanic
+    // Track invitation created event
+    await trackInvitationEvent('mechanic_invited', {
+      workshopId: organizationId,
+      userId: user.id,
+      metadata: {
+        inviteEmail,
+        inviteCode: invite.invite_code,
+        workshopName: org.name,
+        role,
+      },
+      durationMs: timer.elapsed(),
+    })
+
+    // Send invitation email to mechanic
+    try {
+      const emailTemplate = mechanicInviteEmail({
+        mechanicEmail: inviteEmail,
+        workshopName: org.name,
+        inviteCode: invite.invite_code,
+        signupUrl: inviteUrl,
+        expiresInDays: 7,
+      })
+
+      await sendEmail({
+        to: inviteEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      })
+
+      console.log(`[WORKSHOP INVITE] Invitation email sent to ${inviteEmail}`)
+
+      // Track successful email
+      await trackEmailEvent('email_invite_sent', {
+        workshopId: organizationId,
+        metadata: {
+          to: inviteEmail,
+          workshopName: org.name,
+          inviteCode: invite.invite_code,
+        },
+      })
+    } catch (emailError) {
+      console.error('[WORKSHOP INVITE] Failed to send invitation email:', emailError)
+
+      // Track failed email
+      await trackEmailEvent('email_invite_failed', {
+        workshopId: organizationId,
+        success: false,
+        errorMessage: emailError.message || 'Email send failed',
+        metadata: {
+          to: inviteEmail,
+          workshopName: org.name,
+        },
+      })
+      // Don't fail the entire request if email fails
+    }
 
     return NextResponse.json({
       success: true,
@@ -168,6 +227,16 @@ export async function GET(req: NextRequest) {
     if (invite.status !== 'pending') {
       return bad('Invitation already accepted', 409)
     }
+
+    // Track invite viewed event
+    await trackInvitationEvent('mechanic_invite_viewed', {
+      workshopId: invite.organization_id,
+      metadata: {
+        inviteCode,
+        inviteEmail: invite.invite_email,
+        workshopName: invite.organizations?.name,
+      },
+    })
 
     return NextResponse.json({
       success: true,

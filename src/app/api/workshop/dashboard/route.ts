@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { trackActivityEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -9,6 +10,8 @@ function bad(msg: string, status = 400) {
 
 export async function GET(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured', 500)
+
+  const timer = new EventTimer()
 
   try {
     // Get authenticated user
@@ -184,6 +187,46 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[WORKSHOP DASHBOARD] Successfully fetched dashboard data')
+
+    // Track dashboard access
+    await trackActivityEvent('workshop_dashboard_accessed', {
+      workshopId: organization.id,
+      userId: user.id,
+      metadata: {
+        workshopName: organization.name,
+        userRole: membership.role,
+        totalMechanics,
+        activeMechanics,
+        pendingInvites: pendingInvitesCount,
+      },
+      durationMs: timer.elapsed(),
+    })
+
+    // Track special milestones
+    if (totalMechanics === 1 && mechanics?.length === 1) {
+      // First mechanic joined milestone
+      await trackActivityEvent('workshop_first_mechanic', {
+        workshopId: organization.id,
+        userId: user.id,
+        metadata: {
+          workshopName: organization.name,
+          mechanicName: mechanics[0].name,
+        },
+      })
+    }
+
+    if (totalMechanics >= organization.mechanic_capacity) {
+      // Capacity reached milestone
+      await trackActivityEvent('workshop_capacity_reached', {
+        workshopId: organization.id,
+        userId: user.id,
+        metadata: {
+          workshopName: organization.name,
+          capacity: organization.mechanic_capacity,
+          totalMechanics,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,

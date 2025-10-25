@@ -36,7 +36,9 @@
       "Bash(pkill:*)",
       "Bash(timeout 30 bash:*)",
       "Bash(dir /b 20250124*.sql)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 10 bash:*)"
     ],
     "deny": [],
     "ask": []

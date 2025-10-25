@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { hashPassword, makeSessionToken } from '@/lib/auth'
+import { trackInvitationEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -9,6 +10,8 @@ function bad(msg: string, status = 400) {
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured on server', 500)
+
+  const timer = new EventTimer()
 
   try {
     const body = await req.json()
@@ -99,9 +102,11 @@ export async function POST(req: NextRequest) {
         date_of_birth: dateOfBirth,
 
         // Account type tracking (for B2B2C)
-        account_type: 'workshop_mechanic',
+        account_type: 'workshop', // Use 'workshop' to match migration
         source: 'workshop_invitation',
         workshop_id: invite.organization_id,
+        invited_by: invite.organization_id, // Track who invited
+        invite_accepted_at: new Date().toISOString(), // Track acceptance time
         requires_sin_collection: false, // Workshop mechanics are EXEMPT from SIN collection
         sin_encrypted: null, // No SIN required
         sin_collection_completed_at: null,
@@ -147,6 +152,20 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[WORKSHOP MECHANIC SIGNUP] Created mechanic:', mech.id)
+
+    // Track invitation accepted event
+    await trackInvitationEvent('mechanic_invite_accepted', {
+      workshopId: invite.organization_id,
+      mechanicId: mech.id,
+      metadata: {
+        mechanicName: name,
+        mechanicEmail: email,
+        workshopName: invite.organizations.name,
+        inviteCode,
+        autoApproved: true,
+      },
+      durationMs: timer.elapsed(),
+    })
 
     // Update organization_members invitation status
     const { error: updateInviteError } = await supabaseAdmin

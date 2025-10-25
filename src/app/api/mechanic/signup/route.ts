@@ -92,9 +92,11 @@ export async function POST(req: NextRequest) {
         password_hash,
 
         // Account type tracking (for B2C → B2B2C transition)
-        account_type: 'individual_mechanic',
+        account_type: 'independent', // Use 'independent' to match migration
         source: 'direct',
-        workshop_id: null,
+        workshop_id: null, // Independent mechanics have no workshop
+        invited_by: null, // Not invited
+        invite_accepted_at: null, // Not applicable
         requires_sin_collection: true,
         sin_collection_completed_at: encryptedSIN ? new Date().toISOString() : null,
 

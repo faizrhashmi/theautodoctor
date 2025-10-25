@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { hashPassword } from '@/lib/auth'
+import { trackSignupEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -20,6 +21,8 @@ function generateSlug(name: string): string {
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured', 500)
+
+  const timer = new EventTimer()
 
   try {
     const body = await req.json()
@@ -45,20 +48,45 @@ export async function POST(req: NextRequest) {
 
     console.log('[WORKSHOP SIGNUP] New application from:', email)
 
+    // Track signup submitted event
+    await trackSignupEvent('workshop_signup_submitted', {
+      metadata: { email, workshopName },
+    })
+
     // Validate required fields
     if (!workshopName || !contactName || !email || !password) {
+      await trackSignupEvent('workshop_signup_failed', {
+        success: false,
+        errorMessage: 'Missing required fields',
+        metadata: { email, workshopName },
+      })
       return bad('Workshop name, contact name, email, and password are required')
     }
 
     if (!businessRegistrationNumber || !taxId) {
+      await trackSignupEvent('workshop_signup_failed', {
+        success: false,
+        errorMessage: 'Missing business details',
+        metadata: { email, workshopName },
+      })
       return bad('Business registration number and tax ID are required')
     }
 
     if (!address || !city || !province || !postalCode) {
+      await trackSignupEvent('workshop_signup_failed', {
+        success: false,
+        errorMessage: 'Missing address',
+        metadata: { email, workshopName },
+      })
       return bad('Complete address is required')
     }
 
     if (!coveragePostalCodes || coveragePostalCodes.length === 0) {
+      await trackSignupEvent('workshop_signup_failed', {
+        success: false,
+        errorMessage: 'Missing coverage areas',
+        metadata: { email, workshopName },
+      })
       return bad('At least one coverage postal code is required')
     }
 
@@ -98,6 +126,11 @@ export async function POST(req: NextRequest) {
 
     if (authError) {
       console.error('[WORKSHOP SIGNUP] Auth error:', authError)
+      await trackSignupEvent('workshop_signup_failed', {
+        success: false,
+        errorMessage: authError.message || 'Auth error',
+        metadata: { email, workshopName, errorType: 'auth_error' },
+      })
       if (authError.message?.includes('already registered')) {
         return bad('Email already registered', 409)
       }
@@ -187,6 +220,21 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[WORKSHOP SIGNUP] Application submitted successfully:', org.id)
+
+    // Track signup success event
+    await trackSignupEvent('workshop_signup_success', {
+      workshopId: org.id,
+      userId: authData.user.id,
+      metadata: {
+        workshopName,
+        email,
+        slug: org.slug,
+        city,
+        province,
+        mechanicCapacity,
+      },
+      durationMs: timer.elapsed(),
+    })
 
     // TODO: Send confirmation email to workshop
     // TODO: Send notification to admin team for review

@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
   const planParam = req.nextUrl.searchParams.get('plan') ?? '';
   const intakeId = req.nextUrl.searchParams.get('intake_id') ?? undefined;
   const slotId = req.nextUrl.searchParams.get('slot_id') ?? undefined;
+  const workshopId = req.nextUrl.searchParams.get('workshop_id') ?? undefined;
+  const routingType = req.nextUrl.searchParams.get('routing_type') ?? undefined;
   const key = (PLAN_ALIASES[planParam] ?? planParam) as PlanKey;
 
   if (!planParam || !PRICING[key]) {
@@ -42,6 +44,8 @@ export async function GET(req: NextRequest) {
         customer_email: user.email ?? '',
         ...(intakeId ? { intake_id: intakeId } : {}),
         ...(slotId ? { slot_id: slotId } : {}),
+        ...(workshopId ? { workshop_id: workshopId } : {}),
+        ...(routingType ? { routing_type: routingType } : {}),
       },
       customer_email: user.email ?? undefined,
     });

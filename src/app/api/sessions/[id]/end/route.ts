@@ -381,6 +381,51 @@ export async function POST(
     }
   }
 
+  // =====================================================
+  // NEW: Record earnings using workshop-aware revenue splits
+  // =====================================================
+  if (session.started_at && planPrice > 0) {
+    try {
+      console.log(`[end session] Recording earnings for session ${sessionId}: $${(planPrice / 100).toFixed(2)}`)
+
+      // Get payment intent ID from session metadata (if available)
+      const paymentIntentId = (session.metadata as any)?.payment_intent_id || null
+
+      // Call database function to record earnings with proper splits
+      // This handles all 3 scenarios: workshop mechanic, independent mechanic, cross-workshop
+      const { error: earningsError } = await supabaseAdmin.rpc('record_session_earnings', {
+        p_session_id: sessionId,
+        p_payment_intent_id: paymentIntentId,
+        p_amount_cents: planPrice,
+      })
+
+      if (earningsError) {
+        console.error('[end session] Failed to record earnings:', earningsError)
+        // Don't fail the entire request - log and continue
+        payoutMetadata = {
+          ...payoutMetadata,
+          earnings_recording_error: earningsError.message,
+        }
+      } else {
+        console.log(`[end session] ✓ Earnings recorded successfully for session ${sessionId}`)
+        payoutMetadata = {
+          ...payoutMetadata,
+          earnings_recorded: true,
+          earnings_recorded_at: now,
+        }
+      }
+    } catch (earningsException) {
+      console.error('[end session] Exception recording earnings:', earningsException)
+      payoutMetadata = {
+        ...payoutMetadata,
+        earnings_recording_error: earningsException instanceof Error ? earningsException.message : 'Unknown error',
+      }
+    }
+  } else {
+    console.log(`[end session] Skipping earnings recording - session not started or zero price`)
+  }
+  // =====================================================
+
   // Update session with completion data
   const existingMetadata = (session.metadata || {}) as Record<string, any>
   const { error: updateError } = await supabaseAdmin

@@ -87,6 +87,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     amountTotal: session.amount_total ?? null,
     currency: session.currency ?? null,
     slotId: typeof session.metadata?.slot_id === 'string' ? session.metadata.slot_id : null,
+    workshopId: typeof session.metadata?.workshop_id === 'string' ? session.metadata.workshop_id : null,
+    routingType: session.metadata?.routing_type === 'workshop_only' || session.metadata?.routing_type === 'hybrid'
+      ? session.metadata.routing_type
+      : 'broadcast',
   })
 
   console.log('[webhook:checkout] ✓ Fulfillment completed. Session ID:', result.sessionId)

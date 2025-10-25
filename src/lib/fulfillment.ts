@@ -29,6 +29,8 @@ type FulfillCheckoutOptions = {
   amountTotal?: number | null
   currency?: string | null
   slotId?: string | null
+  workshopId?: string | null
+  routingType?: 'workshop_only' | 'broadcast' | 'hybrid'
 }
 
 export type FulfillCheckoutResult = {
@@ -91,6 +93,8 @@ export async function fulfillCheckout(
     amountTotal,
     currency,
     slotId,
+    workshopId,
+    routingType = 'broadcast',
   }: FulfillCheckoutOptions,
 ): Promise<FulfillCheckoutResult> {
   const sessionType = PLAN_TO_TYPE[plan]
@@ -164,6 +168,8 @@ export async function fulfillCheckout(
         sessionType: existing.data.type as SessionType,
         planCode: plan,
         customerEmail,
+        workshopId,
+        routingType,
       })
     }
 
@@ -193,13 +199,15 @@ export async function fulfillCheckout(
   await upsertParticipant(insert.data.id, supabaseUserId)
 
   // Create session_request to notify mechanics
-  console.log('[fulfillment] About to create session_request. supabaseUserId:', supabaseUserId, 'sessionType:', sessionType, 'plan:', plan)
+  console.log('[fulfillment] About to create session_request. supabaseUserId:', supabaseUserId, 'sessionType:', sessionType, 'plan:', plan, 'workshopId:', workshopId)
   if (supabaseUserId) {
     await createSessionRequest({
       customerId: supabaseUserId,
       sessionType,
       planCode: plan,
       customerEmail,
+      workshopId,
+      routingType,
     })
 
     // Track checkout completion in CRM
@@ -254,6 +262,8 @@ type CreateSessionRequestOptions = {
   sessionType: SessionType
   planCode: string
   customerEmail?: string | null
+  workshopId?: string | null
+  routingType?: 'workshop_only' | 'broadcast' | 'hybrid'
 }
 
 async function createSessionRequest({
@@ -261,6 +271,8 @@ async function createSessionRequest({
   sessionType,
   planCode,
   customerEmail,
+  workshopId = null,
+  routingType = 'broadcast',
 }: CreateSessionRequestOptions) {
   try {
     // Cancel any old pending requests for this customer (they're starting a new session)
@@ -292,7 +304,7 @@ async function createSessionRequest({
 
     const customerName = profile?.full_name || customerEmail || 'Customer'
 
-    // Create the session request
+    // Create the session request with smart routing
     const { data: newRequest, error: insertError } = await supabaseAdmin
       .from('session_requests')
       .insert({
@@ -302,6 +314,8 @@ async function createSessionRequest({
         status: 'pending',
         customer_name: customerName,
         customer_email: customerEmail || null,
+        preferred_workshop_id: workshopId,
+        routing_type: workshopId ? routingType : 'broadcast',
       })
       .select()
       .single()
@@ -311,10 +325,34 @@ async function createSessionRequest({
       // Don't throw - we don't want to fail the whole payment flow if this fails
     } else {
       console.log('[fulfillment] Session request created successfully for customer', customerId)
+      console.log('[fulfillment] Routing type:', routingType, 'Workshop ID:', workshopId)
 
-      // Broadcast to notify mechanics in real-time
+      // Smart routing: Notify mechanics based on routing strategy
       if (newRequest) {
-        void broadcastSessionRequest('new_request', { request: newRequest })
+        if (workshopId && routingType === 'workshop_only') {
+          // Workshop-only: Only notify mechanics from selected workshop
+          console.log('[fulfillment] Workshop-only routing to workshop:', workshopId)
+          void broadcastSessionRequest('new_request', {
+            request: newRequest,
+            targetWorkshopId: workshopId,
+            routingType: 'workshop_only',
+          })
+        } else if (workshopId && routingType === 'hybrid') {
+          // Hybrid: Prefer workshop mechanics but allow others if none available
+          console.log('[fulfillment] Hybrid routing with preference for workshop:', workshopId)
+          void broadcastSessionRequest('new_request', {
+            request: newRequest,
+            targetWorkshopId: workshopId,
+            routingType: 'hybrid',
+          })
+        } else {
+          // Broadcast: Notify all available mechanics
+          console.log('[fulfillment] Broadcast routing to all mechanics')
+          void broadcastSessionRequest('new_request', {
+            request: newRequest,
+            routingType: 'broadcast',
+          })
+        }
       }
     }
   } catch (error) {

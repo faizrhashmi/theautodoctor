@@ -133,3 +133,10 @@ du -sh .next
 Restart completely:
 npm run dev:clean
 
+FOR FINDING TABLES INFO
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+AND table_name = 'mechanics'
+ORDER BY ordinal_position;
+
