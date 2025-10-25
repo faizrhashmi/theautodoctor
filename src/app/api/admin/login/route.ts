@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       const data = await request.json()
       email = data.email
       password = data.password
-      redirectTo = data.redirect || '/admin/intakes'
+      redirectTo = data.redirect || '/admin'
       isJsonRequest = true
     } else if (contentType.includes('application/x-www-form-urlencoded')) {
       // Handle URL-encoded data
@@ -28,13 +28,13 @@ export async function POST(request: NextRequest) {
       const params = new URLSearchParams(text)
       email = params.get('email') as string
       password = params.get('password') as string
-      redirectTo = params.get('redirect') as string || '/admin/intakes'
+      redirectTo = params.get('redirect') as string || '/admin'
     } else {
       // Handle form data from HTML form
       const formData = await request.formData()
       email = formData.get('email') as string
       password = formData.get('password') as string
-      redirectTo = formData.get('redirect') as string || '/admin/intakes'
+      redirectTo = formData.get('redirect') as string || '/admin'
     }
 
     console.log('Login attempt:', { email, redirectTo, isJsonRequest })
