@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
             sameSite: 'lax' as const,
             secure: isProduction, // Set secure flag in production
             httpOnly: true,
-            path: '/'
+            path: '/',
+            // Set domain to work with both www and non-www
+            domain: isProduction ? '.askautodoctor.com' : undefined
           }
           successRedirect.cookies.set({ name, value, ...cookieOptions })
         },
@@ -54,7 +56,9 @@ export async function POST(request: NextRequest) {
             secure: isProduction,
             httpOnly: true,
             path: '/',
-            maxAge: 0
+            maxAge: 0,
+            // Set domain to work with both www and non-www
+            domain: isProduction ? '.askautodoctor.com' : undefined
           }
           successRedirect.cookies.set({ name, value: '', ...cookieOptions })
         },

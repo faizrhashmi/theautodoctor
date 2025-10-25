@@ -42,6 +42,10 @@ export async function GET(request: NextRequest) {
       referer: request.headers.get('referer'),
     },
     cookies: {
+      // Check for any Supabase auth cookies (they include the project ID)
+      hasSupabaseAuthCookies: Array.from(request.cookies.getAll()).some(c =>
+        c.name.includes('sb-') && c.name.includes('auth-token')
+      ),
       hasSBAccessToken: !!request.cookies.get('sb-access-token')?.value,
       hasSBRefreshToken: !!request.cookies.get('sb-refresh-token')?.value,
       cookieNames: Array.from(request.cookies.getAll()).map(c => c.name),
@@ -64,8 +68,12 @@ export async function GET(request: NextRequest) {
     debug.recommendations.push('Ensure your production URL uses HTTPS')
   }
 
-  if (!debug.cookies.hasSBAccessToken && !debug.cookies.hasSBRefreshToken) {
+  if (!debug.cookies.hasSupabaseAuthCookies) {
     debug.recommendations.push('No Supabase auth cookies found - login may not be persisting')
+  }
+
+  if (debug.auth.userFound && !debug.auth.userRole) {
+    debug.recommendations.push('User authenticated but role not set - may need admin role assignment')
   }
 
   return NextResponse.json(debug, {

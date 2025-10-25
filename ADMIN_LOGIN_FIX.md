@@ -18,14 +18,14 @@ Admin login works in development but fails to redirect after successful authenti
 
 ### 2. Created Debug Endpoint
 - `/api/admin/debug-auth` - Check authentication configuration
-- Access it at: `https://yourdomain.com/api/admin/debug-auth`
+- Access it at: `https://www.askautodoctor.com/api/admin/debug-auth`
 
 ## Production Deployment Checklist
 
 ### Environment Variables
 ✅ **Required in Production:**
 ```env
-NEXT_PUBLIC_APP_URL=https://yourdomain.com
+NEXT_PUBLIC_APP_URL=https://www.askautodoctor.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
 NODE_ENV=production
@@ -58,7 +58,7 @@ NODE_ENV=production
 
 2. **Test Debug Endpoint:**
    ```
-   Visit: https://yourdomain.com/api/admin/debug-auth
+   Visit: https://www.askautodoctor.com/api/admin/debug-auth
 
    Check for:
    - environment.NEXT_PUBLIC_APP_URL should be set
@@ -68,7 +68,7 @@ NODE_ENV=production
 
 3. **Test Login Flow:**
    ```
-   1. Go to https://yourdomain.com/admin/login
+   1. Go to https://www.askautodoctor.com/admin/login
    2. Enter credentials
    3. Check browser console for any errors
    4. Should redirect to /admin/intakes
@@ -120,7 +120,7 @@ INSERT INTO auth.users (
     gen_random_uuid(),
     'authenticated',
     'authenticated',
-    'admin@yourdomain.com',
+    'admin@askautodoctor.com',
     crypt('your_password_here', gen_salt('bf')),
     NOW(),
     '{"provider": "email", "providers": ["email"]}',
