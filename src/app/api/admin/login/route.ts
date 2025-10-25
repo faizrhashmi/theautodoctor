@@ -90,11 +90,21 @@ export async function POST(request: NextRequest) {
 
     console.log('Login successful, redirecting to:', redirectTo)
     console.log('Session created:', { userId: data.user?.id, email: data.user?.email })
+    console.log('Redirect URL:', new URL(redirectTo, baseUrl).toString())
 
     // Add a small delay to ensure cookies are set
     await new Promise(resolve => setTimeout(resolve, 100))
 
-    return successRedirect
+    // Ensure we're redirecting to the full URL
+    const finalRedirectUrl = new URL(redirectTo, baseUrl)
+    console.log('Final redirect URL:', finalRedirectUrl.toString())
+
+    return NextResponse.redirect(finalRedirectUrl, {
+      status: 303,
+      headers: {
+        'Location': finalRedirectUrl.toString()
+      }
+    })
 
   } catch (error) {
     console.error('POST /api/admin/login error:', error)
