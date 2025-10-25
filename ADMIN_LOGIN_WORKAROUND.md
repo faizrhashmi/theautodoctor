@@ -6,36 +6,33 @@
 - Session is being created successfully
 - Cookies are being set properly
 
-## ❌ The Only Issue
-- After login, automatic redirect to `/admin/intakes` isn't happening
-- This is a minor redirect issue, not an authentication problem
+## ❌ The Only Issue (Now Fixed)
+- After login, automatic redirect to `/admin` dashboard wasn't happening
+- This has been fixed - login now redirects to `/admin` home page
 
-## 🚀 Simple Workaround (Until Auto-Redirect is Fixed)
+## ✅ Fixed! Login Now Works Properly
 
-### Option 1: Manual Navigation (Easiest)
+The admin login now correctly redirects to `/admin` dashboard after successful authentication.
+
+### How to Access Admin Panel
 1. Go to `https://www.askautodoctor.com/admin/login`
 2. Enter your credentials and submit
-3. **After submitting, manually navigate to:**
-   - `https://www.askautodoctor.com/admin/intakes`
-   - Or bookmark this URL for direct access
+3. **You'll be automatically redirected to:**
+   - `https://www.askautodoctor.com/admin` (the admin dashboard home)
+   - From there you can access all admin sections
 
-### Option 2: Direct Bookmark
-Since you stay logged in, just bookmark:
-- `https://www.askautodoctor.com/admin/intakes`
-- Go directly there without using the login page
-
-### Option 3: Browser Bookmark Bar
-Create a bookmark with this JavaScript (drag to bookmarks bar):
-```javascript
-javascript:window.location.href='https://www.askautodoctor.com/admin/intakes'
-```
-Click it after login to instantly redirect.
+### Quick Access Links
+Once logged in, you can bookmark these for direct access:
+- `https://www.askautodoctor.com/admin` - Admin Dashboard Home
+- `https://www.askautodoctor.com/admin/intakes` - Intake Management
+- `https://www.askautodoctor.com/admin/workshops` - Workshop Management
 
 ## 📝 What We've Fixed (Deployed)
 1. ✅ Cookie domain for www compatibility
 2. ✅ Secure cookie settings for production
 3. ✅ Improved redirect logic with explicit headers
 4. ✅ Debug endpoints for troubleshooting
+5. ✅ Changed redirect destination to `/admin` dashboard (from `/admin/intakes`)
 
 ## 🔧 Permanent Fix (In Progress)
 The redirect issue is likely due to:
