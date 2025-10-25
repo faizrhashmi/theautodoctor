@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Users - TheAutoDoctor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            text-align: center;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .results {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .result-item.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        .result-item.success {
+            border-left-color: #28a745;
+            background: #f5fff5;
+        }
+        .users-list {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .user-group {
+            margin: 20px 0;
+        }
+        .user-group h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .user-item {
+            padding: 8px 12px;
+            background: white;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .password-note {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Create Test Users</h1>
+        <p style="text-align: center; color: #666;">
+            This will create test admin and customer accounts for TheAutoDoctor
+        </p>
+
+        <button id="createBtn" class="button" onclick="createTestUsers()">
+            Create Test Users
+        </button>
+
+        <div id="status" class="status"></div>
+        <div id="results" class="results"></div>
+
+        <div class="users-list">
+            <h2 style="text-align: center; color: #333;">Test Accounts to be Created</h2>
+
+            <div class="user-group">
+                <h3>👨‍💼 Admin Accounts</h3>
+                <div class="user-item">
+                    <span>admin@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+                <div class="user-item">
+                    <span>admin1@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+                <div class="user-item">
+                    <span>admin2@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+            </div>
+
+            <div class="user-group">
+                <h3>👤 Customer Accounts</h3>
+                <div class="user-item">
+                    <span>cust@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+                <div class="user-item">
+                    <span>cust1@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+                <div class="user-item">
+                    <span>cust2@test.com</span>
+                    <span>Password: 1234</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="password-note">
+            ⚠️ All test accounts use password: 1234
+        </div>
+    </div>
+
+    <script>
+        async function createTestUsers() {
+            const button = document.getElementById('createBtn');
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+
+            button.disabled = true;
+            button.textContent = 'Creating users...';
+
+            status.className = 'status loading';
+            status.style.display = 'block';
+            status.innerHTML = '⏳ Creating test users, please wait...';
+            results.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/dev/create-test-users', {
+                    method: 'GET'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create users');
+                }
+
+                // Display results
+                status.className = 'status success';
+                status.innerHTML = '✅ ' + (data.message || 'Test users created successfully!');
+
+                // Show individual results
+                if (data.results && data.results.length > 0) {
+                    results.innerHTML = '<h3>Results:</h3>';
+                    data.results.forEach(result => {
+                        const item = document.createElement('div');
+                        item.className = result.status === 'error' ? 'result-item error' : 'result-item success';
+
+                        if (result.status === 'error') {
+                            item.innerHTML = `❌ <strong>${result.email}</strong>: ${result.error}`;
+                        } else {
+                            item.innerHTML = `✅ <strong>${result.email}</strong>: ${result.status || result.action || 'Success'}`;
+                        }
+
+                        results.appendChild(item);
+                    });
+                }
+
+                // Add login instructions
+                const instructions = document.createElement('div');
+                instructions.style.marginTop = '20px';
+                instructions.style.padding = '15px';
+                instructions.style.background = '#e7f3ff';
+                instructions.style.borderRadius = '8px';
+                instructions.innerHTML = `
+                    <h3>✨ Now you can login at:</h3>
+                    <ul>
+                        <li><strong>Admin Panel:</strong> <a href="/admin/login">/admin/login</a></li>
+                        <li><strong>Customer Portal:</strong> <a href="/signup?mode=login">/signup?mode=login</a></li>
+                    </ul>
+                    <p><strong>Password for all accounts:</strong> 1234</p>
+                `;
+                results.appendChild(instructions);
+
+            } catch (error) {
+                status.className = 'status error';
+                status.style.display = 'block';
+                status.innerHTML = '❌ Error: ' + error.message;
+
+                results.innerHTML = `
+                    <div class="result-item error">
+                        <strong>Error Details:</strong> ${error.message}
+                    </div>
+                    <div class="result-item">
+                        <strong>Troubleshooting:</strong>
+                        <ul style="margin: 10px 0;">
+                            <li>Make sure your dev server is running (npm run dev)</li>
+                            <li>Check that SUPABASE_SERVICE_ROLE_KEY is set in .env.local</li>
+                            <li>Try refreshing this page and trying again</li>
+                        </ul>
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Create Test Users';
+            }
+        }
+    </script>
+</body>
+</html>
