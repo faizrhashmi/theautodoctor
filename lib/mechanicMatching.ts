@@ -9,7 +9,9 @@ export interface MatchingCriteria {
   requestType: 'general' | 'brand_specialist'
   requestedBrand?: string
   extractedKeywords: string[]
-  customerLocation?: string
+  customerCountry?: string
+  customerCity?: string
+  preferLocalMechanic?: boolean
   urgency?: 'immediate' | 'scheduled'
 }
 
@@ -25,6 +27,9 @@ export interface MechanicMatch {
   isBrandSpecialist: boolean
   brandSpecializations: string[]
   serviceKeywords: string[]
+  country: string | null
+  city: string | null
+  isLocalMatch: boolean
 }
 
 /**
@@ -155,6 +160,31 @@ export async function findMatchingMechanics(
       score += 4
     }
 
+    // Location matching
+    let isLocalMatch = false
+    if (criteria.customerCountry && mechanic.country) {
+      // Same country bonus
+      if (mechanic.country.toLowerCase() === criteria.customerCountry.toLowerCase()) {
+        score += 25
+        matchReasons.push(`Located in ${mechanic.country}`)
+
+        // Same city bonus (if customer prefers local)
+        if (criteria.customerCity && mechanic.city &&
+            criteria.preferLocalMechanic !== false) {
+          if (mechanic.city.toLowerCase() === criteria.customerCity.toLowerCase()) {
+            score += 35
+            matchReasons.push(`Local to ${mechanic.city}`)
+            isLocalMatch = true
+          }
+        }
+      } else {
+        // Different country - significant penalty if customer prefers local
+        if (criteria.preferLocalMechanic !== false) {
+          score -= 20
+        }
+      }
+    }
+
     return {
       mechanicId: mechanic.id,
       mechanicName: mechanic.full_name || mechanic.name || 'Mechanic',
@@ -166,7 +196,10 @@ export async function findMatchingMechanics(
       rating,
       isBrandSpecialist: mechanic.is_brand_specialist || false,
       brandSpecializations: mechanic.brand_specializations || [],
-      serviceKeywords: mechanic.service_keywords || []
+      serviceKeywords: mechanic.service_keywords || [],
+      country: mechanic.country,
+      city: mechanic.city,
+      isLocalMatch
     }
   })
 
