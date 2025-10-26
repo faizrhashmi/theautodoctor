@@ -336,14 +336,15 @@ CREATE TRIGGER trigger_update_session_acceptance
 -- PART 10: UPDATE EXISTING MECHANICS
 -- ============================================
 
--- Set existing mechanics to can_accept_sessions = true temporarily
+-- Set existing approved mechanics to can_accept_sessions = true temporarily
 -- (They'll need to complete profile properly, but this prevents breaking existing flow)
 UPDATE mechanics
 SET
   can_accept_sessions = true,
   profile_completion_score = 75 -- Set to 75 to indicate "needs completion soon"
 WHERE
-  can_accept_sessions IS NULL;
+  status = 'approved'
+  AND can_accept_sessions IS NULL;
 
 -- ============================================
 -- MIGRATION COMPLETE

@@ -35,6 +35,7 @@
     "autoprefixer": "^10.4.16",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "framer-motion": "^11.18.2",
     "livekit-client": "^2.15.11",
     "livekit-server-sdk": "^2.14.0",
