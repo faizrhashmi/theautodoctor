@@ -34,10 +34,10 @@ const SERVICES = [
     popular: true
   },
   {
-    name: 'Full Inspection',
+    name: 'Complete Guidance',
     price: '$49.99',
     duration: '60 min',
-    description: 'Comprehensive diagnostic with report',
+    description: 'Expert analysis with actionable repair plan',
     features: ['Senior mechanic', 'Written report', 'Repair roadmap'],
     gradient: 'from-red-700 to-orange-800',
     icon: '🔧'

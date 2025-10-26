@@ -46,7 +46,7 @@ export default async function LiveSupportPage() {
             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-6 text-sm text-emerald-900">
               <h2 className="text-sm font-semibold text-emerald-900">Your mechanic will help with</h2>
               <ul className="mt-3 space-y-2">
-                <li>• Live walkthroughs of diagnostics or inspections.</li>
+                <li>• Live walkthroughs of diagnostics or visual checks.</li>
                 <li>• Capturing photos/video documentation.</li>
                 <li>• Next steps and repair recommendations.</li>
               </ul>

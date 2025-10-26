@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { Star, MapPin, CheckCircle, Info, Loader2, DollarSign } from 'lucide-react'
 import { MechanicMatch } from '@/lib/mechanicMatching'
+import { SpecialistTierBadge } from '@/components/SpecialistTierBadge'
 
 interface EnhancedIntakeFormProps {
   onSubmit: (data: IntakeData) => void
@@ -222,13 +223,16 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
             className={`
               p-6 border-2 rounded-xl text-left transition-all
               ${requestType === 'general'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-4 ring-blue-500/20'
-                : 'border-slate-300 dark:border-slate-600 hover:border-blue-400'
+                ? 'border-slate-500 bg-slate-50 dark:bg-slate-900/20 ring-4 ring-slate-500/20'
+                : 'border-slate-300 dark:border-slate-600 hover:border-slate-400'
               }
             `}
           >
             <div className="flex items-start justify-between mb-3">
-              <div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <SpecialistTierBadge tier="general" size="sm" showIcon={true} showLabel={true} />
+                </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                   General Service
                 </h3>
@@ -237,16 +241,19 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
                 </p>
               </div>
               {requestType === 'general' && (
-                <CheckCircle className="h-6 w-6 text-blue-500" />
+                <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
               )}
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                 {pricing.general}
               </span>
               <span className="text-sm text-slate-600 dark:text-slate-400">
                 per session
               </span>
+            </div>
+            <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+              ✓ All vehicle types • ✓ Quick response • ✓ Professional service
             </div>
           </button>
 
@@ -255,15 +262,23 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
             <button
               onClick={() => setRequestType('brand_specialist')}
               className={`
-                p-6 border-2 rounded-xl text-left transition-all
+                p-6 border-2 rounded-xl text-left transition-all relative overflow-hidden
                 ${requestType === 'brand_specialist'
                   ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 ring-4 ring-orange-500/20'
-                  : 'border-slate-300 dark:border-slate-600 hover:border-orange-400'
+                  : 'border-slate-300 dark:border-slate-600 hover:border-orange-400 hover:bg-orange-50/50'
                 }
               `}
             >
+              {/* Recommended badge */}
+              <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                RECOMMENDED
+              </div>
+
               <div className="flex items-start justify-between mb-3">
-                <div>
+                <div className="flex-1 pr-20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <SpecialistTierBadge tier="brand" size="sm" showIcon={true} showLabel={true} />
+                  </div>
                   <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     Brand Specialist
                     <Star className="h-5 w-5 text-orange-500" />
@@ -273,7 +288,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
                   </p>
                 </div>
                 {requestType === 'brand_specialist' && (
-                  <CheckCircle className="h-6 w-6 text-orange-500" />
+                  <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
                 )}
               </div>
               <div className="flex items-baseline gap-2">
@@ -284,8 +299,12 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
                   per session
                 </span>
               </div>
-              <div className="mt-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
-                +$20 for specialist expertise
+              <div className="mt-3 text-xs text-orange-700 dark:text-orange-300">
+                ✓ Brand-specific expertise • ✓ Advanced diagnostics • ✓ Premium service
+              </div>
+              <div className="mt-2 inline-flex items-center gap-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded text-xs font-medium">
+                <Info className="h-3 w-3" />
+                Higher accuracy for brand-specific issues
               </div>
             </button>
           )}

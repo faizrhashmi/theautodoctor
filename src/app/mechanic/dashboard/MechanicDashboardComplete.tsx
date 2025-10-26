@@ -11,6 +11,8 @@ import {
 import { createClient } from '@/lib/supabase'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ProfileCompletionBanner } from '@/components/mechanic/ProfileCompletionBanner'
+import { EarningsBreakdown } from '@/components/mechanic/EarningsBreakdown'
+import type { SpecialistTier } from '@/components/SpecialistTierBadge'
 import type { SessionStatus } from '@/types/session'
 import type { ProfileCompletion } from '@/lib/profileCompletion'
 
@@ -76,6 +78,7 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [profileCompletion, setProfileCompletion] = useState<ProfileCompletion | null>(null)
+  const [specialistTier, setSpecialistTier] = useState<SpecialistTier>('general')
 
   // UI state
   const [acceptingId, setAcceptingId] = useState<string | null>(null)
@@ -173,6 +176,18 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
       } catch (err) {
         console.error('Error fetching profile completion:', err)
         // Don't show error for profile completion, it's not critical
+      }
+
+      // Fetch mechanic profile for specialist tier
+      try {
+        const profileResponse = await fetch(`/api/mechanics/${mechanic.id}/profile`)
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          setSpecialistTier(profileData.specialist_tier || 'general')
+        }
+      } catch (err) {
+        console.error('Error fetching specialist tier:', err)
+        // Will default to 'general'
       }
     } catch (err: any) {
       console.error('Error fetching data:', err)
@@ -402,6 +417,7 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
                   sessions={completedSessions}
                   mechanicId={mechanic.id}
                   stats={stats}
+                  specialistTier={specialistTier}
                 />
               )}
 
@@ -1163,7 +1179,7 @@ function AvailabilitySection({ mechanicId }: { mechanicId: string }) {
 }
 
 // 8. EARNINGS & PAYOUTS SECTION
-function EarningsSection({ sessions, mechanicId, stats }: any) {
+function EarningsSection({ sessions, mechanicId, stats, specialistTier }: any) {
   const handleExportCSV = () => {
     const csvData = sessions.map((s: Session) => ({
       session_id: s.id,
@@ -1188,6 +1204,13 @@ function EarningsSection({ sessions, mechanicId, stats }: any) {
 
   return (
     <div className="space-y-6">
+      {/* Earnings Breakdown Component */}
+      <EarningsBreakdown
+        currentTier={specialistTier}
+        completedSessions={stats.totalCompleted}
+        totalEarnings={stats.totalEarnings / 100}
+      />
+
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-6">

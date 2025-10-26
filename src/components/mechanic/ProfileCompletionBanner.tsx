@@ -123,7 +123,7 @@ export function ProfileCompletionBanner({ completion, className = '' }: ProfileC
 
           {/* Action Button */}
           <Link
-            href="/mechanic/profile/edit"
+            href="/mechanic/profile"
             className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors shadow-md hover:shadow-lg"
           >
             Complete Profile Now
@@ -164,7 +164,7 @@ export function ProfileCompletionMini({ completion, className = '' }: ProfileCom
 
   return (
     <Link
-      href="/mechanic/profile/edit"
+      href="/mechanic/profile"
       className={`flex items-center gap-2 text-orange-600 hover:text-orange-700 ${className}`}
     >
       <AlertCircle className="h-4 w-4" />

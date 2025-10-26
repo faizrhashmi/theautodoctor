@@ -35,7 +35,7 @@ const HELP_LIST = [
   'Honest advice before you spend money',
   'Second opinions on shop estimates',
   'Help reading warning lights, sounds, leaks & codes',
-  'Pre-purchase and remote vehicle inspections',
+  'Remote Vehicle Review: Have an expert review your potential purchase online',
   'Guidance for DIY repairs or maintenance',
   'Support for ICE, Hybrid & EV vehicles',
 ]
