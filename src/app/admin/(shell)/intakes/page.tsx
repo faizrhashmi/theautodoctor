@@ -108,6 +108,11 @@ export default function AdminIntakesPage() {
   const [deleteError, setDeleteError] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Bulk operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<string>('');
+  const [bulkUpdating, setBulkUpdating] = useState<boolean>(false);
+
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(count / PAGE_SIZE)),
     [count]
@@ -266,6 +271,57 @@ export default function AdminIntakesPage() {
     }
   }
 
+  async function bulkUpdateStatus() {
+    if (!bulkStatus || selectedIds.size === 0) return;
+    if (!window.confirm(`Update ${selectedIds.size} intakes to "${bulkStatus.replace(/_/g, ' ')}"?`)) return;
+
+    setBulkUpdating(true);
+    try {
+      const res = await fetch('/api/admin/intakes/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          status: bulkStatus,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || `Bulk update failed: ${res.status}`);
+      }
+
+      // Refresh data
+      await fetchIntakes();
+      setSelectedIds(new Set());
+      setBulkStatus('');
+      alert(`Successfully updated ${selectedIds.size} intakes!`);
+    } catch (e: any) {
+      console.error('Bulk update error:', e);
+      alert(`Failed to bulk update: ${e.message}`);
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === rows.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)));
+    }
+  }
+
+  function toggleSelect(id: string) {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header / Crumbs */}
@@ -410,6 +466,46 @@ export default function AdminIntakesPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="mx-auto max-w-7xl px-4 pb-4">
+          <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-orange-900">
+                  {selectedIds.size} intake(s) selected
+                </span>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="rounded-lg border border-orange-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Select status...</option>
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {s.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={bulkUpdateStatus}
+                  disabled={!bulkStatus || bulkUpdating}
+                  className="rounded-lg bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkUpdating ? 'Updating...' : 'Update Selected'}
+                </button>
+              </div>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-sm text-orange-700 hover:underline"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {deleteError && (
         <div className="mx-auto max-w-7xl px-4 pb-2">
@@ -424,6 +520,14 @@ export default function AdminIntakesPage() {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-700">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
+                  <th className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === rows.length && rows.length > 0}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                    />
+                  </th>
                   <th>Created</th>
                   <th>Customer</th>
                   <th>Contact</th>
@@ -436,20 +540,28 @@ export default function AdminIntakesPage() {
               <tbody className="divide-y divide-slate-200">
                 {loading && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-6 text-center text-slate-500">
                       Loading…
                     </td>
                   </tr>
                 )}
                 {!loading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-6 text-center text-slate-500">
                       No results found. {count > 0 ? 'Try adjusting your filters.' : 'No intake records found in database.'}
                     </td>
                   </tr>
                 )}
                 {rows.map((r) => (
                   <tr key={r.id} className="[&>td]:px-4 [&>td]:py-3">
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                      />
+                    </td>
                     <td className="whitespace-nowrap text-slate-600">
                       {new Date(r.created_at).toLocaleString()}
                     </td>

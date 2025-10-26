@@ -39,7 +39,9 @@
       "Bash(openssl rand:*)",
       "Bash(npm run dev:*)",
       "Bash(timeout 10 bash:*)",
-      "Bash(code:*)"
+      "Bash(code:*)",
+      "Bash(awk:*)",
+      "Bash(xargs kill:*)"
     ],
     "deny": [],
     "ask": []

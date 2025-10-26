@@ -17,6 +17,10 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
   )
   const [chatMessages, setChatMessages] = useState<any[]>([])
   const [sessionFiles, setSessionFiles] = useState<any[]>([])
+  const [timelineEvents, setTimelineEvents] = useState<any[]>([])
+  const [availableMechanics, setAvailableMechanics] = useState<any[]>([])
+  const [selectedMechanicId, setSelectedMechanicId] = useState('')
+  const [showReassignModal, setShowReassignModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -46,13 +50,40 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
     }
   }, [session.id])
 
+  const loadTimelineEvents = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/sessions/${session.id}/timeline`)
+      if (response.ok) {
+        const data = await response.json()
+        setTimelineEvents(data.events || [])
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [session.id])
+
+  const loadAvailableMechanics = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/users/mechanics?approvalStatus=approved&pageSize=100')
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableMechanics(data.rows || [])
+      }
+    } catch (error) {
+      console.error('Failed to load mechanics:', error)
+    }
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'chat') {
       loadChatHistory()
     } else if (activeTab === 'files') {
       loadSessionFiles()
+    } else if (activeTab === 'timeline') {
+      loadTimelineEvents()
     }
-  }, [activeTab, loadChatHistory, loadSessionFiles])
+  }, [activeTab, loadChatHistory, loadSessionFiles, loadTimelineEvents])
 
   const handleForceCancel = async () => {
     const reason = prompt('Enter cancellation reason:')
@@ -104,24 +135,66 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
   }
 
   const handleReassign = async () => {
-    const mechanicId = prompt('Enter new mechanic ID:')
-    if (!mechanicId) return
+    // Load mechanics first, then show modal
+    await loadAvailableMechanics()
+    setShowReassignModal(true)
+  }
+
+  const handleReassignConfirm = async () => {
+    if (!selectedMechanicId) {
+      alert('Please select a mechanic')
+      return
+    }
 
     setActionLoading('reassign')
     try {
       const response = await fetch('/api/admin/sessions/reassign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: session.id, mechanicId }),
+        body: JSON.stringify({ sessionId: session.id, mechanicId: selectedMechanicId }),
       })
 
       if (response.ok) {
         const updated = await response.json()
         onUpdate(updated.session)
         alert('Session reassigned successfully')
+        setShowReassignModal(false)
+        setSelectedMechanicId('')
       } else {
         const error = await response.json()
         alert(error.error || 'Failed to reassign session')
+      }
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleJoinSession = async () => {
+    if (!confirm('Join this session as an observer?')) return
+
+    setActionLoading('join')
+    try {
+      const response = await fetch('/api/admin/sessions/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session.id }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Open session in new tab for video/chat sessions
+        if (data.type === 'video' || data.type === 'chat') {
+          window.open(`/session/${session.id}`, '_blank')
+        }
+        alert('You have joined the session successfully')
+        const updatedResponse = await fetch(`/api/admin/sessions/${session.id}`)
+        if (updatedResponse.ok) {
+          const updatedData = await updatedResponse.json()
+          onUpdate(updatedData.session)
+        }
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to join session')
       }
     } finally {
       setActionLoading(null)
@@ -323,36 +396,70 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
           )}
 
           {activeTab === 'timeline' && (
-            <div className="space-y-4">
-              {timeline.map((item) => (
-                <div key={item.label} className="flex items-start gap-4">
-                  <div
-                    className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${
-                      item.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
-                    }`}
-                  >
-                    {item.completed ? (
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
-                      <div className="h-2 w-2 rounded-full bg-slate-400" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                    {item.date && (
-                      <p className="text-xs text-slate-500">
-                        {format(new Date(item.date), 'PPpp')}
-                      </p>
-                    )}
-                  </div>
+            <div>
+              {loading ? (
+                <div className="text-center py-8 text-slate-500">Loading timeline events...</div>
+              ) : timelineEvents.length === 0 ? (
+                <div className="space-y-4">
+                  <p className="text-center text-sm text-slate-500 mb-4">
+                    No detailed timeline events available. Showing basic timeline:
+                  </p>
+                  {timeline.map((item) => (
+                    <div key={item.label} className="flex items-start gap-4">
+                      <div
+                        className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${
+                          item.completed ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                        }`}
+                      >
+                        {item.completed ? (
+                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <div className="h-2 w-2 rounded-full bg-slate-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                        {item.date && (
+                          <p className="text-xs text-slate-500">
+                            {format(new Date(item.date), 'PPpp')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {timelineEvents.map((event: any, index: number) => (
+                    <div key={event.id || index} className="flex items-start gap-4">
+                      <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                          <circle cx="10" cy="10" r="3" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-900">
+                          {event.event_type || event.action || 'Event'}
+                        </p>
+                        {event.description && (
+                          <p className="text-xs text-slate-600 mt-1">{event.description}</p>
+                        )}
+                        {event.created_at && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            {format(new Date(event.created_at), 'PPpp')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -457,7 +564,7 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
 
         {/* Actions */}
         <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {session.status !== 'cancelled' && session.status !== 'completed' && (
               <>
                 <button
@@ -483,6 +590,24 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
                 >
                   {actionLoading === 'reassign' ? 'Reassigning...' : 'Reassign Mechanic'}
                 </button>
+                {(session.status === 'waiting' || session.status === 'live') && (
+                  <button
+                    onClick={handleJoinSession}
+                    disabled={actionLoading !== null}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading === 'join' ? (
+                      'Joining...'
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Join Session
+                      </>
+                    )}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -494,6 +619,62 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
           </button>
         </div>
       </div>
+
+      {/* Reassign Modal */}
+      {showReassignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-md rounded-xl bg-white shadow-2xl">
+            <div className="border-b border-slate-200 px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-900">Reassign Mechanic</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Select a new mechanic for session {session.id.slice(0, 8)}...
+              </p>
+            </div>
+
+            <div className="p-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Select Mechanic
+              </label>
+              <select
+                value={selectedMechanicId}
+                onChange={(e) => setSelectedMechanicId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={actionLoading === 'reassign'}
+              >
+                <option value="">Choose a mechanic...</option>
+                {availableMechanics.map((mech: any) => (
+                  <option key={mech.id} value={mech.id}>
+                    {mech.name} - {mech.email} {mech.is_online ? '(Online)' : ''}
+                  </option>
+                ))}
+              </select>
+              {availableMechanics.length === 0 && (
+                <p className="mt-2 text-sm text-slate-500">No approved mechanics available</p>
+              )}
+            </div>
+
+            <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowReassignModal(false)
+                  setSelectedMechanicId('')
+                }}
+                disabled={actionLoading === 'reassign'}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReassignConfirm}
+                disabled={!selectedMechanicId || actionLoading === 'reassign'}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {actionLoading === 'reassign' ? 'Reassigning...' : 'Reassign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

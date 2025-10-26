@@ -6,18 +6,37 @@ import { IntakeStatus } from '@/types/supabase'
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, status } = await req.json() as { id: string; status: IntakeStatus }
+    const body = await req.json() as { id?: string; ids?: string[]; status: IntakeStatus }
+    const { id, ids, status } = body
 
-    const { error } = await supabase
-      .from('intakes')
-      .update({ status })
-      .eq('id', id)
+    // Support both single and bulk updates
+    if (ids && Array.isArray(ids) && ids.length > 0) {
+      // Bulk update
+      const { error } = await supabase
+        .from('intakes')
+        .update({ status })
+        .in('id', ids)
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true, updated: ids.length })
+    } else if (id) {
+      // Single update (backward compatible)
+      const { error } = await supabase
+        .from('intakes')
+        .update({ status })
+        .eq('id', id)
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    } else {
+      return NextResponse.json({ error: 'Either id or ids must be provided' }, { status: 400 })
     }
-
-    return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
   }

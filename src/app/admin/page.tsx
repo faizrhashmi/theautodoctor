@@ -1,130 +1,300 @@
 // src/app/admin/page.tsx
-import Link from 'next/link';
+'use client'
+
+import Link from 'next/link'
+import {
+  FileText,
+  Video,
+  Users,
+  Settings,
+  Clock,
+  Trash2,
+  Building2,
+  Briefcase,
+  AlertCircle,
+  DollarSign,
+  Database,
+  Activity,
+  Zap,
+  FileSearch,
+  BarChart3,
+  Shield,
+  Flag,
+  Bell,
+  HelpCircle,
+  Archive
+} from 'lucide-react'
 
 export default function AdminPage() {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="border-b bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6">
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage your platform from this central hub
-          </p>
-        </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Comprehensive platform management and monitoring
+        </p>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Intakes Card */}
-          <Link
-            href="/admin/intakes"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Intakes
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              View and manage customer intake requests
-            </p>
-          </Link>
+      {/* Core Operations */}
+      <Section title="Core Operations" description="Primary admin functions">
+        <AdminCard
+          href="/admin/intakes"
+          icon={<FileText className="h-6 w-6" />}
+          title="Intakes"
+          description="View and manage customer intake requests"
+          color="blue"
+        />
+        <AdminCard
+          href="/admin/sessions"
+          icon={<Video className="h-6 w-6" />}
+          title="Sessions"
+          description="Monitor active and past video sessions"
+          color="green"
+        />
+        <AdminCard
+          href="/admin/claims"
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Claims"
+          description="Handle satisfaction claims and refunds"
+          color="red"
+          badge="NEW"
+        />
+        <AdminCard
+          href="/admin/requests"
+          icon={<Bell className="h-6 w-6" />}
+          title="Requests Queue"
+          description="Manage unassigned service requests"
+          color="yellow"
+          badge="NEW"
+        />
+        <AdminCard
+          href="/admin/unattended"
+          icon={<Clock className="h-6 w-6" />}
+          title="Unattended"
+          description="Monitor unattended session requests"
+          color="orange"
+        />
+      </Section>
 
-          {/* Sessions Card */}
-          <Link
-            href="/admin/sessions"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Sessions
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Monitor active and past video sessions
-            </p>
-          </Link>
+      {/* User Management */}
+      <Section title="User Management" description="Manage all platform users">
+        <AdminCard
+          href="/admin/customers"
+          icon={<Users className="h-6 w-6" />}
+          title="Customers"
+          description="Manage customer accounts and activity"
+          color="purple"
+        />
+        <AdminCard
+          href="/admin/mechanics"
+          icon={<Settings className="h-6 w-6" />}
+          title="Mechanics"
+          description="Manage mechanic accounts and approvals"
+          color="orange"
+        />
+        <AdminCard
+          href="/admin/mechanics/applications"
+          icon={<FileSearch className="h-6 w-6" />}
+          title="Mechanic Applications"
+          description="Review pending mechanic applications"
+          color="blue"
+        />
+        <AdminCard
+          href="/admin/workshops"
+          icon={<Building2 className="h-6 w-6" />}
+          title="Workshops"
+          description="Manage workshop registrations and approvals"
+          color="indigo"
+        />
+        <AdminCard
+          href="/admin/workshops/applications"
+          icon={<FileSearch className="h-6 w-6" />}
+          title="Workshop Applications"
+          description="Review pending workshop applications"
+          color="indigo"
+        />
+        <AdminCard
+          href="/admin/corporate"
+          icon={<Briefcase className="h-6 w-6" />}
+          title="Corporate Accounts"
+          description="Manage corporate accounts and invoicing"
+          color="slate"
+        />
+      </Section>
 
-          {/* Customers Card */}
-          <Link
-            href="/admin/customers"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Customers
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Manage customer accounts and activity
-            </p>
-          </Link>
+      {/* Analytics & Monitoring */}
+      <Section title="Analytics & Monitoring" description="Platform insights and performance">
+        <AdminCard
+          href="/admin/analytics/overview"
+          icon={<BarChart3 className="h-6 w-6" />}
+          title="Analytics Overview"
+          description="Platform-wide metrics and insights"
+          color="blue"
+          badge="NEW"
+        />
+        <AdminCard
+          href="/admin/analytics/workshop"
+          icon={<Building2 className="h-6 w-6" />}
+          title="Workshop Analytics"
+          description="Workshop performance and health metrics"
+          color="indigo"
+        />
+        <AdminCard
+          href="/admin/logs"
+          icon={<FileText className="h-6 w-6" />}
+          title="System Logs"
+          description="View platform activity and audit logs"
+          color="slate"
+        />
+        <AdminCard
+          href="/admin/errors"
+          icon={<AlertCircle className="h-6 w-6" />}
+          title="Error Tracking"
+          description="Monitor and resolve system errors"
+          color="red"
+        />
+        <AdminCard
+          href="/admin/health"
+          icon={<Activity className="h-6 w-6" />}
+          title="System Health"
+          description="Monitor platform health and uptime"
+          color="green"
+        />
+        <AdminCard
+          href="/admin/profile-completion"
+          icon={<Users className="h-6 w-6" />}
+          title="Profile Completion"
+          description="Track mechanic profile completion rates"
+          color="purple"
+        />
+      </Section>
 
-          {/* Mechanics Card */}
-          <Link
-            href="/admin/mechanics"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Mechanics
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Manage mechanic accounts and approvals
-            </p>
-          </Link>
+      {/* System Tools */}
+      <Section title="System Tools" description="Advanced admin utilities">
+        <AdminCard
+          href="/admin/database"
+          icon={<Database className="h-6 w-6" />}
+          title="Database Tools"
+          description="Execute SQL queries and manage data"
+          color="slate"
+        />
+        <AdminCard
+          href="/admin/cleanup"
+          icon={<Zap className="h-6 w-6" />}
+          title="Data Cleanup"
+          description="Clean up old data and optimize storage"
+          color="orange"
+        />
+        <AdminCard
+          href="/admin/feature-flags"
+          icon={<Flag className="h-6 w-6" />}
+          title="Feature Flags"
+          description="Manage feature toggles and experiments"
+          color="blue"
+        />
+        <AdminCard
+          href="/admin/brands"
+          icon={<Shield className="h-6 w-6" />}
+          title="Brands Management"
+          description="Manage vehicle brand specializations"
+          color="indigo"
+        />
+        <AdminCard
+          href="/admin/intakes/deletions"
+          icon={<Trash2 className="h-6 w-6" />}
+          title="Deletion Log"
+          description="View audit log of deleted intake records"
+          color="red"
+        />
+      </Section>
 
-          {/* Unattended Requests Card */}
-          <Link
-            href="/admin/unattended"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-red-100 text-red-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Unattended Requests
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Monitor and manage unattended session requests
-            </p>
-          </Link>
-
-          {/* Deletions Log Card */}
-          <Link
-            href="/admin/intakes/deletions"
-            className="group rounded-xl border border-slate-200 bg-white p-6 transition hover:border-orange-500 hover:shadow-lg"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-orange-600">
-              Deletion Log
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              View audit log of deleted intake records
-            </p>
-          </Link>
-        </div>
+      {/* Quick Stats (Placeholder - will be populated with real data) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard label="Total Users" value="Loading..." color="blue" />
+        <StatCard label="Active Sessions" value="Loading..." color="green" />
+        <StatCard label="Pending Claims" value="Loading..." color="red" />
+        <StatCard label="Revenue Today" value="Loading..." color="purple" />
       </div>
     </div>
-  );
+  )
+}
+
+interface SectionProps {
+  title: string
+  description: string
+  children: React.ReactNode
+}
+
+function Section({ title, description, children }: SectionProps) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+        <p className="text-sm text-slate-600">{description}</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+interface AdminCardProps {
+  href: string
+  icon: React.ReactNode
+  title: string
+  description: string
+  color: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'slate' | 'indigo' | 'yellow'
+  badge?: string
+}
+
+function AdminCard({ href, icon, title, description, color, badge }: AdminCardProps) {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white',
+    green: 'bg-green-100 text-green-600 group-hover:bg-green-600 group-hover:text-white',
+    purple: 'bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white',
+    orange: 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white',
+    red: 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white',
+    slate: 'bg-slate-100 text-slate-600 group-hover:bg-slate-600 group-hover:text-white',
+    indigo: 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white',
+    yellow: 'bg-yellow-100 text-yellow-600 group-hover:bg-yellow-600 group-hover:text-white'
+  }
+
+  return (
+    <Link
+      href={href}
+      className="group relative rounded-lg border border-slate-200 bg-white p-4 transition hover:border-orange-500 hover:shadow-md"
+    >
+      {badge && (
+        <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+          {badge}
+        </span>
+      )}
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition ${colorClasses[color]}`}>
+        {icon}
+      </div>
+      <h3 className="font-semibold text-slate-900 group-hover:text-orange-600 mb-1">
+        {title}
+      </h3>
+      <p className="text-xs text-slate-600">
+        {description}
+      </p>
+    </Link>
+  )
+}
+
+interface StatCardProps {
+  label: string
+  value: string
+  color: string
+}
+
+function StatCard({ label, value, color }: StatCardProps) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <p className="text-sm font-medium text-slate-600">{label}</p>
+      <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+    </div>
+  )
 }
