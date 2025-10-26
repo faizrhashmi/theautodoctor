@@ -10,7 +10,9 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ProfileCompletionBanner } from '@/components/mechanic/ProfileCompletionBanner'
 import type { SessionStatus } from '@/types/session'
+import type { ProfileCompletion } from '@/lib/profileCompletion'
 
 const MECHANIC_SHARE = 0.7
 
@@ -73,6 +75,7 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
   const [completedSessions, setCompletedSessions] = useState<Session[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [profileCompletion, setProfileCompletion] = useState<ProfileCompletion | null>(null)
 
   // UI state
   const [acceptingId, setAcceptingId] = useState<string | null>(null)
@@ -159,6 +162,18 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
       setPendingRequests(requests || [])
       setActiveSessions(active || [])
       setCompletedSessions(completed || [])
+
+      // Fetch profile completion
+      try {
+        const completionResponse = await fetch(`/api/mechanics/${mechanic.id}/profile-completion`)
+        if (completionResponse.ok) {
+          const completionData = await completionResponse.json()
+          setProfileCompletion(completionData)
+        }
+      } catch (err) {
+        console.error('Error fetching profile completion:', err)
+        // Don't show error for profile completion, it's not critical
+      }
     } catch (err: any) {
       console.error('Error fetching data:', err)
       setError(err.message)
@@ -314,6 +329,14 @@ export default function MechanicDashboardComplete({ mechanic }: MechanicDashboar
                 <X className="h-5 w-5" />
               </button>
             </div>
+          )}
+
+          {/* Profile Completion Banner */}
+          {profileCompletion && (
+            <ProfileCompletionBanner
+              completion={profileCompletion}
+              className="mb-6"
+            />
           )}
 
           {/* Loading State */}
