@@ -299,7 +299,7 @@ export default function CustomerSessionsPage() {
             <p className="text-slate-400">Track, manage, and review all your diagnostic sessions</p>
           </div>
           <Link
-            href="/customer/schedule"
+            href="/customer/dashboard?focus=session"
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all shadow-lg"
           >
             <Zap className="w-5 h-5" />

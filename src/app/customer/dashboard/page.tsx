@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Car,
@@ -67,6 +67,8 @@ interface ActiveSession {
 
 export default function CustomerDashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const sessionLauncherRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
@@ -74,6 +76,7 @@ export default function CustomerDashboardPage() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'activity'>('overview')
+  const [shouldHighlight, setShouldHighlight] = useState(false)
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -135,6 +138,29 @@ export default function CustomerDashboardPage() {
 
     return () => clearInterval(interval)
   }, [])
+
+  // Handle auto-focus on session launcher
+  useEffect(() => {
+    const focusParam = searchParams?.get('focus')
+
+    if (focusParam === 'session' && sessionLauncherRef.current && !loading) {
+      // Wait for render to complete
+      setTimeout(() => {
+        sessionLauncherRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        })
+
+        // Add highlight animation
+        setShouldHighlight(true)
+
+        // Remove highlight after animation
+        setTimeout(() => {
+          setShouldHighlight(false)
+        }, 2000)
+      }, 100)
+    }
+  }, [searchParams, loading])
 
   if (loading) {
     return (
@@ -233,7 +259,14 @@ export default function CustomerDashboardPage() {
         {/* Unified Session Launcher - Account-Type Aware */}
         {/* Only show if no active sessions */}
         {activeSessions.length === 0 && (
-          <div className="mb-8">
+          <div
+            ref={sessionLauncherRef}
+            className={`mb-8 transition-all duration-500 ${
+              shouldHighlight
+                ? 'ring-4 ring-orange-500/50 rounded-2xl shadow-2xl shadow-orange-500/20'
+                : ''
+            }`}
+          >
             <SessionLauncher
               accountType={stats?.account_type}
               hasUsedFreeSession={stats?.has_used_free_session}

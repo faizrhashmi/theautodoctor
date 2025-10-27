@@ -88,9 +88,15 @@ export default function ChatRoom({
   const [mechanicPresent, setMechanicPresent] = useState(false)
   const [customerPresent, setCustomerPresent] = useState(false)
   const [sessionStartInitiated, setSessionStartInitiated] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(false) // Hidden by default on mobile
+  const [vehicleInfo, setVehicleInfo] = useState<any>(null)
+  const [mechanicProfile, setMechanicProfile] = useState<any>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+  const messageInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const isMechanic = userRole === 'mechanic'
   const bothParticipantsPresent = mechanicPresent && customerPresent
@@ -112,7 +118,7 @@ export default function ChatRoom({
     return 30
   }, [plan])
 
-  // Fetch updated participant info when session loads
+  // Fetch updated participant info, vehicle data, and mechanic profile
   useEffect(() => {
     async function fetchSessionInfo() {
       try {
@@ -136,13 +142,35 @@ export default function ChatRoom({
           if (data.customerName && !customerName) {
             setCustomerName(data.customerName)
           }
+
+          // Fetch vehicle info if customer
+          if (data.customerId) {
+            const { data: vehicles } = await supabase
+              .from('vehicles')
+              .select('*')
+              .eq('user_id', data.customerId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            if (vehicles) setVehicleInfo(vehicles)
+          }
+
+          // Fetch mechanic profile with about_me
+          if (data.mechanicId) {
+            const { data: mechanic } = await supabase
+              .from('mechanics')
+              .select('id, name, about_me, specializations, rating, total_sessions')
+              .eq('id', data.mechanicId)
+              .maybeSingle()
+            if (mechanic) setMechanicProfile(mechanic)
+          }
         }
       } catch (err) {
         console.error('Failed to fetch session info:', err)
       }
     }
     fetchSessionInfo()
-  }, [sessionId, mechanicName, customerName])
+  }, [sessionId, mechanicName, customerName, supabase])
 
   // Track presence using Supabase Presence and start session when both join
   useEffect(() => {
@@ -290,15 +318,33 @@ export default function ChatRoom({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Real-time subscriptions
+  // Real-time subscriptions including typing indicators
   useEffect(() => {
     console.log('[ChatRoom] Setting up real-time subscription for session:', sessionId)
 
     const channel = supabase
       .channel(`session-${sessionId}`, {
         config: {
-          broadcast: { self: true }, // Receive own messages for debugging
+          broadcast: { self: false }, // Don't receive own broadcasts
         },
+      })
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const { sender, typing } = payload.payload
+        console.log('[ChatRoom] Typing indicator:', sender, typing)
+
+        if (sender !== userId) {
+          setIsTyping(typing)
+
+          // Auto-hide typing indicator after 3 seconds
+          if (typing && typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current)
+          }
+          if (typing) {
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsTyping(false)
+            }, 3000)
+          }
+        }
       })
       .on('broadcast', { event: 'new_message' }, (payload) => {
         console.log('[ChatRoom] Received broadcast message:', payload)
@@ -453,6 +499,24 @@ export default function ChatRoom({
     }
   }
 
+  // Handle typing indicator
+  const handleTyping = useCallback(async () => {
+    try {
+      if (channelRef.current) {
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: {
+            sender: userId,
+            typing: true,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('[ChatRoom] Error sending typing indicator:', error)
+    }
+  }, [userId])
+
   async function handleSend(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmed = input.trim()
@@ -462,6 +526,15 @@ export default function ChatRoom({
 
     setSending(true)
     setError(null)
+
+    // Stop typing indicator
+    if (channelRef.current) {
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { sender: userId, typing: false },
+      })
+    }
 
     try {
       // Upload attachments first
@@ -656,7 +729,11 @@ export default function ChatRoom({
                 <h1 className="text-sm font-semibold text-white">{planName}</h1>
                 <p className={`flex items-center gap-1.5 text-xs font-medium ${headerColor}`}>
                   <span className={`inline-block h-2 w-2 rounded-full ${(isMechanic || mechanicName) ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
-                  {headerStatus}
+                  {isTyping ? (
+                    <span className="text-green-400 animate-pulse">typing...</span>
+                  ) : (
+                    headerStatus
+                  )}
                 </p>
               </div>
             </div>
@@ -664,6 +741,17 @@ export default function ChatRoom({
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            {/* Sidebar Toggle */}
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="flex h-10 items-center gap-2 rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:border-slate-500"
+              title="Toggle sidebar"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span className="hidden sm:inline">Info</span>
+            </button>
             {/* Timer */}
             {timeRemaining !== null && currentStatus?.toLowerCase() === 'live' && (
               <div className="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1.5 text-xs font-semibold text-blue-300 border border-blue-500/30">
@@ -976,18 +1064,30 @@ export default function ChatRoom({
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <textarea
+                ref={messageInputRef}
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(event) => {
+                  setInput(event.target.value)
+                  handleTyping()
+                  // Auto-resize textarea
+                  event.target.style.height = 'auto'
+                  event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px'
+                }}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault()
                     const form = event.currentTarget.form as HTMLFormElement | null
                     form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+                    // Reset height
+                    if (messageInputRef.current) {
+                      messageInputRef.current.style.height = 'auto'
+                    }
                   }
                 }}
                 placeholder={sessionEnded ? "Session has ended" : "Type your message... (Shift+Enter for new line)"}
-                rows={3}
+                rows={1}
                 maxLength={2000}
+                style={{ maxHeight: '120px' }}
                 className="w-full resize-none rounded-xl border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-sm text-white placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-800/50 disabled:cursor-not-allowed"
                 disabled={sending || uploading || sessionEnded}
               />
@@ -1063,6 +1163,187 @@ export default function ChatRoom({
           )}
         </form>
       </main>
+
+      {/* Sidebar - Files, Vehicle Info, Mechanic Profile */}
+      {showSidebar && (
+        <div className="fixed right-0 top-0 bottom-0 z-40 w-full sm:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
+          {/* Sidebar Header */}
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-800 p-4">
+            <h2 className="text-lg font-semibold text-white">Session Info</h2>
+            <button
+              onClick={() => setShowSidebar(false)}
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-4 space-y-6">
+            {/* Mechanic Profile Card - Only for customers */}
+            {!isMechanic && mechanicProfile && (
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white font-bold text-lg">
+                    {mechanicProfile.name?.charAt(0) || 'M'}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-white">{mechanicProfile.name || 'Mechanic'}</h3>
+                    {mechanicProfile.rating && (
+                      <div className="flex items-center gap-1 text-xs text-yellow-400">
+                        <svg className="h-3 w-3 fill-current" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                        </svg>
+                        <span>{mechanicProfile.rating.toFixed(1)}</span>
+                        {mechanicProfile.total_sessions && (
+                          <span className="text-slate-400">({mechanicProfile.total_sessions} sessions)</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* About Me */}
+                {mechanicProfile.about_me && (
+                  <div className="mt-3 rounded-lg bg-slate-900/50 p-3">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">About</h4>
+                    <p className="text-sm text-slate-300 leading-relaxed">{mechanicProfile.about_me}</p>
+                  </div>
+                )}
+
+                {/* Specializations */}
+                {mechanicProfile.specializations && mechanicProfile.specializations.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Specializations</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {mechanicProfile.specializations.map((spec: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="rounded-full bg-orange-500/20 border border-orange-500/30 px-3 py-1 text-xs text-orange-300"
+                        >
+                          {spec}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Vehicle Information */}
+            {vehicleInfo && (
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <h3 className="font-semibold text-white">Vehicle Information</h3>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {vehicleInfo.year && vehicleInfo.make && vehicleInfo.model && (
+                    <div>
+                      <span className="text-slate-400">Vehicle:</span>
+                      <span className="ml-2 text-white font-medium">
+                        {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
+                      </span>
+                    </div>
+                  )}
+                  {vehicleInfo.vin && (
+                    <div>
+                      <span className="text-slate-400">VIN:</span>
+                      <span className="ml-2 text-white font-mono text-xs">{vehicleInfo.vin}</span>
+                    </div>
+                  )}
+                  {vehicleInfo.license_plate && (
+                    <div>
+                      <span className="text-slate-400">License Plate:</span>
+                      <span className="ml-2 text-white font-medium">{vehicleInfo.license_plate}</span>
+                    </div>
+                  )}
+                  {vehicleInfo.mileage && (
+                    <div>
+                      <span className="text-slate-400">Mileage:</span>
+                      <span className="ml-2 text-white">{vehicleInfo.mileage.toLocaleString()} miles</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Shared Files */}
+            {messages.some(m => m.attachments && m.attachments.length > 0) && (
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <h3 className="font-semibold text-white">Shared Files</h3>
+                </div>
+                <div className="space-y-2">
+                  {messages
+                    .flatMap(m => m.attachments || [])
+                    .filter((file, index, self) =>
+                      index === self.findIndex(f => f.url === file.url)
+                    )
+                    .map((file, idx) => (
+                      <a
+                        key={idx}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3 text-sm transition hover:bg-slate-800"
+                      >
+                        <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="truncate font-medium text-white">{file.name}</p>
+                          <p className="text-xs text-slate-400">{formatFileSize(file.size)}</p>
+                        </div>
+                        <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Session Details */}
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="font-semibold text-white">Session Details</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-slate-400">Plan:</span>
+                  <span className="ml-2 text-white font-medium">{planName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Duration:</span>
+                  <span className="ml-2 text-white">{sessionDurationMinutes} minutes</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Status:</span>
+                  <span className="ml-2 text-white capitalize">{currentStatus || 'pending'}</span>
+                </div>
+                {currentStartedAt && (
+                  <div>
+                    <span className="text-slate-400">Started:</span>
+                    <span className="ml-2 text-white">
+                      {new Date(currentStartedAt).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Extension Modal */}
       {showExtensionModal && (
