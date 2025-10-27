@@ -249,7 +249,8 @@ export default function MechanicSignup() {
           setError('You must be at least 18 years old');
           return false;
         }
-        if (!form.sinOrBusinessNumber.trim()) {
+        // Only require SIN if feature flag is enabled
+        if (process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true' && !form.sinOrBusinessNumber.trim()) {
           setError('SIN or Business Number is required for tax purposes');
           return false;
         }
@@ -674,15 +675,21 @@ function Step1Personal({
       />
 
       <TextField
-        label="SIN or Business Number"
+        label={
+          process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true'
+            ? 'SIN or Business Number'
+            : 'SIN or Business Number (Optional)'
+        }
         value={form.sinOrBusinessNumber}
         onChange={(v) => updateForm({ sinOrBusinessNumber: v })}
         icon={FileText}
         placeholder="For tax purposes (encrypted)"
-        required
+        required={process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true'}
       />
       <p className="text-xs text-slate-400">
-        Your SIN or Business Number is encrypted and used only for tax reporting purposes
+        {process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true'
+          ? 'Your SIN or Business Number is encrypted and used only for tax reporting purposes'
+          : 'Optional: Your SIN is encrypted. Stripe will collect tax information during payout setup.'}
       </p>
     </div>
   );

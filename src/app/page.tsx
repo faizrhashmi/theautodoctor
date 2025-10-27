@@ -103,7 +103,7 @@ export default function Home() {
               🎁 Get Your First Session <span className="text-yellow-300">100% FREE</span> - No Credit Card Required!
             </p>
             <Link
-              href="/signup"
+              href="/onboarding/pricing"
               className="hidden rounded-full bg-white px-4 py-1.5 text-xs font-bold text-green-600 transition hover:bg-gray-100 sm:block"
             >
               Claim Now →
@@ -170,7 +170,7 @@ export default function Home() {
                 </ul>
 
                 <Link
-                  href="/signup"
+                  href="/onboarding/pricing"
                   className={`mt-8 block rounded-full bg-gradient-to-r ${service.gradient} px-6 py-3 text-center font-semibold text-white transition hover:shadow-lg`}
                 >
                   Book Now
@@ -248,14 +248,14 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <Link
-                href="/signup"
+                href="/onboarding/pricing"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-600 hover:to-red-700"
               >
                 Start Free Trial
                 <Zap className="h-5 w-5" />
               </Link>
               <Link
-                href="/pricing"
+                href="/onboarding/pricing"
                 className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/20 px-8 py-4 text-base font-semibold text-white backdrop-blur transition hover:border-orange-400/50 hover:bg-orange-500/10"
               >
                 View All Plans

@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get('aad_mech')?.value
+
+  if (!token) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
+  try {
+    // Validate session
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('mechanic_sessions')
+      .select('mechanic_id, expires_at')
+      .eq('token', token)
+      .single()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    // Check if session is expired
+    if (new Date(session.expires_at) < new Date()) {
+      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+    }
+
+    // Fetch availability blocks
+    const { data: availability, error: availabilityError } = await supabaseAdmin
+      .from('mechanic_availability')
+      .select('*')
+      .eq('mechanic_id', session.mechanic_id)
+      .order('weekday', { ascending: true })
+      .order('start_time', { ascending: true })
+
+    if (availabilityError) {
+      console.error('[MECHANIC AVAILABILITY API] Error:', availabilityError)
+      return NextResponse.json({ error: 'Failed to fetch availability' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      availability: availability || [],
+    })
+  } catch (error) {
+    console.error('[MECHANIC AVAILABILITY API] Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const token = req.cookies.get('aad_mech')?.value
+
+  if (!token) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
+  try {
+    // Validate session
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('mechanic_sessions')
+      .select('mechanic_id, expires_at')
+      .eq('token', token)
+      .single()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    // Check if session is expired
+    if (new Date(session.expires_at) < new Date()) {
+      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const { availability } = body
+
+    if (!Array.isArray(availability)) {
+      return NextResponse.json({ error: 'Invalid availability data' }, { status: 400 })
+    }
+
+    // Delete all existing availability blocks for this mechanic
+    const { error: deleteError } = await supabaseAdmin
+      .from('mechanic_availability')
+      .delete()
+      .eq('mechanic_id', session.mechanic_id)
+
+    if (deleteError) {
+      console.error('[MECHANIC AVAILABILITY API] Delete error:', deleteError)
+      return NextResponse.json({ error: 'Failed to update availability' }, { status: 500 })
+    }
+
+    // Insert new availability blocks (only if there are any)
+    if (availability.length > 0) {
+      const blocksToInsert = availability.map(block => ({
+        mechanic_id: session.mechanic_id,
+        weekday: block.weekday,
+        start_time: block.start_time,
+        end_time: block.end_time,
+        is_active: block.is_active ?? true,
+      }))
+
+      const { error: insertError } = await supabaseAdmin
+        .from('mechanic_availability')
+        .insert(blocksToInsert)
+
+      if (insertError) {
+        console.error('[MECHANIC AVAILABILITY API] Insert error:', insertError)
+        return NextResponse.json({ error: 'Failed to save availability' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('[MECHANIC AVAILABILITY API] Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

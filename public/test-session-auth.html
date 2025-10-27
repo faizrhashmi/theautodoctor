@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Session Auth Diagnostic</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #00ff00;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #00ffff;
+    }
+    .section {
+      background: #2a2a2a;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      border: 1px solid #444;
+    }
+    input {
+      background: #1a1a1a;
+      color: #00ff00;
+      border: 1px solid #444;
+      padding: 8px;
+      width: 400px;
+      font-family: monospace;
+    }
+    button {
+      background: #00ff00;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #00ffff;
+    }
+    pre {
+      background: #000;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid #444;
+      border-radius: 3px;
+    }
+    .error {
+      color: #ff0000;
+    }
+    .success {
+      color: #00ff00;
+    }
+    .warning {
+      color: #ffaa00;
+    }
+    .info {
+      color: #00ffff;
+    }
+    .cookie-info {
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .link {
+      color: #00ffff;
+      text-decoration: none;
+    }
+    .link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Session Authentication Diagnostic</h1>
+
+    <div class="section">
+      <h2>Browser Cookies (Client-Side)</h2>
+      <div id="clientCookies"></div>
+    </div>
+
+    <div class="section">
+      <h2>Session ID</h2>
+      <input type="text" id="sessionId" placeholder="Enter session ID (e.g., 470bd84a-ee7b-414f-964f-70001c674b66)">
+      <button onclick="checkAuth()">Check Auth Status</button>
+    </div>
+
+    <div id="results"></div>
+
+    <div class="section">
+      <h2>Quick Actions</h2>
+      <button onclick="checkActiveSessions()">Check Active Sessions Status</button>
+      <button onclick="openTestMode('mechanic')">Open as Mechanic (Test Mode)</button>
+      <button onclick="openTestMode('customer')">Open as Customer (Test Mode)</button>
+      <button onclick="clearMechanicCookie()">Clear Mechanic Cookie</button>
+    </div>
+
+    <div class="section">
+      <h2>Instructions</h2>
+      <ul>
+        <li>Open this page in the <span class="info">customer browser</span> and check auth</li>
+        <li>Open this page in the <span class="warning">mechanic browser</span> and check auth</li>
+        <li>Compare the results to see which browser has which authentication</li>
+        <li>Look for the <span class="success">aad_mech</span> cookie in the mechanic browser</li>
+        <li>If mechanic cookie is missing or expired, <a href="/mechanic/login" class="link">re-login here</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Display client-side cookies
+    function displayCookies() {
+      const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c);
+      const container = document.getElementById('clientCookies');
+
+      if (cookies.length === 0) {
+        container.innerHTML = '<div class="error">No cookies found (this is client-side only check)</div>';
+        return;
+      }
+
+      let html = '<div class="cookie-info">';
+      cookies.forEach(cookie => {
+        const [name, value] = cookie.split('=');
+        const preview = value.length > 30 ? value.substring(0, 30) + '...' : value;
+
+        if (name === 'aad_mech') {
+          html += `<div class="success">✓ ${name} = ${preview}</div>`;
+        } else if (name.includes('supabase') || name.includes('sb-')) {
+          html += `<div class="info">✓ ${name} = ${preview}</div>`;
+        } else {
+          html += `<div>${name} = ${preview}</div>`;
+        }
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    // Check auth status via API
+    async function checkAuth() {
+      const sessionId = document.getElementById('sessionId').value.trim();
+
+      if (!sessionId) {
+        alert('Please enter a session ID');
+        return;
+      }
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<div class="section"><div class="info">Loading...</div></div>';
+
+      try {
+        const response = await fetch(`/api/debug/auth-status?sessionId=${sessionId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          resultsDiv.innerHTML = `<div class="section"><div class="error">Error: ${data.error || 'Unknown error'}</div><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+          return;
+        }
+
+        // Format the results
+        let html = '<div class="section"><h2>Authentication Status</h2>';
+
+        // Session info
+        html += '<h3>Session Info</h3>';
+        html += `<pre>${JSON.stringify(data.session, null, 2)}</pre>`;
+
+        // Customer auth
+        html += '<h3>Customer Authentication</h3>';
+        if (data.customerAuth.authenticated) {
+          html += `<div class="success">✓ Authenticated as customer</div>`;
+          html += `<div>User ID: ${data.customerAuth.userId}</div>`;
+          html += `<div>Email: ${data.customerAuth.email}</div>`;
+          html += `<div>Is customer for this session: ${data.customerAuth.isCustomerForThisSession ? '✓ YES' : '✗ NO'}</div>`;
+        } else {
+          html += `<div class="error">✗ Not authenticated as customer</div>`;
+        }
+
+        // Mechanic auth
+        html += '<h3>Mechanic Authentication</h3>';
+        if (data.mechanicAuth.hasCookie) {
+          html += `<div class="success">✓ Has mechanic cookie (aad_mech)</div>`;
+          html += `<div>Token: ${data.mechanicAuth.tokenPreview}</div>`;
+
+          if (data.mechanicAuth.tokenValid) {
+            html += `<div class="success">✓ Token is valid</div>`;
+            html += `<div>Mechanic ID: ${data.mechanicAuth.mechanicId}</div>`;
+            html += `<div>Expires: ${data.mechanicAuth.expiresAt}</div>`;
+            html += `<div>Is mechanic for this session: ${data.mechanicAuth.isMechanicForThisSession ? '✓ YES' : '✗ NO'}</div>`;
+
+            if (data.mechanicAuth.mechanicDetails) {
+              html += `<div>Name: ${data.mechanicAuth.mechanicDetails.name}</div>`;
+              html += `<div>Email: ${data.mechanicAuth.mechanicDetails.email}</div>`;
+            }
+          } else {
+            html += `<div class="error">✗ Token is invalid or expired</div>`;
+            if (data.mechanicAuth.isExpired) {
+              html += `<div class="error">Token expired at: ${data.mechanicAuth.expiresAt}</div>`;
+            }
+            if (data.mechanicAuth.tokenError) {
+              html += `<div class="error">Error: ${data.mechanicAuth.tokenError}</div>`;
+            }
+          }
+        } else {
+          html += `<div class="error">✗ No mechanic cookie found</div>`;
+          html += `<div class="warning">Reason: ${data.mechanicAuth.reason}</div>`;
+        }
+
+        // Expected role
+        html += '<h3>Expected Role</h3>';
+        html += `<div class="info">This browser should access as: <strong>${data.expectedRole}</strong></div>`;
+
+        // Recommendations
+        html += '<h3>Recommendations</h3>';
+        data.recommendations.forEach(rec => {
+          if (rec.includes('correct')) {
+            html += `<div class="success">✓ ${rec}</div>`;
+          } else if (rec.includes('re-login')) {
+            html += `<div class="error">⚠ ${rec}</div>`;
+          } else {
+            html += `<div class="warning">⚠ ${rec}</div>`;
+          }
+        });
+
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="section"><div class="error">Error: ${error.message}</div></div>`;
+      }
+    }
+
+    // Check active sessions status
+    async function checkActiveSessions() {
+      const sessionId = document.getElementById('sessionId').value.trim();
+
+      if (!sessionId) {
+        alert('Please enter a session ID');
+        return;
+      }
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<div class="section"><div class="info">Loading...</div></div>';
+
+      try {
+        const response = await fetch(`/api/debug/check-active-sessions?sessionId=${sessionId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          resultsDiv.innerHTML = `<div class="section"><div class="error">Error: ${data.error || 'Unknown error'}</div><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+          return;
+        }
+
+        // Format results
+        let html = '<div class="section"><h2>Active Sessions Check</h2>';
+
+        html += '<h3>Session Info</h3>';
+        html += `<pre>${JSON.stringify(data.session, null, 2)}</pre>`;
+
+        html += '<h3>Active Sessions Eligibility</h3>';
+        if (data.activeSessionsCheck.wouldAppearInActiveList) {
+          html += `<div class="success">✓ ${data.activeSessionsCheck.reason}</div>`;
+        } else {
+          html += `<div class="error">✗ ${data.activeSessionsCheck.reason}</div>`;
+        }
+
+        if (data.mechanicCheck) {
+          html += '<h3>Mechanic Dashboard</h3>';
+          if (data.mechanicCheck.mechanicId) {
+            html += `<div>Mechanic ID: ${data.mechanicCheck.mechanicId}</div>`;
+            html += `<div>Active sessions count: ${data.mechanicCheck.activeSessionsCount}</div>`;
+            if (data.mechanicCheck.wouldSeeInDashboard) {
+              html += `<div class="success">✓ This session would appear in mechanic dashboard</div>`;
+            } else {
+              html += `<div class="error">✗ This session would NOT appear in mechanic dashboard</div>`;
+            }
+          } else {
+            html += `<div class="warning">${data.mechanicCheck.message}</div>`;
+          }
+        }
+
+        if (data.customerCheck) {
+          html += '<h3>Customer Dashboard</h3>';
+          if (data.customerCheck.customerId) {
+            html += `<div>Customer ID: ${data.customerCheck.customerId}</div>`;
+            html += `<div>Active sessions count: ${data.customerCheck.activeSessionsCount}</div>`;
+            if (data.customerCheck.wouldSeeInDashboard) {
+              html += `<div class="success">✓ This session would appear in customer dashboard</div>`;
+            } else {
+              html += `<div class="error">✗ This session would NOT appear in customer dashboard</div>`;
+            }
+          } else {
+            html += `<div class="warning">${data.customerCheck.message}</div>`;
+          }
+        }
+
+        html += '<h3>Recommendations</h3>';
+        data.recommendations.forEach(rec => {
+          if (rec.includes('✅')) {
+            html += `<div class="success">${rec}</div>`;
+          } else {
+            html += `<div class="warning">⚠ ${rec}</div>`;
+          }
+        });
+
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+
+      } catch (error) {
+        resultsDiv.innerHTML = `<div class="section"><div class="error">Error: ${error.message}</div></div>`;
+      }
+    }
+
+    // Open session in test mode
+    function openTestMode(role) {
+      const sessionId = document.getElementById('sessionId').value.trim();
+
+      if (!sessionId) {
+        alert('Please enter a session ID');
+        return;
+      }
+
+      const url = `/diagnostic/${sessionId}?testRole=${role}`;
+      window.open(url, '_blank');
+    }
+
+    // Clear mechanic cookie
+    function clearMechanicCookie() {
+      document.cookie = 'aad_mech=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      alert('Mechanic cookie cleared. Refresh to see changes.');
+      displayCookies();
+    }
+
+    // Auto-fill session ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionIdFromUrl = urlParams.get('sessionId');
+    if (sessionIdFromUrl) {
+      document.getElementById('sessionId').value = sessionIdFromUrl;
+    }
+
+    // Display cookies on load
+    displayCookies();
+  </script>
+</body>
+</html>

@@ -6,10 +6,13 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { Trash2, Star, Plus, Edit2 } from 'lucide-react'
 import type { Vehicle } from '@/types/supabase'
+import { AuthGuard } from '@/components/AuthGuard'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
-export default function VehiclesPage() {
+function VehiclesPageContent() {
   const router = useRouter()
   const supabase = createClient()
+  const { user } = useAuthGuard({ requiredRole: 'customer' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -28,45 +31,45 @@ export default function VehiclesPage() {
   })
 
   useEffect(() => {
-    loadVehicles()
+    if (user) {
+      loadVehicles()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [user])
 
   async function loadVehicles() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/signup')
-        return
-      }
+    if (!user) return
 
-      const { data, error } = await supabase
+    try {
+      const { data, error: queryError } = await supabase
         .from('vehicles')
         .select('*')
         .eq('user_id', user.id)
         .order('is_primary', { ascending: false })
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (queryError) {
+        console.error('Error loading vehicles:', queryError)
+        setError('Failed to load vehicles. Please try refreshing the page.')
+        return
+      }
+
       setVehicles(data || [])
     } catch (err: any) {
       console.error('Error loading vehicles:', err)
-      setError(err.message)
+      setError(err.message || 'An unexpected error occurred')
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!user) return
+
     setLoading(true)
     setError(null)
     setSuccess(false)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/signup')
-        return
-      }
 
       if (editingId) {
         // Update existing vehicle
@@ -116,11 +119,9 @@ export default function VehiclesPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this vehicle?')) return
+    if (!user) return
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
       const { error } = await supabase
         .from('vehicles')
         .delete()
@@ -136,10 +137,9 @@ export default function VehiclesPage() {
   }
 
   async function handleSetPrimary(id: string) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user) return
 
+    try {
       const { error } = await supabase
         .from('vehicles')
         .update({ is_primary: true })
@@ -455,5 +455,14 @@ export default function VehiclesPage() {
         )}
       </main>
     </div>
+  )
+}
+
+// Wrap the page with AuthGuard for automatic authentication protection
+export default function VehiclesPage() {
+  return (
+    <AuthGuard requiredRole="customer" redirectTo="/signup?redirect=/customer/vehicles">
+      <VehiclesPageContent />
+    </AuthGuard>
   )
 }

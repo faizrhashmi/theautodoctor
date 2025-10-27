@@ -57,8 +57,8 @@ const TIERS = [
   },
 ] as const;
 
-function getRedirectTarget(_planId: (typeof TIERS)[number]['id']): string {
-  return '/customer/dashboard';
+function getRedirectTarget(planId: (typeof TIERS)[number]['id']): string {
+  return `/intake?plan=${planId}`;
 }
 
 type PlanSelectionClientProps = {

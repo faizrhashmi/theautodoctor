@@ -96,3 +96,6 @@ Task 9:
  Run npx playwright test locally
  All test scenarios pass
  CI/CD pipeline includes tests
+
+apply authguard later on all pages
+

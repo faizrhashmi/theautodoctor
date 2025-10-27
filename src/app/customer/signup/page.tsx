@@ -222,11 +222,11 @@ export default function CustomerSignupPage() {
   const passwordStrengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong']
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <WaiverModal isOpen={showWaiver} onAccept={handleWaiverAccept} onDecline={handleWaiverDecline} />
 
       {/* Header */}
-      <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
+      <div className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm/80 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
@@ -235,9 +235,9 @@ export default function CustomerSignupPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-slate-900">TheAutoDoctor</span>
+              <span className="text-xl font-bold text-white">TheAutoDoctor</span>
             </Link>
-            <Link href="/signup" className="text-sm text-slate-600 hover:text-slate-900">
+            <Link href="/signup" className="text-sm text-slate-400 hover:text-white">
               Already have an account? <span className="font-semibold text-orange-600">Sign In</span>
             </Link>
           </div>
@@ -267,7 +267,7 @@ export default function CustomerSignupPage() {
                       step
                     )}
                   </motion.div>
-                  <span className="mt-2 text-xs font-medium text-slate-600">
+                  <span className="mt-2 text-xs font-medium text-slate-400">
                     {step === 1 ? 'Account' : step === 2 ? 'Address' : 'Confirm'}
                   </span>
                 </div>
@@ -291,7 +291,7 @@ export default function CustomerSignupPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-2xl bg-white shadow-xl"
+          className="overflow-hidden rounded-2xl bg-slate-800/50 backdrop-blur-sm shadow-xl"
         >
           {/* Error Alert */}
           <AnimatePresence>
@@ -324,8 +324,8 @@ export default function CustomerSignupPage() {
                   className="space-y-6"
                 >
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Create your account</h2>
-                    <p className="mt-1 text-sm text-slate-600">Get started with instant access to certified mechanics</p>
+                    <h2 className="text-2xl font-bold text-white">Create your account</h2>
+                    <p className="mt-1 text-sm text-slate-400">Get started with instant access to certified mechanics</p>
                   </div>
 
                   {/* Social Login Placeholders */}
@@ -333,7 +333,7 @@ export default function CustomerSignupPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 opacity-50 transition hover:bg-slate-50"
+                      className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-3 text-sm font-medium text-slate-300 opacity-50 transition hover:bg-slate-700"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24">
                         <path
@@ -358,7 +358,7 @@ export default function CustomerSignupPage() {
                     <button
                       type="button"
                       disabled
-                      className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 opacity-50 transition hover:bg-slate-50"
+                      className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-3 text-sm font-medium text-slate-300 opacity-50 transition hover:bg-slate-700"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
@@ -369,16 +369,16 @@ export default function CustomerSignupPage() {
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-slate-300"></div>
+                      <div className="w-full border-t border-slate-700"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                      <span className="bg-white px-4 text-slate-500">Or continue with email</span>
+                      <span className="bg-slate-800/50 backdrop-blur-sm px-4 text-slate-400">Or continue with email</span>
                     </div>
                   </div>
 
                   {/* Full Name */}
                   <div>
-                    <label htmlFor="fullName" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="fullName" className="block text-sm font-medium text-slate-300">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -392,7 +392,7 @@ export default function CustomerSignupPage() {
                       className={`mt-1 block w-full rounded-lg border px-4 py-3 outline-none transition focus:ring-2 ${
                         errors.fullName
                           ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                          : 'border-slate-300 focus:border-orange-500 focus:ring-orange-200'
+                          : 'border-slate-700 focus:border-orange-500 focus:ring-orange-200'
                       }`}
                       placeholder="John Doe"
                     />
@@ -401,7 +401,7 @@ export default function CustomerSignupPage() {
 
                   {/* Email */}
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="email" className="block text-sm font-medium text-slate-300">
                       Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -415,7 +415,7 @@ export default function CustomerSignupPage() {
                       className={`mt-1 block w-full rounded-lg border px-4 py-3 outline-none transition focus:ring-2 ${
                         errors.email
                           ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                          : 'border-slate-300 focus:border-orange-500 focus:ring-orange-200'
+                          : 'border-slate-700 focus:border-orange-500 focus:ring-orange-200'
                       }`}
                       placeholder="john@example.com"
                     />
@@ -424,7 +424,7 @@ export default function CustomerSignupPage() {
 
                   {/* Phone */}
                   <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="phone" className="block text-sm font-medium text-slate-300">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -438,7 +438,7 @@ export default function CustomerSignupPage() {
                       className={`mt-1 block w-full rounded-lg border px-4 py-3 outline-none transition focus:ring-2 ${
                         errors.phone
                           ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                          : 'border-slate-300 focus:border-orange-500 focus:ring-orange-200'
+                          : 'border-slate-700 focus:border-orange-500 focus:ring-orange-200'
                       }`}
                       placeholder="+1 (555) 123-4567"
                     />
@@ -447,7 +447,7 @@ export default function CustomerSignupPage() {
 
                   {/* Password */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-300">
                       Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative mt-1">
@@ -459,14 +459,14 @@ export default function CustomerSignupPage() {
                         className={`block w-full rounded-lg border px-4 py-3 pr-12 outline-none transition focus:ring-2 ${
                           errors.password
                             ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                            : 'border-slate-300 focus:border-orange-500 focus:ring-orange-200'
+                            : 'border-slate-700 focus:border-orange-500 focus:ring-orange-200'
                         }`}
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-400"
                       >
                         {showPassword ? (
                           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -492,7 +492,7 @@ export default function CustomerSignupPage() {
                             />
                           ))}
                         </div>
-                        <p className="mt-1 text-xs text-slate-600">
+                        <p className="mt-1 text-xs text-slate-400">
                           Strength: {passwordStrengthLabels[passwordStrength - 1] || 'Too Short'}
                         </p>
                       </div>
@@ -502,7 +502,7 @@ export default function CustomerSignupPage() {
 
                   {/* Confirm Password */}
                   <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300">
                       Confirm Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative mt-1">
@@ -517,14 +517,14 @@ export default function CustomerSignupPage() {
                         className={`block w-full rounded-lg border px-4 py-3 pr-12 outline-none transition focus:ring-2 ${
                           errors.confirmPassword
                             ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                            : 'border-slate-300 focus:border-orange-500 focus:ring-orange-200'
+                            : 'border-slate-700 focus:border-orange-500 focus:ring-orange-200'
                         }`}
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-400"
                       >
                         {showConfirmPassword ? (
                           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -553,15 +553,15 @@ export default function CustomerSignupPage() {
                   className="space-y-6"
                 >
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Where are you located?</h2>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <h2 className="text-2xl font-bold text-white">Where are you located?</h2>
+                    <p className="mt-1 text-sm text-slate-400">
                       Help us connect you with mechanics in your area
                     </p>
                   </div>
 
                   {/* Country */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">
+                    <label className="block text-sm font-medium text-slate-300">
                       Country <span className="text-red-500">*</span>
                     </label>
                     <CountrySelector
@@ -590,19 +590,19 @@ export default function CustomerSignupPage() {
                   />
 
                   {/* Preferences */}
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-slate-900">Preferences</h3>
+                  <div className="rounded-lg border border-slate-700 bg-slate-50 p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-white">Preferences</h3>
                     <div className="space-y-3">
                       {/* Language */}
                       <div>
-                        <label htmlFor="language" className="block text-sm font-medium text-slate-700">
+                        <label htmlFor="language" className="block text-sm font-medium text-slate-300">
                           Preferred Language
                         </label>
                         <select
                           id="language"
                           value={formData.preferredLanguage}
                           onChange={(e) => setFormData((prev) => ({ ...prev, preferredLanguage: e.target.value }))}
-                          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                          className="mt-1 block w-full rounded-lg border border-slate-700 px-3 py-2 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                         >
                           {LANGUAGES.map((lang) => (
                             <option key={lang.code} value={lang.code}>
@@ -614,14 +614,14 @@ export default function CustomerSignupPage() {
 
                       {/* Referral Source */}
                       <div>
-                        <label htmlFor="referral" className="block text-sm font-medium text-slate-700">
+                        <label htmlFor="referral" className="block text-sm font-medium text-slate-300">
                           How did you hear about us?
                         </label>
                         <select
                           id="referral"
                           value={formData.referralSource}
                           onChange={(e) => setFormData((prev) => ({ ...prev, referralSource: e.target.value }))}
-                          className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                          className="mt-1 block w-full rounded-lg border border-slate-700 px-3 py-2 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                         >
                           <option value="">Select an option...</option>
                           {REFERRAL_SOURCES.map((source) => (
@@ -638,9 +638,9 @@ export default function CustomerSignupPage() {
                           type="checkbox"
                           checked={formData.newsletterSubscribed}
                           onChange={(e) => setFormData((prev) => ({ ...prev, newsletterSubscribed: e.target.checked }))}
-                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                          className="h-4 w-4 rounded border-slate-700 text-orange-600 focus:ring-2 focus:ring-orange-500"
                         />
-                        <span className="text-sm text-slate-700">
+                        <span className="text-sm text-slate-300">
                           Send me tips, promotions, and updates via email
                         </span>
                       </label>
@@ -659,29 +659,29 @@ export default function CustomerSignupPage() {
                   className="space-y-6"
                 >
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Almost there!</h2>
-                    <p className="mt-1 text-sm text-slate-600">Review your information and accept our terms</p>
+                    <h2 className="text-2xl font-bold text-white">Almost there!</h2>
+                    <p className="mt-1 text-sm text-slate-400">Review your information and accept our terms</p>
                   </div>
 
                   {/* Summary */}
-                  <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
-                    <h3 className="mb-4 text-sm font-semibold text-slate-900">Account Summary</h3>
+                  <div className="rounded-lg border border-slate-700 bg-gradient-to-br from-slate-50 to-white p-6">
+                    <h3 className="mb-4 text-sm font-semibold text-white">Account Summary</h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Name:</span>
-                        <span className="font-medium text-slate-900">{formData.fullName}</span>
+                        <span className="text-slate-400">Name:</span>
+                        <span className="font-medium text-white">{formData.fullName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Email:</span>
-                        <span className="font-medium text-slate-900">{formData.email}</span>
+                        <span className="text-slate-400">Email:</span>
+                        <span className="font-medium text-white">{formData.email}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Phone:</span>
-                        <span className="font-medium text-slate-900">{formData.phone}</span>
+                        <span className="text-slate-400">Phone:</span>
+                        <span className="font-medium text-white">{formData.phone}</span>
                       </div>
-                      <div className="border-t border-slate-200 pt-3">
-                        <span className="text-slate-600">Location:</span>
-                        <p className="mt-1 font-medium text-slate-900">
+                      <div className="border-t border-slate-700 pt-3">
+                        <span className="text-slate-400">Location:</span>
+                        <p className="mt-1 font-medium text-white">
                           {formData.address.city}, {formData.address.stateProvince}
                           <br />
                           {formData.country}
@@ -692,17 +692,17 @@ export default function CustomerSignupPage() {
 
                   {/* Legal */}
                   <div className="space-y-4">
-                    <div className={`rounded-lg border p-4 ${formData.termsAccepted ? 'border-green-200 bg-green-50' : errors.is18Plus || errors.termsAccepted ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-white'}`}>
+                    <div className={`rounded-lg border p-4 ${formData.termsAccepted ? 'border-green-200 bg-green-50' : errors.is18Plus || errors.termsAccepted ? 'border-red-300 bg-red-50' : 'border-slate-700 bg-slate-800/50 backdrop-blur-sm'}`}>
                       <label className="flex items-start gap-3">
                         <input
                           type="checkbox"
                           checked={formData.is18Plus}
                           readOnly
-                          className="mt-1 h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                          className="mt-1 h-5 w-5 rounded border-slate-700 text-orange-600 focus:ring-2 focus:ring-orange-500"
                         />
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-slate-900">I confirm I am 18 years or older</span>
-                          <p className="mt-1 text-xs text-slate-600">Our services are only available to adults 18+</p>
+                          <span className="text-sm font-medium text-white">I confirm I am 18 years or older</span>
+                          <p className="mt-1 text-xs text-slate-400">Our services are only available to adults 18+</p>
                         </div>
                       </label>
                     </div>
@@ -755,7 +755,7 @@ export default function CustomerSignupPage() {
                   type="button"
                   onClick={handleBack}
                   disabled={loading}
-                  className="flex items-center gap-2 rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border border-slate-700 px-6 py-3 font-semibold text-slate-300 transition hover:bg-slate-700 disabled:opacity-50"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -804,7 +804,7 @@ export default function CustomerSignupPage() {
         </motion.div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-xs text-slate-400">
           By creating an account, you agree to our{' '}
           <Link href="/terms" className="text-orange-600 hover:underline">
             Terms of Service

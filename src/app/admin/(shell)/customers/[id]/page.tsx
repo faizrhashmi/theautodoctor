@@ -21,6 +21,9 @@ type Customer = {
   metadata?: any;
   total_sessions?: number;
   total_spent?: number;
+  account_type?: string | null;
+  free_session_override?: boolean;
+  has_used_free_session?: boolean | null;
 };
 
 type AdminNote = {
@@ -40,7 +43,7 @@ type AdminAction = {
 };
 
 type ActionModalProps = {
-  type: 'suspend' | 'ban' | 'verify' | 'reset' | 'notify';
+  type: 'suspend' | 'ban' | 'verify' | 'reset' | 'notify' | 'changeplan' | 'custommessage';
   userId: string;
   onClose: () => void;
   onSuccess: () => void;
@@ -224,6 +227,29 @@ export default function CustomerDetailPage() {
     }
   }
 
+  async function toggleFreeSessionOverride() {
+    if (!customer) return;
+    const newValue = !customer.free_session_override;
+
+    try {
+      const res = await fetch(`/api/admin/users/${customerId}/free-session-override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newValue }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to toggle free session override');
+      }
+
+      // Refresh customer data
+      fetchCustomer();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
   useEffect(() => {
     fetchCustomer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -318,6 +344,41 @@ export default function CustomerDetailPage() {
                     {customer.last_active_at ? new Date(customer.last_active_at).toLocaleDateString() : 'Never'}
                   </div>
                 </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-500">Account Type</div>
+                  <div className="mt-1">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                      customer.account_type === 'individual' ? 'bg-blue-100 text-blue-800' :
+                      customer.account_type === 'corporate' ? 'bg-purple-100 text-purple-800' :
+                      customer.account_type === 'fleet' ? 'bg-indigo-100 text-indigo-800' :
+                      customer.account_type === 'workshop_member' ? 'bg-teal-100 text-teal-800' :
+                      customer.account_type === 'workshop_owner' ? 'bg-cyan-100 text-cyan-800' :
+                      'bg-slate-100 text-slate-800'
+                    }`}>
+                      {customer.account_type || 'individual'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-500">Free Session Status</div>
+                  <div className="mt-1">
+                    {customer.account_type === 'individual' || !customer.account_type ? (
+                      customer.has_used_free_session ? (
+                        <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">
+                          Already Used
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                          Available
+                        </span>
+                      )
+                    ) : (
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                        N/A (B2B Account)
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -409,6 +470,64 @@ export default function CustomerDetailPage() {
                 >
                   Send Password Reset
                 </button>
+                {(customer.account_type === 'individual' || !customer.account_type) && (
+                  <>
+                    <div className="my-3 border-t border-slate-200"></div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Free Session Control
+                    </div>
+                    {customer.free_session_override && (
+                      <div className="mb-2 rounded-lg bg-blue-50 p-2 text-xs text-blue-700">
+                        ⚡ Override Active - Customer can use free session
+                      </div>
+                    )}
+                    <button
+                      onClick={toggleFreeSessionOverride}
+                      className={`w-full rounded-lg border px-4 py-2 text-sm font-medium ${
+                        customer.free_session_override
+                          ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                          : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      }`}
+                    >
+                      {customer.free_session_override ? 'Revoke Free Session Override' : 'Grant Free Session Override'}
+                    </button>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {customer.free_session_override
+                        ? 'Customer can currently use free session regardless of history'
+                        : 'Grant free session access for testing or customer support'}
+                    </p>
+                  </>
+                )}
+
+                {/* Plan Management */}
+                <div className="my-3 border-t border-slate-200"></div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Plan Management
+                </div>
+                <button
+                  onClick={() => setActiveModal('changeplan')}
+                  className="w-full rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100"
+                >
+                  Change Customer Plan
+                </button>
+                <p className="mt-2 text-xs text-slate-500">
+                  Assign any service plan to this customer
+                </p>
+
+                {/* Custom Message */}
+                <div className="my-3 border-t border-slate-200"></div>
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Custom Message
+                </div>
+                <button
+                  onClick={() => setActiveModal('custommessage')}
+                  className="w-full rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+                >
+                  Set Custom Dashboard Message
+                </button>
+                <p className="mt-2 text-xs text-slate-500">
+                  Display a custom message on customer's dashboard
+                </p>
               </div>
             </div>
 

@@ -160,7 +160,7 @@ export default function MechanicProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-orange-600 mx-auto mb-4" />
           <p className="text-slate-600">Loading your profile...</p>
@@ -170,9 +170,9 @@ export default function MechanicProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-12">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 border-b">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
@@ -230,7 +230,7 @@ export default function MechanicProfilePage() {
 
       {/* Tabs */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           {/* Tab Headers */}
           <div className="flex border-b border-slate-200 overflow-x-auto">
             {tabs.map((tab) => {
@@ -242,7 +242,7 @@ export default function MechanicProfilePage() {
                   className={`flex items-center gap-2 px-6 py-4 font-medium whitespace-nowrap transition-colors ${
                     activeTab === tab.id
                       ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950'
                   }`}
                 >
                   <Icon className="h-5 w-5" />

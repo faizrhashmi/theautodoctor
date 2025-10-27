@@ -8,6 +8,56 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
+export async function GET(request: NextRequest) {
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return request.cookies.get(name)?.value
+      },
+      set() {},
+      remove() {},
+    },
+  })
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Fetch profile from database
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, full_name, phone, city, email, preferred_plan')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    console.error('Profile fetch error:', profileError)
+    // Return user data even if profile doesn't exist yet
+    return NextResponse.json({
+      profile: {
+        full_name: user.user_metadata?.full_name || '',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || '',
+        city: '',
+      }
+    })
+  }
+
+  return NextResponse.json({
+    profile: {
+      full_name: profile.full_name || '',
+      email: profile.email || user.email || '',
+      phone: profile.phone || '',
+      city: profile.city || '',
+    }
+  })
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {

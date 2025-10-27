@@ -46,6 +46,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 >
                   Mechanics
                 </a>
+                <a
+                  href="/admin/emergency"
+                  className="text-sm font-medium text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1 rounded-lg transition flex items-center gap-1"
+                >
+                  <span>⚠️</span>
+                  Emergency
+                </a>
               </nav>
             </div>
             <LogoutButton />

@@ -1,6 +1,32 @@
 // @ts-nocheck
 'use client'
 
+/**
+ * SIN Collection Modal
+ *
+ * FEATURE STATUS: Currently DISABLED by default (see .env.local)
+ *
+ * Why disabled:
+ * - Stripe Connect handles ALL tax compliance (1099-K, T4A forms)
+ * - Mechanics provide tax info directly to Stripe during onboarding
+ * - Platform is marketplace model (not direct employer/payer)
+ * - Reduces security risk and legal liability
+ * - Workshop mechanics already exempt from SIN collection
+ *
+ * When to enable:
+ * - If platform becomes direct payer (stops using Stripe)
+ * - If legal counsel advises SIN collection is required
+ * - If CRA regulations change requiring marketplace to collect
+ *
+ * To enable: Set NEXT_PUBLIC_ENABLE_SIN_COLLECTION=true in .env.local
+ *
+ * Tax Compliance: Stripe automatically:
+ * - Collects SSN/SIN during Connect onboarding
+ * - Generates and files 1099-K/T4A forms
+ * - Reports to IRS/CRA
+ * - Provides year-end tax documents to mechanics
+ */
+
 import { useState } from 'react'
 import { X, Shield, AlertCircle, Lock, CheckCircle2, Info } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'

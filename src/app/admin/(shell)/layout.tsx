@@ -63,6 +63,7 @@ function AdminHeader() {
             <NavLink href="/admin/analytics/overview" label="Analytics" />
             <NavLink href="/admin/logs" label="Logs" />
             <NavLink href="/admin/database" label="Tools" />
+            <NavLink href="/admin/emergency" label="Emergency" badge="⚠️" />
           </nav>
         </div>
         <div className="flex items-center gap-3">

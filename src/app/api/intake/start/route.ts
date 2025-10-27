@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { Database, Json } from '@/types/supabase';
 import { trackInteraction } from '@/lib/crm';
+import { PRICING, type PlanKey } from '@/config/pricing';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
     odometer = '', plate = '',
     concern,
     files = [],
+    urgent = false,
   } = body || {};
 
   // Strict server-side validation mirrors the client
@@ -51,15 +53,23 @@ export async function POST(req: NextRequest) {
   if (!emailOk) return bad('Invalid email');
   if (!phoneOk) return bad('Invalid phone');
 
-  const hasYMM = !!(year && make && model);
-  if (!(vin && String(vin).trim().length === 17) && !hasYMM) {
-    return bad('Provide VIN (17) or full Year/Make/Model');
+  // For urgent sessions, vehicle info is optional - can be provided during session
+  if (!urgent) {
+    const hasYMM = !!(year && make && model);
+    if (!(vin && String(vin).trim().length === 17) && !hasYMM) {
+      return bad('Provide VIN (17) or full Year/Make/Model');
+    }
   }
+
+  // Validate VIN length if provided (both urgent and non-urgent)
   if (vin && String(vin).trim().length > 0 && String(vin).trim().length !== 17) {
     return bad('VIN must be 17 characters');
   }
-  if (!concern || String(concern).trim().length < 10) {
-    return bad('Describe the issue (at least 10 characters)');
+
+  // Concern validation - shorter minimum for urgent sessions
+  const minConcernLength = urgent ? 5 : 10;
+  if (!concern || String(concern).trim().length < minConcernLength) {
+    return bad(`Describe the issue (at least ${minConcernLength} characters)`);
   }
 
   // Persist intake
@@ -69,6 +79,7 @@ export async function POST(req: NextRequest) {
       plan, name, email, phone, city,
       vin, year, make, model, odometer, plate, concern,
       files, // array of storage paths
+      urgent, // flag for priority handling
     };
     const { data, error } = await supabaseAdmin.from('intakes').insert(payload).select('id').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -124,14 +135,19 @@ export async function POST(req: NextRequest) {
         intake_id: intakeId,
         source: 'intake',
         plan,
+        urgent, // Priority flag for mechanics
       };
 
       const freeSessionKey = `free_${intakeId}_${randomUUID()}`
 
+      // Get the correct session type from the plan's fulfillment type
+      const planConfig = PRICING[plan as PlanKey]
+      const sessionType = planConfig?.fulfillment || 'diagnostic' // Default to diagnostic
+
       const { data: sessionInsert, error: sessionError } = await supabaseAdmin
         .from('sessions')
         .insert({
-          type: 'chat',
+          type: sessionType, // Use plan's fulfillment type instead of hardcoded 'chat'
           status: 'pending',
           plan,
           intake_id: intakeId,
@@ -147,6 +163,8 @@ export async function POST(req: NextRequest) {
       }
 
       sessionId = sessionInsert.id;
+
+      console.log(`[INTAKE] Created session ${sessionId} for intake ${intakeId}`);
 
       if (user?.id) {
         const { error: participantError } = await supabaseAdmin
@@ -179,19 +197,31 @@ export async function POST(req: NextRequest) {
             .eq('status', 'pending')
             .is('mechanic_id', null);
 
-          // Create the session request
-          const { data: newRequest } = await supabaseAdmin
+          // Create the session request and link it to the session
+          const { data: newRequest, error: requestInsertError } = await supabaseAdmin
             .from('session_requests')
             .insert({
               customer_id: user.id,
-              session_type: 'chat',
+              session_type: sessionType, // Use same type as session (from plan's fulfillment)
               plan_code: plan,
               status: 'pending',
               customer_name: customerName,
               customer_email: email || null,
+              // Note: Using parent_session_id to link to session (no metadata column in actual schema)
+              parent_session_id: sessionId,
+              routing_type: 'broadcast',
+              request_type: 'general',
+              prefer_local_mechanic: false,
             })
             .select()
             .single();
+
+          if (requestInsertError) {
+            console.error('[INTAKE] Failed to create session_request:', requestInsertError);
+            throw requestInsertError; // Let outer catch handle it
+          }
+
+          console.log(`[INTAKE] Created session_request for session ${sessionId}`);
 
           // Broadcast to notify mechanics in real-time
           if (newRequest) {

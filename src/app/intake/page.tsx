@@ -50,11 +50,13 @@ const PLAN_DESCRIPTIONS: Record<string, string> = {
 export default function IntakePage() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan') || 'trial'
+  const isUrgent = searchParams.get('urgent') === 'true'
   const router = useRouter()
 
-  const planLabel = PLAN_LABELS[plan] ?? 'AskAutoDoctor Session'
-  const planDescription =
-    PLAN_DESCRIPTIONS[plan] ?? 'We will match you with the right mechanic as soon as you submit these details.'
+  const planLabel = isUrgent ? 'URGENT: Express Connection' : (PLAN_LABELS[plan] ?? 'AskAutoDoctor Session')
+  const planDescription = isUrgent
+    ? 'Skip the details - we\'ll connect you with an available mechanic immediately. Complete vehicle info during your session.'
+    : (PLAN_DESCRIPTIONS[plan] ?? 'We will match you with the right mechanic as soon as you submit these details.')
 
   const [form, setForm] = useState({
     name: '',
@@ -84,6 +86,29 @@ export default function IntakePage() {
   } | null>(null)
   const firstErrorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const supabase = createClient()
+
+  // Check for active sessions on mount - enforce business rule
+  useEffect(() => {
+    async function checkActiveSessions() {
+      try {
+        const response = await fetch('/api/customer/active-sessions')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.hasActiveSessions && data.sessions.length > 0) {
+            const session = data.sessions[0]
+            setActiveSessionModal({
+              sessionId: session.id,
+              sessionType: session.type,
+              sessionStatus: session.status
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Error checking active sessions:', err)
+      }
+    }
+    checkActiveSessions()
+  }, [])
 
   // Load user profile and vehicle info
   useEffect(() => {
@@ -178,19 +203,29 @@ export default function IntakePage() {
     if (!form.phone.trim() || !phoneRegex.test(form.phone)) nextErrors.phone = 'Valid phone is required'
     if (!form.city.trim()) nextErrors.city = 'City / Town is required'
 
-    const hasFullYMM = !!(form.year.trim() && form.make.trim() && form.model.trim())
-    if (!form.vin.trim() && !hasFullYMM) {
-      nextErrors.vin = 'Provide VIN (preferred) or fill Year / Make / Model'
-      if (!form.year.trim()) nextErrors.year = 'Year required if no VIN'
-      if (!form.make.trim()) nextErrors.make = 'Make required if no VIN'
-      if (!form.model.trim()) nextErrors.model = 'Model required if no VIN'
-    }
-    if (form.vin && form.vin.trim().length > 0 && form.vin.trim().length !== 17) {
-      nextErrors.vin = 'VIN must be exactly 17 characters'
+    // For urgent sessions, vehicle info is optional - can be provided during session
+    if (!isUrgent) {
+      const hasFullYMM = !!(form.year.trim() && form.make.trim() && form.model.trim())
+      if (!form.vin.trim() && !hasFullYMM) {
+        nextErrors.vin = 'Provide VIN (preferred) or fill Year / Make / Model'
+        if (!form.year.trim()) nextErrors.year = 'Year required if no VIN'
+        if (!form.make.trim()) nextErrors.make = 'Make required if no VIN'
+        if (!form.model.trim()) nextErrors.model = 'Model required if no VIN'
+      }
+      if (form.vin && form.vin.trim().length > 0 && form.vin.trim().length !== 17) {
+        nextErrors.vin = 'VIN must be exactly 17 characters'
+      }
+    } else {
+      // For urgent mode, only validate VIN length if provided
+      if (form.vin && form.vin.trim().length > 0 && form.vin.trim().length !== 17) {
+        nextErrors.vin = 'VIN must be exactly 17 characters'
+      }
     }
 
-    if (!form.concern.trim() || form.concern.trim().length < 10) {
-      nextErrors.concern = 'Please describe the issue (min 10 characters)'
+    // Concern is required but shorter minimum for urgent sessions
+    const minConcernLength = isUrgent ? 5 : 10
+    if (!form.concern.trim() || form.concern.trim().length < minConcernLength) {
+      nextErrors.concern = `Please describe the issue (min ${minConcernLength} characters)`
     }
 
     setErrors(nextErrors)
@@ -312,7 +347,7 @@ export default function IntakePage() {
       const res = await fetch('/api/intake/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, ...form, files: uploadedPaths }),
+        body: JSON.stringify({ plan, ...form, files: uploadedPaths, urgent: isUrgent }),
       })
       const data = await res.json()
 
@@ -338,8 +373,15 @@ export default function IntakePage() {
   const canSubmit = (() => {
     const hasContact = form.name && form.email && form.phone && form.city
     const hasVehicle = form.vin.length === 17 || (form.year && form.make && form.model)
-    const hasConcern = form.concern && form.concern.length >= 10
+    const minConcernLength = isUrgent ? 5 : 10
+    const hasConcern = form.concern && form.concern.length >= minConcernLength
     const uploadsReady = uploads.every((u) => u.status === 'done' || u.status === 'pending' || u.status === 'error')
+
+    // For urgent mode, vehicle info is optional
+    if (isUrgent) {
+      return Boolean(hasContact && hasConcern && uploadsReady)
+    }
+
     return Boolean(hasContact && hasVehicle && hasConcern && uploadsReady)
   })()
 
@@ -355,6 +397,30 @@ export default function IntakePage() {
   return (
     <main className="mx-auto max-w-5xl rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur lg:p-12">
       <div className="flex flex-col gap-8">
+        {/* Urgent Mode Banner */}
+        {isUrgent && (
+          <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 shadow-xl animate-pulse-slow">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/30 border border-red-400/50">
+                <svg className="h-6 w-6 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-400/50 text-xs font-bold uppercase tracking-wider text-red-200">
+                    EXPRESS MODE
+                  </span>
+                  Priority Connection Active
+                </h3>
+                <p className="mt-1 text-sm text-slate-200">
+                  Vehicle details are optional - you can provide them during your session. Just tell us your contact info and issue to connect immediately.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-6 shadow-lg sm:p-8">
           <div className="flex items-center justify-end mb-4">
             <button
@@ -435,7 +501,7 @@ export default function IntakePage() {
             />
           </Section>
 
-          <Section title="Vehicle information">
+          <Section title={isUrgent ? "Vehicle information (optional - can be provided during session)" : "Vehicle information"}>
             {userVehicles.length > 0 && !loadingProfile && (
               <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
                 <label className="block">
@@ -635,9 +701,18 @@ export default function IntakePage() {
               type="button"
               onClick={submit}
               disabled={!canSubmit}
-              className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-xl transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 disabled:opacity-60"
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-xl transition disabled:opacity-60 ${
+                isUrgent
+                  ? 'bg-gradient-to-r from-red-500 via-orange-600 to-red-700 hover:from-red-600 hover:via-orange-700 hover:to-red-800'
+                  : 'bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400'
+              }`}
             >
-              Continue to session
+              {isUrgent && (
+                <svg className="h-4 w-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              {isUrgent ? 'Connect Now (Express)' : 'Continue to session'}
             </button>
           </div>
         </div>

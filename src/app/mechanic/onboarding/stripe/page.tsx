@@ -63,9 +63,9 @@ export default function StripeOnboardingPage() {
 
   if (status?.onboarding_completed && status?.payouts_enabled) {
     return (
-      <div className="min-h-screen bg-slate-50 px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-12">
         <div className="mx-auto max-w-2xl">
-          <div className="rounded-3xl border border-green-200 bg-white p-8 shadow-lg">
+          <div className="rounded-3xl border border-green-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 shadow-lg">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -78,7 +78,7 @@ export default function StripeOnboardingPage() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-3 rounded-2xl bg-slate-50 p-6">
+            <div className="mt-6 space-y-3 rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600">Onboarding Status</span>
                 <span className="font-semibold text-green-600">Complete</span>
@@ -106,9 +106,9 @@ export default function StripeOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-12">
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
+        <div className="rounded-3xl border border-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-8 shadow-lg">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
               <DollarSign className="h-8 w-8 text-orange-600" />
@@ -168,7 +168,7 @@ export default function StripeOnboardingPage() {
             </div>
           </div>
 
-          <div className="mt-8 rounded-2xl bg-slate-50 p-6">
+          <div className="mt-8 rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6">
             <h3 className="font-semibold text-slate-900">How payouts work</h3>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li className="flex items-start gap-2">

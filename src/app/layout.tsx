@@ -10,6 +10,7 @@ import { Inter } from 'next/font/google';
 // import ChatBubble from '@/components/chat/ChatBubble'; // Hidden temporarily
 import SiteFooter from '@/components/layout/SiteFooter';
 import ClientNavbar from '@/components/layout/ClientNavbar';
+import ConditionalMainWrapper from '@/components/layout/ConditionalMainWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -27,8 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Client-side Navbar with user state awareness */}
         <ClientNavbar />
 
-        {/* Push content below the fixed header */}
-        <main className="pt-16">{children}</main>
+        {/* Conditional wrapper - adds pt-16 for public pages, nothing for authenticated pages */}
+        <ConditionalMainWrapper>{children}</ConditionalMainWrapper>
+
         <SiteFooter />
         {/* <ChatBubble /> */} {/* Hidden temporarily - needs real backend integration */}
       </body>

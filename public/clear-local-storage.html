@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Local Storage - AutoDoctor Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+
+        .warning-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            display: block;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            display: block;
+        }
+
+        .result.info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            color: #0c5460;
+            display: block;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear All Sessions & Storage</h1>
+        <p class="subtitle">Admin tool to clear all session data</p>
+
+        <div class="warning">
+            <div class="warning-title">
+                ⚠️ Warning: Destructive Action
+            </div>
+            <p>This will permanently delete ALL session data including:</p>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Browser LocalStorage</li>
+                <li>Browser SessionStorage</li>
+                <li>Browser Cookies</li>
+                <li>IndexedDB data</li>
+                <li>Cache storage</li>
+            </ul>
+        </div>
+
+        <button class="btn btn-info" onclick="checkStorage()">
+            📊 Check Current Storage
+        </button>
+
+        <button class="btn btn-danger" onclick="clearAllStorage()">
+            🗑️ Clear ALL Browser Storage
+        </button>
+
+        <button class="btn btn-success" onclick="location.reload()">
+            🔄 Refresh Page
+        </button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const result = document.getElementById('result');
+
+            // Count localStorage items
+            const localStorageCount = localStorage.length;
+            const localStorageSize = new Blob(Object.values(localStorage)).size;
+
+            // Count sessionStorage items
+            const sessionStorageCount = sessionStorage.length;
+
+            // Get cookies count
+            const cookiesCount = document.cookie.split(';').filter(c => c.trim()).length;
+
+            // Check IndexedDB
+            let indexedDBInfo = 'Checking...';
+            indexedDB.databases().then(dbs => {
+                indexedDBInfo = `${dbs.length} database(s)`;
+                displayStorageInfo();
+            }).catch(() => {
+                indexedDBInfo = 'Unable to check';
+                displayStorageInfo();
+            });
+
+            function displayStorageInfo() {
+                result.className = 'result info';
+                result.innerHTML = `
+                    <strong>📊 Current Storage Status:</strong>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number">${localStorageCount}</div>
+                            <div class="stat-label">LocalStorage Items</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${sessionStorageCount}</div>
+                            <div class="stat-label">SessionStorage Items</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${cookiesCount}</div>
+                            <div class="stat-label">Cookies</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${indexedDBInfo}</div>
+                            <div class="stat-label">IndexedDB</div>
+                        </div>
+                    </div>
+                    <pre>${JSON.stringify({
+                        localStorage: Object.keys(localStorage),
+                        sessionStorage: Object.keys(sessionStorage),
+                        cookies: document.cookie.split(';').map(c => c.trim().split('=')[0])
+                    }, null, 2)}</pre>
+                `;
+            }
+
+            displayStorageInfo();
+        }
+
+        async function clearAllStorage() {
+            const confirmClear = confirm(
+                '⚠️ ARE YOU ABSOLUTELY SURE?\n\n' +
+                'This will DELETE ALL browser storage including:\n' +
+                '• LocalStorage\n' +
+                '• SessionStorage\n' +
+                '• Cookies\n' +
+                '• IndexedDB\n' +
+                '• Cache Storage\n\n' +
+                'This action CANNOT be undone!\n\n' +
+                'Click OK to proceed or Cancel to abort.'
+            );
+
+            if (!confirmClear) {
+                return;
+            }
+
+            const result = document.getElementById('result');
+            const deletedItems = [];
+
+            try {
+                // Clear localStorage
+                const localStorageCount = localStorage.length;
+                localStorage.clear();
+                deletedItems.push(`LocalStorage: ${localStorageCount} items`);
+
+                // Clear sessionStorage
+                const sessionStorageCount = sessionStorage.length;
+                sessionStorage.clear();
+                deletedItems.push(`SessionStorage: ${sessionStorageCount} items`);
+
+                // Clear cookies
+                const cookies = document.cookie.split(';');
+                cookies.forEach(cookie => {
+                    const name = cookie.split('=')[0].trim();
+                    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                });
+                deletedItems.push(`Cookies: ${cookies.length} items`);
+
+                // Clear IndexedDB
+                const dbs = await indexedDB.databases();
+                for (const db of dbs) {
+                    if (db.name) {
+                        indexedDB.deleteDatabase(db.name);
+                    }
+                }
+                deletedItems.push(`IndexedDB: ${dbs.length} database(s)`);
+
+                // Clear cache storage
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    deletedItems.push(`Cache: ${cacheNames.length} cache(s)`);
+                }
+
+                result.className = 'result success';
+                result.innerHTML = `
+                    <strong>✅ Successfully Cleared All Storage!</strong>
+                    <pre>${deletedItems.join('\n')}</pre>
+                    <p style="margin-top: 15px;">
+                        <strong>Next steps:</strong><br>
+                        1. Refresh this page (F5)<br>
+                        2. Clear SQL database using the commands below<br>
+                        3. Restart your dev server
+                    </p>
+                `;
+
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <strong>❌ Error clearing storage:</strong>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            setTimeout(checkStorage, 500);
+        });
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 
 type PageProps = {
   params: { id: string }
+  searchParams?: { testRole?: 'mechanic' | 'customer' }
 }
 
 // Helper to check mechanic auth
@@ -37,9 +38,21 @@ async function getMechanicFromCookie() {
   return mechanic
 }
 
-export default async function DiagnosticSessionPage({ params }: PageProps) {
+export default async function DiagnosticSessionPage({ params, searchParams }: PageProps) {
   const sessionId = params.id
+  const testRole = searchParams?.testRole
   const supabase = getSupabaseServer()
+
+  // Enhanced logging for debugging
+  const cookieStore = cookies()
+  const mechanicCookie = cookieStore.get('aad_mech')?.value
+
+  console.log('[DIAGNOSTIC AUTH CHECK]', {
+    sessionId,
+    hasMechanicCookie: !!mechanicCookie,
+    mechanicCookiePreview: mechanicCookie ? mechanicCookie.substring(0, 10) + '...' : null,
+    testRoleOverride: testRole || null,
+  })
 
   // Check for customer auth (Supabase)
   const {
@@ -49,8 +62,19 @@ export default async function DiagnosticSessionPage({ params }: PageProps) {
   // Check for mechanic auth (custom)
   const mechanic = await getMechanicFromCookie()
 
-  // Must be authenticated as either customer or mechanic
-  if (!user && !mechanic) {
+  console.log('[DIAGNOSTIC AUTH RESULT]', {
+    hasUser: !!user,
+    userId: user?.id || null,
+    hasMechanic: !!mechanic,
+    mechanicId: mechanic?.id || null,
+  })
+
+  // TEST MODE: Allow bypassing auth with testRole parameter
+  if (testRole && !user && !mechanic) {
+    console.log('[DIAGNOSTIC TEST MODE] Using test role:', testRole)
+    // Continue without auth for testing purposes
+  } else if (!user && !mechanic) {
+    // Must be authenticated as either customer or mechanic
     redirect(`/signup?redirect=/diagnostic/${sessionId}`)
   }
 
@@ -80,7 +104,7 @@ export default async function DiagnosticSessionPage({ params }: PageProps) {
   // Check if this person is the customer who created this session
   const isCustomerForThisSession = user && session.customer_user_id === user.id
 
-  // Security logging
+  // Enhanced security logging
   console.log('[DIAGNOSTIC PAGE SECURITY]', {
     sessionId,
     hasUserAuth: !!user,
@@ -89,11 +113,28 @@ export default async function DiagnosticSessionPage({ params }: PageProps) {
     sessionMechanicId: session.mechanic_id,
     isMechanicForThisSession,
     isCustomerForThisSession,
+    mechanicCookieExists: !!mechanicCookie,
+    testRoleActive: !!testRole,
   })
 
+  // TEST MODE: Override role if testRole parameter is present
+  if (testRole) {
+    if (testRole === 'mechanic' && session.mechanic_id) {
+      currentUserId = session.mechanic_id
+      userRole = 'mechanic'
+      console.log('[DIAGNOSTIC TEST MODE] Role assigned: MECHANIC (TEST)', { currentUserId })
+    } else if (testRole === 'customer' && session.customer_user_id) {
+      currentUserId = session.customer_user_id
+      userRole = 'customer'
+      console.log('[DIAGNOSTIC TEST MODE] Role assigned: CUSTOMER (TEST)', { currentUserId })
+    } else {
+      console.log('[DIAGNOSTIC TEST MODE] Invalid test role or missing session user')
+      notFound()
+    }
+  }
   // IMPORTANT: Prioritize mechanic auth when both cookies exist
   // This ensures mechanics see the correct role
-  if (isMechanicForThisSession && mechanic) {
+  else if (isMechanicForThisSession && mechanic) {
     // They are the assigned mechanic
     currentUserId = mechanic.id
     userRole = 'mechanic'
@@ -105,7 +146,12 @@ export default async function DiagnosticSessionPage({ params }: PageProps) {
     console.log('[DIAGNOSTIC PAGE SECURITY] Role assigned: CUSTOMER', { currentUserId })
   } else {
     // Neither the assigned mechanic nor the customer - access denied
-    console.log('[DIAGNOSTIC PAGE SECURITY] ACCESS DENIED - Not assigned to this session')
+    console.log('[DIAGNOSTIC PAGE SECURITY] ACCESS DENIED - Not assigned to this session', {
+      userExists: !!user,
+      mechanicExists: !!mechanic,
+      sessionCustomerId: session.customer_user_id,
+      sessionMechanicId: session.mechanic_id,
+    })
     notFound()
   }
 

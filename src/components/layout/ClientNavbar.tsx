@@ -3,23 +3,25 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard } from 'lucide-react'
+import { Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard, Building2, MessageSquare } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { createClient } from '@/lib/supabase'
+import Logo from '@/components/branding/Logo'
 
 const NAV_ITEMS = [
   { label: 'How It Works', href: '/how-it-works', icon: Home },
-  { label: 'Services & Pricing', href: '/pricing', icon: DollarSign },
+  { label: 'Pricing', href: '/pricing', icon: DollarSign },
   { label: 'Knowledge Base', href: '/knowledge-base', icon: BookOpen },
+  { label: 'About', href: '/about', icon: Building2 },
+  { label: 'Contact', href: '/contact', icon: MessageSquare },
 ]
 
 export default function ClientNavbar() {
   const pathname = usePathname()
-  const isHomepage = pathname === '/'
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
+  // Initialize user state - must be before early return to follow Rules of Hooks
   useEffect(() => {
     const supabase = createClient()
 
@@ -39,44 +41,51 @@ export default function ClientNavbar() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Hide ClientNavbar on role-specific pages and authenticated customer flows
+  const shouldHideNavbar =
+    pathname?.startsWith('/customer') ||
+    pathname?.startsWith('/mechanic') ||
+    pathname?.startsWith('/admin') ||
+    // Customer flow pages (intake, checkout, sessions, etc.)
+    pathname?.startsWith('/intake') ||
+    pathname?.startsWith('/checkout') ||
+    pathname?.startsWith('/thank-you') ||
+    pathname?.startsWith('/diagnostic') ||
+    pathname?.startsWith('/waiver') ||
+    pathname?.startsWith('/video') || // Video sessions
+    pathname?.startsWith('/chat') || // Chat sessions
+    pathname?.startsWith('/session') || // Session pages
+    // Show CustomerNavbar for logged-in users on signup page
+    (pathname?.startsWith('/signup') && user)
+
+  if (shouldHideNavbar) {
+    return null
+  }
+
   const renderCTA = () => {
-    // Only show Dashboard button for logged-in users
-    // "Get Started Free" removed as it was too prominent/repetitive
     if (user) {
       return (
         <Link
           href="/customer/dashboard"
-          className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-3 sm:px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
+          className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-all hover:shadow-xl hover:shadow-orange-500/40 hover:from-orange-600 hover:to-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
         >
           <LayoutDashboard className="h-4 w-4" />
-          <span className="hidden sm:inline">Dashboard</span>
+          <span>Dashboard</span>
         </Link>
       )
     }
 
-    // Logged-out users: no CTA button (they have Login link instead)
     return null
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-slate-900/95 backdrop-blur-sm shadow-lg">
       <div className="mx-auto flex h-16 max-w-screen-xl items-center px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3 group">
-          <Image
-            src="/logo.svg"
-            alt="AskAutoDoctor"
-            width={36}
-            height={36}
-            priority
-            className="transition-transform group-hover:scale-110"
-          />
-          <span className="hidden sm:inline text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
-            AskAutoDoctor
-          </span>
-        </Link>
+        {/* Logo */}
+        <Logo size="md" showText={true} href="/" />
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex md:ml-auto items-center gap-8 md:mr-6">
+        <nav className="hidden md:flex md:ml-auto items-center gap-1 md:mr-6">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -84,16 +93,16 @@ export default function ClientNavbar() {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`group relative text-sm font-medium transition ${
+                className={`group relative px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   isActive
-                    ? 'text-orange-400 font-semibold'
-                    : 'text-slate-300 hover:text-white'
+                    ? 'text-orange-400 bg-orange-500/10 font-semibold'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {item.label}
-                <span className={`pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-gradient-to-r from-orange-400 via-red-500 to-indigo-500 transition-transform duration-300 ease-out ${
-                  isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                }`} />
+                {isActive && (
+                  <span className="absolute inset-x-1 -bottom-px h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 rounded-full" />
+                )}
               </Link>
             )
           })}
@@ -104,7 +113,7 @@ export default function ClientNavbar() {
           {!user && !loading && (
             <Link
               href="/signup?mode=login"
-              className="hidden text-sm font-medium text-slate-300 transition hover:text-white md:block"
+              className="hidden text-sm font-medium text-slate-300 hover:text-white transition-colors md:block"
             >
               Log In
             </Link>
@@ -113,13 +122,23 @@ export default function ClientNavbar() {
           {/* Dashboard button for logged-in users only */}
           {renderCTA()}
 
-          {/* For Mechanics - Visually distinct from customer nav */}
-          <Link
-            href="/mechanic/login"
-            className="hidden rounded-lg border border-orange-400/30 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 transition hover:border-orange-400/50 hover:bg-orange-500/20 md:block"
-          >
-            🔧 For Mechanics
-          </Link>
+          {/* Provider Links - Modern Cards */}
+          <div className="hidden lg:flex items-center gap-2">
+            <Link
+              href="/mechanic/login"
+              className="group relative flex items-center gap-2 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-3 py-2 text-xs font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:bg-orange-500/20 hover:shadow-lg hover:shadow-orange-500/20"
+            >
+              <Wrench className="h-3.5 w-3.5" />
+              <span>For Mechanics</span>
+            </Link>
+            <Link
+              href="/workshop/login"
+              className="group relative flex items-center gap-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-3 py-2 text-xs font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:bg-blue-500/20 hover:shadow-lg hover:shadow-blue-500/20"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              <span>For Workshops</span>
+            </Link>
+          </div>
 
           {/* Mobile Menu */}
           <MobileMenu user={user} loading={loading} pathname={pathname} />
@@ -130,11 +149,7 @@ export default function ClientNavbar() {
 }
 
 /**
- * Improved Mobile Menu using Radix UI Dropdown
- * - Triggers only on hamburger icon click
- * - Auto-closes on scroll
- * - Slides in from the right side
- * - Non-persistent (closes on navigation/scroll)
+ * Mobile Menu Component
  */
 function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; pathname: string }) {
   const [open, setOpen] = useState(false)
@@ -147,7 +162,6 @@ function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; 
       setOpen(false)
     }
 
-    // Small delay to prevent closing immediately on menu open
     const timeoutId = setTimeout(() => {
       window.addEventListener('scroll', handleScroll, { passive: true })
     }, 100)
@@ -162,7 +176,7 @@ function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; 
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
       <DropdownMenu.Trigger asChild>
         <button
-          className="md:hidden flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-slate-200 ring-1 ring-inset ring-white/10 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-400 flex-shrink-0"
+          className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-slate-200 border border-white/10 transition hover:bg-white/10 hover:text-white hover:border-orange-400/50 focus:outline-none focus:ring-2 focus:ring-orange-400 flex-shrink-0"
           aria-label="Toggle navigation menu"
         >
           {open ? (
@@ -177,79 +191,91 @@ function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; 
         <DropdownMenu.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl animate-slide-in-right"
+          className="z-50 w-72 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/98 backdrop-blur-xl p-3 shadow-2xl shadow-black/50 animate-slide-in-right"
         >
           {/* Navigation Items */}
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <DropdownMenu.Item key={item.href} asChild>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition focus:outline-none ${
-                    isActive
-                      ? 'bg-orange-500/10 text-orange-400 font-semibold'
-                      : 'text-slate-200 hover:bg-white/5 hover:text-white focus:bg-white/5'
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 ${isActive ? 'text-orange-400' : 'text-slate-400'}`} />
-                  {item.label}
-                </Link>
-              </DropdownMenu.Item>
-            )
-          })}
+          <div className="mb-3">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <DropdownMenu.Item key={item.href} asChild>
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all focus:outline-none ${
+                      isActive
+                        ? 'bg-orange-500/10 text-orange-400 font-semibold border border-orange-500/30'
+                        : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <item.icon className={`h-4 w-4 ${isActive ? 'text-orange-400' : 'text-slate-400'}`} />
+                    {item.label}
+                  </Link>
+                </DropdownMenu.Item>
+              )
+            })}
+          </div>
 
-          <DropdownMenu.Separator className="my-2 h-px bg-white/10" />
+          <DropdownMenu.Separator className="my-3 h-px bg-white/10" />
 
           {/* User State Aware Items */}
           {loading ? (
             <div className="px-4 py-3">
-              <div className="h-4 w-20 animate-pulse rounded bg-white/10" />
+              <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
             </div>
           ) : user ? (
-            <>
-              {/* Dashboard for logged-in users */}
+            <div className="mb-3">
               <DropdownMenu.Item asChild>
                 <Link
                   href="/customer/dashboard"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus:bg-white/5"
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-600/10 text-orange-400 border border-orange-500/30 transition-all hover:from-orange-500/20 hover:to-red-600/20 focus:outline-none"
                 >
-                  <LayoutDashboard className="h-4 w-4 text-slate-400" />
+                  <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
               </DropdownMenu.Item>
-            </>
+            </div>
           ) : (
-            <>
-              {/* Login for logged-out users */}
+            <div className="mb-3">
               <DropdownMenu.Item asChild>
                 <Link
                   href="/signup?mode=login"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5 hover:text-white focus:outline-none focus:bg-white/5"
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 bg-white/5 border border-white/10 transition-all hover:bg-white/10 hover:text-white hover:border-orange-400/50 focus:outline-none"
                 >
                   Log In
                 </Link>
               </DropdownMenu.Item>
-            </>
+            </div>
           )}
 
-          <DropdownMenu.Separator className="my-2 h-px bg-white/10" />
+          <DropdownMenu.Separator className="my-3 h-px bg-white/10" />
 
-          {/* For Mechanics - Always visible */}
-          <DropdownMenu.Item asChild>
-            <Link
-              href="/mechanic/login"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl border border-orange-400/30 bg-orange-500/10 px-4 py-3 text-sm font-semibold text-orange-300 transition hover:border-orange-400/50 hover:bg-orange-500/20 focus:outline-none"
-            >
-              <Wrench className="h-4 w-4" />
-              For Mechanics
-            </Link>
-          </DropdownMenu.Item>
+          {/* Provider Links */}
+          <div className="space-y-2">
+            <DropdownMenu.Item asChild>
+              <Link
+                href="/mechanic/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-4 py-3 text-sm font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:from-orange-500/20 hover:to-orange-600/10 focus:outline-none"
+              >
+                <Wrench className="h-4 w-4" />
+                For Mechanics
+              </Link>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item asChild>
+              <Link
+                href="/workshop/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-4 py-3 text-sm font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:from-blue-500/20 hover:to-blue-600/10 focus:outline-none"
+              >
+                <Building2 className="h-4 w-4" />
+                For Workshops
+              </Link>
+            </DropdownMenu.Item>
+          </div>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

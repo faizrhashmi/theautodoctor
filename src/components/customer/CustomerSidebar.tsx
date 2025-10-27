@@ -1,0 +1,150 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import {
+  LayoutDashboard,
+  Calendar,
+  FileText,
+  Car,
+  MessageSquare,
+  User,
+  Clock,
+  LogOut,
+  Menu,
+  X,
+  ChevronRight,
+  Settings,
+  Bell,
+  Heart
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase'
+import Logo from '@/components/branding/Logo'
+
+const NAV_ITEMS = [
+  {
+    label: 'Dashboard',
+    href: '/customer/dashboard',
+    icon: LayoutDashboard,
+    description: 'Overview & quick actions'
+  },
+  {
+    label: 'Sessions',
+    href: '/customer/sessions',
+    icon: Clock,
+    description: 'Session history'
+  },
+  {
+    label: 'Quotes',
+    href: '/customer/quotes',
+    icon: FileText,
+    description: 'View estimates'
+  },
+  {
+    label: 'Vehicles',
+    href: '/customer/vehicles',
+    icon: Car,
+    description: 'Manage fleet'
+  },
+  {
+    label: 'Schedule',
+    href: '/customer/schedule',
+    icon: Calendar,
+    description: 'Book appointments'
+  },
+  {
+    label: 'Profile',
+    href: '/customer/profile',
+    icon: User,
+    description: 'Account settings'
+  },
+]
+
+export default function CustomerSidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  async function handleSignOut() {
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
+
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 right-4 z-50 flex items-center justify-center w-10 h-10 bg-slate-800/90 backdrop-blur-sm border border-slate-700 rounded-lg text-white hover:bg-slate-700 transition-all shadow-lg"
+      >
+        {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+
+      {/* Overlay for mobile */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800 z-40 transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo Section - Compact */}
+          <div className="p-4 border-b border-slate-800">
+            <Logo size="md" showText={true} href="/customer/dashboard" variant="customer" />
+            <p className="text-xs text-slate-500 mt-1">Customer Portal</p>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+              const Icon = item.icon
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-r from-orange-500/20 to-red-500/20 text-orange-400 border border-orange-500/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent hover:border-slate-700'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive ? 'text-orange-400' : ''}`} />
+                  <span className="flex-1">{item.label}</span>
+                  {isActive && <ChevronRight className="h-3 w-3 text-orange-400" />}
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* Bottom Actions - Compact */}
+          <div className="p-3 border-t border-slate-800 space-y-2">
+            {/* Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="flex-1 text-left">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  )
+}

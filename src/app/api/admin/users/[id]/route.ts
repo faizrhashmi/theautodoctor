@@ -87,12 +87,35 @@ export async function GET(
 
     const totalSpent = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
 
+    // Check if customer has used their free session (B2C only)
+    const accountType = profile.account_type || 'individual';
+    const isB2CCustomer = accountType === 'individual';
+    let hasUsedFreeSession = null;
+
+    if (isB2CCustomer) {
+      // Check admin override first
+      if (profile.free_session_override === true) {
+        hasUsedFreeSession = false;
+      } else {
+        const { data: freeSessionUsed } = await supabaseAdmin
+          .from('sessions')
+          .select('id')
+          .eq('customer_user_id', userId)
+          .eq('plan', 'free')
+          .limit(1)
+          .maybeSingle();
+
+        hasUsedFreeSession = !!freeSessionUsed;
+      }
+    }
+
     return NextResponse.json({
       user: {
         ...profile,
         email: authUser?.user?.email || '',
         total_sessions: sessionCount || 0,
         total_spent: totalSpent / 100,
+        has_used_free_session: hasUsedFreeSession,
       },
       notes,
       actions,

@@ -114,15 +114,16 @@ export async function markUnattendedRequests(): Promise<number> {
     return 0
   }
 
-  console.log(`[sessionCleanup] Marking ${requestsToMarkUnattended.length} pending request(s) as unattended (exceeded plan duration)`)
+  console.log(`[sessionCleanup] Would mark ${requestsToMarkUnattended.length} pending request(s) as unattended, but 'unattended' is not in the enum yet`)
 
-  // Mark as unattended (don't cancel - mechanics/admins can still accept)
-  await supabaseAdmin
-    .from('session_requests')
-    .update({ status: 'unattended' })
-    .in('id', requestsToMarkUnattended)
+  // DISABLED: 'unattended' is not in the session_request_status enum
+  // TODO: Add 'unattended' to enum in migration, then re-enable this
+  // await supabaseAdmin
+  //   .from('session_requests')
+  //   .update({ status: 'unattended' })
+  //   .in('id', requestsToMarkUnattended)
 
-  return requestsToMarkUnattended.length
+  return 0 // Disabled for now
 }
 
 /**
@@ -147,7 +148,7 @@ export async function expireOldStripeTokens(
   const { data: expiredRequests } = await supabaseAdmin
     .from('session_requests')
     .select('id, customer_id, mechanic_id')
-    .in('status', ['pending', 'unattended'])
+    .eq('status', 'pending') // Note: 'unattended' not in enum yet
     .is('mechanic_id', null) // CRITICAL: Only unassigned requests
     .lt('created_at', cutoffTime)
 
@@ -161,7 +162,7 @@ export async function expireOldStripeTokens(
   await supabaseAdmin
     .from('session_requests')
     .update({ status: 'expired' })
-    .in('status', ['pending', 'unattended'])
+    .eq('status', 'pending') // Note: 'unattended' not in enum yet
     .is('mechanic_id', null) // SAFETY: Only unassigned
     .lt('created_at', cutoffTime)
 

@@ -117,21 +117,21 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   const networkWarning = getNetworkWarningMessage(networkQuality)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur">
-      <div className="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl sm:p-6 md:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-4 backdrop-blur overflow-y-auto">
+      <div className="w-full max-w-xl my-auto rounded-xl sm:rounded-2xl border border-slate-700 bg-slate-900 p-4 sm:p-6 shadow-2xl">
         {/* ⚠️ TESTING MODE WARNING - REMOVE BEFORE PRODUCTION */}
         {skipPreflight && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border-2 border-red-500 bg-red-500/20 p-4 text-red-200">
-            <AlertTriangle className="h-6 w-6 flex-shrink-0" />
+          <div className="mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 rounded-lg border-2 border-red-500 bg-red-500/20 p-3 sm:p-4 text-red-200">
+            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
             <div>
-              <p className="font-bold">⚠️ TESTING MODE - PREFLIGHT CHECKS BYPASSED</p>
-              <p className="text-sm">Remove ?skipPreflight=true before production deployment</p>
+              <p className="font-bold text-sm sm:text-base">⚠️ TESTING MODE - PREFLIGHT CHECKS BYPASSED</p>
+              <p className="text-xs sm:text-sm">Remove ?skipPreflight=true before production deployment</p>
             </div>
           </div>
         )}
 
-        <h2 className="mb-4 text-xl font-bold text-white sm:mb-6 sm:text-2xl">Device Check</h2>
-        <p className="mb-4 text-xs text-slate-400 sm:mb-6 sm:text-sm">
+        <h2 className="mb-3 sm:mb-4 text-lg sm:text-xl font-bold text-white">Device Check</h2>
+        <p className="mb-4 sm:mb-6 text-xs sm:text-sm text-slate-400">
           We need to test your camera, microphone, and connection before you can join.
         </p>
 
@@ -142,41 +142,41 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
             autoPlay
             playsInline
             muted
-            className="h-48 w-full rounded-lg border border-slate-700 bg-black object-cover sm:h-56 md:h-64"
+            className="h-40 sm:h-48 md:h-56 w-full rounded-lg border border-slate-700 bg-black object-cover"
           />
         </div>
 
         {/* Status Checks */}
-        <div className="space-y-3">
-          <StatusRow icon={<Video className="h-5 w-5" />} label="Camera" status={cameraStatus} />
-          <StatusRow icon={<Mic className="h-5 w-5" />} label="Microphone" status={micStatus} />
+        <div className="space-y-2 sm:space-y-3">
+          <StatusRow icon={<Video className="h-4 w-4 sm:h-5 sm:w-5" />} label="Camera" status={cameraStatus} />
+          <StatusRow icon={<Mic className="h-4 w-4 sm:h-5 sm:w-5" />} label="Microphone" status={micStatus} />
           <StatusRow
-            icon={<div className="h-5 w-5">⚡</div>}
+            icon={<div className="h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">⚡</div>}
             label="Network"
             status={networkStatus}
-            detail={networkRTT ? `${networkRTT}ms RTT` : undefined}
+            detail={networkRTT ? `${networkRTT}ms` : undefined}
           />
         </div>
 
         {/* Network Warning Banner */}
         {networkWarning && (
-          <div className={`mt-4 rounded-lg border p-3 sm:p-4 ${
+          <div className={`mt-3 sm:mt-4 rounded-lg border p-3 ${
             networkQuality === 'fair'
               ? 'border-yellow-500/50 bg-yellow-500/10'
               : networkQuality === 'poor'
               ? 'border-orange-500/50 bg-orange-500/10'
               : 'border-red-500/50 bg-red-500/10'
           }`}>
-            <div className="flex items-start gap-2 sm:gap-3">
-              <AlertTriangle className={`h-5 w-5 flex-shrink-0 ${
+            <div className="flex items-start gap-2">
+              <AlertTriangle className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${
                 networkQuality === 'fair'
                   ? 'text-yellow-400'
                   : networkQuality === 'poor'
                   ? 'text-orange-400'
                   : 'text-red-400'
               }`} />
-              <div>
-                <p className={`text-sm font-semibold sm:text-base ${
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs sm:text-sm font-semibold ${
                   networkQuality === 'fair'
                     ? 'text-yellow-200'
                     : networkQuality === 'poor'
@@ -185,7 +185,7 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
                 }`}>
                   {networkQuality === 'fair' ? 'Fair Connection' : networkQuality === 'poor' ? 'Poor Connection' : 'Critical Connection'}
                 </p>
-                <p className={`mt-1 text-xs sm:text-sm ${
+                <p className={`mt-1 text-xs ${
                   networkQuality === 'fair'
                     ? 'text-yellow-300'
                     : networkQuality === 'poor'
@@ -203,7 +203,7 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
         <button
           onClick={onComplete}
           disabled={!canJoin}
-          className={`mt-4 w-full rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:px-6 sm:py-3 sm:text-base ${
+          className={`mt-4 sm:mt-6 w-full rounded-lg px-4 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
             !canJoin
               ? 'bg-slate-600 hover:bg-slate-700'
               : hasNetworkWarning && networkQuality === 'critical'
@@ -227,14 +227,14 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
         {hasNetworkWarning && (
           <button
             onClick={testDevices}
-            className="mt-3 w-full rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-700 sm:text-base"
+            className="mt-2 sm:mt-3 w-full rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-slate-300 transition hover:bg-slate-700"
           >
             🔄 Retry Connection Test
           </button>
         )}
 
         {!canJoin && (
-          <p className="mt-3 text-center text-xs text-slate-400 sm:mt-4 sm:text-sm">
+          <p className="mt-3 text-center text-xs sm:text-sm text-slate-400">
             Please allow camera and microphone access to continue.
           </p>
         )}
@@ -255,16 +255,16 @@ function StatusRow({
   detail?: string
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-3 sm:p-4">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="text-slate-400">{icon}</div>
-        <span className="text-sm font-medium text-white sm:text-base">{label}</span>
-        {detail && <span className="text-xs text-slate-400 sm:text-sm">{detail}</span>}
+    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 p-2.5 sm:p-3">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="text-slate-400 flex-shrink-0">{icon}</div>
+        <span className="text-xs sm:text-sm font-medium text-white">{label}</span>
+        {detail && <span className="text-xs text-slate-400 ml-auto">{detail}</span>}
       </div>
-      <div>
-        {status === 'checking' && <Loader2 className="h-5 w-5 animate-spin text-blue-400" />}
-        {status === 'passed' && <CheckCircle className="h-5 w-5 text-green-500" />}
-        {status === 'failed' && <XCircle className="h-5 w-5 text-red-500" />}
+      <div className="ml-2 flex-shrink-0">
+        {status === 'checking' && <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-blue-400" />}
+        {status === 'passed' && <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />}
+        {status === 'failed' && <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />}
       </div>
     </div>
   )

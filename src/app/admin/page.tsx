@@ -22,7 +22,8 @@ import {
   Flag,
   Bell,
   HelpCircle,
-  Archive
+  Archive,
+  AlertTriangle
 } from 'lucide-react'
 
 export default function AdminPage() {
@@ -206,6 +207,18 @@ export default function AdminPage() {
           title="Deletion Log"
           description="View audit log of deleted intake records"
           color="red"
+        />
+      </Section>
+
+      {/* Emergency Tools */}
+      <Section title="⚠️ Emergency Tools" description="Destructive operations - use with extreme caution">
+        <AdminCard
+          href="/admin/emergency"
+          icon={<AlertTriangle className="h-6 w-6 animate-pulse" />}
+          title="🔥 Nuclear Cleanup"
+          description="DELETE all sessions and requests from database"
+          color="red"
+          badge="DANGER"
         />
       </Section>
 

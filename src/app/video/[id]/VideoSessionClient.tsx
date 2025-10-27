@@ -15,7 +15,7 @@ import {
   Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
   Maximize2, Minimize2, SwitchCamera, Flashlight, Camera, Wifi, WifiOff,
-  MessageCircle, Send
+  MessageCircle, Send, LogOut, Menu, Eye, EyeOff
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
@@ -244,6 +244,8 @@ function VideoControls({
   showChat,
   onToggleChat,
   unreadCount,
+  showPip,
+  onTogglePip,
 }: {
   onEndSession: () => void
   onUploadFile: (file: File) => void
@@ -252,6 +254,8 @@ function VideoControls({
   showChat: boolean
   onToggleChat: () => void
   unreadCount: number
+  showPip: boolean
+  onTogglePip: () => void
 }) {
   const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -570,6 +574,19 @@ function VideoControls({
         )}
       </button>
 
+      {/* PIP Toggle */}
+      <button
+        onClick={onTogglePip}
+        className={`rounded-lg p-2 transition sm:p-3 ${
+          showPip
+            ? 'bg-slate-700/80 text-white hover:bg-slate-600'
+            : 'bg-orange-500/80 text-white hover:bg-orange-600'
+        }`}
+        title={showPip ? 'Hide picture-in-picture' : 'Show picture-in-picture'}
+      >
+        {showPip ? <Eye className="h-4 w-4 sm:h-5 sm:w-5" /> : <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />}
+      </button>
+
       {/* Fullscreen Toggle */}
       <button
         onClick={toggleFullscreen}
@@ -593,8 +610,10 @@ function VideoControls({
 
 function VideoView({
   userRole,
+  showPip = true,
 }: {
   userRole: 'mechanic' | 'customer'
+  showPip?: boolean
 }) {
   const cameraTracks = useTracks([Track.Source.Camera])
   const screenTracks = useTracks([Track.Source.ScreenShare])
@@ -640,8 +659,8 @@ function VideoView({
       </div>
 
       {/* Picture-in-Picture (Other person's camera) */}
-      {pipTrack && (
-        <div className="absolute bottom-2 right-2 z-10 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:bottom-3 sm:right-3 sm:h-32 sm:w-40 md:bottom-4 md:right-4 md:h-40 md:w-52 lg:h-48 lg:w-64">
+      {pipTrack && showPip && (
+        <div className="absolute bottom-16 right-2 z-50 h-28 w-36 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:bottom-20 sm:right-3 sm:h-36 sm:w-48 md:bottom-24 md:right-4 md:h-44 md:w-60 lg:h-52 lg:w-72">
           <VideoTrack
             trackRef={pipTrack}
             className="h-full w-full object-contain"
@@ -690,6 +709,7 @@ export default function VideoSessionClient({
   const [messageInput, setMessageInput] = useState('')
   const [unreadCount, setUnreadCount] = useState(0) // Unread message count
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const [showPip, setShowPip] = useState(true) // PIP visibility toggle
 
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
@@ -1144,7 +1164,7 @@ export default function VideoSessionClient({
       )}
 
       {/* Session Header */}
-      <div className="absolute left-2 right-2 top-2 z-40 flex flex-wrap items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
+      <div className="absolute left-2 right-2 top-2 z-[60] flex flex-wrap items-center justify-between gap-2 sm:left-4 sm:right-4 sm:top-4">
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
           <a
             href={dashboardUrl}
@@ -1170,14 +1190,41 @@ export default function VideoSessionClient({
           )}
         </div>
 
-        {sessionStarted && sessionStartTime && (
-          <SessionTimer
-            startTime={sessionStartTime}
-            durationMinutes={durationMinutes}
-            onTimeWarning={handleTimeWarning}
-            onTimeUp={handleTimeUp}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {sessionStarted && sessionStartTime && (
+            <SessionTimer
+              startTime={sessionStartTime}
+              durationMinutes={durationMinutes}
+              onTimeWarning={handleTimeWarning}
+              onTimeUp={handleTimeUp}
+            />
+          )}
+
+          {/* Leave Session Button - Always visible */}
+          <button
+            onClick={handleEndSession}
+            className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-400 backdrop-blur transition hover:bg-red-500/20 hover:border-red-500/50 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm"
+            title="Leave Session"
+          >
+            <PhoneOff className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{sessionStarted ? 'End Session' : 'Leave'}</span>
+          </button>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={async () => {
+              if (confirm('Are you sure you want to sign out? This will end your session.')) {
+                const supabase = createClient()
+                await supabase.auth.signOut()
+                window.location.href = _userRole === 'mechanic' ? '/mechanic/login' : '/signup?mode=login'
+              }
+            }}
+            className="rounded-lg border border-white/10 bg-slate-900/80 px-2 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-slate-700 hover:border-white/20 sm:px-3 sm:py-2 sm:text-sm"
+            title="Sign Out"
+          >
+            <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Main Video Conference */}
@@ -1195,7 +1242,7 @@ export default function VideoSessionClient({
           onCustomerJoined={handleCustomerJoined}
           onCustomerLeft={handleCustomerLeft}
         />
-        <VideoView userRole={_userRole} />
+        <VideoView userRole={_userRole} showPip={showPip} />
         <RoomAudioRenderer />
 
         {/* Connection Quality Indicator - Top Right */}
@@ -1221,6 +1268,8 @@ export default function VideoSessionClient({
                 showChat={showChat}
                 onToggleChat={() => setShowChat(!showChat)}
                 unreadCount={unreadCount}
+                showPip={showPip}
+                onTogglePip={() => setShowPip(!showPip)}
               />
             </div>
           </div>

@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         workshop_id: null, // Independent mechanics have no workshop
         invited_by: null, // Not invited
         invite_accepted_at: null, // Not applicable
-        requires_sin_collection: true,
+        requires_sin_collection: process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true',
         sin_collection_completed_at: encryptedSIN ? new Date().toISOString() : null,
 
         // Personal details
