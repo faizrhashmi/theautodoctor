@@ -309,6 +309,7 @@ export default function CustomersPage() {
       : '';
 
   return (
+    <>
     <div className="min-h-screen">
       {/* Header */}
       <div className="border-b border-slate-800/50 bg-slate-800/30 backdrop-blur-sm mb-6">
@@ -555,7 +556,7 @@ export default function CustomersPage() {
       </div>
     </div>
 
-      {actionCustomer && activeAction && (
+    {actionCustomer && activeAction && (
         <div
           className="fixed inset-0 z-30 flex items-center justify-center bg-slate-950/70 px-4"
           onClick={closeAction}
@@ -664,5 +665,6 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+    </>
   );
 }
