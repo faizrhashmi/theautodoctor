@@ -637,8 +637,8 @@ function VideoView({
 
   return (
     <div className="relative h-full w-full">
-      {/* Main Video (Your camera or screen share) */}
-      <div className="absolute inset-0 bg-slate-900">
+      {/* Main Video (Your camera or screen share) - Full screen with proper aspect ratio */}
+      <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
         {mainTrack ? (
           <VideoTrack
             trackRef={mainTrack}
@@ -658,12 +658,12 @@ function VideoView({
         )}
       </div>
 
-      {/* Picture-in-Picture (Other person's camera) */}
+      {/* Picture-in-Picture (Other person's camera) - Moved to TOP-RIGHT to avoid control bar overlap */}
       {pipTrack && showPip && (
-        <div className="absolute bottom-16 right-2 z-50 h-28 w-36 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:bottom-20 sm:right-3 sm:h-36 sm:w-48 md:bottom-24 md:right-4 md:h-44 md:w-60 lg:h-52 lg:w-72">
+        <div className="absolute right-2 top-20 z-50 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:right-3 sm:top-24 sm:h-32 sm:w-40 md:right-4 md:top-28 md:h-36 md:w-48 lg:h-40 lg:w-56">
           <VideoTrack
             trackRef={pipTrack}
-            className="h-full w-full object-contain"
+            className="h-full w-full object-cover"
           />
           <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-xs">
             {pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
@@ -705,11 +705,14 @@ export default function VideoSessionClient({
   const [preflightPassed, setPreflightPassed] = useState(false)
   const [showReconnectBanner, setShowReconnectBanner] = useState(false) // Task 6: Reconnect UX
   const [showChat, setShowChat] = useState(false) // Chat panel visibility
-  const [messages, setMessages] = useState<Array<{ sender: string; senderRole: string; text: string; timestamp: number }>>([])
+  const [messages, setMessages] = useState<Array<{ sender: string; senderRole: string; text: string; timestamp: number; status?: 'sending' | 'sent' | 'delivered' | 'read' }>>([])
   const [messageInput, setMessageInput] = useState('')
   const [unreadCount, setUnreadCount] = useState(0) // Unread message count
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const [showPip, setShowPip] = useState(true) // PIP visibility toggle
+  const [isTyping, setIsTyping] = useState(false) // Other person typing indicator
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const messageInputRef = useRef<HTMLTextAreaElement>(null)
 
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
@@ -803,7 +806,7 @@ export default function VideoSessionClient({
     }
   }, [mechanicPresent, customerPresent, sessionStarted])
 
-  // Chat: Subscribe to realtime messages
+  // Chat: Subscribe to realtime messages and typing indicators
   useEffect(() => {
     const channel = supabase
       .channel(`chat:${sessionId}`)
@@ -811,11 +814,40 @@ export default function VideoSessionClient({
         const message = payload.payload
         console.log('[CHAT] Received message:', message)
 
-        setMessages((prev) => [...prev, message])
+        setMessages((prev) => [...prev, { ...message, status: 'delivered' }])
 
         // Increment unread count if chat is closed and message is from other person
         if (!showChat && message.sender !== _userId) {
           setUnreadCount((prev) => prev + 1)
+        }
+
+        // Play notification sound (subtle)
+        if (message.sender !== _userId) {
+          try {
+            const audio = new Audio('/sounds/message-pop.mp3')
+            audio.volume = 0.3
+            audio.play().catch(() => {})
+          } catch (e) {
+            // Silently fail if sound not available
+          }
+        }
+      })
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const { sender, typing } = payload.payload
+        console.log('[CHAT] Typing indicator:', sender, typing)
+
+        if (sender !== _userId) {
+          setIsTyping(typing)
+
+          // Auto-hide typing indicator after 3 seconds
+          if (typing && typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current)
+          }
+          if (typing) {
+            typingTimeoutRef.current = setTimeout(() => {
+              setIsTyping(false)
+            }, 3000)
+          }
         }
       })
       .subscribe()
@@ -824,6 +856,9 @@ export default function VideoSessionClient({
 
     return () => {
       console.log('[CHAT] Unsubscribing from chat channel')
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
       supabase.removeChannel(channel)
     }
   }, [supabase, sessionId, _userId, showChat])
@@ -1030,6 +1065,24 @@ export default function VideoSessionClient({
     }
   }, [sessionId])
 
+  // Chat: Handle typing indicator
+  const handleTyping = useCallback(async () => {
+    try {
+      await supabase
+        .channel(`chat:${sessionId}`)
+        .send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: {
+            sender: _userId,
+            typing: true,
+          },
+        })
+    } catch (error) {
+      console.error('[CHAT] Error sending typing indicator:', error)
+    }
+  }, [_userId, sessionId, supabase])
+
   // Chat: Send message
   const handleSendMessage = useCallback(async () => {
     if (!messageInput.trim()) return
@@ -1039,7 +1092,11 @@ export default function VideoSessionClient({
       senderRole: _userRole,
       text: messageInput.trim(),
       timestamp: Date.now(),
+      status: 'sending' as const,
     }
+
+    // Optimistically add message to UI
+    setMessages((prev) => [...prev, message])
 
     try {
       // Broadcast message to channel
@@ -1051,12 +1108,44 @@ export default function VideoSessionClient({
           payload: message,
         })
 
+      // Update message status to sent
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.timestamp === message.timestamp && msg.sender === _userId
+            ? { ...msg, status: 'sent' as const }
+            : msg
+        )
+      )
+
       console.log('[CHAT] Sent message:', message)
 
       // Clear input
       setMessageInput('')
+
+      // Stop typing indicator
+      await supabase
+        .channel(`chat:${sessionId}`)
+        .send({
+          type: 'broadcast',
+          event: 'typing',
+          payload: {
+            sender: _userId,
+            typing: false,
+          },
+        })
+
+      // Focus back on input (especially important for mobile)
+      messageInputRef.current?.focus()
     } catch (error) {
       console.error('[CHAT] Error sending message:', error)
+      // Update message status to failed
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.timestamp === message.timestamp && msg.sender === _userId
+            ? { ...msg, status: undefined }
+            : msg
+        )
+      )
       alert('Failed to send message. Please try again.')
     }
   }, [messageInput, _userId, _userRole, sessionId, supabase])
@@ -1301,94 +1390,191 @@ export default function VideoSessionClient({
         </div>
       )}
 
-      {/* Chat Panel */}
+      {/* Chat Panel - WhatsApp-like Enhanced UI */}
       {showChat && (
         <div className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
           {/* Chat Header */}
-          <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 p-3 sm:p-4">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-blue-400" />
-              <h3 className="font-semibold text-white">Chat</h3>
+          <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750 p-3 shadow-lg sm:p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                {_userRole === 'mechanic' ? '👤' : '🔧'}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-white">
+                  {_userRole === 'mechanic' ? 'Customer' : 'Mechanic'}
+                </h3>
+                {isTyping && (
+                  <p className="text-xs text-green-400 animate-pulse">typing...</p>
+                )}
+              </div>
             </div>
             <button
               onClick={() => setShowChat(false)}
-              className="rounded p-1 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+              className="rounded-full p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Messages Container */}
+          {/* Messages Container - WhatsApp pattern background */}
           <div
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto p-3 sm:p-4"
+            className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-4"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23334155' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
           >
             {messages.length === 0 ? (
               <div className="flex h-full items-center justify-center">
-                <p className="text-center text-sm text-slate-400">
-                  No messages yet. Start the conversation!
-                </p>
+                <div className="text-center">
+                  <MessageCircle className="mx-auto mb-3 h-16 w-16 text-slate-700" />
+                  <p className="text-sm text-slate-400">
+                    No messages yet
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Start the conversation!
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {messages.map((msg, index) => {
                   const isOwn = msg.sender === _userId
+                  const prevMsg = index > 0 ? messages[index - 1] : null
+                  const showDateSeparator = !prevMsg ||
+                    new Date(msg.timestamp).toDateString() !== new Date(prevMsg.timestamp).toDateString()
+                  const isFirstInGroup = !prevMsg || prevMsg.sender !== msg.sender
+                  const isLastInGroup = index === messages.length - 1 || messages[index + 1]?.sender !== msg.sender
+
                   return (
-                    <div
-                      key={index}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
+                    <div key={index}>
+                      {/* Date Separator */}
+                      {showDateSeparator && (
+                        <div className="my-4 flex items-center justify-center">
+                          <div className="rounded-full bg-slate-800/80 px-3 py-1 text-xs text-slate-300 shadow-lg backdrop-blur">
+                            {new Date(msg.timestamp).toLocaleDateString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              year: new Date(msg.timestamp).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Message Bubble */}
                       <div
-                        className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                          isOwn
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-slate-700 text-slate-100'
+                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${
+                          isFirstInGroup ? 'mt-3' : 'mt-0.5'
                         }`}
                       >
-                        <div className="mb-1 flex items-center gap-2">
-                          <span className="text-xs font-semibold">
-                            {isOwn ? 'You' : msg.senderRole === 'mechanic' ? 'Mechanic' : 'Customer'}
-                          </span>
-                          <span className="text-[10px] opacity-70">
-                            {new Date(msg.timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                        <div
+                          className={`group relative max-w-[85%] ${
+                            isOwn
+                              ? 'rounded-2xl rounded-tr-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/20'
+                              : 'rounded-2xl rounded-tl-sm bg-slate-800 text-slate-100 shadow-lg'
+                          } px-3 py-2 transition-all hover:scale-[1.02]`}
+                        >
+                          {/* Sender name (only for first in group from others) */}
+                          {!isOwn && isFirstInGroup && (
+                            <div className="mb-1 text-xs font-semibold text-blue-400">
+                              {msg.senderRole === 'mechanic' ? '🔧 Mechanic' : '👤 Customer'}
+                            </div>
+                          )}
+
+                          {/* Message Text */}
+                          <p className="break-words text-sm leading-relaxed whitespace-pre-wrap">
+                            {msg.text}
+                          </p>
+
+                          {/* Timestamp and Status */}
+                          <div className={`mt-1 flex items-center justify-end gap-1 ${
+                            isOwn ? 'text-blue-100' : 'text-slate-400'
+                          }`}>
+                            <span className="text-[10px] opacity-70">
+                              {new Date(msg.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                            {/* Message Status (checkmarks for sent messages) */}
+                            {isOwn && (
+                              <span className="text-xs">
+                                {msg.status === 'sending' && '🕐'}
+                                {msg.status === 'sent' && '✓'}
+                                {msg.status === 'delivered' && '✓✓'}
+                                {msg.status === 'read' && '✓✓'}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className="break-words text-sm">{msg.text}</p>
                       </div>
                     </div>
                   )
                 })}
+
+                {/* Typing Indicator */}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="rounded-2xl rounded-tl-sm bg-slate-800 px-4 py-3 shadow-lg">
+                      <div className="flex gap-1">
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '0ms' }}></span>
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '150ms' }}></span>
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" style={{ animationDelay: '300ms' }}></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Message Input */}
-          <div className="border-t border-slate-700 bg-slate-800 p-3 sm:p-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
+          {/* Message Input - Mobile-friendly with keyboard support */}
+          <div className="border-t border-slate-700 bg-slate-800 p-2 sm:p-3">
+            <div className="flex items-end gap-2">
+              <textarea
+                ref={messageInputRef}
                 value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
+                onChange={(e) => {
+                  setMessageInput(e.target.value)
+                  handleTyping()
+                  // Auto-resize textarea
+                  e.target.style.height = 'auto'
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     handleSendMessage()
+                    // Reset height
+                    if (messageInputRef.current) {
+                      messageInputRef.current.style.height = 'auto'
+                    }
                   }
                 }}
                 placeholder="Type a message..."
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                rows={1}
+                className="flex-1 resize-none rounded-2xl border border-slate-600 bg-slate-700 px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 sm:text-base"
+                style={{ maxHeight: '120px' }}
               />
               <button
-                onClick={handleSendMessage}
+                onClick={() => {
+                  handleSendMessage()
+                  // Reset height
+                  if (messageInputRef.current) {
+                    messageInputRef.current.style.height = 'auto'
+                  }
+                }}
                 disabled={!messageInput.trim()}
-                className="rounded-lg bg-blue-500 p-2 text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 transition hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:h-11 sm:w-11"
               >
                 <Send className="h-5 w-5" />
               </button>
             </div>
+
+            {/* Keyboard hint for mobile */}
+            <p className="mt-1.5 text-center text-[10px] text-slate-500 sm:hidden">
+              Press Enter to send • Shift+Enter for new line
+            </p>
           </div>
         </div>
       )}

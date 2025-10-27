@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Calendar,
@@ -20,6 +20,7 @@ import {
   Heart
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
+import { createClient } from '@/lib/supabase'
 
 const NAV_ITEMS = [
   {
@@ -63,6 +64,35 @@ const NAV_ITEMS = [
 export default function CustomerSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [firstName, setFirstName] = useState<string>('')
+
+  // Fetch customer name
+  useEffect(() => {
+    async function fetchCustomerName() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .single()
+
+          if (profile?.full_name) {
+            // Extract first name from full name
+            const firstNameOnly = profile.full_name.split(' ')[0]
+            setFirstName(firstNameOnly)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer name:', error)
+      }
+    }
+
+    fetchCustomerName()
+  }, [])
 
   async function handleSignOut() {
     try {
@@ -109,7 +139,9 @@ export default function CustomerSidebar() {
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/customer/dashboard" variant="customer" />
-            <p className="text-xs text-slate-500 mt-1">Customer Portal</p>
+            <p className="text-sm text-slate-300 mt-2 font-medium">
+              {firstName ? `Hi ${firstName}` : 'Customer Portal'}
+            </p>
           </div>
 
           {/* Navigation */}
