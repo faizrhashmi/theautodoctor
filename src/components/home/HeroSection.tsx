@@ -53,7 +53,7 @@ export default function HeroSection() {
           </h1>
 
           <p className="text-lg leading-relaxed text-slate-200/90 md:text-xl">
-            Connect with Red Seal certified mechanics instantly via HD video or chat. Get professional diagnostics,
+            Connect with real certified mechanics and brand specialists instantly via HD video or chat. Get professional diagnostics,
             troubleshooting, and repair guidance without leaving home.
           </p>
 

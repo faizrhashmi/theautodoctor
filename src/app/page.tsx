@@ -1,5 +1,5 @@
-import Link from 'next/link'
-import { CheckCircle2, Shield, Video, Clock, Zap, Star } from 'lucide-react'
+﻿import Link from 'next/link'
+import { CheckCircle2, Shield, Video, Clock, Zap, Star, Sparkles, MessageSquare, Wrench } from 'lucide-react'
 import HeroSection from '@/components/home/HeroSection'
 
 const SERVICES = [
@@ -7,10 +7,10 @@ const SERVICES = [
     name: 'Free Trial',
     price: '$0',
     duration: '5 min',
-    description: '⚡ LIMITED TIME - Try before you buy',
+    description: 'LIMITED TIME - Try before you buy',
     features: ['Quick text chat', 'Ask one question', 'No credit card needed'],
     gradient: 'from-green-500 to-emerald-600',
-    icon: '🎁',
+    Icon: Sparkles,
     badge: 'LIMITED TIME',
     special: true
   },
@@ -21,7 +21,7 @@ const SERVICES = [
     description: 'Fast text consultation for quick questions',
     features: ['Text-based chat', 'Photo & video sharing', 'Instant answers'],
     gradient: 'from-orange-500 to-red-600',
-    icon: '💬'
+    Icon: MessageSquare,
   },
   {
     name: 'Video Diagnostic',
@@ -30,7 +30,7 @@ const SERVICES = [
     description: 'Live HD video session with mechanic',
     features: ['HD video call', 'Screen sharing', 'Session recording'],
     gradient: 'from-red-600 to-red-700',
-    icon: '🎥',
+    Icon: Video,
     popular: true
   },
   {
@@ -40,7 +40,7 @@ const SERVICES = [
     description: 'Expert analysis with actionable repair plan',
     features: ['Senior mechanic', 'Written report', 'Repair roadmap'],
     gradient: 'from-red-700 to-orange-800',
-    icon: '🔧'
+    Icon: Wrench,
   }
 ]
 
@@ -100,13 +100,13 @@ export default function Home() {
               <span className="text-xs font-bold uppercase tracking-wider text-white">Limited Time</span>
             </div>
             <p className="text-sm font-semibold text-white sm:text-base">
-              🎁 Get Your First Session <span className="text-yellow-300">100% FREE</span> - No Credit Card Required!
+              Get Your First Session <span className="text-yellow-300">100% FREE</span> - No Credit Card Required!
             </p>
             <Link
               href="/onboarding/pricing"
               className="hidden rounded-full bg-white px-4 py-1.5 text-xs font-bold text-green-600 transition hover:bg-gray-100 sm:block"
             >
-              Claim Now →
+              Claim Now ->
             </Link>
           </div>
         </div>
@@ -151,7 +151,9 @@ export default function Home() {
                   </div>
                 )}
                 <div className="text-center">
-                  <div className="text-4xl">{service.icon}</div>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                    <service.Icon className="h-6 w-6 text-white" />
+                  </div>
                   <h3 className="mt-4 text-xl font-bold text-white">{service.name}</h3>
                   <div className="mt-2">
                     <span className="text-4xl font-bold text-white">{service.price}</span>

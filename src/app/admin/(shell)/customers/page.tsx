@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 
 type Customer = {
@@ -75,6 +75,14 @@ export default function CustomersPage() {
   const [rows, setRows] = useState<Customer[]>([]);
   const [count, setCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [actionCustomer, setActionCustomer] = useState<Customer | null>(null);
+  const [activeAction, setActiveAction] = useState<'notify' | 'reset' | 'suspend' | null>(null);
+  const [actionMessage, setActionMessage] = useState<string>('');
+  const [suspendReason, setSuspendReason] = useState<string>('');
+  const [suspendDuration, setSuspendDuration] = useState<string>('7');
+  const [actionStatus, setActionStatus] = useState<{ type: 'success' | 'error'; message: string; detail?: string } | null>(null);
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(count / PAGE_SIZE)),
     [count]
@@ -156,6 +164,149 @@ export default function CustomersPage() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  function openAction(customer: Customer, action: 'notify' | 'reset' | 'suspend') {
+    setActionCustomer(customer);
+    setActiveAction(action);
+    setActionStatus(null);
+    setActionMessage('');
+    setSuspendReason('');
+    setSuspendDuration('7');
+    setMenuOpenId(null);
+  }
+
+  function closeAction() {
+    setActionCustomer(null);
+    setActiveAction(null);
+    setActionStatus(null);
+    setActionMessage('');
+    setSuspendReason('');
+    setSuspendDuration('7');
+  }
+
+  async function handleSendNotification() {
+    if (!actionCustomer) return;
+    const message = actionMessage.trim();
+    if (!message) {
+      setActionStatus({ type: 'error', message: 'Message cannot be empty.' });
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      setActionStatus(null);
+      const res = await fetch(`/api/admin/users/${actionCustomer.id}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Unable to send notification (status ${res.status})`);
+      }
+
+      setActionStatus({ type: 'success', message: data?.message || 'Notification logged.' });
+      await fetchCustomers();
+    } catch (err: any) {
+      setActionStatus({ type: 'error', message: err?.message || 'Failed to send notification.' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!actionCustomer) return;
+
+    try {
+      setActionLoading(true);
+      setActionStatus(null);
+      const res = await fetch(`/api/admin/users/${actionCustomer.id}/reset-password`, {
+        method: 'POST',
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Unable to generate reset link (status ${res.status})`);
+      }
+
+      setActionStatus({
+        type: 'success',
+        message: data?.message || 'Password reset link generated.',
+        detail: data?.reset_link,
+      });
+      await fetchCustomers();
+    } catch (err: any) {
+      setActionStatus({ type: 'error', message: err?.message || 'Failed to reset password.' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleSuspendUser() {
+    if (!actionCustomer) return;
+    if (!suspendReason.trim()) {
+      setActionStatus({ type: 'error', message: 'Suspension reason is required.' });
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      setActionStatus(null);
+      const res = await fetch(`/api/admin/users/${actionCustomer.id}/suspend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: suspendReason.trim(),
+          duration_days: parseInt(suspendDuration, 10),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Unable to suspend user (status ${res.status})`);
+      }
+
+      setActionStatus({
+        type: 'success',
+        message: data?.message || 'User suspended successfully.',
+        detail: data?.suspended_until ? `Suspended until ${new Date(data.suspended_until).toLocaleString()}` : undefined,
+      });
+      await fetchCustomers();
+    } catch (err: any) {
+      setActionStatus({ type: 'error', message: err?.message || 'Failed to suspend user.' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleActionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activeAction) return;
+
+    switch (activeAction) {
+      case 'notify':
+        await handleSendNotification();
+        break;
+      case 'reset':
+        await handleResetPassword();
+        break;
+      case 'suspend':
+        await handleSuspendUser();
+        break;
+      default:
+        break;
+    }
+  }
+
+  const actionTitle =
+    activeAction === 'notify'
+      ? 'Send Notification'
+      : activeAction === 'reset'
+      ? 'Reset Password'
+      : activeAction === 'suspend'
+      ? 'Suspend Account'
+      : '';
 
   return (
     <div className="min-h-screen">
@@ -330,15 +481,45 @@ export default function CustomersPage() {
                     <td className="whitespace-nowrap text-slate-400">
                       {customer.last_active_at
                         ? new Date(customer.last_active_at).toLocaleDateString()
-                        : 'Never'}
-                    </td>
-                    <td>
-                      <Link
-                        href={`/admin/customers/${customer.id}`}
-                        className="text-sm font-medium text-orange-400 hover:text-orange-300 hover:underline transition"
+                    : 'Never'}
+                  </td>
+                    <td className="relative">
+                      <button
+                        onClick={() =>
+                          setMenuOpenId((prev) => (prev === customer.id ? null : customer.id))
+                        }
+                        className="rounded-lg border border-slate-600 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition"
                       >
-                        View Details
-                      </Link>
+                        Manage
+                      </button>
+                      {menuOpenId === customer.id && (
+                        <div className="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-slate-700 bg-slate-900/95 p-2 shadow-lg">
+                          <button
+                            onClick={() => openAction(customer, 'notify')}
+                            className="block w-full rounded-md px-2 py-2 text-left text-sm text-slate-200 hover:bg-slate-700/60"
+                          >
+                            Send Notification
+                          </button>
+                          <button
+                            onClick={() => openAction(customer, 'reset')}
+                            className="block w-full rounded-md px-2 py-2 text-left text-sm text-slate-200 hover:bg-slate-700/60"
+                          >
+                            Reset Password
+                          </button>
+                          <button
+                            onClick={() => openAction(customer, 'suspend')}
+                            className="block w-full rounded-md px-2 py-2 text-left text-sm text-slate-200 hover:bg-slate-700/60"
+                          >
+                            Suspend Account
+                          </button>
+                          <Link
+                            href={`/admin/customers/${customer.id}`}
+                            className="mt-1 block rounded-md px-2 py-2 text-sm font-medium text-orange-400 hover:bg-slate-700/60 hover:text-orange-300 transition"
+                          >
+                            View Details
+                          </Link>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -373,5 +554,115 @@ export default function CustomersPage() {
         </div>
       </div>
     </div>
+
+      {actionCustomer && activeAction && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-slate-950/70 px-4"
+          onClick={closeAction}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/95 p-6 shadow-2xl backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-white">{actionTitle}</h3>
+            <p className="mt-1 text-xs text-slate-400">
+              Acting on {actionCustomer.full_name || actionCustomer.email} ({actionCustomer.email})
+            </p>
+
+            <form className="mt-4 space-y-4" onSubmit={handleActionSubmit}>
+              {actionStatus && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-sm ${
+                    actionStatus.type === 'success'
+                      ? 'border-green-500/40 bg-green-500/10 text-green-200'
+                      : 'border-red-500/40 bg-red-500/10 text-red-200'
+                  }`}
+                >
+                  <p>{actionStatus.message}</p>
+                  {actionStatus.detail && (
+                    <p className="mt-2 break-all text-xs text-slate-200">
+                      {actionStatus.detail}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {activeAction === 'notify' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-300">
+                    Message
+                    <textarea
+                      value={actionMessage}
+                      onChange={(event) => setActionMessage(event.target.value)}
+                      rows={4}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Provide context and next steps for the customer..."
+                    />
+                  </label>
+                </div>
+              )}
+
+              {activeAction === 'reset' && (
+                <p className="text-sm text-slate-300">
+                  Generate a password reset link. The link will appear below once created so you can
+                  share it with the customer.
+                </p>
+              )}
+
+              {activeAction === 'suspend' && (
+                <div className="space-y-3">
+                  <label className="block text-xs font-medium text-slate-300">
+                    Reason
+                    <textarea
+                      value={suspendReason}
+                      onChange={(event) => setSuspendReason(event.target.value)}
+                      rows={3}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-orange-500"
+                      placeholder="Explain why this account is being suspended."
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-slate-300">
+                    Duration
+                    <select
+                      value={suspendDuration}
+                      onChange={(event) => setSuspendDuration(event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="1">1 day</option>
+                      <option value="3">3 days</option>
+                      <option value="7">7 days</option>
+                      <option value="14">14 days</option>
+                      <option value="30">30 days</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeAction}
+                  className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700/60 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {actionLoading
+                    ? 'Processing...'
+                    : activeAction === 'notify'
+                    ? 'Send Notification'
+                    : activeAction === 'reset'
+                    ? 'Generate Link'
+                    : 'Suspend Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
   );
 }

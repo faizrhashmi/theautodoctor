@@ -1,12 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/plans - Get ALL plans (active + inactive)
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // TODO: Add admin authentication check here
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
+    console.info('[admin/plans] list plans', {
+      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+    })
 
     const { data: plans, error } = await supabaseAdmin
       .from('service_plans')
@@ -26,11 +34,20 @@ export async function GET() {
 }
 
 // POST /api/admin/plans - Create new plan
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check here
+    const auth = await requireAdmin(request)
+    if (!auth.authorized) {
+      return auth.response!
+    }
 
     const body = await request.json()
+
+    console.info('[admin/plans] create plan', {
+      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      slug: body.slug,
+    })
+
     const {
       slug,
       name,

@@ -58,7 +58,7 @@ export default function CustomerNavbar() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo/Brand */}
-          <Logo size="md" showText={true} href="/customer/dashboard" variant="customer" />
+          <Logo size="md" showText={true} href="/" variant="customer" />
 
           {/* Navigation Links - Desktop */}
           <div className="hidden md:flex items-center gap-1">

@@ -17,7 +17,7 @@ A comprehensive mechanic signup and credential verification system with multi-st
 - **Step 2: Credentials & Certifications**
   - Years of experience
   - Specializations (multi-select from 12 options)
-  - Red Seal Certification (optional)
+  -   Certification (optional)
     - Certificate number
     - Province issued
     - Expiry date

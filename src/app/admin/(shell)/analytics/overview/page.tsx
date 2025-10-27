@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -6,8 +6,6 @@ import {
   Users,
   Video,
   DollarSign,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   Building2,
   CheckCircle,
@@ -24,24 +22,58 @@ type PlatformStats = {
     total: number
     customers: number
     mechanics: number
-    change: number
+    change: number | null
   }
   sessions: {
     total: number
     live: number
     completed: number
-    change: number
+    change: number | null
   }
   revenue: {
     total: number
     today: number
-    change: number
+    change: number | null
   }
   workshops: {
     active: number
     pending: number
     withMechanics: number
-    change: number
+    change: number | null
+  }
+}
+
+type DashboardStatsResponse = {
+  totalUsers: number
+  activeSessions: number
+  pendingClaims: number
+  revenueToday: number
+  totalSessions: number
+  todaySessions: number
+  weekSessions: number
+  totalMechanics: number
+  onlineMechanics: number
+  pendingIntakes: number
+  avgSessionValue: number
+  mechanicAvailability: number
+  generatedAt: string
+}
+
+type WorkshopOverviewResponse = {
+  success: boolean
+  period: string
+  dateRange?: { start: string; end: string }
+  metrics: {
+    signups: { started: number; completed: number; failed: number }
+    applications: { pending: number; approved: number; rejected: number }
+    invitations: { sent: number; accepted: number; expired: number }
+    activity: { logins: number; profileUpdates: number }
+    trends?: {
+      signups?: number
+      approvals?: number
+      invitations?: number
+      activity?: number
+    }
   }
 }
 
@@ -67,6 +99,9 @@ type BetaProgramData = {
 export default function AnalyticsOverviewPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [betaData, setBetaData] = useState<BetaProgramData | null>(null)
+  const [dashboardStats, setDashboardStats] = useState<DashboardStatsResponse | null>(null)
+  const [workshopOverview, setWorkshopOverview] = useState<WorkshopOverviewResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today')
 
@@ -76,57 +111,110 @@ export default function AnalyticsOverviewPage() {
 
   async function fetchAnalytics() {
     setLoading(true)
+    setError(null)
+
     try {
-      // Fetch platform stats
-      const [usersRes, sessionsRes, betaRes] = await Promise.all([
-        fetch('/api/admin/users/customers'),
-        fetch('/api/admin/sessions/stats'),
-        fetch('/api/admin/analytics/beta-program')
+      const [dashboardRes, workshopRes, betaRes] = await Promise.all([
+        fetch('/api/admin/dashboard/stats', { cache: 'no-store' }),
+        fetch(`/api/admin/analytics/workshop-overview?period=${period}`, { cache: 'no-store' }),
+        fetch('/api/admin/analytics/beta-program', { cache: 'no-store' })
       ])
 
-      const [usersData, sessionsData, betaResponse] = await Promise.all([
-        usersRes.json(),
-        sessionsRes.json(),
-        betaRes.json()
-      ])
-
-      // Calculate stats (mock change percentages for now)
-      setStats({
-        users: {
-          total: (usersData.total || 0),
-          customers: usersData.total || 0,
-          mechanics: 0, // Will be fetched separately
-          change: Math.floor(Math.random() * 20) - 5 // Mock change
-        },
-        sessions: {
-          total: (sessionsData.live || 0) + (sessionsData.waiting || 0) + (sessionsData.completed || 0),
-          live: sessionsData.live || 0,
-          completed: sessionsData.completed || 0,
-          change: Math.floor(Math.random() * 30) - 10
-        },
-        revenue: {
-          total: sessionsData.revenue || 0,
-          today: sessionsData.revenue || 0,
-          change: Math.floor(Math.random() * 25) - 5
-        },
-        workshops: {
-          active: betaResponse.data?.workshops?.active || 0,
-          pending: 0,
-          withMechanics: betaResponse.data?.workshops?.withMechanics || 0,
-          change: Math.floor(Math.random() * 15) - 3
-        }
-      })
-
-      if (betaResponse.success && betaResponse.data) {
-        setBetaData(betaResponse.data)
+      if (!dashboardRes.ok) {
+        throw new Error('Failed to load platform metrics')
       }
 
+      const dashboardData: DashboardStatsResponse = await dashboardRes.json()
+      setDashboardStats(dashboardData)
+
+      let workshopData: WorkshopOverviewResponse | null = null
+      if (workshopRes.ok) {
+        const parsed = await workshopRes.json()
+        if (parsed?.success) {
+          workshopData = parsed
+        } else {
+          console.warn('[Analytics] Workshop overview returned no data', parsed)
+        }
+      } else {
+        console.error('Failed to load workshop overview:', workshopRes.status, workshopRes.statusText)
+      }
+      setWorkshopOverview(workshopData)
+
+      let betaPayload: BetaProgramData | null = null
+      if (betaRes.ok) {
+        const parsed = await betaRes.json()
+        if (parsed?.success && parsed.data) {
+          betaPayload = parsed.data
+        }
+      } else {
+        console.error('Failed to load beta program analytics:', betaRes.status, betaRes.statusText)
+      }
+      setBetaData(betaPayload)
+
+      const totalUsers = dashboardData.totalUsers || 0
+      const totalMechanics = dashboardData.totalMechanics || 0
+      const customers = Math.max(totalUsers - totalMechanics, 0)
+      const todaySessions = dashboardData.todaySessions || 0
+      const weekSessions = dashboardData.weekSessions || 0
+      const averageDailySessions = weekSessions > 0 ? weekSessions / 7 : 0
+
+      let sessionChange: number | null = null
+      if (averageDailySessions > 0) {
+        sessionChange = Math.round(
+          ((todaySessions - averageDailySessions) / averageDailySessions) * 100
+        )
+      } else if (todaySessions > 0) {
+        sessionChange = 100
+      } else {
+        sessionChange = 0
+      }
+
+      const computedStats: PlatformStats = {
+        users: {
+          total: totalUsers,
+          customers,
+          mechanics: totalMechanics,
+          change: workshopData?.metrics?.trends?.signups ?? null
+        },
+        sessions: {
+          total: dashboardData.totalSessions || 0,
+          live: dashboardData.activeSessions || 0,
+          completed: todaySessions,
+          change: sessionChange
+        },
+        revenue: {
+          total: dashboardData.revenueToday || 0,
+          today: dashboardData.revenueToday || 0,
+          change: null
+        },
+        workshops: {
+          active: betaPayload?.workshops?.active ?? 0,
+          pending: workshopData?.metrics?.applications?.pending ?? 0,
+          withMechanics: betaPayload?.workshops?.withMechanics ?? 0,
+          change: workshopData?.metrics?.trends?.approvals ?? null
+        }
+      }
+
+      setStats(computedStats)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load analytics')
     } finally {
       setLoading(false)
     }
   }
+
+  const formatNumber = (value: number) => value.toLocaleString()
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0)
+
+  const formatDateLabel = (iso?: string) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+
+  const periodLabel = period === 'today' ? 'Today' : period === 'week' ? 'Last 7 days' : 'Last 30 days'
 
   if (loading) {
     return (
@@ -185,40 +273,94 @@ export default function AnalyticsOverviewPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{error}</span>
+            <button
+              onClick={fetchAnalytics}
+              className="rounded-md border border-red-400 px-3 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-500/20"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Users"
-          value={stats?.users.total || 0}
-          change={stats?.users.change || 0}
+          value={formatNumber(stats?.users.total || 0)}
+          change={stats?.users.change ?? null}
           icon={<Users className="h-5 w-5" />}
           color="blue"
+          subtitle={`${formatNumber(stats?.users.customers || 0)} customers / ${formatNumber(stats?.users.mechanics || 0)} mechanics`}
         />
         <MetricCard
           title="Active Sessions"
-          value={stats?.sessions.live || 0}
-          change={stats?.sessions.change || 0}
+          value={formatNumber(stats?.sessions.live || 0)}
+          change={stats?.sessions.change ?? null}
           icon={<Video className="h-5 w-5" />}
           color="green"
-          subtitle={`${stats?.sessions.completed || 0} completed`}
+          subtitle={`${formatNumber(stats?.sessions.completed || 0)} completed today`}
         />
         <MetricCard
           title="Revenue"
-          value={`$${(stats?.revenue.total || 0).toLocaleString()}`}
-          change={stats?.revenue.change || 0}
+          value={formatCurrency(stats?.revenue.today || 0)}
+          change={stats?.revenue.change ?? null}
           icon={<DollarSign className="h-5 w-5" />}
           color="purple"
-          subtitle={period === 'today' ? 'Today' : period === 'week' ? 'This week' : 'This month'}
+          subtitle={`Avg session value ${formatCurrency(dashboardStats?.avgSessionValue || 0)}`}
         />
         <MetricCard
           title="Active Workshops"
-          value={stats?.workshops.active || 0}
-          change={stats?.workshops.change || 0}
+          value={formatNumber(stats?.workshops.active || 0)}
+          change={stats?.workshops.change ?? null}
           icon={<Building2 className="h-5 w-5" />}
           color="orange"
-          subtitle={`${stats?.workshops.withMechanics || 0} with mechanics`}
+          subtitle={`${formatNumber(stats?.workshops.withMechanics || 0)} with mechanics | ${formatNumber(stats?.workshops.pending || 0)} pending`}
         />
       </div>
+
+      {workshopOverview && (
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Workshop Funnel ({periodLabel})</h2>
+              {workshopOverview.dateRange && (
+                <p className="text-xs text-slate-500">
+                  {formatDateLabel(workshopOverview.dateRange.start)} - {formatDateLabel(workshopOverview.dateRange.end)}
+                </p>
+              )}
+            </div>
+            <span className="text-xs text-slate-500">Trends vs previous period</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FunnelMetric
+              label="Signups Completed"
+              value={formatNumber(workshopOverview.metrics.signups.completed)}
+              trend={workshopOverview.metrics.trends?.signups}
+            />
+            <FunnelMetric
+              label="Applications Approved"
+              value={formatNumber(workshopOverview.metrics.applications.approved)}
+              trend={workshopOverview.metrics.trends?.approvals}
+            />
+            <FunnelMetric
+              label="Invitations Sent"
+              value={formatNumber(workshopOverview.metrics.invitations.sent)}
+              trend={workshopOverview.metrics.trends?.invitations}
+            />
+            <FunnelMetric
+              label="Workshop Logins"
+              value={formatNumber(workshopOverview.metrics.activity.logins)}
+              trend={workshopOverview.metrics.trends?.activity}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Beta Program Status */}
       {betaData && (
@@ -287,7 +429,7 @@ export default function AnalyticsOverviewPage() {
                 <ul className="space-y-1">
                   {betaData.blockers.slice(0, 3).map((blocker, idx) => (
                     <li key={idx} className="text-xs text-red-800 flex items-start gap-2">
-                      <span className="text-red-600 mt-0.5">•</span>
+                      <span className="text-red-600 mt-0.5">â€¢</span>
                       {blocker}
                     </li>
                   ))}
@@ -305,7 +447,7 @@ export default function AnalyticsOverviewPage() {
                 <ul className="space-y-1">
                   {betaData.nextSteps.slice(0, 3).map((step, idx) => (
                     <li key={idx} className="text-xs text-blue-800 flex items-start gap-2">
-                      <span className="text-blue-600 mt-0.5">•</span>
+                      <span className="text-blue-600 mt-0.5">â€¢</span>
                       {step}
                     </li>
                   ))}
@@ -385,13 +527,13 @@ export default function AnalyticsOverviewPage() {
 interface MetricCardProps {
   title: string
   value: number | string
-  change: number
+  change?: number | null
   icon: React.ReactNode
   color: 'blue' | 'green' | 'purple' | 'orange'
   subtitle?: string
 }
 
-function MetricCard({ title, value, change, icon, color, subtitle }: MetricCardProps) {
+function MetricCard({ title, value, change = null, icon, color, subtitle }: MetricCardProps) {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600',
     green: 'bg-green-100 text-green-600',
@@ -399,8 +541,17 @@ function MetricCard({ title, value, change, icon, color, subtitle }: MetricCardP
     orange: 'bg-orange-100 text-orange-600'
   }
 
-  const isPositive = change > 0
-  const isNeutral = change === 0
+  const hasChange = typeof change === 'number' && !Number.isNaN(change)
+  const isPositive = hasChange && (change as number) > 0
+  const isNeutral = hasChange && change === 0
+  const changeClass = !hasChange
+    ? 'text-slate-500'
+    : isPositive
+    ? 'text-green-600'
+    : isNeutral
+    ? 'text-slate-500'
+    : 'text-red-600'
+  const changeValue = hasChange ? Math.abs(change as number).toLocaleString() : null
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
@@ -408,19 +559,64 @@ function MetricCard({ title, value, change, icon, color, subtitle }: MetricCardP
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorClasses[color]}`}>
           {icon}
         </div>
-        <div className={`flex items-center gap-1 text-sm font-semibold ${
-          isPositive ? 'text-green-600' : isNeutral ? 'text-slate-600' : 'text-red-600'
-        }`}>
-          {isPositive && <ArrowUpRight className="h-4 w-4" />}
-          {!isPositive && !isNeutral && <ArrowDownRight className="h-4 w-4" />}
-          {isNeutral && <Minus className="h-4 w-4" />}
-          {Math.abs(change)}%
+        <div className={`flex items-center gap-1 text-sm font-semibold ${changeClass}`}>
+          {hasChange ? (
+            <>
+              {isPositive && <ArrowUpRight className="h-4 w-4" />}
+              {!isPositive && !isNeutral && <ArrowDownRight className="h-4 w-4" />}
+              {isNeutral && <Minus className="h-4 w-4" />}
+              {changeValue}%
+            </>
+          ) : (
+            <span className="tracking-wide">--</span>
+          )}
         </div>
       </div>
       <div>
         <p className="text-sm font-medium text-slate-400">{title}</p>
         <p className="text-2xl font-bold text-white mt-1">{value}</p>
         {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+      </div>
+    </div>
+  )
+}
+
+interface FunnelMetricProps {
+  label: string
+  value: string
+  trend?: number | null
+}
+
+function FunnelMetric({ label, value, trend = null }: FunnelMetricProps) {
+  const hasTrend = typeof trend === 'number' && !Number.isNaN(trend)
+  const isPositive = hasTrend && (trend as number) > 0
+  const isNeutral = hasTrend && trend === 0
+  const trendClass = !hasTrend
+    ? 'text-slate-500'
+    : isPositive
+    ? 'text-green-600'
+    : isNeutral
+    ? 'text-slate-500'
+    : 'text-red-600'
+  const trendValue = hasTrend ? Math.abs(trend as number).toLocaleString() : null
+
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4">
+      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <div className="mt-2 flex items-baseline justify-between">
+        <span className="text-xl font-semibold text-white">{value}</span>
+        <span className={`flex items-center gap-1 text-xs font-semibold ${trendClass}`}>
+          {hasTrend ? (
+            <>
+              {isPositive && <ArrowUpRight className="h-3 w-3" />}
+              {!isPositive && !isNeutral && <ArrowDownRight className="h-3 w-3" />}
+              {isNeutral && <Minus className="h-3 w-3" />}
+              {trendValue}%
+            </>
+          ) : (
+            '--'
+          )}
+        </span>
       </div>
     </div>
   )

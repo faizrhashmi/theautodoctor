@@ -213,12 +213,12 @@ export default function AdminPage() {
       </Section>
 
       {/* Emergency Tools */}
-      <Section title="⚠️ Emergency Tools" description="Destructive operations - use with extreme caution">
+      <Section title="Emergency Tools" description="Destructive operations - use with extreme caution">
         <AdminCard
           href="/admin/emergency"
           icon={<AlertTriangle className="h-6 w-6 animate-pulse" />}
-          title="🔥 Nuclear Cleanup"
-          description="DELETE all sessions and requests from database"
+          title="Nuclear Cleanup"
+          description="Delete all sessions and requests from the database"
           color="red"
           badge="DANGER"
         />

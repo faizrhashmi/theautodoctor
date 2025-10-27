@@ -2,10 +2,16 @@
 // If you have this file, update it too
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 import { IntakeStatus } from '@/types/supabase'
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
     const body = await req.json() as { id?: string; ids?: string[]; status: IntakeStatus }
     const { id, ids, status } = body
 
@@ -21,6 +27,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
+      console.info('[admin/intakes/update-status] bulk update', {
+        admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+        count: ids.length,
+        status,
+      })
+
       return NextResponse.json({ success: true, updated: ids.length })
     } else if (id) {
       // Single update (backward compatible)
@@ -32,6 +44,12 @@ export async function POST(req: NextRequest) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
+
+      console.info('[admin/intakes/update-status] single update', {
+        admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+        id,
+        status,
+      })
 
       return NextResponse.json({ success: true })
     } else {

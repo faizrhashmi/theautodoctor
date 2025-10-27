@@ -12,6 +12,9 @@ type Props = {
   onSelectAll: () => void
   onSelect: (sessionId: string) => void
   onViewDetails: (session: SessionWithParticipants) => void
+  menuOpenId: string | null
+  onMenuToggle: (sessionId: string) => void
+  onActionSelect: (session: SessionWithParticipants, action: 'view' | 'reassign' | 'force_cancel' | 'force_end') => void
 }
 
 export default function SessionsTable({
@@ -22,6 +25,9 @@ export default function SessionsTable({
   onSelectAll,
   onSelect,
   onViewDetails,
+  menuOpenId,
+  onMenuToggle,
+  onActionSelect,
 }: Props) {
   const getStatusBadge = (status: string | null) => {
     const styles: Record<string, string> = {
@@ -225,12 +231,42 @@ export default function SessionsTable({
                     {session.duration_minutes ? `${session.duration_minutes} min` : 'N/A'}
                   </td>
                   <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => onViewDetails(session)}
-                      className="text-sm font-medium text-orange-600 hover:text-orange-700"
-                    >
-                      View
-                    </button>
+                    <div className="relative flex items-center gap-2">
+                      <button
+                        onClick={() => onMenuToggle(session.id)}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        Manage
+                      </button>
+                      <button
+                        onClick={() => onActionSelect(session, 'view')}
+                        className="text-sm font-medium text-orange-600 hover:text-orange-700"
+                      >
+                        View
+                      </button>
+                      {menuOpenId === session.id && (
+                        <div className="absolute right-0 top-10 z-10 w-48 rounded-lg border border-slate-200 bg-white shadow-lg">
+                          <button
+                            onClick={() => onActionSelect(session, 'reassign')}
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                          >
+                            Reassign mechanic
+                          </button>
+                          <button
+                            onClick={() => onActionSelect(session, 'force_end')}
+                            className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                          >
+                            Force end session
+                          </button>
+                          <button
+                            onClick={() => onActionSelect(session, 'force_cancel')}
+                            className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Force cancel session
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )

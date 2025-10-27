@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 /**
  * GET /api/admin/fees/rules
@@ -8,9 +9,14 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  */
 export async function GET(req: NextRequest) {
   try {
-    // TODO: Add admin authentication check
-    // const isAdmin = await checkAdminAuth(req)
-    // if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
+    console.info('[admin/fees] list rules', {
+      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+    })
 
     const { data: rules, error } = await supabaseAdmin
       .from('platform_fee_rules')
@@ -59,9 +65,14 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    // TODO: Add admin authentication check
-    // const isAdmin = await checkAdminAuth(req)
-    // if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
+    console.info('[admin/fees] create rule', {
+      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+    })
 
     const body = await req.json()
 

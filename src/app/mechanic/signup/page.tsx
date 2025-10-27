@@ -429,7 +429,7 @@ export default function MechanicSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 pt-20 pb-8">
       <main className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8 text-center">

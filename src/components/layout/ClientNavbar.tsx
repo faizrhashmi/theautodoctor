@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard, Building2, MessageSquare } from 'lucide-react'
+import { Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard, Building2 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { createClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
@@ -13,29 +13,79 @@ const NAV_ITEMS = [
   { label: 'Pricing', href: '/pricing', icon: DollarSign },
   { label: 'Knowledge Base', href: '/knowledge-base', icon: BookOpen },
   { label: 'About', href: '/about', icon: Building2 },
-  { label: 'Contact', href: '/contact', icon: MessageSquare },
 ]
+
+/**
+ * Determine user role by checking mechanics, workshops, and profiles tables
+ */
+async function determineUserRole(
+  userId: string,
+  supabase: any
+): Promise<'customer' | 'mechanic' | 'workshop' | null> {
+  try {
+    // Check if user is a mechanic
+    const { data: mechanic } = await supabase
+      .from('mechanics')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (mechanic) return 'mechanic'
+
+    // Check if user is a workshop owner
+    const { data: workshop } = await supabase
+      .from('workshops')
+      .select('id')
+      .eq('owner_id', userId)
+      .maybeSingle()
+
+    if (workshop) return 'workshop'
+
+    // Default to customer
+    return 'customer'
+  } catch (error) {
+    console.error('Error determining user role:', error)
+    return 'customer' // Default fallback
+  }
+}
 
 export default function ClientNavbar() {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [userRole, setUserRole] = useState<'customer' | 'mechanic' | 'workshop' | null>(null)
 
   // Initialize user state - must be before early return to follow Rules of Hooks
   useEffect(() => {
     const supabase = createClient()
 
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // Get initial user and determine role
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
+
+      if (user) {
+        // Check user role
+        const role = await determineUserRole(user.id, supabase)
+        setUserRole(role)
+      } else {
+        setUserRole(null)
+      }
+
       setLoading(false)
     })
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
+    } = supabase.auth.onAuthStateChange(async (_, session) => {
       setUser(session?.user ?? null)
+
+      if (session?.user) {
+        const role = await determineUserRole(session.user.id, supabase)
+        setUserRole(role)
+      } else {
+        setUserRole(null)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -78,6 +128,17 @@ export default function ClientNavbar() {
       return !isMechanicAuth
     }
 
+    // HIDE: Workshop authenticated dashboard pages (where sidebar is visible)
+    // SHOW: Workshop login, signup (no sidebar)
+    if (pathname.startsWith('/workshop')) {
+      const isWorkshopAuth =
+        pathname === '/workshop/login' ||
+        pathname === '/workshop/signup'
+
+      // Show navbar on auth pages, hide on dashboard pages
+      return !isWorkshopAuth
+    }
+
     // HIDE: Customer authenticated dashboard pages (where sidebar is visible)
     // SHOW: Customer login, signup, onboarding (no sidebar)
     if (pathname.startsWith('/customer')) {
@@ -105,7 +166,33 @@ export default function ClientNavbar() {
   }
 
   const renderCTA = () => {
-    if (user) {
+    if (user && userRole) {
+      // Different styling based on user role
+      if (userRole === 'mechanic') {
+        return (
+          <Link
+            href="/mechanic/dashboard"
+            className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-all hover:shadow-xl hover:shadow-orange-500/40 hover:from-orange-600 hover:to-amber-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400"
+          >
+            <Wrench className="h-4 w-4" />
+            <span>Mechanic Dashboard</span>
+          </Link>
+        )
+      }
+
+      if (userRole === 'workshop') {
+        return (
+          <Link
+            href="/workshop/dashboard"
+            className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/40 hover:from-blue-600 hover:to-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Workshop Dashboard</span>
+          </Link>
+        )
+      }
+
+      // Default customer dashboard
       return (
         <Link
           href="/customer/dashboard"
@@ -183,7 +270,7 @@ export default function ClientNavbar() {
           </div>
 
           {/* Mobile Menu */}
-          <MobileMenu user={user} loading={loading} pathname={pathname} />
+          <MobileMenu user={user} loading={loading} pathname={pathname} userRole={userRole} />
         </div>
       </div>
     </header>
@@ -193,7 +280,17 @@ export default function ClientNavbar() {
 /**
  * Mobile Menu Component
  */
-function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; pathname: string }) {
+function MobileMenu({
+  user,
+  loading,
+  pathname,
+  userRole
+}: {
+  user: any;
+  loading: boolean;
+  pathname: string;
+  userRole: 'customer' | 'mechanic' | 'workshop' | null;
+}) {
   const [open, setOpen] = useState(false)
 
   // Auto-close menu when user scrolls
@@ -266,18 +363,48 @@ function MobileMenu({ user, loading, pathname }: { user: any; loading: boolean; 
             <div className="px-4 py-3">
               <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
             </div>
-          ) : user ? (
+          ) : user && userRole ? (
             <div className="mb-3">
-              <DropdownMenu.Item asChild>
-                <Link
-                  href="/customer/dashboard"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-600/10 text-orange-400 border border-orange-500/30 transition-all hover:from-orange-500/20 hover:to-red-600/20 focus:outline-none"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Link>
-              </DropdownMenu.Item>
+              {userRole === 'mechanic' && (
+                <DropdownMenu.Item asChild>
+                  <Link
+                    href="/mechanic/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-amber-600/10 text-orange-400 border border-orange-500/30 transition-all hover:from-orange-500/20 hover:to-amber-600/20 focus:outline-none"
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Mechanic Dashboard
+                  </Link>
+                </DropdownMenu.Item>
+              )}
+              {userRole === 'workshop' && (
+                <DropdownMenu.Item asChild>
+                  <Link
+                    href="/workshop/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium bg-gradient-to-r from-blue-500/10 to-blue-700/10 text-blue-400 border border-blue-500/30 transition-all hover:from-blue-500/20 hover:to-blue-700/20 focus:outline-none"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    Workshop Dashboard
+                  </Link>
+                </DropdownMenu.Item>
+              )}
+              {userRole === 'customer' && (
+                <DropdownMenu.Item asChild>
+                  <Link
+                    href="/customer/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium bg-gradient-to-r from-orange-500/10 to-red-600/10 text-orange-400 border border-orange-500/30 transition-all hover:from-orange-500/20 hover:to-red-600/20 focus:outline-none"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenu.Item>
+              )}
+            </div>
+          ) : user ? (
+            <div className="px-4 py-3">
+              <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
             </div>
           ) : (
             <div className="mb-3">
