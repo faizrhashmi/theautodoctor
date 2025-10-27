@@ -10,9 +10,9 @@ const supabase = createClient(url, serviceKey, {
 })
 
 const ADMIN_USERS = [
-  { email: 'admin1@askautodoctor.com', full_name: 'Admin One', password: 'Admin123!@#' },
-  { email: 'admin2@askautodoctor.com', full_name: 'Admin Two', password: 'Admin123!@#' },
-  { email: 'admin3@askautodoctor.com', full_name: 'Admin Three', password: 'Admin123!@#' }
+  { email: 'admin1@askautodoctor.com', full_name: 'Admin One', password: '12345678' },
+  { email: 'admin2@askautodoctor.com', full_name: 'Admin Two', password: '12345678' },
+  { email: 'admin3@askautodoctor.com', full_name: 'Admin Three', password: '12345678' }
 ]
 
 async function fixAdminUsers() {
