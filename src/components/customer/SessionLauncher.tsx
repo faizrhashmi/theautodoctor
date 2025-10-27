@@ -2,17 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star } from 'lucide-react'
+import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2 } from 'lucide-react'
+import { useServicePlans } from '@/hooks/useCustomerPlan'
 
 interface PlanTier {
   id: string
+  slug: string
   name: string
   price: string
   priceValue: number
   duration: string
+  durationMinutes: number
   description: string
   perks: string[]
   recommendedFor: string
+  stripePriceId: string | null
+  features?: Record<string, boolean>
+  planCategory?: 'basic' | 'premium' | 'enterprise'
+  routingPreference?: 'any' | 'general' | 'brand_specialist'
+  restrictedBrands?: string[]
 }
 
 interface Workshop {
@@ -36,65 +44,6 @@ interface SessionLauncherProps {
   organizationId?: string | null
 }
 
-const PLAN_TIERS: PlanTier[] = [
-  {
-    id: 'free',
-    name: 'Free Session',
-    price: '$0',
-    priceValue: 0,
-    duration: 'Up to 5 minute chat',
-    description: 'Try AskAutoDoctor with a short text-only session.',
-    perks: [
-      'Text chat with a mechanic',
-      'Share one photo or video clip',
-      'Quick first impressions and advice',
-    ],
-    recommendedFor: 'Use when you want to sample the platform or ask a quick yes/no question.',
-  },
-  {
-    id: 'quick',
-    name: 'Quick Chat',
-    price: '$9.99',
-    priceValue: 9.99,
-    duration: '30 minute live chat',
-    description: 'Fast triage over private chat with a certified mechanic.',
-    perks: [
-      'Direct chat for photos, videos, and codes',
-      'Action plan delivered before chat ends',
-      'Great for warning lights or quick questions',
-    ],
-    recommendedFor: 'Ideal when you need quick reassurance or guidance.',
-  },
-  {
-    id: 'standard',
-    name: 'Standard Video',
-    price: '$29.99',
-    priceValue: 29.99,
-    duration: '45 minute video session',
-    description: 'Live video consultation to walk through complex issues.',
-    perks: [
-      'HD video with screen sharing',
-      'Step-by-step troubleshooting and next steps',
-      'Recording link after the call',
-    ],
-    recommendedFor: 'Perfect for noises, leaks, or guided inspections.',
-  },
-  {
-    id: 'diagnostic',
-    name: 'Full Diagnostic',
-    price: '$49.99',
-    priceValue: 49.99,
-    duration: '60 minute video deep-dive',
-    description: 'Comprehensive video session with written diagnostic report.',
-    perks: [
-      'Advanced testing walkthroughs',
-      'Multi-system coverage in one call',
-      'Summary email with repair roadmap',
-    ],
-    recommendedFor: 'Best for recurring issues or pre-purchase inspections.',
-  },
-]
-
 export default function SessionLauncher({
   accountType,
   hasUsedFreeSession,
@@ -103,6 +52,9 @@ export default function SessionLauncher({
   workshopId,
   organizationId,
 }: SessionLauncherProps) {
+  // Fetch plans from API
+  const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = useServicePlans()
+
   const [showCustomization, setShowCustomization] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string>('free')
   const [workshops, setWorkshops] = useState<Workshop[]>([])
@@ -153,7 +105,40 @@ export default function SessionLauncher({
   // Render different UI based on account type
   const renderB2CCustomer = () => {
     const isNewCustomer = hasUsedFreeSession === false
-    const defaultPlan = PLAN_TIERS.find(p => p.id === selectedPlan)
+    const defaultPlan = PLAN_TIERS.find(p => p.slug === selectedPlan || p.id === selectedPlan)
+
+    // Loading state
+    if (loadingPlans) {
+      return (
+        <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-6">
+          <div className="flex items-center justify-center gap-3 py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+            <span className="text-slate-300">Loading service plans...</span>
+          </div>
+        </div>
+      )
+    }
+
+    // Error state
+    if (plansError || PLAN_TIERS.length === 0) {
+      return (
+        <div className="bg-gradient-to-r from-red-600/20 via-orange-600/20 to-red-600/20 backdrop-blur-sm rounded-2xl border border-red-500/30 p-6">
+          <div className="flex items-center justify-center gap-3 py-12 text-center">
+            <div>
+              <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+              <p className="text-slate-300 mb-2">Unable to load service plans</p>
+              <p className="text-sm text-slate-400">{plansError || 'No plans available'}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-6">
@@ -232,16 +217,16 @@ export default function SessionLauncher({
               <div className="space-y-3">
                 {PLAN_TIERS.map((tier) => {
                   // Hide free option for returning customers unless admin override
-                  if (tier.id === 'free' && hasUsedFreeSession === true) {
+                  if (tier.slug === 'free' && hasUsedFreeSession === true) {
                     return null
                   }
 
-                  const isSelected = tier.id === selectedPlan
+                  const isSelected = tier.slug === selectedPlan || tier.id === selectedPlan
                   return (
                     <button
-                      key={tier.id}
+                      key={tier.slug || tier.id}
                       onClick={() => {
-                        setSelectedPlan(tier.id)
+                        setSelectedPlan(tier.slug || tier.id)
                         setShowCustomization(false)
                         // Focus the start button after collapse
                         setTimeout(() => {

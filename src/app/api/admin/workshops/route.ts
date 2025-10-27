@@ -3,28 +3,21 @@
  * Fetch all workshops with statistics for admin management
  */
 
-import { NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = getSupabaseServer()
-
-    // Verify admin authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
     }
 
-    // TODO: Add admin role check here when admin_users table is ready
-    // For now, assume authenticated user is admin
-
-    // Fetch all workshops with aggregated statistics
-    const { data: workshops, error: workshopsError } = await supabase
-      .from('workshops')
+    // Fetch all workshops from organizations table
+    const { data: workshops, error: workshopsError } = await supabaseAdmin
+      .from('organizations')
       .select(`
         id,
         name,
@@ -40,6 +33,7 @@ export async function GET() {
         created_at,
         updated_at
       `)
+      .eq('organization_type', 'workshop')
       .order('created_at', { ascending: false })
 
     if (workshopsError) {
@@ -53,25 +47,23 @@ export async function GET() {
     // Fetch aggregated statistics for each workshop
     const workshopsWithStats = await Promise.all(
       (workshops || []).map(async (workshop) => {
-        // Count mechanics
-        const { count: mechanicCount } = await supabase
-          .from('workshop_mechanics')
+        // Count mechanics affiliated with this workshop
+        const { count: mechanicCount } = await supabaseAdmin
+          .from('mechanics')
           .select('*', { count: 'exact', head: true })
           .eq('workshop_id', workshop.id)
-          .eq('status', 'active')
 
-        // Get total sessions (from workshop_metrics)
-        const { data: metrics } = await supabase
-          .from('workshop_metrics')
-          .select('total_sessions, total_revenue_cents')
+        // Count sessions for this workshop (if tracking exists)
+        const { count: sessionCount } = await supabaseAdmin
+          .from('sessions')
+          .select('*', { count: 'exact', head: true })
           .eq('workshop_id', workshop.id)
-          .single()
 
         return {
           ...workshop,
           mechanic_count: mechanicCount || 0,
-          total_sessions: metrics?.total_sessions || 0,
-          total_revenue: metrics?.total_revenue_cents ? metrics.total_revenue_cents / 100 : 0
+          total_sessions: sessionCount || 0,
+          total_revenue: 0 // TODO: Calculate from payments when implemented
         }
       })
     )

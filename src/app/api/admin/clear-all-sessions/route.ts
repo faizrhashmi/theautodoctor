@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 /**
  * ⚠️ ADMIN ONLY: Nuclear option - Clear ALL sessions and requests
@@ -15,11 +16,16 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  */
 export async function DELETE(req: NextRequest) {
   try {
-    // Optional: Add authentication check here
-    // const authHeader = req.headers.get('authorization')
-    // if (authHeader !== `Bearer ${process.env.ADMIN_SECRET_KEY}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
+    // Log who initiated this dangerous operation
+    console.warn(
+      `[SECURITY] NUCLEAR CLEANUP initiated by admin: ${auth.profile?.full_name || auth.profile?.email} (${auth.user?.id})`
+    )
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -121,6 +127,12 @@ export async function DELETE(req: NextRequest) {
 // GET to see counts without deleting
 export async function GET(req: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
+    }
+
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }

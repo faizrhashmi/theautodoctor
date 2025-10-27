@@ -8,9 +8,20 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(req)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
   const claimId = params.id
+
+  console.warn(
+    `[ADMIN ACTION] ${auth.profile?.full_name} rejecting claim ${claimId}`
+  )
 
   try {
     const body = await req.json()
@@ -39,8 +50,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: 'rejected',
         resolution,
         reviewed_at: new Date().toISOString(),
-        // TODO: Add reviewed_by_admin_id if you have admin auth
+        reviewed_by_admin_id: auth.user!.id,
         updated_at: new Date().toISOString(),
+        metadata: {
+          admin_name: auth.profile?.full_name || auth.profile?.email
+        }
       })
       .eq('id', claimId)
 

@@ -56,11 +56,11 @@ export default function AdminAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-900/50">
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Workshop Analytics</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-white">Workshop Analytics</h1>
+          <p className="text-slate-400 mt-2">
             Comprehensive analytics for workshop onboarding, health monitoring, and beta program tracking
           </p>
         </div>
@@ -86,8 +86,8 @@ export default function AdminAnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="health" className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">
                 Select a Workshop to View Health Details
               </h2>
 
@@ -96,7 +96,7 @@ export default function AdminAnalyticsPage() {
                 <select
                   value={selectedWorkshopId || ''}
                   onChange={(e) => handleWorkshopSelect(e.target.value)}
-                  className="w-full max-w-md px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full max-w-md px-4 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select a workshop...</option>
                   {/* This would be populated from an API call */}
@@ -117,7 +117,7 @@ export default function AdminAnalyticsPage() {
               )}
 
               {!selectedWorkshopId && !loadingWorkshop && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-500">
                   Select a workshop from the dropdown to view its health scorecard
                 </div>
               )}

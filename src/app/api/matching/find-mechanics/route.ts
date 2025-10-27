@@ -13,8 +13,11 @@ export async function POST(request: NextRequest) {
     const criteria: MatchingCriteria = {
       requestType: body.requestType || 'general',
       requestedBrand: body.requestedBrand,
+      restrictedBrands: body.restrictedBrands, // Array of acceptable brands
       extractedKeywords: body.extractedKeywords || [],
-      customerLocation: body.customerLocation,
+      customerCountry: body.customerCountry,
+      customerCity: body.customerCity,
+      preferLocalMechanic: body.preferLocalMechanic,
       urgency: body.urgency || 'scheduled'
     }
 
@@ -26,12 +29,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate brand specialist requests have a brand
-    if (criteria.requestType === 'brand_specialist' && !criteria.requestedBrand) {
-      return NextResponse.json(
-        { error: 'Brand is required for brand specialist requests' },
-        { status: 400 }
-      )
+    // Validate brand specialist requests have at least one brand
+    if (criteria.requestType === 'brand_specialist') {
+      const hasBrands = (criteria.restrictedBrands && criteria.restrictedBrands.length > 0) || criteria.requestedBrand
+      if (!hasBrands) {
+        return NextResponse.json(
+          { error: 'At least one brand is required for brand specialist requests' },
+          { status: 400 }
+        )
+      }
     }
 
     // Find matching mechanics

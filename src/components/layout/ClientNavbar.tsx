@@ -41,22 +41,64 @@ export default function ClientNavbar() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Hide ClientNavbar on role-specific pages and authenticated customer flows
-  const shouldHideNavbar =
-    pathname?.startsWith('/customer') ||
-    pathname?.startsWith('/mechanic') ||
-    pathname?.startsWith('/admin') ||
-    // Customer flow pages (intake, checkout, sessions, etc.)
-    pathname?.startsWith('/intake') ||
-    pathname?.startsWith('/checkout') ||
-    pathname?.startsWith('/thank-you') ||
-    pathname?.startsWith('/diagnostic') ||
-    pathname?.startsWith('/waiver') ||
-    pathname?.startsWith('/video') || // Video sessions
-    pathname?.startsWith('/chat') || // Chat sessions
-    pathname?.startsWith('/session') || // Session pages
-    // Show CustomerNavbar for logged-in users on signup page
-    (pathname?.startsWith('/signup') && user)
+  // Hide ClientNavbar ONLY on authenticated dashboard pages with sidebars and active sessions
+  // Strategy: Be specific about what to hide, not broad
+  const shouldHideNavbar = (() => {
+    if (!pathname) return false
+
+    // HIDE: Active session pages (need full focus)
+    if (
+      pathname.startsWith('/video') ||
+      pathname.startsWith('/chat') ||
+      pathname.startsWith('/diagnostic') ||
+      pathname.startsWith('/session')
+    ) {
+      return true
+    }
+
+    // HIDE: Customer flow pages (intake, checkout, etc.)
+    if (
+      pathname.startsWith('/intake') ||
+      pathname.startsWith('/checkout') ||
+      pathname.startsWith('/thank-you') ||
+      pathname.startsWith('/waiver')
+    ) {
+      return true
+    }
+
+    // HIDE: Mechanic authenticated dashboard pages (where sidebar is visible)
+    // SHOW: Mechanic login, signup, onboarding (no sidebar)
+    if (pathname.startsWith('/mechanic')) {
+      const isMechanicAuth =
+        pathname === '/mechanic/login' ||
+        pathname === '/mechanic/signup' ||
+        pathname.startsWith('/mechanic/onboarding')
+
+      // Show navbar on auth pages, hide on dashboard pages
+      return !isMechanicAuth
+    }
+
+    // HIDE: Customer authenticated dashboard pages (where sidebar is visible)
+    // SHOW: Customer login, signup, onboarding (no sidebar)
+    if (pathname.startsWith('/customer')) {
+      const isCustomerAuth =
+        pathname === '/customer/login' ||
+        pathname === '/customer/signup' ||
+        pathname.startsWith('/customer/onboarding')
+
+      // Show navbar on auth pages, hide on dashboard pages
+      return !isCustomerAuth
+    }
+
+    // SHOW: Admin pages now use ClientNavbar instead of custom header
+    // HIDE: Admin login page only
+    if (pathname.startsWith('/admin')) {
+      return pathname === '/admin/login' // Only hide on login page
+    }
+
+    // SHOW on all other pages (homepage, public pages, etc.)
+    return false
+  })()
 
   if (shouldHideNavbar) {
     return null

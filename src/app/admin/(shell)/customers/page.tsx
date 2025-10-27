@@ -158,30 +158,30 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b border-slate-800/50 bg-slate-800/30 backdrop-blur-sm mb-6">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">Customers Management</h1>
-              <p className="text-sm text-slate-500">
+              <h1 className="text-xl font-semibold text-white">Customers Management</h1>
+              <p className="text-sm text-slate-400">
                 Manage customer accounts, view activity, and perform actions
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Showing {rows.length} of {count} total customers
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={downloadCSV}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition"
               >
                 Export CSV
               </button>
               <Link
                 href="/admin"
-                className="rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-700"
+                className="rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-3 py-1.5 text-sm font-medium text-white hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/25 transition"
               >
                 Admin Home
               </Link>
@@ -194,7 +194,7 @@ export default function CustomersPage() {
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Search (name/email/phone)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Search (name/email/phone)</label>
             <input
               value={search}
               onChange={(e) => {
@@ -202,19 +202,19 @@ export default function CustomersPage() {
                 setPage(1);
               }}
               placeholder="e.g., John Smith, john@email.com"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Account Status</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Account Status</label>
             <select
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -225,14 +225,14 @@ export default function CustomersPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Email Verified</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Email Verified</label>
             <select
               value={emailVerified}
               onChange={(e) => {
                 setEmailVerified(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500"
             >
               <option value="">All</option>
               <option value="true">Verified</option>
@@ -241,7 +241,7 @@ export default function CustomersPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Joined From</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Joined From</label>
             <input
               type="date"
               value={fromDate}
@@ -249,7 +249,7 @@ export default function CustomersPage() {
                 setFromDate(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -257,7 +257,7 @@ export default function CustomersPage() {
         <div className="mt-3">
           <button
             onClick={resetFilters}
-            className="text-sm text-slate-600 underline underline-offset-4 hover:text-slate-800"
+            className="text-sm text-slate-400 underline underline-offset-4 hover:text-slate-300 transition"
           >
             Reset filters
           </button>
@@ -266,10 +266,10 @@ export default function CustomersPage() {
 
       {/* Table */}
       <div className="mx-auto max-w-7xl px-4 pb-8">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-700">
+              <thead className="bg-slate-800/80 text-slate-300 border-b border-slate-700">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
                   <th>Customer</th>
                   <th>Contact</th>
@@ -281,31 +281,31 @@ export default function CustomersPage() {
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-700">
                 {loading && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
                       Loading...
                     </td>
                   </tr>
                 )}
                 {!loading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-6 text-center text-slate-500">
+                    <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
                       No customers found.
                     </td>
                   </tr>
                 )}
                 {rows.map((customer) => (
-                  <tr key={customer.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-slate-50">
+                  <tr key={customer.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-slate-700/50 transition">
                     <td>
-                      <div className="font-medium text-slate-900">
+                      <div className="font-medium text-white">
                         {customer.full_name || 'Unnamed User'}
                       </div>
                       <div className="text-xs text-slate-500">{customer.id.slice(0, 8)}</div>
                     </td>
                     <td>
-                      <div className="text-slate-700">{customer.email}</div>
+                      <div className="text-slate-300">{customer.email}</div>
                       {customer.phone && (
                         <div className="text-xs text-slate-500">{customer.phone}</div>
                       )}
@@ -313,7 +313,7 @@ export default function CustomersPage() {
                     <td>
                       <StatusBadge status={customer.account_status} />
                       {customer.suspended_until && new Date(customer.suspended_until) > new Date() && (
-                        <div className="text-xs text-yellow-600 mt-1">
+                        <div className="text-xs text-yellow-400 mt-1">
                           Until {new Date(customer.suspended_until).toLocaleDateString()}
                         </div>
                       )}
@@ -321,13 +321,13 @@ export default function CustomersPage() {
                     <td>
                       <VerifiedBadge verified={customer.email_verified} />
                     </td>
-                    <td className="whitespace-nowrap text-slate-600">
+                    <td className="whitespace-nowrap text-slate-400">
                       {new Date(customer.created_at).toLocaleDateString()}
                     </td>
-                    <td className="text-center font-medium text-slate-900">
+                    <td className="text-center font-medium text-white">
                       {customer.total_sessions ?? 0}
                     </td>
-                    <td className="whitespace-nowrap text-slate-600">
+                    <td className="whitespace-nowrap text-slate-400">
                       {customer.last_active_at
                         ? new Date(customer.last_active_at).toLocaleDateString()
                         : 'Never'}
@@ -335,7 +335,7 @@ export default function CustomersPage() {
                     <td>
                       <Link
                         href={`/admin/customers/${customer.id}`}
-                        className="text-sm font-medium text-orange-600 hover:text-orange-700 hover:underline"
+                        className="text-sm font-medium text-orange-400 hover:text-orange-300 hover:underline transition"
                       >
                         View Details
                       </Link>
@@ -347,24 +347,24 @@ export default function CustomersPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t p-3 text-sm text-slate-600">
+          <div className="flex items-center justify-between border-t border-slate-700 p-3 text-sm text-slate-400">
             <div>
-              Page <span className="font-medium">{page}</span> of{' '}
-              <span className="font-medium">{totalPages}</span> ·{' '}
-              <span className="font-medium">{count}</span> total
+              Page <span className="font-medium text-white">{page}</span> of{' '}
+              <span className="font-medium text-white">{totalPages}</span> ·{' '}
+              <span className="font-medium text-white">{count}</span> total
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 px-3 py-1.5 disabled:opacity-50 hover:bg-slate-700 hover:text-white transition"
               >
                 Prev
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 px-3 py-1.5 disabled:opacity-50 hover:bg-slate-700 hover:text-white transition"
               >
                 Next
               </button>

@@ -58,7 +58,9 @@
       "Bash(psql:*)",
       "Bash(git checkout:*)",
       "Bash(dir:*)",
-      "Bash(timeout 120 bash -c 'while ! grep -q \"\"\"\"Compiled successfully\\|Failed to compile\"\"\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')"
+      "Bash(timeout 120 bash -c 'while ! grep -q \"\"\"\"Compiled successfully\\|Failed to compile\"\"\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')",
+      "Bash(timeout 120 bash -c 'while ! grep -q \"\"Compiled successfully\\|Failed to compile\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -21,7 +21,6 @@ import {
   Briefcase,
   Building2
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
 
 const NAV_ITEMS = [
@@ -59,16 +58,22 @@ const NAV_ITEMS = [
 
 export default function WorkshopSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   async function handleSignOut() {
     try {
-      await supabase.auth.signOut()
-      router.push('/')
+      // Call workshop logout API to clear auth cookies
+      await fetch('/api/workshop/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+
+      // Force hard redirect to clear any cached state
+      window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
+      // Still redirect even if error
+      window.location.href = '/'
     }
   }
 

@@ -1,36 +1,32 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(_request: NextRequest) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(_request)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
   try {
-    const supabase = getSupabaseServer()
 
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get session counts
+    // Get session counts (using admin client)
     const [liveCount, waitingCount, completedCount, totalRevenue] = await Promise.all([
-      supabase
+      supabaseAdmin
         .from('sessions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'live'),
-      supabase
+      supabaseAdmin
         .from('sessions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'waiting'),
-      supabase
+      supabaseAdmin
         .from('sessions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'completed'),
-      supabase.from('sessions').select('metadata').eq('status', 'completed'),
+      supabaseAdmin.from('sessions').select('metadata').eq('status', 'completed'),
     ])
 
     const revenue = totalRevenue.data?.reduce((sum: number, session: any) => {

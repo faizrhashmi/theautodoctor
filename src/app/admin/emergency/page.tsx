@@ -129,7 +129,7 @@ export default function EmergencyAdminPage() {
               <button
                 onClick={checkDatabaseCounts}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 {loading ? 'Checking...' : 'Check Database Counts'}
@@ -189,7 +189,7 @@ export default function EmergencyAdminPage() {
             <div className="space-y-3">
               <button
                 onClick={checkLocalStorage}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-semibold transition-colors"
               >
                 <RefreshCw className="w-5 h-5" />
                 Check Browser Storage

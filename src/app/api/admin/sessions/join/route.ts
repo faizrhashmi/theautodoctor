@@ -1,19 +1,19 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseServer()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(req)
+    if (!auth.authorized) {
+      return auth.response!
     }
+
+    console.warn(
+      `[ADMIN ACTION] Admin ${auth.profile?.full_name} joining session`
+    )
 
     const body = await req.json()
     const { sessionId } = body
@@ -52,13 +52,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Add the mechanic as a participant (using service role to bypass RLS)
+    // Add the admin as a participant (using service role to bypass RLS)
     const { error: insertError } = await supabaseAdmin
       .from('session_participants')
       .insert({
         session_id: sessionId,
-        user_id: user.id,
-        role: 'mechanic',
+        user_id: auth.user!.id,
+        role: 'mechanic', // Admin joins as mechanic role
+        metadata: {
+          is_admin: true,
+          admin_name: auth.profile?.full_name || auth.profile?.email
+        }
       })
 
     if (insertError) {

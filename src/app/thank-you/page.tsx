@@ -145,9 +145,9 @@ export default async function ThankYou({
     sessionRoute ?? (stripeSessionId ? `/signup?session_id=${encodeURIComponent(stripeSessionId)}` : '/signup')
 
   return (
-    <main className="mx-auto max-w-4xl rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur lg:p-12">
+    <main className="mx-auto max-w-4xl rounded-[2.5rem] border border-slate-700 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm lg:p-12">
       <div className="flex flex-col gap-10">
-        <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-8 text-center shadow-lg">
+        <header className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-8 text-center shadow-lg">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Session confirmed</p>
           <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">You are all set!</h1>
           <p className="mt-3 text-sm text-slate-300">
@@ -163,7 +163,7 @@ export default async function ThankYou({
           </p>
         </header>
 
-        <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-6 shadow-sm backdrop-blur">
+        <section className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-white">Next steps</h2>
@@ -188,13 +188,13 @@ export default async function ThankYou({
               <div className="flex flex-col gap-3">
                 <Link
                   href={startHref}
-                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:from-orange-600 hover:to-red-700"
                 >
                   Start session now
                 </Link>
                 <Link
                   href="/"
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/35"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-700 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-600"
                 >
                   Return home
                 </Link>
@@ -204,7 +204,7 @@ export default async function ThankYou({
         </section>
 
         {dbSessionId && (
-          <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-6 shadow-sm backdrop-blur">
+          <section className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
             <h2 className="text-lg font-semibold text-white">Invite your mechanic</h2>
             <p className="mt-2 text-sm text-slate-300">
               Share this secure join link so a certified mechanic or trusted shop can jump into the live workspace with you.

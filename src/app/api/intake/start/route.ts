@@ -140,9 +140,40 @@ export async function POST(req: NextRequest) {
 
       const freeSessionKey = `free_${intakeId}_${randomUUID()}`
 
-      // Get the correct session type from the plan's fulfillment type
-      const planConfig = PRICING[plan as PlanKey]
-      const sessionType = planConfig?.fulfillment || 'diagnostic' // Default to diagnostic
+      // Fetch the service plan from database to get routing preferences
+      const { data: servicePlan, error: planError } = await supabaseAdmin
+        .from('service_plans')
+        .select('*')
+        .eq('slug', plan)
+        .eq('is_active', true)
+        .single();
+
+      // Fallback to old pricing config if plan not found in database
+      let sessionType = 'diagnostic' // Default type
+      let requestType: 'general' | 'brand_specialist' = 'general'
+      let restrictedBrands: string[] = []
+
+      if (servicePlan && !planError) {
+        // Determine session type from plan's features or category
+        if (servicePlan.features?.video_sessions) {
+          sessionType = 'video'
+        } else if (servicePlan.features?.chat) {
+          sessionType = 'chat'
+        }
+
+        // Set request type based on routing preference
+        if (servicePlan.routing_preference === 'brand_specialist') {
+          requestType = 'brand_specialist'
+          restrictedBrands = servicePlan.restricted_brands || []
+        } else if (servicePlan.routing_preference === 'general') {
+          requestType = 'general'
+        }
+        // 'any' routing allows both general and specialists to accept
+      } else {
+        // Fallback to old pricing config
+        const planConfig = PRICING[plan as PlanKey]
+        sessionType = planConfig?.fulfillment || 'diagnostic'
+      }
 
       const { data: sessionInsert, error: sessionError } = await supabaseAdmin
         .from('sessions')
@@ -198,21 +229,29 @@ export async function POST(req: NextRequest) {
             .is('mechanic_id', null);
 
           // Create the session request and link it to the session
+          const requestPayload: any = {
+            customer_id: user.id,
+            session_type: sessionType, // Use same type as session (from plan's fulfillment)
+            plan_code: plan,
+            status: 'pending',
+            customer_name: customerName,
+            customer_email: email || null,
+            // Note: Using parent_session_id to link to session (no metadata column in actual schema)
+            parent_session_id: sessionId,
+            routing_type: 'broadcast',
+            request_type: requestType, // Use plan's routing preference
+            prefer_local_mechanic: false,
+          }
+
+          // Add restricted brands metadata if this is a brand specialist request
+          if (requestType === 'brand_specialist' && restrictedBrands.length > 0) {
+            requestPayload.requested_brand = restrictedBrands[0] // Use first brand as primary
+            requestPayload.routing_type = 'targeted' // Override to targeted for brand specialists
+          }
+
           const { data: newRequest, error: requestInsertError } = await supabaseAdmin
             .from('session_requests')
-            .insert({
-              customer_id: user.id,
-              session_type: sessionType, // Use same type as session (from plan's fulfillment)
-              plan_code: plan,
-              status: 'pending',
-              customer_name: customerName,
-              customer_email: email || null,
-              // Note: Using parent_session_id to link to session (no metadata column in actual schema)
-              parent_session_id: sessionId,
-              routing_type: 'broadcast',
-              request_type: 'general',
-              prefer_local_mechanic: false,
-            })
+            .insert(requestPayload)
             .select()
             .single();
 

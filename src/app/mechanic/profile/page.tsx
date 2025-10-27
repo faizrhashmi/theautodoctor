@@ -520,7 +520,7 @@ function CredentialsTab({ profile, setProfile }: any) {
           <div>
             <span className="font-medium text-slate-900">Red Seal Certified</span>
             <p className="text-sm text-slate-600">
-              I am Red Seal certified in my trade
+              I am Red Seal/310S/310T/CPA certified in my trade (only ONE required for approval)
             </p>
           </div>
         </label>

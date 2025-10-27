@@ -50,6 +50,10 @@ async function signStoragePaths(paths: string[]) {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await ensureAdmin()
+  if (!auth.ok) return auth.res
+
   if (!supabase) return respondError('Supabase not configured on server', 500)
   const { data, error } = await supabase
     .from('intakes')
@@ -75,6 +79,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await ensureAdmin()
+  if (!auth.ok) return auth.res
+
   if (!supabase) return respondError('Supabase not configured on server', 500)
   const payload = await req.json().catch(() => ({}))
   const status = payload.status as IntakeStatus | undefined

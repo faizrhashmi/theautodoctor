@@ -1,0 +1,599 @@
+{
+  "timestamp": "2025-10-27T04:01:34.968Z",
+  "tables": {
+    "profiles": {
+      "exists": true,
+      "columns": [
+        "id",
+        "email",
+        "role",
+        "created_at",
+        "updated_at",
+        "full_name",
+        "phone",
+        "vehicle_hint",
+        "date_of_birth",
+        "preferred_plan",
+        "onboarding_completed",
+        "last_selected_slot",
+        "vehicle_info",
+        "is_18_plus",
+        "waiver_accepted",
+        "waiver_accepted_at",
+        "waiver_ip_address",
+        "terms_accepted",
+        "terms_accepted_at",
+        "email_verified",
+        "account_status",
+        "metadata",
+        "stripe_account_id",
+        "stripe_onboarding_completed",
+        "stripe_charges_enabled",
+        "stripe_payouts_enabled",
+        "stripe_details_submitted",
+        "address_line1",
+        "address_line2",
+        "city",
+        "state_province",
+        "postal_zip_code",
+        "country",
+        "latitude",
+        "longitude",
+        "preferred_language",
+        "timezone",
+        "communication_preferences",
+        "newsletter_subscribed",
+        "referral_source",
+        "profile_completed",
+        "profile_completed_at",
+        "account_type",
+        "organization_id",
+        "source",
+        "referred_by_workshop_id",
+        "free_session_override"
+      ],
+      "columnCount": 47,
+      "testedColumns": {
+        "existing": [
+          "full_name",
+          "role",
+          "free_session_override"
+        ],
+        "missing": [
+          "name",
+          "user_type"
+        ]
+      }
+    },
+    "mechanics": {
+      "exists": true,
+      "columns": [
+        "id",
+        "created_at",
+        "name",
+        "email",
+        "phone",
+        "password_hash",
+        "stripe_account_id",
+        "stripe_onboarding_completed",
+        "stripe_charges_enabled",
+        "stripe_payouts_enabled",
+        "stripe_details_submitted",
+        "red_seal_certified",
+        "red_seal_number",
+        "red_seal_province",
+        "red_seal_expiry_date",
+        "certification_documents",
+        "other_certifications",
+        "years_of_experience",
+        "specializations",
+        "shop_affiliation",
+        "shop_name",
+        "shop_address",
+        "business_license_number",
+        "business_license_document",
+        "full_address",
+        "city",
+        "province",
+        "postal_code",
+        "country",
+        "date_of_birth",
+        "liability_insurance",
+        "insurance_policy_number",
+        "insurance_expiry",
+        "insurance_document",
+        "criminal_record_check",
+        "crc_date",
+        "crc_document",
+        "sin_or_business_number",
+        "banking_info_completed",
+        "application_status",
+        "background_check_status",
+        "approval_notes",
+        "reviewed_by",
+        "reviewed_at",
+        "application_submitted_at",
+        "approved_at",
+        "application_draft",
+        "current_step",
+        "last_updated",
+        "account_type",
+        "workshop_id",
+        "source",
+        "requires_sin_collection",
+        "sin_collection_completed_at",
+        "auto_approved",
+        "sin_encrypted",
+        "invited_by",
+        "invite_accepted_at",
+        "is_available",
+        "rating",
+        "completed_sessions",
+        "is_brand_specialist",
+        "brand_specializations",
+        "service_keywords",
+        "profile_completion_score",
+        "can_accept_sessions",
+        "specialist_tier",
+        "state_province",
+        "timezone",
+        "service_tier",
+        "partnership_type",
+        "partnership_terms",
+        "can_perform_physical_work",
+        "prefers_virtual",
+        "prefers_physical",
+        "mobile_license_number",
+        "mobile_license_expiry",
+        "mobile_license_province"
+      ],
+      "columnCount": 78,
+      "testedColumns": {
+        "existing": [
+          "name",
+          "is_available",
+          "workshop_id"
+        ],
+        "missing": [
+          "full_name",
+          "user_id"
+        ]
+      }
+    },
+    "mechanic_sessions": {
+      "exists": true,
+      "columns": [
+        "id",
+        "created_at",
+        "expires_at",
+        "mechanic_id",
+        "token"
+      ],
+      "columnCount": 5
+    },
+    "mechanic_availability": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": [],
+      "testedColumns": {
+        "existing": [
+          "day_of_week",
+          "is_available"
+        ],
+        "missing": [
+          "weekday",
+          "is_active"
+        ]
+      }
+    },
+    "mechanic_time_off": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": []
+    },
+    "sessions": {
+      "exists": true,
+      "columns": [
+        "id",
+        "plan",
+        "stripe_session_id",
+        "customer_email",
+        "status",
+        "intake_id",
+        "created_at",
+        "type",
+        "updated_at",
+        "customer_user_id",
+        "metadata",
+        "mechanic_id",
+        "scheduled_start",
+        "scheduled_end",
+        "scheduled_for",
+        "started_at",
+        "ended_at",
+        "duration_minutes",
+        "expires_at",
+        "summary_data",
+        "summary_submitted_at",
+        "parent_session_id",
+        "is_follow_up",
+        "rating",
+        "rating_comment",
+        "workshop_id",
+        "preferred_workshop_id"
+      ],
+      "columnCount": 27,
+      "testedColumns": {
+        "existing": [
+          "type",
+          "status",
+          "mechanic_id",
+          "customer_user_id",
+          "metadata",
+          "parent_session_id"
+        ],
+        "missing": []
+      }
+    },
+    "diagnostic_sessions": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": [],
+      "testedColumns": {
+        "existing": [
+          "status",
+          "mechanic_id",
+          "customer_id"
+        ],
+        "missing": [
+          "intake_id"
+        ]
+      }
+    },
+    "session_requests": {
+      "exists": true,
+      "columns": [
+        "id",
+        "customer_id",
+        "customer_name",
+        "customer_email",
+        "session_type",
+        "plan_code",
+        "status",
+        "mechanic_id",
+        "created_at",
+        "accepted_at",
+        "parent_session_id",
+        "is_follow_up",
+        "follow_up_type",
+        "workshop_id",
+        "preferred_workshop_id",
+        "routing_type",
+        "request_type",
+        "requested_brand",
+        "extracted_keywords",
+        "matching_score",
+        "customer_country",
+        "customer_city",
+        "prefer_local_mechanic"
+      ],
+      "columnCount": 23,
+      "testedColumns": {
+        "existing": [
+          "session_type",
+          "status",
+          "mechanic_id"
+        ],
+        "missing": [
+          "customer_user_id"
+        ]
+      }
+    },
+    "vehicles": {
+      "exists": true,
+      "columns": [
+        "id",
+        "created_at",
+        "updated_at",
+        "user_id",
+        "make",
+        "model",
+        "year",
+        "vin",
+        "color",
+        "mileage",
+        "plate",
+        "is_primary",
+        "nickname"
+      ],
+      "columnCount": 13,
+      "testedColumns": {
+        "existing": [
+          "make",
+          "model",
+          "year"
+        ],
+        "missing": [
+          "customer_user_id"
+        ]
+      }
+    },
+    "intakes": {
+      "exists": true,
+      "columns": [
+        "id",
+        "created_at",
+        "plan",
+        "name",
+        "email",
+        "phone",
+        "vin",
+        "year",
+        "make",
+        "model",
+        "odometer",
+        "plate",
+        "city",
+        "concern",
+        "files",
+        "status",
+        "customer_name",
+        "urgent"
+      ],
+      "columnCount": 18,
+      "testedColumns": {
+        "existing": [
+          "urgent",
+          "plan"
+        ],
+        "missing": [
+          "customer_user_id",
+          "vehicle_id"
+        ]
+      }
+    },
+    "quotes": {
+      "exists": false,
+      "error": "Could not find the table 'public.quotes' in the schema cache",
+      "testedColumns": {
+        "existing": [],
+        "missing": [
+          "session_id",
+          "diagnostic_session_id",
+          "mechanic_id",
+          "status"
+        ]
+      }
+    },
+    "reviews": {
+      "exists": false,
+      "error": "Could not find the table 'public.reviews' in the schema cache"
+    },
+    "favorites": {
+      "exists": false,
+      "error": "Could not find the table 'public.favorites' in the schema cache",
+      "testedColumns": {
+        "existing": [],
+        "missing": [
+          "customer_id",
+          "mechanic_id"
+        ]
+      }
+    },
+    "partnerships": {
+      "exists": false,
+      "error": "Could not find the table 'public.partnerships' in the schema cache"
+    },
+    "partnership_applications": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": []
+    },
+    "workshops": {
+      "exists": false,
+      "error": "Could not find the table 'public.workshops' in the schema cache"
+    },
+    "workshop_mechanics": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": []
+    },
+    "admin_users": {
+      "exists": false,
+      "error": "Could not find the table 'public.admin_users' in the schema cache"
+    },
+    "fees": {
+      "exists": false,
+      "error": "Could not find the table 'public.fees' in the schema cache"
+    },
+    "mechanic_documents": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": []
+    },
+    "session_recordings": {
+      "exists": false,
+      "error": "Could not find the table 'public.session_recordings' in the schema cache"
+    },
+    "messages": {
+      "exists": false,
+      "error": "Could not find the table 'public.messages' in the schema cache"
+    },
+    "bay_bookings": {
+      "exists": true,
+      "isEmpty": true,
+      "columns": []
+    }
+  },
+  "mismatches": [
+    {
+      "type": "MISSING_TABLE",
+      "table": "quotes",
+      "issue": "Could not find the table 'public.quotes' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "reviews",
+      "issue": "Could not find the table 'public.reviews' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "favorites",
+      "issue": "Could not find the table 'public.favorites' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "partnerships",
+      "issue": "Could not find the table 'public.partnerships' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "workshops",
+      "issue": "Could not find the table 'public.workshops' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "admin_users",
+      "issue": "Could not find the table 'public.admin_users' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "fees",
+      "issue": "Could not find the table 'public.fees' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "session_recordings",
+      "issue": "Could not find the table 'public.session_recordings' in the schema cache"
+    },
+    {
+      "type": "MISSING_TABLE",
+      "table": "messages",
+      "issue": "Could not find the table 'public.messages' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "mechanic_availability",
+      "column": "weekday",
+      "error": "column mechanic_availability.weekday does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "mechanic_availability",
+      "column": "is_active",
+      "error": "column mechanic_availability.is_active does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "diagnostic_sessions",
+      "column": "intake_id",
+      "error": "column diagnostic_sessions.intake_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "session_requests",
+      "column": "customer_user_id",
+      "error": "column session_requests.customer_user_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "profiles",
+      "column": "name",
+      "error": "column profiles.name does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "profiles",
+      "column": "user_type",
+      "error": "column profiles.user_type does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "mechanics",
+      "column": "full_name",
+      "error": "column mechanics.full_name does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "mechanics",
+      "column": "user_id",
+      "error": "column mechanics.user_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "intakes",
+      "column": "customer_user_id",
+      "error": "column intakes.customer_user_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "intakes",
+      "column": "vehicle_id",
+      "error": "column intakes.vehicle_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "vehicles",
+      "column": "customer_user_id",
+      "error": "column vehicles.customer_user_id does not exist"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "quotes",
+      "column": "session_id",
+      "error": "Could not find the table 'public.quotes' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "quotes",
+      "column": "diagnostic_session_id",
+      "error": "Could not find the table 'public.quotes' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "quotes",
+      "column": "mechanic_id",
+      "error": "Could not find the table 'public.quotes' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "quotes",
+      "column": "status",
+      "error": "Could not find the table 'public.quotes' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "favorites",
+      "column": "customer_id",
+      "error": "Could not find the table 'public.favorites' in the schema cache"
+    },
+    {
+      "type": "MISSING_COLUMN",
+      "table": "favorites",
+      "column": "mechanic_id",
+      "error": "Could not find the table 'public.favorites' in the schema cache"
+    }
+  ],
+  "recommendations": [
+    {
+      "table": "mechanic_availability",
+      "issue": "Column name mismatch",
+      "actual": "day_of_week",
+      "codeMayUse": "weekday",
+      "action": "API should map weekday -> day_of_week"
+    },
+    {
+      "table": "mechanic_availability",
+      "issue": "Column name mismatch",
+      "actual": "is_available",
+      "codeMayUse": "is_active",
+      "action": "API should map is_active -> is_available"
+    },
+    {
+      "table": "profiles/mechanics",
+      "issue": "Different column names for same concept",
+      "actual": "profiles.full_name, mechanics.name",
+      "action": "APIs should use correct column for each table"
+    }
+  ]
+}

@@ -1,20 +1,14 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { getSupabaseServer } from '@/lib/supabaseServer'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseServer()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(request)
+    if (!auth.authorized) {
+      return auth.response!
     }
 
     const body = await request.json()

@@ -48,7 +48,7 @@ function renderPayloadSummary(payload: unknown) {
 export default async function IntakeDeletionLogPage() {
   if (!supabase) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="mx-auto max-w-3xl px-4 py-12">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">
             Supabase admin client is not configured on the server. Unable to load the deletion log.
@@ -71,11 +71,11 @@ export default async function IntakeDeletionLogPage() {
   const rows: IntakeDeletion[] = data ?? []
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="border-b bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div>
-            <h1 className="text-xl font-semibold text-slate-800">Intake Deletion Log</h1>
+            <h1 className="text-xl font-semibold text-slate-100">Intake Deletion Log</h1>
             <p className="text-sm text-slate-500">
               Showing the most recent deletions. Up to 100 records are displayed, newest first.
             </p>
@@ -83,7 +83,7 @@ export default async function IntakeDeletionLogPage() {
           <div className="flex gap-2">
             <Link
               href="/admin/intakes"
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
             >
               Back to intakes
             </Link>
@@ -93,14 +93,14 @@ export default async function IntakeDeletionLogPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-6">
         {rows.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+          <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-6 text-sm text-slate-500">
             No deletion records have been logged yet.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+                <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-400">
                   <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-xs [&>th]:font-semibold [&>th]:uppercase [&>th]:tracking-wide">
                     <th>Deleted at</th>
                     <th>Intake</th>
@@ -115,28 +115,28 @@ export default async function IntakeDeletionLogPage() {
                     const summary = renderPayloadSummary(row.payload)
                     return (
                       <tr key={row.id} className="[&>td]:px-4 [&>td]:py-3 align-top">
-                        <td className="whitespace-nowrap text-slate-600">
+                        <td className="whitespace-nowrap text-slate-400">
                           {formatDate(row.deleted_at)}
                         </td>
-                        <td className="whitespace-nowrap text-slate-600">
+                        <td className="whitespace-nowrap text-slate-400">
                           <div className="font-mono text-xs text-slate-500">{row.intake_id}</div>
                         </td>
-                        <td className="text-slate-600">
+                        <td className="text-slate-400">
                           <div>{row.deleted_email || '-'}</div>
                           {row.deleted_by && (
                             <div className="text-xs text-slate-400">User ID: {row.deleted_by}</div>
                           )}
                         </td>
-                        <td className="text-slate-600">
+                        <td className="text-slate-400">
                           {row.reason?.trim() || '-'}
                         </td>
-                        <td className="text-slate-600">{summary}</td>
-                        <td className="text-slate-600">
+                        <td className="text-slate-400">{summary}</td>
+                        <td className="text-slate-400">
                           <details className="group">
                             <summary className="cursor-pointer text-xs font-medium text-orange-600 group-open:text-blue-700">
                               View JSON
                             </summary>
-                            <pre className="mt-2 max-h-64 overflow-auto rounded border border-slate-200 bg-slate-50 p-3 text-xs">
+                            <pre className="mt-2 max-h-64 overflow-auto rounded border border-slate-700 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-3 text-xs">
                               {JSON.stringify(row.payload, null, 2)}
                             </pre>
                           </details>

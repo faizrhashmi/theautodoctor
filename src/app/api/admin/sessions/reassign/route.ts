@@ -1,20 +1,14 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { getSupabaseServer } from '@/lib/supabaseServer'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseServer()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(request)
+    if (!auth.authorized) {
+      return auth.response!
     }
 
     const body = await request.json()
@@ -104,14 +98,19 @@ export async function POST(request: NextRequest) {
     })
 
     // Log the action
+    console.warn(
+      `[ADMIN ACTION] ${auth.profile?.full_name} reassigned session ${sessionId} from ${oldMechanicId} to ${mechanicId}`
+    )
+
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: user.id,
+      admin_id: auth.user!.id,
       action: 'reassign_session',
       target_type: 'session',
       target_id: sessionId,
       details: {
         old_mechanic_id: oldMechanicId,
         new_mechanic_id: mechanicId,
+        admin_name: auth.profile?.full_name || auth.profile?.email
       },
     })
 

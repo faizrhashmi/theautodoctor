@@ -101,15 +101,15 @@ export default function CleanupPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cleanup Tools</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-white">Cleanup Tools</h1>
+          <p className="text-sm text-slate-400 mt-1">
             Clean up stale sessions, expired requests, and orphaned data
           </p>
         </div>
         <button
           onClick={fetchPreview}
           disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50"
         >
           {loading ? 'Checking...' : 'Refresh'}
         </button>
@@ -133,26 +133,26 @@ export default function CleanupPage() {
       {/* Stats Cards */}
       {preview && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
-            <div className="text-sm font-medium text-gray-600">Expired Requests</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border-2 border-slate-700 p-4">
+            <div className="text-sm font-medium text-slate-400">Expired Requests</div>
+            <div className="text-3xl font-bold text-white mt-2">
               {preview.expiredRequests.count}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Pending for 15+ minutes</div>
+            <div className="text-xs text-slate-500 mt-1">Pending for 15+ minutes</div>
           </div>
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
-            <div className="text-sm font-medium text-gray-600">Old Waiting Sessions</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border-2 border-slate-700 p-4">
+            <div className="text-sm font-medium text-slate-400">Old Waiting Sessions</div>
+            <div className="text-3xl font-bold text-white mt-2">
               {preview.oldWaitingSessions.count}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Waiting for 1+ hours</div>
+            <div className="text-xs text-slate-500 mt-1">Waiting for 1+ hours</div>
           </div>
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-4">
-            <div className="text-sm font-medium text-gray-600">Potential Orphans</div>
-            <div className="text-3xl font-bold text-gray-900 mt-2">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border-2 border-slate-700 p-4">
+            <div className="text-sm font-medium text-slate-400">Potential Orphans</div>
+            <div className="text-3xl font-bold text-white mt-2">
               {preview.potentialOrphans.count}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Active 2+ hours</div>
+            <div className="text-xs text-slate-500 mt-1">Active 2+ hours</div>
           </div>
           <div className={`rounded-lg border-2 p-4 ${
             preview.total > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
@@ -172,9 +172,9 @@ export default function CleanupPage() {
 
       {/* Preview Details */}
       {preview && preview.total > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Cleanup Preview</h3>
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+          <div className="bg-slate-900/50 px-6 py-3 border-b border-slate-700 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Cleanup Preview</h3>
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -187,20 +187,20 @@ export default function CleanupPage() {
               {/* Expired Requests */}
               {preview.expiredRequests.count > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h4 className="text-sm font-semibold text-white mb-3">
                     Expired Requests ({preview.expiredRequests.count})
                   </h4>
                   <div className="space-y-2">
                     {preview.expiredRequests.items.slice(0, 5).map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded p-3 text-sm">
+                      <div key={index} className="bg-slate-900/50 rounded p-3 text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-gray-600">ID: {item.id?.substring(0, 8)}...</span>
+                          <span className="font-mono text-slate-400">ID: {item.id?.substring(0, 8)}...</span>
                           <span className="text-red-600 font-medium">{item.age_minutes} min old</span>
                         </div>
                       </div>
                     ))}
                     {preview.expiredRequests.items.length > 5 && (
-                      <div className="text-sm text-gray-500 text-center pt-2">
+                      <div className="text-sm text-slate-500 text-center pt-2">
                         ...and {preview.expiredRequests.items.length - 5} more
                       </div>
                     )}
@@ -211,20 +211,20 @@ export default function CleanupPage() {
               {/* Old Waiting Sessions */}
               {preview.oldWaitingSessions.count > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h4 className="text-sm font-semibold text-white mb-3">
                     Old Waiting Sessions ({preview.oldWaitingSessions.count})
                   </h4>
                   <div className="space-y-2">
                     {preview.oldWaitingSessions.items.slice(0, 5).map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded p-3 text-sm">
+                      <div key={index} className="bg-slate-900/50 rounded p-3 text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-gray-600">ID: {item.id?.substring(0, 8)}...</span>
+                          <span className="font-mono text-slate-400">ID: {item.id?.substring(0, 8)}...</span>
                           <span className="text-yellow-600 font-medium">{item.age_hours} hours old</span>
                         </div>
                       </div>
                     ))}
                     {preview.oldWaitingSessions.items.length > 5 && (
-                      <div className="text-sm text-gray-500 text-center pt-2">
+                      <div className="text-sm text-slate-500 text-center pt-2">
                         ...and {preview.oldWaitingSessions.items.length - 5} more
                       </div>
                     )}
@@ -235,20 +235,20 @@ export default function CleanupPage() {
               {/* Potential Orphans */}
               {preview.potentialOrphans.count > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <h4 className="text-sm font-semibold text-white mb-3">
                     Potential Orphaned Sessions ({preview.potentialOrphans.count})
                   </h4>
                   <div className="space-y-2">
                     {preview.potentialOrphans.items.slice(0, 5).map((item, index) => (
-                      <div key={index} className="bg-gray-50 rounded p-3 text-sm">
+                      <div key={index} className="bg-slate-900/50 rounded p-3 text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-gray-600">ID: {item.id?.substring(0, 8)}...</span>
+                          <span className="font-mono text-slate-400">ID: {item.id?.substring(0, 8)}...</span>
                           <span className="text-orange-600 font-medium">{item.age_hours} hours active</span>
                         </div>
                       </div>
                     ))}
                     {preview.potentialOrphans.items.length > 5 && (
-                      <div className="text-sm text-gray-500 text-center pt-2">
+                      <div className="text-sm text-slate-500 text-center pt-2">
                         ...and {preview.potentialOrphans.items.length - 5} more
                       </div>
                     )}
@@ -261,8 +261,8 @@ export default function CleanupPage() {
       )}
 
       {/* Cleanup Actions */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Cleanup Actions</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
+        <h3 className="text-sm font-semibold text-white mb-4">Cleanup Actions</h3>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <input
@@ -270,9 +270,9 @@ export default function CleanupPage() {
               id="dryRun"
               checked={dryRun}
               onChange={(e) => setDryRun(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-700 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="dryRun" className="text-sm text-gray-700">
+            <label htmlFor="dryRun" className="text-sm text-slate-200">
               <span className="font-medium">Dry Run Mode</span> - Preview what would be cleaned without making changes
             </label>
           </div>
@@ -296,16 +296,16 @@ export default function CleanupPage() {
       </div>
 
       {/* Cleanup History */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">Cleanup History</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+        <div className="bg-slate-900/50 px-6 py-3 border-b border-slate-700">
+          <h3 className="text-sm font-semibold text-white">Cleanup History</h3>
         </div>
         <div className="divide-y divide-gray-200">
           {history.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No cleanup history</div>
+            <div className="p-8 text-center text-slate-500">No cleanup history</div>
           ) : (
             history.slice(0, 10).map((item) => (
-              <div key={item.id} className="p-4 hover:bg-gray-50">
+              <div key={item.id} className="p-4 hover:bg-slate-900/50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
@@ -316,15 +316,15 @@ export default function CleanupPage() {
                       }`}>
                         {item.preview_mode ? 'DRY RUN' : 'EXECUTED'}
                       </span>
-                      <span className="text-sm font-medium text-gray-900 capitalize">
+                      <span className="text-sm font-medium text-white capitalize">
                         {item.cleanup_type.replace('_', ' ')}
                       </span>
                     </div>
-                    <div className="mt-2 text-sm text-gray-600">
+                    <div className="mt-2 text-sm text-slate-400">
                       Cleaned {item.items_cleaned} items
                     </div>
                     {item.summary && (
-                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                      <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
                         {item.summary.expiredRequests > 0 && (
                           <span>Expired: {item.summary.expiredRequests}</span>
                         )}
@@ -337,7 +337,7 @@ export default function CleanupPage() {
                       </div>
                     )}
                   </div>
-                  <div className="text-right text-xs text-gray-500">
+                  <div className="text-right text-xs text-slate-500">
                     {new Date(item.created_at).toLocaleString()}
                   </div>
                 </div>

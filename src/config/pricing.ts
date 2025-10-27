@@ -1,3 +1,11 @@
+/**
+ * @deprecated This file is being phased out in favor of the database-driven service_plans system.
+ * New plans should be managed through the Admin UI at /admin/plans
+ *
+ * This config is kept for backward compatibility and fallback purposes.
+ * Use the /api/plans endpoint and useServicePlans hook for new implementations.
+ */
+
 export type PlanKey = 'chat10' | 'video15' | 'diagnostic';
 
 export const PLAN_ALIASES: Record<string, PlanKey> = {

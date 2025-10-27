@@ -171,8 +171,8 @@ export default function AdminDocumentsPage() {
     <div className="p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Mechanic Documents</h1>
-        <p className="mt-2 text-slate-600">Review and manage mechanic document submissions</p>
+        <h1 className="text-3xl font-bold text-white">Mechanic Documents</h1>
+        <p className="mt-2 text-slate-400">Review and manage mechanic document submissions</p>
       </div>
 
       {/* Alert for pending reviews */}
@@ -192,11 +192,11 @@ export default function AdminDocumentsPage() {
 
       {/* Summary Cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-600">Total Documents</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{documents.length}</p>
+              <p className="text-sm text-slate-400">Total Documents</p>
+              <p className="mt-1 text-2xl font-bold text-white">{documents.length}</p>
             </div>
             <FileText className="h-8 w-8 text-slate-400" />
           </div>
@@ -243,7 +243,7 @@ export default function AdminDocumentsPage() {
               placeholder="Search by mechanic name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function AdminDocumentsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="all">All Statuses</option>
           <option value="pending">Pending</option>
@@ -262,7 +262,7 @@ export default function AdminDocumentsPage() {
 
         <button
           onClick={fetchDocuments}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -270,7 +270,7 @@ export default function AdminDocumentsPage() {
       </div>
 
       {/* Documents Table */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm shadow-sm overflow-hidden">
         {filteredDocuments.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-slate-300" />
@@ -279,41 +279,41 @@ export default function AdminDocumentsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 border-b border-slate-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Mechanic
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Document Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Uploaded
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Expires
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-50 transition">
+                  <tr key={doc.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 transition">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-slate-900">{doc.mechanic?.name || 'Unknown'}</p>
+                        <p className="font-medium text-white">{doc.mechanic?.name || 'Unknown'}</p>
                         <p className="text-sm text-slate-500">{doc.mechanic?.email || 'N/A'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm text-slate-900">
+                        <span className="text-sm text-white">
                           {DOCUMENT_TYPES.find(t => t.value === doc.document_type)?.label || doc.document_type}
                         </span>
                       </div>
@@ -321,10 +321,10 @@ export default function AdminDocumentsPage() {
                     <td className="px-6 py-4">
                       {getStatusBadge(doc.status)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
+                    <td className="px-6 py-4 text-sm text-slate-400">
                       {new Date(doc.uploaded_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
+                    <td className="px-6 py-4 text-sm text-slate-400">
                       {doc.expires_at ? new Date(doc.expires_at).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -333,7 +333,7 @@ export default function AdminDocumentsPage() {
                           href={doc.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-semibold text-slate-200 transition hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
                         >
                           <Download className="h-3.5 w-3.5" />
                           View
@@ -345,7 +345,7 @@ export default function AdminDocumentsPage() {
                               setShowReviewModal(true)
                               setReviewAction('approve')
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 px-3 py-1.5 text-sm font-semibold text-white transition hover:from-orange-600 hover:to-red-700"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             Review
@@ -364,31 +364,31 @@ export default function AdminDocumentsPage() {
       {/* Review Modal */}
       {showReviewModal && selectedDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Review Document</h2>
+          <div className="w-full max-w-2xl rounded-2xl bg-slate-800/50 backdrop-blur-sm p-6 shadow-2xl">
+            <h2 className="text-2xl font-bold text-white mb-4">Review Document</h2>
 
             <div className="mb-6 space-y-3">
               <div>
-                <p className="text-sm font-medium text-slate-600">Mechanic</p>
-                <p className="text-lg text-slate-900">{selectedDoc.mechanic?.name}</p>
+                <p className="text-sm font-medium text-slate-400">Mechanic</p>
+                <p className="text-lg text-white">{selectedDoc.mechanic?.name}</p>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-600">Document Type</p>
-                <p className="text-lg text-slate-900">
+                <p className="text-sm font-medium text-slate-400">Document Type</p>
+                <p className="text-lg text-white">
                   {DOCUMENT_TYPES.find(t => t.value === selectedDoc.document_type)?.label}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-600">File Name</p>
-                <p className="text-sm text-slate-700">{selectedDoc.file_name}</p>
+                <p className="text-sm font-medium text-slate-400">File Name</p>
+                <p className="text-sm text-slate-200">{selectedDoc.file_name}</p>
               </div>
 
               {selectedDoc.expires_at && (
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Expiry Date</p>
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm font-medium text-slate-400">Expiry Date</p>
+                  <p className="text-sm text-slate-200">
                     {new Date(selectedDoc.expires_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -409,7 +409,7 @@ export default function AdminDocumentsPage() {
 
             <div className="mb-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-200 mb-2">
                   Review Decision
                 </label>
                 <div className="flex gap-3">
@@ -440,7 +440,7 @@ export default function AdminDocumentsPage() {
 
               {reviewAction === 'reject' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-200 mb-2">
                     Rejection Reason
                   </label>
                   <textarea
@@ -448,7 +448,7 @@ export default function AdminDocumentsPage() {
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Explain why this document is being rejected..."
                     rows={3}
-                    className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                    className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                   />
                 </div>
               )}
@@ -462,7 +462,7 @@ export default function AdminDocumentsPage() {
                   setRejectionReason('')
                 }}
                 disabled={reviewing}
-                className="rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-6 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 disabled:opacity-50"
               >
                 Cancel
               </button>

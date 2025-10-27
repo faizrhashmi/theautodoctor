@@ -55,3 +55,152 @@ body {
 .container {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
+
+/* React Big Calendar Dark Theme Overrides */
+.rbc-calendar {
+  background-color: transparent !important;
+  color: rgb(226 232 240) !important; /* slate-200 */
+}
+
+.rbc-header {
+  background-color: rgb(30 41 59 / 0.8) !important; /* slate-800/80 */
+  color: rgb(248 250 252) !important; /* slate-50 */
+  border-bottom: 1px solid rgb(51 65 85) !important; /* slate-700 */
+  padding: 12px 8px !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+.rbc-time-view,
+.rbc-month-view {
+  background-color: transparent !important;
+  border: 1px solid rgb(51 65 85) !important; /* slate-700 */
+}
+
+.rbc-time-header {
+  background-color: rgb(30 41 59 / 0.5) !important; /* slate-800/50 */
+}
+
+.rbc-time-content {
+  border-top: 1px solid rgb(51 65 85) !important; /* slate-700 */
+}
+
+.rbc-time-slot,
+.rbc-day-slot {
+  border-top: 1px solid rgb(51 65 85 / 0.5) !important; /* slate-700/50 */
+}
+
+.rbc-day-bg,
+.rbc-month-row {
+  background-color: transparent !important;
+}
+
+.rbc-today {
+  background-color: rgb(249 115 22 / 0.1) !important; /* orange-500/10 */
+}
+
+.rbc-off-range-bg {
+  background-color: rgb(15 23 42 / 0.5) !important; /* slate-900/50 */
+}
+
+.rbc-event {
+  background-color: rgb(249 115 22) !important; /* orange-500 */
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 0.875rem !important;
+}
+
+.rbc-event.rbc-selected {
+  background-color: rgb(234 88 12) !important; /* orange-600 */
+}
+
+.rbc-event:focus {
+  outline: 2px solid rgb(251 146 60) !important; /* orange-400 */
+  outline-offset: 2px !important;
+}
+
+.rbc-slot-selection {
+  background-color: rgb(249 115 22 / 0.3) !important; /* orange-500/30 */
+  border: 2px solid rgb(249 115 22) !important; /* orange-500 */
+}
+
+.rbc-time-slot.rbc-now {
+  background-color: rgb(249 115 22 / 0.05) !important; /* orange-500/5 */
+}
+
+.rbc-current-time-indicator {
+  background-color: rgb(249 115 22) !important; /* orange-500 */
+  height: 2px !important;
+}
+
+.rbc-toolbar {
+  padding: 16px 8px !important;
+  margin-bottom: 16px !important;
+  background-color: rgb(30 41 59 / 0.5) !important; /* slate-800/50 */
+  border-radius: 12px !important;
+  border: 1px solid rgb(51 65 85) !important; /* slate-700 */
+}
+
+.rbc-toolbar button {
+  background-color: rgb(51 65 85) !important; /* slate-700 */
+  color: rgb(226 232 240) !important; /* slate-200 */
+  border: 1px solid rgb(71 85 105) !important; /* slate-600 */
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+}
+
+.rbc-toolbar button:hover {
+  background-color: rgb(71 85 105) !important; /* slate-600 */
+  border-color: rgb(249 115 22) !important; /* orange-500 */
+  color: rgb(248 250 252) !important; /* slate-50 */
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  background-color: rgb(249 115 22) !important; /* orange-500 */
+  border-color: rgb(249 115 22) !important; /* orange-500 */
+  color: white !important;
+}
+
+.rbc-toolbar-label {
+  color: rgb(248 250 252) !important; /* slate-50 */
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+}
+
+.rbc-month-view .rbc-day-bg {
+  border-left: 1px solid rgb(51 65 85 / 0.5) !important; /* slate-700/50 */
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid rgb(51 65 85 / 0.5) !important; /* slate-700/50 */
+}
+
+.rbc-date-cell {
+  color: rgb(203 213 225) !important; /* slate-300 */
+  padding: 8px !important;
+  font-size: 0.875rem !important;
+}
+
+.rbc-off-range .rbc-date-cell {
+  color: rgb(100 116 139) !important; /* slate-500 */
+}
+
+.rbc-show-more {
+  background-color: rgb(51 65 85) !important; /* slate-700 */
+  color: rgb(249 115 22) !important; /* orange-500 */
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  margin: 2px 4px !important;
+}
+
+.rbc-show-more:hover {
+  background-color: rgb(71 85 105) !important; /* slate-600 */
+  color: rgb(251 146 60) !important; /* orange-400 */
+}

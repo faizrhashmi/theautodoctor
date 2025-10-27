@@ -102,20 +102,20 @@ export default function LogsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Logs</h1>
-          <p className="text-sm text-gray-600 mt-1">Real-time system logging and monitoring</p>
+          <h1 className="text-2xl font-bold text-white">System Logs</h1>
+          <p className="text-sm text-slate-400 mt-1">Real-time system logging and monitoring</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={exportLogs}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg hover:bg-slate-900/50"
           >
             Export Logs
           </button>
           <button
             onClick={fetchLogs}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50"
           >
             {loading ? 'Loading...' : 'Refresh'}
           </button>
@@ -125,9 +125,9 @@ export default function LogsPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="text-sm font-medium text-gray-600">Total Logs (24h)</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
+            <div className="text-sm font-medium text-slate-400">Total Logs (24h)</div>
+            <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
           </div>
           <div className="bg-red-50 rounded-lg border border-red-200 p-4">
             <div className="text-sm font-medium text-red-600">Errors</div>
@@ -145,22 +145,22 @@ export default function LogsPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 space-y-4">
         {/* Search */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Search Logs</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Search Logs</label>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search message..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         {/* Level Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Level</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Filter by Level</label>
           <div className="flex flex-wrap gap-2">
             {LOG_LEVELS.map(level => (
               <button
@@ -180,7 +180,7 @@ export default function LogsPage() {
 
         {/* Source Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
+          <label className="block text-sm font-medium text-slate-200 mb-2">Filter by Source</label>
           <div className="flex flex-wrap gap-2">
             {LOG_SOURCES.map(source => (
               <button
@@ -199,16 +199,16 @@ export default function LogsPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-700">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="autoScroll"
               checked={autoScroll}
               onChange={(e) => setAutoScroll(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-700 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="autoScroll" className="text-sm text-gray-700">
+            <label htmlFor="autoScroll" className="text-sm text-slate-200">
               Auto-scroll to latest
             </label>
           </div>
@@ -235,9 +235,9 @@ export default function LogsPage() {
         </div>
         <div className="p-4 h-[600px] overflow-y-auto font-mono text-sm">
           {loading && logs.length === 0 ? (
-            <div className="text-gray-500">Loading logs...</div>
+            <div className="text-slate-500">Loading logs...</div>
           ) : logs.length === 0 ? (
-            <div className="text-gray-500">No logs found</div>
+            <div className="text-slate-500">No logs found</div>
           ) : (
             <div className="space-y-1">
               {logs.map((log, index) => (
@@ -246,7 +246,7 @@ export default function LogsPage() {
                   onClick={() => setSelectedLog(log)}
                   className="hover:bg-gray-800 cursor-pointer p-1 rounded transition-colors"
                 >
-                  <span className="text-gray-500">
+                  <span className="text-slate-500">
                     {new Date(log.created_at || log.timestamp || '').toLocaleTimeString()}
                   </span>
                   <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${
@@ -270,12 +270,12 @@ export default function LogsPage() {
       {/* Log Details Modal */}
       {selectedLog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Log Details</h3>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
+            <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Log Details</h3>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-slate-400"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -285,13 +285,13 @@ export default function LogsPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Timestamp</label>
-                  <div className="mt-1 text-gray-900">
+                  <label className="text-sm font-medium text-slate-400">Timestamp</label>
+                  <div className="mt-1 text-white">
                     {new Date(selectedLog.created_at || selectedLog.timestamp || '').toLocaleString()}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Level</label>
+                  <label className="text-sm font-medium text-slate-400">Level</label>
                   <div className="mt-1">
                     <span className={`px-2 py-1 rounded text-sm font-semibold ${LEVEL_BADGES[selectedLog.level]}`}>
                       {selectedLog.level?.toUpperCase()}
@@ -299,17 +299,17 @@ export default function LogsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Source</label>
-                  <div className="mt-1 text-gray-900">{selectedLog.source}</div>
+                  <label className="text-sm font-medium text-slate-400">Source</label>
+                  <div className="mt-1 text-white">{selectedLog.source}</div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Message</label>
-                  <div className="mt-1 text-gray-900">{selectedLog.message}</div>
+                  <label className="text-sm font-medium text-slate-400">Message</label>
+                  <div className="mt-1 text-white">{selectedLog.message}</div>
                 </div>
                 {selectedLog.metadata && Object.keys(selectedLog.metadata).length > 0 && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Metadata</label>
-                    <pre className="mt-1 bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto">
+                    <label className="text-sm font-medium text-slate-400">Metadata</label>
+                    <pre className="mt-1 bg-slate-900/50 p-4 rounded-lg text-xs overflow-x-auto">
                       {JSON.stringify(selectedLog.metadata, null, 2)}
                     </pre>
                   </div>

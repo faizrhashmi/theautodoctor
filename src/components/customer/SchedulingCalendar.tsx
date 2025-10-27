@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
-import dynamic from 'next/dynamic'
+import { useMemo, useState, useEffect } from 'react'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -24,7 +23,7 @@ export type CalendarEvent = {
 type SchedulingCalendarProps = {
   /** Pass fully-typed events with Date start/end */
   events?: CalendarEvent[]
-  /** Or pass ISO string events; we’ll convert to Date */
+  /** Or pass ISO string events; we'll convert to Date */
   initialEvents?: Array<{
     id?: string | number
     title?: string
@@ -41,27 +40,6 @@ type SchedulingCalendarProps = {
   onSelectSlot?: (slot: { start: Date; end: Date }) => void
 }
 
-// Dynamically import Calendar + localizer to avoid SSR/window issues
-const Dyn = dynamic(async () => {
-  const mod = await import('react-big-calendar')
-  const localizer = (mod as any).dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 0 }),
-    getDay,
-    locales: { 'en-US': enUS },
-  })
-  return Object.assign(
-    (props: any) => {
-      const C = (mod as any).Calendar
-      return <C {...props} />
-    },
-    { localizer }
-  )
-}, { ssr: false }) as unknown as ((
-  props: any
-) => JSX.Element) & { localizer: any }
-
 export default function SchedulingCalendar({
   events,
   initialEvents,
@@ -70,7 +48,28 @@ export default function SchedulingCalendar({
   onSelectEvent,
   onSelectSlot,
 }: SchedulingCalendarProps) {
-  const localizer = useMemo(() => (Dyn as any).localizer, [])
+  const [calendarComponents, setCalendarComponents] = useState<{
+    Calendar: any
+    localizer: any
+  } | null>(null)
+
+  // Load calendar on client side only
+  useEffect(() => {
+    import('react-big-calendar').then((mod) => {
+      const localizer = (mod as any).dateFnsLocalizer({
+        format,
+        parse,
+        startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 0 }),
+        getDay,
+        locales: { 'en-US': enUS },
+      })
+
+      setCalendarComponents({
+        Calendar: mod.Calendar,
+        localizer,
+      })
+    })
+  }, [])
 
   const normalizedEvents: CalendarEvent[] = useMemo(() => {
     if (events && events.length) return events
@@ -82,9 +81,23 @@ export default function SchedulingCalendar({
     }))
   }, [events, initialEvents, plan])
 
+  // Show loading state while calendar loads
+  if (!calendarComponents) {
+    return (
+      <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-8 shadow-sm backdrop-blur-sm">
+        <div className="flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+          <span className="ml-3 text-sm text-slate-400">Loading calendar...</span>
+        </div>
+      </div>
+    )
+  }
+
+  const { Calendar, localizer } = calendarComponents
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <Dyn
+    <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 shadow-sm backdrop-blur-sm">
+      <Calendar
         localizer={localizer}
         events={normalizedEvents}
         startAccessor="start"

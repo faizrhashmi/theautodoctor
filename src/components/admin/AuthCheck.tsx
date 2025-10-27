@@ -1,39 +1,76 @@
-// @ts-nocheck
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
+/**
+ * Client-side authentication check for admin pages
+ * ⚠️ DEPRECATED: Use ServerAuthCheck instead for better security
+ * This component is kept for backward compatibility
+ *
+ * @deprecated Use ServerAuthCheck instead
+ */
 export function AuthCheck({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    setMounted(true)
-    
-    // Simple check for auth tokens
-    const checkAuth = () => {
-      const hasAuth = 
-        localStorage.getItem('supabase.auth.token') ||
-        sessionStorage.getItem('supabase.auth.token') ||
-        document.cookie.includes('sb-')
-      
-      setIsAuthenticated(!!hasAuth)
-    }
-    
-    checkAuth()
-    
-    // Optional: Check auth when storage changes
-    const handleStorageChange = () => checkAuth()
-    window.addEventListener('storage', handleStorageChange)
-    
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
+    async function checkAdminRole() {
+      try {
+        const supabase = createClient()
 
-  // Don't render until we know auth status to avoid flash
-  if (!mounted) {
-    return null
+        // ✅ SECURITY FIX: Actually verify with server
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !user) {
+          console.warn('[SECURITY] No authenticated user - redirecting to login')
+          router.push('/admin/login')
+          return
+        }
+
+        // ✅ SECURITY FIX: Check role from database
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profileError) {
+          console.error('[AUTH ERROR]', profileError)
+          router.push('/admin/login')
+          return
+        }
+
+        if (!profile || profile.role !== 'admin') {
+          console.warn(`[SECURITY] Non-admin user ${user.email} attempted to access admin panel`)
+          router.push('/')
+          return
+        }
+
+        setIsAdmin(true)
+      } catch (error) {
+        console.error('[AUTH ERROR]', error)
+        router.push('/admin/login')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAdminRole()
+  }, [router])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-slate-600">Verifying admin access...</p>
+        </div>
+      </div>
+    )
   }
 
-  // Only render children if authenticated
-  return isAuthenticated ? <>{children}</> : null
+  return isAdmin ? <>{children}</> : null
 }

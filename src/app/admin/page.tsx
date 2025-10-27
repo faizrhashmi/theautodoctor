@@ -25,17 +25,19 @@ import {
   Archive,
   AlertTriangle
 } from 'lucide-react'
+import { DashboardStats } from '@/components/admin/DashboardStats'
 
 export default function AdminPage() {
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Comprehensive platform management and monitoring
-        </p>
-      </div>
+    <div className="mx-auto max-w-7xl px-4 pt-20 pb-6 sm:px-6 lg:px-8">
+      <div className="space-y-8">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Comprehensive platform management and monitoring
+          </p>
+        </div>
 
       {/* Core Operations */}
       <Section title="Core Operations" description="Primary admin functions">
@@ -222,12 +224,12 @@ export default function AdminPage() {
         />
       </Section>
 
-      {/* Quick Stats (Placeholder - will be populated with real data) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value="Loading..." color="blue" />
-        <StatCard label="Active Sessions" value="Loading..." color="green" />
-        <StatCard label="Pending Claims" value="Loading..." color="red" />
-        <StatCard label="Revenue Today" value="Loading..." color="purple" />
+      {/* Real-Time Stats */}
+      <Section title="Platform Overview" description="Real-time platform metrics">
+        <div className="col-span-full">
+          <DashboardStats />
+        </div>
+      </Section>
       </div>
     </div>
   )
@@ -243,8 +245,8 @@ function Section({ title, description, children }: SectionProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-        <p className="text-sm text-slate-600">{description}</p>
+        <h2 className="text-xl font-semibold text-white">{title}</h2>
+        <p className="text-sm text-slate-400">{description}</p>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {children}
@@ -264,50 +266,35 @@ interface AdminCardProps {
 
 function AdminCard({ href, icon, title, description, color, badge }: AdminCardProps) {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white',
-    green: 'bg-green-100 text-green-600 group-hover:bg-green-600 group-hover:text-white',
-    purple: 'bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white',
-    orange: 'bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white',
-    red: 'bg-red-100 text-red-600 group-hover:bg-red-600 group-hover:text-white',
-    slate: 'bg-slate-100 text-slate-600 group-hover:bg-slate-600 group-hover:text-white',
-    indigo: 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white',
-    yellow: 'bg-yellow-100 text-yellow-600 group-hover:bg-yellow-600 group-hover:text-white'
+    blue: 'bg-blue-500/20 text-blue-400 group-hover:bg-blue-500 group-hover:text-white border-blue-500/30',
+    green: 'bg-green-500/20 text-green-400 group-hover:bg-green-500 group-hover:text-white border-green-500/30',
+    purple: 'bg-purple-500/20 text-purple-400 group-hover:bg-purple-500 group-hover:text-white border-purple-500/30',
+    orange: 'bg-orange-500/20 text-orange-400 group-hover:bg-orange-500 group-hover:text-white border-orange-500/30',
+    red: 'bg-red-500/20 text-red-400 group-hover:bg-red-500 group-hover:text-white border-red-500/30',
+    slate: 'bg-slate-500/20 text-slate-400 group-hover:bg-slate-500 group-hover:text-white border-slate-500/30',
+    indigo: 'bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white border-indigo-500/30',
+    yellow: 'bg-yellow-500/20 text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white border-yellow-500/30'
   }
 
   return (
     <Link
       href={href}
-      className="group relative rounded-lg border border-slate-200 bg-white p-4 transition hover:border-orange-500 hover:shadow-md"
+      className="group relative rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4 transition hover:border-orange-500 hover:shadow-lg hover:shadow-orange-500/20"
     >
       {badge && (
-        <span className="absolute top-2 right-2 bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+        <span className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-red-600 text-white text-xs font-bold px-2 py-0.5 rounded shadow-lg">
           {badge}
         </span>
       )}
-      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition ${colorClasses[color]}`}>
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border transition ${colorClasses[color]}`}>
         {icon}
       </div>
-      <h3 className="font-semibold text-slate-900 group-hover:text-orange-600 mb-1">
+      <h3 className="font-semibold text-white group-hover:text-orange-400 mb-1">
         {title}
       </h3>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-slate-400">
         {description}
       </p>
     </Link>
-  )
-}
-
-interface StatCardProps {
-  label: string
-  value: string
-  color: string
-}
-
-function StatCard({ label, value, color }: StatCardProps) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-sm font-medium text-slate-600">{label}</p>
-      <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-    </div>
   )
 }

@@ -1,0 +1,372 @@
+{
+  "timestamp": "2025-10-27T04:38:44.669Z",
+  "total": 77,
+  "secured": 26,
+  "needsSecuring": 51,
+  "files": [
+    {
+      "path": "analytics\\beta-program\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "analytics\\workshop-health\\[id]\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "analytics\\workshop-overview\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "cleanup\\history\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "cleanup\\preview\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "corporate\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "corporate\\[id]\\generate-invoice\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "corporate\\[id]\\reject\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "corporate\\[id]\\suspend\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "database\\history\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "database\\saved-queries\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "debug-auth\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "errors\\route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "errors\\[id]\\route.ts",
+      "methods": [
+        "DELETE",
+        "PATCH"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "fees\\rules\\route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "fees\\rules\\[ruleId]\\route.ts",
+      "methods": [
+        "DELETE",
+        "PATCH"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "health\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "intakes\\export\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "intakes\\query\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "intakes\\update-status\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "intakes\\[id]\\route.ts",
+      "methods": [
+        "GET",
+        "DELETE",
+        "PATCH"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "intakes\\[id]\\status\\route.ts",
+      "methods": [],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "login\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "logout\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "logs\\stats\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "mechanic-documents\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "mechanic-documents\\[id]\\review\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "mechanics\\applications\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "mechanics\\[id]\\request_info\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "plans\\route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "plans\\[id]\\route.ts",
+      "methods": [
+        "PUT",
+        "DELETE"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "plans\\[id]\\toggle\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "requests\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "sessions\\export\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "sessions\\[id]\\chat\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "sessions\\[id]\\files\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "sessions\\[id]\\timeline\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "test-login\\route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "users\\mechanics\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "users\\mechanics\\[id]\\adjust-rating\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "users\\mechanics\\[id]\\approve\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "users\\mechanics\\[id]\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "users\\[id]\\free-session-override\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "users\\[id]\\notes\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "users\\[id]\\verify-email\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "workshops\\applications\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "workshops\\route.ts",
+      "methods": [
+        "GET"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "workshops\\[id]\\approve\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "workshops\\[id]\\reactivate\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    },
+    {
+      "path": "workshops\\[id]\\reject\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": true
+    },
+    {
+      "path": "workshops\\[id]\\suspend\\route.ts",
+      "methods": [
+        "POST"
+      ],
+      "hasTsNoCheck": false
+    }
+  ]
+}

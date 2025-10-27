@@ -89,8 +89,8 @@ export default function HealthPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Health Monitor</h1>
-          <p className="text-sm text-gray-600 mt-1">Monitor service status and system health</p>
+          <h1 className="text-2xl font-bold text-white">System Health Monitor</h1>
+          <p className="text-sm text-slate-400 mt-1">Monitor service status and system health</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -99,16 +99,16 @@ export default function HealthPage() {
               id="autoRefresh"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="rounded border-slate-700 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="autoRefresh" className="text-sm text-gray-700">
+            <label htmlFor="autoRefresh" className="text-sm text-slate-200">
               Auto-refresh (30s)
             </label>
           </div>
           <button
             onClick={fetchHealth}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50"
           >
             {loading ? 'Checking...' : 'Refresh'}
           </button>
@@ -155,7 +155,7 @@ export default function HealthPage() {
                   ? 'Some services are experiencing issues'
                   : 'Critical services are down'}
               </p>
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-slate-400 mt-2">
                 Last checked: {new Date(healthData.timestamp).toLocaleString()}
               </p>
             </div>
@@ -174,7 +174,7 @@ export default function HealthPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{SERVICE_ICONS[service.service] || '⚙️'}</span>
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900 capitalize">{service.service}</h3>
+                      <h3 className="text-sm font-semibold text-white capitalize">{service.service}</h3>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`inline-block w-2 h-2 rounded-full ${colors.dot}`}></span>
                         <span className={`text-xs font-medium ${colors.text} capitalize`}>
@@ -185,19 +185,19 @@ export default function HealthPage() {
                   </div>
                 </div>
                 {service.responseTime !== undefined && (
-                  <div className="mt-3 text-xs text-gray-600">
+                  <div className="mt-3 text-xs text-slate-400">
                     Response time: {service.responseTime}ms
                   </div>
                 )}
                 {service.message && (
-                  <div className="mt-2 text-xs text-gray-600">
+                  <div className="mt-2 text-xs text-slate-400">
                     {service.message}
                   </div>
                 )}
                 {healthData.uptime[service.service] && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="mt-3 pt-3 border-t border-slate-700">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">24h Uptime</span>
+                      <span className="text-slate-400">24h Uptime</span>
                       <span className={`font-semibold ${getUptimeColor(healthData.uptime[service.service]!.percentage)}`}>
                         {formatUptime(healthData.uptime[service.service]!.percentage)}
                       </span>
@@ -212,16 +212,16 @@ export default function HealthPage() {
 
       {/* Uptime Statistics */}
       {healthData && healthData.uptime && Object.keys(healthData.uptime).length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900">Uptime Statistics (Last 24 Hours)</h3>
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+          <div className="bg-slate-900/50 px-6 py-3 border-b border-slate-700">
+            <h3 className="text-sm font-semibold text-white">Uptime Statistics (Last 24 Hours)</h3>
           </div>
           <div className="p-6">
             <div className="space-y-4">
               {Object.entries(healthData.uptime).map(([service, stats]) => (
                 <div key={service}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700 capitalize">{service}</span>
+                    <span className="text-sm font-medium text-slate-200 capitalize">{service}</span>
                     <span className={`text-sm font-semibold ${getUptimeColor(stats.percentage)}`}>
                       {formatUptime(stats.percentage)}
                     </span>
@@ -236,7 +236,7 @@ export default function HealthPage() {
                       style={{ width: `${stats.percentage}%` }}
                     ></div>
                   </div>
-                  <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                  <div className="flex items-center justify-between mt-1 text-xs text-slate-500">
                     <span>{stats.healthy} healthy checks</span>
                     <span>{stats.total} total checks</span>
                   </div>
@@ -249,29 +249,29 @@ export default function HealthPage() {
 
       {/* Recent Incidents */}
       {healthData && healthData.recentIncidents && healthData.recentIncidents.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Recent Incidents (Last 24 Hours)</h3>
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+          <div className="bg-slate-900/50 px-6 py-3 border-b border-slate-700 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">Recent Incidents (Last 24 Hours)</h3>
             <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
               {healthData.recentIncidents.length} Open
             </span>
           </div>
           <div className="divide-y divide-gray-200">
             {healthData.recentIncidents.map((incident) => (
-              <div key={incident.id} className="p-4 hover:bg-gray-50">
+              <div key={incident.id} className="p-4 hover:bg-slate-900/50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
                         {incident.error_type}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-slate-500">
                         {new Date(incident.last_seen).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-900 mt-1">{incident.error_message}</p>
+                    <p className="text-sm text-white mt-1">{incident.error_message}</p>
                     {incident.occurrence_count > 1 && (
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         Occurred {incident.occurrence_count} times
                       </p>
                     )}
@@ -284,37 +284,37 @@ export default function HealthPage() {
       )}
 
       {/* System Information */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-900">System Information</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+        <div className="bg-slate-900/50 px-6 py-3 border-b border-slate-700">
+          <h3 className="text-sm font-semibold text-white">System Information</h3>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Environment</label>
-              <div className="mt-1 text-sm text-gray-900">
+              <label className="text-xs font-medium text-slate-500 uppercase">Environment</label>
+              <div className="mt-1 text-sm text-white">
                 {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Platform</label>
-              <div className="mt-1 text-sm text-gray-900">Vercel / Next.js</div>
+              <label className="text-xs font-medium text-slate-500 uppercase">Platform</label>
+              <div className="mt-1 text-sm text-white">Vercel / Next.js</div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Database</label>
-              <div className="mt-1 text-sm text-gray-900">Supabase (PostgreSQL)</div>
+              <label className="text-xs font-medium text-slate-500 uppercase">Database</label>
+              <div className="mt-1 text-sm text-white">Supabase (PostgreSQL)</div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Video Service</label>
-              <div className="mt-1 text-sm text-gray-900">LiveKit</div>
+              <label className="text-xs font-medium text-slate-500 uppercase">Video Service</label>
+              <div className="mt-1 text-sm text-white">LiveKit</div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">Payment Provider</label>
-              <div className="mt-1 text-sm text-gray-900">Stripe</div>
+              <label className="text-xs font-medium text-slate-500 uppercase">Payment Provider</label>
+              <div className="mt-1 text-sm text-white">Stripe</div>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 uppercase">File Storage</label>
-              <div className="mt-1 text-sm text-gray-900">Supabase Storage</div>
+              <label className="text-xs font-medium text-slate-500 uppercase">File Storage</label>
+              <div className="mt-1 text-sm text-white">Supabase Storage</div>
             </div>
           </div>
         </div>
@@ -322,10 +322,10 @@ export default function HealthPage() {
 
       {/* Loading State */}
       {loading && !healthData && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-sm text-gray-600 mt-4">Checking system health...</p>
+            <p className="text-sm text-slate-400 mt-4">Checking system health...</p>
           </div>
         </div>
       )}

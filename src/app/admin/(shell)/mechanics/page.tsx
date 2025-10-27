@@ -78,7 +78,7 @@ function OnlineIndicator({ isOnline }: { isOnline: boolean }) {
   return (
     <div className="flex items-center gap-1">
       <div className={`h-2 w-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-slate-300'}`} />
-      <span className="text-xs text-slate-600">{isOnline ? 'Online' : 'Offline'}</span>
+      <span className="text-xs text-slate-400">{isOnline ? 'Online' : 'Offline'}</span>
     </div>
   );
 }
@@ -89,7 +89,7 @@ function RatingDisplay({ rating }: { rating: number }) {
       <svg className="h-4 w-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
       </svg>
-      <span className="text-sm font-medium text-slate-900">{rating.toFixed(2)}</span>
+      <span className="text-sm font-medium text-white">{rating.toFixed(2)}</span>
     </div>
   );
 }
@@ -201,13 +201,13 @@ export default function MechanicsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">Mechanics Management</h1>
+              <h1 className="text-xl font-semibold text-slate-100">Mechanics Management</h1>
               <p className="text-sm text-slate-500">
                 Manage mechanic accounts, approve applications, and monitor performance
               </p>
@@ -218,7 +218,7 @@ export default function MechanicsPage() {
             <div className="flex gap-2">
               <button
                 onClick={downloadCSV}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
               >
                 Export CSV
               </button>
@@ -237,7 +237,7 @@ export default function MechanicsPage() {
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Search (name/email/phone)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Search (name/email/phone)</label>
             <input
               value={search}
               onChange={(e) => {
@@ -245,19 +245,19 @@ export default function MechanicsPage() {
                 setPage(1);
               }}
               placeholder="e.g., John Mechanic, john@email.com"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Account Status</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Account Status</label>
             <select
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -268,14 +268,14 @@ export default function MechanicsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Approval Status</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Approval Status</label>
             <select
               value={approvalStatus}
               onChange={(e) => {
                 setApprovalStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               {APPROVAL_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -286,8 +286,8 @@ export default function MechanicsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Online Status</label>
-            <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <label className="mb-1 block text-xs font-medium text-slate-400">Online Status</label>
+            <label className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={onlineOnly}
@@ -302,7 +302,7 @@ export default function MechanicsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Joined From</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Joined From</label>
             <input
               type="date"
               value={fromDate}
@@ -310,7 +310,7 @@ export default function MechanicsPage() {
                 setFromDate(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function MechanicsPage() {
         <div className="mt-3">
           <button
             onClick={resetFilters}
-            className="text-sm text-slate-600 underline underline-offset-4 hover:text-slate-800"
+            className="text-sm text-slate-400 underline underline-offset-4 hover:text-slate-100"
           >
             Reset filters
           </button>
@@ -327,10 +327,10 @@ export default function MechanicsPage() {
 
       {/* Table */}
       <div className="mx-auto max-w-7xl px-4 pb-8">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-700">
+              <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
                   <th>Mechanic</th>
                   <th>Contact</th>
@@ -360,9 +360,9 @@ export default function MechanicsPage() {
                   </tr>
                 )}
                 {rows.map((mechanic) => (
-                  <tr key={mechanic.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-slate-50">
+                  <tr key={mechanic.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
                     <td>
-                      <div className="font-medium text-slate-900">
+                      <div className="font-medium text-white">
                         {mechanic.name || 'Unnamed Mechanic'}
                       </div>
                       <div className="text-xs text-slate-500">{mechanic.id.slice(0, 8)}</div>
@@ -380,7 +380,7 @@ export default function MechanicsPage() {
                       )}
                     </td>
                     <td>
-                      <div className="text-slate-700">{mechanic.email}</div>
+                      <div className="text-slate-200">{mechanic.email}</div>
                       {mechanic.phone && (
                         <div className="text-xs text-slate-500">{mechanic.phone}</div>
                       )}
@@ -402,13 +402,13 @@ export default function MechanicsPage() {
                     <td>
                       <RatingDisplay rating={mechanic.rating || 0} />
                     </td>
-                    <td className="text-center font-medium text-slate-900">
+                    <td className="text-center font-medium text-white">
                       {mechanic.total_sessions || 0}
                     </td>
-                    <td className="font-medium text-slate-900">
+                    <td className="font-medium text-white">
                       ${(mechanic.total_earnings || 0).toFixed(2)}
                     </td>
-                    <td className="text-slate-600">
+                    <td className="text-slate-400">
                       {formatResponseTime(mechanic.avg_response_time)}
                     </td>
                     <td>
@@ -426,7 +426,7 @@ export default function MechanicsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t p-3 text-sm text-slate-600">
+          <div className="flex items-center justify-between border-t p-3 text-sm text-slate-400">
             <div>
               Page <span className="font-medium">{page}</span> of{' '}
               <span className="font-medium">{totalPages}</span> ·{' '}
@@ -436,14 +436,14 @@ export default function MechanicsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 disabled:opacity-50"
               >
                 Prev
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 disabled:opacity-50"
               >
                 Next
               </button>

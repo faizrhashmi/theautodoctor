@@ -152,6 +152,14 @@ export async function POST(request: NextRequest) {
       isJsonRequest
     })
 
+    // DEBUG: Log cookies being set
+    const cookieHeaders = response.headers.getSetCookie()
+    console.log('🍪 Cookies being set:', cookieHeaders.length)
+    cookieHeaders.forEach((cookie, i) => {
+      const cookieName = cookie.split('=')[0]
+      console.log(`   ${i + 1}. ${cookieName}`)
+    })
+
     // Return the appropriate response
     return response
 

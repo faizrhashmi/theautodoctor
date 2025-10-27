@@ -162,7 +162,7 @@ export default function MechanicDetailPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
+        <div className="text-slate-400">Loading...</div>
       </div>
     );
   }
@@ -176,9 +176,9 @@ export default function MechanicDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -188,12 +188,12 @@ export default function MechanicDetailPage() {
                 </Link>
               </div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-semibold text-slate-800">
+                <h1 className="text-xl font-semibold text-slate-100">
                   {mechanic.name || 'Unnamed Mechanic'}
                 </h1>
                 <div className="flex items-center gap-1">
                   <div className={`h-2 w-2 rounded-full ${mechanic.is_online ? 'bg-green-500' : 'bg-slate-300'}`} />
-                  <span className="text-xs text-slate-600">{mechanic.is_online ? 'Online' : 'Offline'}</span>
+                  <span className="text-xs text-slate-400">{mechanic.is_online ? 'Online' : 'Offline'}</span>
                 </div>
               </div>
               <p className="text-sm text-slate-500">{mechanic.email}</p>
@@ -207,16 +207,16 @@ export default function MechanicDetailPage() {
           {/* Left Column */}
           <div className="space-y-6 lg:col-span-2">
             {/* Profile Card */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Profile Information</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Profile Information</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm font-medium text-slate-500">Email</div>
-                  <div className="mt-1 text-slate-900">{mechanic.email}</div>
+                  <div className="mt-1 text-white">{mechanic.email}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Phone</div>
-                  <div className="mt-1 text-slate-900">{mechanic.phone || 'N/A'}</div>
+                  <div className="mt-1 text-white">{mechanic.phone || 'N/A'}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Account Status</div>
@@ -244,13 +244,13 @@ export default function MechanicDetailPage() {
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Joined</div>
-                  <div className="mt-1 text-slate-900">
+                  <div className="mt-1 text-white">
                     {new Date(mechanic.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Last Active</div>
-                  <div className="mt-1 text-slate-900">
+                  <div className="mt-1 text-white">
                     {mechanic.last_active_at ? new Date(mechanic.last_active_at).toLocaleDateString() : 'Never'}
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function MechanicDetailPage() {
               {mechanic.bio && (
                 <div className="mt-4">
                   <div className="text-sm font-medium text-slate-500">Bio</div>
-                  <div className="mt-1 text-slate-900">{mechanic.bio}</div>
+                  <div className="mt-1 text-white">{mechanic.bio}</div>
                 </div>
               )}
 
@@ -279,34 +279,34 @@ export default function MechanicDetailPage() {
 
             {/* Performance Metrics */}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4">
                 <div className="text-xs font-medium text-slate-500">Rating</div>
                 <div className="mt-2 flex items-center gap-1">
                   <svg className="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  <span className="text-2xl font-bold text-slate-900">{(mechanic.rating || 0).toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-white">{(mechanic.rating || 0).toFixed(2)}</span>
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4">
                 <div className="text-xs font-medium text-slate-500">Total Sessions</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">{mechanic.total_sessions || 0}</div>
+                <div className="mt-2 text-2xl font-bold text-white">{mechanic.total_sessions || 0}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4">
                 <div className="text-xs font-medium text-slate-500">Earnings</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">${(mechanic.total_earnings || 0).toFixed(2)}</div>
+                <div className="mt-2 text-2xl font-bold text-white">${(mechanic.total_earnings || 0).toFixed(2)}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4">
                 <div className="text-xs font-medium text-slate-500">Avg Response</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">
+                <div className="mt-2 text-2xl font-bold text-white">
                   {mechanic.avg_response_time ? `${Math.floor(mechanic.avg_response_time / 60)}m` : 'N/A'}
                 </div>
               </div>
             </div>
 
             {/* Admin Notes */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Admin Notes</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Admin Notes</h2>
 
               <div className="mb-4">
                 <textarea
@@ -314,7 +314,7 @@ export default function MechanicDetailPage() {
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="Add a note..."
                   rows={3}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   onClick={addNote}
@@ -330,14 +330,14 @@ export default function MechanicDetailPage() {
                   <p className="text-sm text-slate-500">No notes yet</p>
                 )}
                 {notes.map((note) => (
-                  <div key={note.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div key={note.id} className="rounded-lg border border-slate-700 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-3">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-600">{note.admin_email}</span>
+                      <span className="text-xs font-medium text-slate-400">{note.admin_email}</span>
                       <span className="text-xs text-slate-500">
                         {new Date(note.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-900">{note.note}</p>
+                    <p className="text-sm text-white">{note.note}</p>
                   </div>
                 ))}
               </div>
@@ -347,8 +347,8 @@ export default function MechanicDetailPage() {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Quick Actions</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Quick Actions</h2>
               <div className="space-y-2">
                 {mechanic.approval_status === 'pending' && (
                   <button
@@ -372,11 +372,11 @@ export default function MechanicDetailPage() {
             </div>
 
             {/* Adjust Rating */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Adjust Rating</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Adjust Rating</h2>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">New Rating (0-5)</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-200">New Rating (0-5)</label>
                   <input
                     type="number"
                     min="0"
@@ -384,7 +384,7 @@ export default function MechanicDetailPage() {
                     step="0.01"
                     value={newRating}
                     onChange={(e) => setNewRating(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                    className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <button
@@ -398,21 +398,21 @@ export default function MechanicDetailPage() {
             </div>
 
             {/* Action History */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Action History</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Action History</h2>
               <div className="space-y-3">
                 {actions.length === 0 && (
                   <p className="text-sm text-slate-500">No actions yet</p>
                 )}
                 {actions.map((action) => (
                   <div key={action.id} className="border-l-2 border-orange-500 pl-3">
-                    <div className="text-sm font-medium text-slate-900">{action.action_type}</div>
-                    <div className="text-xs text-slate-600">{action.admin_email}</div>
+                    <div className="text-sm font-medium text-white">{action.action_type}</div>
+                    <div className="text-xs text-slate-400">{action.admin_email}</div>
                     <div className="text-xs text-slate-500">
                       {new Date(action.created_at).toLocaleString()}
                     </div>
                     {action.reason && (
-                      <div className="mt-1 text-sm text-slate-700">{action.reason}</div>
+                      <div className="mt-1 text-sm text-slate-200">{action.reason}</div>
                     )}
                   </div>
                 ))}

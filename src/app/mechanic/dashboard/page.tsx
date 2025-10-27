@@ -166,7 +166,16 @@ export default function MechanicDashboardPage() {
         // Success - remove from pending and redirect to session
         setPendingRequests(prev => prev.filter(r => r.id !== requestId))
         alert('Request accepted! Redirecting to session...')
-        window.location.href = `/diagnostic/${data.sessionId}`
+
+        // Route based on session type
+        const sessionType = data.session?.type || 'diagnostic'
+        const routes: Record<string, string> = {
+          chat: '/chat',
+          video: '/video',
+          diagnostic: '/diagnostic',
+        }
+        const route = routes[sessionType] || '/diagnostic'
+        window.location.href = `${route}/${data.sessionId}`
       } else {
         alert(data.error || 'Failed to accept request')
       }

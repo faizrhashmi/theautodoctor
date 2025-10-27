@@ -323,13 +323,13 @@ export default function AdminIntakesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header / Crumbs */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">Admin / Intakes</h1>
+              <h1 className="text-xl font-semibold text-slate-100">Admin / Intakes</h1>
               <p className="text-sm text-slate-500">
                 Search, filter, export, and manage intake statuses.
               </p>
@@ -340,13 +340,13 @@ export default function AdminIntakesPage() {
             <div className="flex gap-2">
               <Link
                 href="/admin/intakes/deletions"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
               >
                 Deletion Log
               </Link>
               <button
                 onClick={downloadCSV}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
               >
                 Export CSV
               </button>
@@ -365,7 +365,7 @@ export default function AdminIntakesPage() {
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
           <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">Search (name/email/phone/VIN)</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Search (name/email/phone/VIN)</label>
             <input
               value={search}
               onChange={(e) => {
@@ -373,19 +373,19 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               placeholder="e.g., John / 647- / WDB..."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Plan</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Plan</label>
             <select
               value={plan}
               onChange={(e) => {
                 setPlan(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               {PLAN_OPTIONS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -396,14 +396,14 @@ export default function AdminIntakesPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Status</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Status</label>
             <select
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             >
               <option value="">All statuses</option>
               {STATUS_OPTIONS.map((s) => (
@@ -415,7 +415,7 @@ export default function AdminIntakesPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">VIN</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">VIN</label>
             <input
               value={vin}
               onChange={(e) => {
@@ -423,12 +423,12 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               placeholder="VIN (partial ok)"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">From</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">From</label>
             <input
               type="date"
               value={fromDate}
@@ -437,12 +437,12 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               max={toISODate(new Date())}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">To</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">To</label>
             <input
               type="date"
               value={toDate}
@@ -451,7 +451,7 @@ export default function AdminIntakesPage() {
                 setPage(1);
               }}
               max={toISODate(new Date())}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -459,7 +459,7 @@ export default function AdminIntakesPage() {
         <div className="mt-3">
           <button
             onClick={resetFilters}
-            className="text-sm text-slate-600 underline underline-offset-4 hover:text-slate-800"
+            className="text-sm text-slate-400 underline underline-offset-4 hover:text-slate-100"
           >
             Reset filters
           </button>
@@ -478,7 +478,7 @@ export default function AdminIntakesPage() {
                 <select
                   value={bulkStatus}
                   onChange={(e) => setBulkStatus(e.target.value)}
-                  className="rounded-lg border border-orange-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-500"
+                  className="rounded-lg border border-orange-300 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">Select status...</option>
                   {STATUS_OPTIONS.map((s) => (
@@ -515,17 +515,17 @@ export default function AdminIntakesPage() {
         </div>
       )}
       <div className="mx-auto max-w-7xl px-4 pb-8">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-700">
+              <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
                   <th className="w-12">
                     <input
                       type="checkbox"
                       checked={selectedIds.size === rows.length && rows.length > 0}
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                      className="h-4 w-4 rounded border-slate-700 text-orange-600 focus:ring-orange-500"
                     />
                   </th>
                   <th>Created</th>
@@ -559,10 +559,10 @@ export default function AdminIntakesPage() {
                         type="checkbox"
                         checked={selectedIds.has(r.id)}
                         onChange={() => toggleSelect(r.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                        className="h-4 w-4 rounded border-slate-700 text-orange-600 focus:ring-orange-500"
                       />
                     </td>
-                    <td className="whitespace-nowrap text-slate-600">
+                    <td className="whitespace-nowrap text-slate-400">
                       {new Date(r.created_at).toLocaleString()}
                     </td>
                     <td className="whitespace-nowrap">
@@ -584,13 +584,13 @@ export default function AdminIntakesPage() {
                       <div className="text-xs text-slate-500">{r.id.slice(0, 8)}</div>
                     </td>
                     <td className="whitespace-nowrap">
-                      <div className="text-slate-700">{r.email || '—'}</div>
+                      <div className="text-slate-200">{r.email || '—'}</div>
                       <div className="text-xs text-slate-500">{r.phone || ''}</div>
                     </td>
-                    <td className="whitespace-nowrap font-mono text-slate-700">
+                    <td className="whitespace-nowrap font-mono text-slate-200">
                       {r.vin || '—'}
                     </td>
-                    <td className="whitespace-nowrap capitalize text-slate-700">
+                    <td className="whitespace-nowrap capitalize text-slate-200">
                       {r.plan ?? '-'}
                     </td>
                     <td className="whitespace-nowrap">
@@ -603,7 +603,7 @@ export default function AdminIntakesPage() {
                           onChange={(e) =>
                             updateStatus(r.id, e.target.value as Intake['status'])
                           }
-                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                          className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                         >
                           {STATUS_OPTIONS.map((s) => (
                             <option key={s} value={s}>
@@ -627,7 +627,7 @@ export default function AdminIntakesPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t p-3 text-sm text-slate-600">
+          <div className="flex items-center justify-between border-t p-3 text-sm text-slate-400">
             <div>
               Page <span className="font-medium">{page}</span> of{' '}
               <span className="font-medium">{totalPages}</span> ·{' '}
@@ -637,14 +637,14 @@ export default function AdminIntakesPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 disabled:opacity-50"
               >
                 Prev
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 disabled:opacity-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 disabled:opacity-50"
               >
                 Next
               </button>

@@ -42,8 +42,8 @@ export default function MechanicInvite({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-      <input className="w-full rounded-xl border px-3 py-2 text-sm" value={link} readOnly placeholder="Generating link…" />
-      <button onClick={copy} disabled={!link} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+      <input className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white placeholder-slate-500" value={link} readOnly placeholder="Generating link…" />
+      <button onClick={copy} disabled={!link} className="rounded-xl bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:from-orange-600 hover:to-red-700 disabled:opacity-50">
         {copied ? 'Copied!' : 'Copy link'}
       </button>
     </div>

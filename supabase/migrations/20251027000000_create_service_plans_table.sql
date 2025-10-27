@@ -1,15 +1,28 @@
 -- Create service_plans table for universal plan management
 CREATE TABLE IF NOT EXISTS service_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT NOT NULL UNIQUE, -- e.g., 'free', 'quick', 'standard', 'diagnostic'
-  name TEXT NOT NULL, -- e.g., 'Free Session', 'Quick Chat'
-  price DECIMAL(10,2) NOT NULL DEFAULT 0, -- e.g., 9.99
+  slug TEXT NOT NULL UNIQUE, -- e.g., 'free', 'quick', 'standard', 'bmw-specialist'
+  name TEXT NOT NULL, -- e.g., 'Free Session', 'Quick Chat', 'BMW Premium Care'
+  price DECIMAL(10,2) NOT NULL DEFAULT 0, -- e.g., 9.99, 79.99
   duration_minutes INTEGER NOT NULL, -- e.g., 30, 45, 60
   description TEXT NOT NULL,
-  perks JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of perk strings
+  perks JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of perk strings for UI display
   recommended_for TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   display_order INTEGER NOT NULL DEFAULT 0, -- For sorting in UI
+
+  -- Payment Integration
+  stripe_price_id TEXT, -- e.g., 'price_1ABC123...' - from Stripe Dashboard
+
+  -- Feature Flags System
+  plan_category TEXT DEFAULT 'basic', -- 'basic' | 'premium' | 'enterprise'
+  features JSONB NOT NULL DEFAULT '{}'::jsonb, -- Custom feature flags
+
+  -- Brand Specialist Routing
+  routing_preference TEXT DEFAULT 'any', -- 'any' | 'general' | 'brand_specialist'
+  restricted_brands TEXT[] DEFAULT '{}', -- e.g., ['BMW', 'Mercedes'] - only route to these brand specialists
+  requires_certification BOOLEAN DEFAULT false, -- Require Red Seal certification
+
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -17,8 +30,12 @@ CREATE TABLE IF NOT EXISTS service_plans (
 -- Create index for active plans
 CREATE INDEX idx_service_plans_active ON service_plans(is_active, display_order);
 
--- Insert default plans
-INSERT INTO service_plans (slug, name, price, duration_minutes, description, perks, recommended_for, display_order, is_active) VALUES
+-- Insert default plans with features and routing
+INSERT INTO service_plans (
+  slug, name, price, duration_minutes, description, perks, recommended_for,
+  display_order, is_active, plan_category, features, routing_preference,
+  restricted_brands, stripe_price_id
+) VALUES
 (
   'free',
   'Free Session',
@@ -28,7 +45,12 @@ INSERT INTO service_plans (slug, name, price, duration_minutes, description, per
   '["Text chat with a mechanic", "Share one photo or video clip", "Quick first impressions and advice"]'::jsonb,
   'Use when you want to sample the platform or ask a quick yes/no question.',
   1,
-  true
+  true,
+  'basic',
+  '{"chat": true, "photo_sharing": true}'::jsonb,
+  'any',
+  '{}',
+  NULL -- Set this from your Stripe dashboard
 ),
 (
   'quick',
@@ -39,7 +61,12 @@ INSERT INTO service_plans (slug, name, price, duration_minutes, description, per
   '["Direct chat for photos, videos, and codes", "Action plan delivered before chat ends", "Great for warning lights or quick questions"]'::jsonb,
   'Ideal when you need quick reassurance or guidance.',
   2,
-  true
+  true,
+  'basic',
+  '{"chat": true, "video_sharing": true, "diagnostic_codes": true}'::jsonb,
+  'general',
+  '{}',
+  NULL -- Set this from your Stripe dashboard
 ),
 (
   'standard',
@@ -50,7 +77,12 @@ INSERT INTO service_plans (slug, name, price, duration_minutes, description, per
   '["HD video with screen sharing", "Step-by-step troubleshooting and next steps", "Recording link after the call"]'::jsonb,
   'Perfect for noises, leaks, or guided inspections.',
   3,
-  true
+  true,
+  'premium',
+  '{"chat": true, "video_sessions": true, "screen_sharing": true, "session_recordings": true}'::jsonb,
+  'general',
+  '{}',
+  NULL -- Set this from your Stripe dashboard
 ),
 (
   'diagnostic',
@@ -61,7 +93,12 @@ INSERT INTO service_plans (slug, name, price, duration_minutes, description, per
   '["Advanced testing walkthroughs", "Multi-system coverage in one call", "Summary email with repair roadmap"]'::jsonb,
   'Best for recurring issues or pre-purchase inspections.',
   4,
-  true
+  true,
+  'premium',
+  '{"chat": true, "video_sessions": true, "screen_sharing": true, "session_recordings": true, "custom_reports": true, "diagnostic_history": true}'::jsonb,
+  'general',
+  '{}',
+  NULL -- Set this from your Stripe dashboard
 );
 
 -- Create updated_at trigger

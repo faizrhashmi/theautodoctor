@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { getSupabaseServer } from '@/lib/supabaseServer';
+import { requireAdmin } from '@/lib/auth/requireAdmin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,15 +11,13 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id;
-
-    // Get current admin user
-    const supabase = getSupabaseServer();
-    const { data: { user: adminUser } } = await supabase.auth.getUser();
-
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // ✅ SECURITY FIX: Require admin authentication
+    const auth = await requireAdmin(req);
+    if (!auth.authorized) {
+      return auth.response!;
     }
+
+    const userId = params.id;
 
     // Get user email
     const { data: authUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
@@ -40,10 +38,17 @@ export async function POST(
     }
 
     // Log admin action
+    console.warn(
+      `[ADMIN ACTION] ${auth.profile?.full_name} reset password for user ${userId}`
+    );
+
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: adminUser.id,
+      admin_id: auth.user!.id,
       target_user_id: userId,
       action_type: 'reset_password',
+      metadata: {
+        admin_name: auth.profile?.full_name || auth.profile?.email
+      }
     });
 
     // In production, you would send this link via email

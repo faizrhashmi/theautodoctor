@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Facebook, Instagram, Twitter } from 'lucide-react'
 
 const NAV_LINKS = [
@@ -14,9 +17,52 @@ const SOCIAL_ICONS = [
   { label: 'Instagram', Icon: Instagram }
 ]
 
+// Routes that should NOT have sidebar margin
+const NO_SIDEBAR_ROUTES = [
+  '/mechanic/login',
+  '/mechanic/signup',
+  '/customer/login',
+  '/customer/signup',
+]
+
+function shouldHaveSidebarMargin(pathname: string | null): boolean {
+  if (!pathname) return false
+
+  // Check if it's a mechanic or customer route
+  const isMechanicRoute = pathname.startsWith('/mechanic')
+  const isCustomerRoute = pathname.startsWith('/customer')
+
+  if (!isMechanicRoute && !isCustomerRoute) {
+    return false
+  }
+
+  // Exclude auth pages
+  if (NO_SIDEBAR_ROUTES.includes(pathname)) {
+    return false
+  }
+
+  // Exclude onboarding pages
+  if (pathname.startsWith('/mechanic/onboarding') || pathname.startsWith('/customer/onboarding')) {
+    return false
+  }
+
+  // All other mechanic/customer routes have sidebar
+  return true
+}
+
 export default function SiteFooter() {
+  const pathname = usePathname()
+
+  // Only add margin when sidebar is actually visible
+  const hasSidebar = shouldHaveSidebarMargin(pathname)
+
   return (
-    <footer id="site-footer" className="border-t border-slate-200 bg-slate-950 text-slate-200">
+    <footer
+      id="site-footer"
+      className={`border-t border-slate-200 bg-slate-950 text-slate-200 transition-all duration-300 ${
+        hasSidebar ? 'lg:ml-64' : ''
+      }`}
+    >
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <div>

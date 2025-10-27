@@ -115,16 +115,16 @@ export default function BrandManagementAdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-white dark:text-white">
             Brand & Service Management
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 dark:text-slate-400 mt-1">
             Manage vehicle brands and service keywords
           </p>
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 text-white rounded-lg hover:from-orange-600 hover:to-red-700"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -147,7 +147,7 @@ export default function BrandManagementAdminPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex gap-2 border-b border-slate-700 dark:border-slate-700">
         <button
           onClick={() => setActiveTab('brands')}
           className={`px-4 py-2 font-medium transition-colors ${
@@ -178,34 +178,34 @@ export default function BrandManagementAdminPage() {
 
       {/* Brands Tab */}
       {activeTab === 'brands' && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-100 dark:bg-slate-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                     Brand Name
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                     Luxury
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                     Cert Required
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                     Active
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {brands.map((brand) => (
-                  <tr key={brand.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <tr key={brand.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-900 dark:text-white">
+                        <span className="font-medium text-white dark:text-white">
                           {brand.brand_name}
                         </span>
                         {brand.is_luxury && (
@@ -262,34 +262,34 @@ export default function BrandManagementAdminPage() {
             if (categoryKeywords.length === 0) return null
 
             return (
-              <div key={category} className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+              <div key={category} className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
                 <div className="bg-slate-100 dark:bg-slate-700 px-4 py-3">
-                  <h3 className="font-semibold text-slate-900 dark:text-white capitalize">
+                  <h3 className="font-semibold text-white dark:text-white capitalize">
                     {category} ({categoryKeywords.length})
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-slate-50 dark:bg-slate-800">
+                    <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 dark:bg-slate-800">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                           Keyword
                         </th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                           Complexity
                         </th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                           Specialist Required
                         </th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                           Active
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                       {categoryKeywords.map((keyword) => (
-                        <tr key={keyword.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                          <td className="px-4 py-2 text-sm text-slate-900 dark:text-white">
+                        <tr key={keyword.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 dark:hover:bg-slate-700/50">
+                          <td className="px-4 py-2 text-sm text-white dark:text-white">
                             {keyword.keyword}
                           </td>
                           <td className="px-4 py-2 text-center">

@@ -141,7 +141,7 @@ export default function FeatureFlagsAdminPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+        <RefreshCw className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     )
   }
@@ -151,16 +151,16 @@ export default function FeatureFlagsAdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-white">
             Feature Flags
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             Control feature rollout for brand specialist matching system
           </p>
         </div>
         <button
           onClick={fetchFlags}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/25 transition"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -169,32 +169,32 @@ export default function FeatureFlagsAdminPage() {
 
       {/* Success Message */}
       {success && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 rounded-lg flex items-start gap-3">
-          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-900 dark:text-green-100">{success}</p>
+        <div className="bg-green-500/20 border border-green-500/30 p-4 rounded-lg flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-green-100">{success}</p>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-lg flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <div className="bg-red-500/20 border border-red-500/30 p-4 rounded-lg flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-900 dark:text-red-100">Error</p>
-            <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+            <p className="text-sm font-medium text-red-100">Error</p>
+            <p className="text-sm text-red-300 mt-1">{error}</p>
           </div>
         </div>
       )}
 
       {/* Rollout Guide */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6 rounded-lg">
+      <div className="bg-blue-500/20 border border-blue-500/30 p-6 rounded-lg">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            <h3 className="text-sm font-semibold text-blue-100 mb-2">
               Recommended Rollout Strategy
             </h3>
-            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+            <div className="space-y-2 text-sm text-blue-200">
               <p>• <strong>Week 1:</strong> Enable profile completion requirement</p>
               <p>• <strong>Week 2:</strong> Enable smart matching algorithm</p>
               <p>• <strong>Week 3:</strong> Enable keyword extraction</p>
@@ -214,44 +214,44 @@ export default function FeatureFlagsAdminPage() {
           return (
             <div
               key={flag.id}
-              className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg"
+              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-lg shadow-lg"
             >
               <div className="flex items-start justify-between">
                 {/* Flag Info */}
                 <div className="flex items-start gap-4 flex-1">
-                  <div className={`p-3 rounded-lg ${
+                  <div className={`p-3 rounded-lg border ${
                     flag.enabled
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                      ? 'bg-green-500/20 border-green-500/30 text-green-400'
+                      : 'bg-slate-700/50 border-slate-700 text-slate-400'
                   }`}>
                     <Icon className="h-6 w-6" />
                   </div>
 
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      <h3 className="text-lg font-semibold text-white">
                         {flag.flag_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </h3>
                       {recommendation.phase > 0 && (
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded">
                           Phase {recommendation.phase}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    <p className="text-sm text-slate-400 mt-1">
                       {flag.description}
                     </p>
 
                     {recommendation.phase > 0 && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      <p className="text-xs text-blue-400 mt-2">
                         {recommendation.description}
                       </p>
                     )}
 
                     {recommendation.dependencies && recommendation.dependencies.length > 0 && (
                       <div className="mt-3">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        <p className="text-xs text-slate-400 mb-1">
                           Dependencies:
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -260,10 +260,10 @@ export default function FeatureFlagsAdminPage() {
                             return (
                               <span
                                 key={dep}
-                                className={`text-xs px-2 py-1 rounded ${
+                                className={`text-xs px-2 py-1 rounded border ${
                                   depFlag?.enabled
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                    : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                                    ? 'bg-green-500/20 border-green-500/30 text-green-300'
+                                    : 'bg-orange-500/20 border-orange-500/30 text-orange-300'
                                 }`}
                               >
                                 {dep.replace(/_/g, ' ')}
@@ -275,7 +275,7 @@ export default function FeatureFlagsAdminPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
                       <span>Updated: {new Date(flag.updated_at).toLocaleString()}</span>
                     </div>
                   </div>
@@ -288,7 +288,7 @@ export default function FeatureFlagsAdminPage() {
                   className={`
                     relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full
                     transition-colors duration-200 ease-in-out
-                    ${flag.enabled ? 'bg-green-600' : 'bg-slate-300 dark:bg-slate-600'}
+                    ${flag.enabled ? 'bg-green-600' : 'bg-slate-600'}
                     ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                   `}
                 >
@@ -312,9 +312,9 @@ export default function FeatureFlagsAdminPage() {
       </div>
 
       {flags.length === 0 && (
-        <div className="bg-white dark:bg-slate-800 p-12 rounded-lg shadow-lg text-center">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-12 rounded-lg shadow-lg text-center">
           <AlertCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-slate-400">
             No feature flags found. Run the database migration to create feature flags.
           </p>
         </div>

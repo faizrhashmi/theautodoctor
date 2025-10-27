@@ -2,8 +2,15 @@
 // src/app/api/admin/logs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { logger, LogLevel, LogSource } from '@/lib/adminLogger'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(request: NextRequest) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(request)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams
 
@@ -41,6 +48,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(request)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
+  console.warn(
+    `[ADMIN ACTION] ${auth.profile?.full_name} deleting logs`
+  )
+
   try {
     const searchParams = request.nextUrl.searchParams
     const days = parseInt(searchParams.get('days') || '30')

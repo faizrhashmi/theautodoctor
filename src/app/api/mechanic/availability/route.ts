@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       .from('mechanic_availability')
       .select('*')
       .eq('mechanic_id', session.mechanic_id)
-      .order('weekday', { ascending: true })
+      .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true })
 
     if (availabilityError) {
@@ -42,8 +42,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch availability' }, { status: 500 })
     }
 
+    // Map database column names to frontend-expected names
+    const mappedAvailability = (availability || []).map(block => ({
+      id: block.id,
+      mechanic_id: block.mechanic_id,
+      weekday: block.day_of_week,
+      start_time: block.start_time,
+      end_time: block.end_time,
+      is_active: block.is_available,
+    }))
+
     return NextResponse.json({
-      availability: availability || [],
+      availability: mappedAvailability,
     })
   } catch (error) {
     console.error('[MECHANIC AVAILABILITY API] Error:', error)
@@ -99,12 +109,13 @@ export async function PUT(req: NextRequest) {
 
     // Insert new availability blocks (only if there are any)
     if (availability.length > 0) {
+      // Map frontend column names to database column names
       const blocksToInsert = availability.map(block => ({
         mechanic_id: session.mechanic_id,
-        weekday: block.weekday,
+        day_of_week: block.weekday,
         start_time: block.start_time,
         end_time: block.end_time,
-        is_active: block.is_active ?? true,
+        is_available: block.is_active ?? true,
       }))
 
       const { error: insertError } = await supabaseAdmin

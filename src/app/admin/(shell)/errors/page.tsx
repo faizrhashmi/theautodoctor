@@ -92,13 +92,13 @@ export default function ErrorsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Error Tracking</h1>
-          <p className="text-sm text-gray-600 mt-1">Monitor and manage system errors</p>
+          <h1 className="text-2xl font-bold text-white">Error Tracking</h1>
+          <p className="text-sm text-slate-400 mt-1">Monitor and manage system errors</p>
         </div>
         <button
           onClick={fetchErrors}
           disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50"
         >
           {loading ? 'Loading...' : 'Refresh'}
         </button>
@@ -133,14 +133,14 @@ export default function ErrorsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Statuses</option>
               <option value="open">Open</option>
@@ -150,11 +150,11 @@ export default function ErrorsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+            <label className="block text-sm font-medium text-slate-200 mb-2">Source</label>
             <select
               value={sourceFilter}
               onChange={(e) => setSourceFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Sources</option>
               <option value="api">API</option>
@@ -169,61 +169,61 @@ export default function ErrorsPage() {
       </div>
 
       {/* Errors List */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-slate-900/50 border-b border-slate-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Error
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Source
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Occurrences
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Last Seen
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-slate-800/50 backdrop-blur-sm divide-y divide-gray-200">
               {loading && errors.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                     Loading errors...
                   </td>
                 </tr>
               ) : errors.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                     No errors found
                   </td>
                 </tr>
               ) : (
                 errors.map((error) => (
-                  <tr key={error.id} className="hover:bg-gray-50">
+                  <tr key={error.id} className="hover:bg-slate-900/50">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{error.error_type}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-md">
+                      <div className="text-sm font-medium text-white">{error.error_type}</div>
+                      <div className="text-sm text-slate-500 truncate max-w-md">
                         {error.error_message}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                      <span className="px-2 py-1 text-xs font-medium bg-slate-800/50 text-slate-100 rounded">
                         {error.source}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">{error.occurrence_count}</span>
+                        <span className="text-sm font-medium text-white">{error.occurrence_count}</span>
                         {error.occurrence_count > 10 && (
                           <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
                             High
@@ -231,7 +231,7 @@ export default function ErrorsPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-slate-500">
                       {formatTimeAgo(error.last_seen)}
                     </td>
                     <td className="px-6 py-4">
@@ -258,12 +258,12 @@ export default function ErrorsPage() {
       {/* Error Details Modal */}
       {selectedError && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Error Details</h3>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Error Details</h3>
               <button
                 onClick={() => setSelectedError(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-slate-400"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -273,20 +273,20 @@ export default function ErrorsPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-160px)]">
               <div className="space-y-6">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Error Type</label>
-                  <div className="mt-1 text-lg font-semibold text-gray-900">{selectedError.error_type}</div>
+                  <label className="text-sm font-medium text-slate-400">Error Type</label>
+                  <div className="mt-1 text-lg font-semibold text-white">{selectedError.error_type}</div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Error Message</label>
-                  <div className="mt-1 text-gray-900">{selectedError.error_message}</div>
+                  <label className="text-sm font-medium text-slate-400">Error Message</label>
+                  <div className="mt-1 text-white">{selectedError.error_message}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Source</label>
-                    <div className="mt-1 text-gray-900">{selectedError.source}</div>
+                    <label className="text-sm font-medium text-slate-400">Source</label>
+                    <div className="mt-1 text-white">{selectedError.source}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Status</label>
+                    <label className="text-sm font-medium text-slate-400">Status</label>
                     <div className="mt-1">
                       <span className={`px-2 py-1 text-xs font-medium rounded border ${STATUS_COLORS[selectedError.status]}`}>
                         {selectedError.status}
@@ -294,25 +294,25 @@ export default function ErrorsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Occurrences</label>
-                    <div className="mt-1 text-gray-900">{selectedError.occurrence_count}</div>
+                    <label className="text-sm font-medium text-slate-400">Occurrences</label>
+                    <div className="mt-1 text-white">{selectedError.occurrence_count}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Affected Users</label>
-                    <div className="mt-1 text-gray-900">{selectedError.affected_users?.length || 0}</div>
+                    <label className="text-sm font-medium text-slate-400">Affected Users</label>
+                    <div className="mt-1 text-white">{selectedError.affected_users?.length || 0}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">First Seen</label>
-                    <div className="mt-1 text-gray-900">{new Date(selectedError.first_seen).toLocaleString()}</div>
+                    <label className="text-sm font-medium text-slate-400">First Seen</label>
+                    <div className="mt-1 text-white">{new Date(selectedError.first_seen).toLocaleString()}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Last Seen</label>
-                    <div className="mt-1 text-gray-900">{new Date(selectedError.last_seen).toLocaleString()}</div>
+                    <label className="text-sm font-medium text-slate-400">Last Seen</label>
+                    <div className="mt-1 text-white">{new Date(selectedError.last_seen).toLocaleString()}</div>
                   </div>
                 </div>
                 {selectedError.error_stack && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Stack Trace</label>
+                    <label className="text-sm font-medium text-slate-400">Stack Trace</label>
                     <pre className="mt-1 bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
                       {selectedError.error_stack}
                     </pre>
@@ -320,26 +320,26 @@ export default function ErrorsPage() {
                 )}
                 {selectedError.resolution_notes && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Resolution Notes</label>
-                    <div className="mt-1 bg-green-50 p-4 rounded-lg text-sm text-gray-900">
+                    <label className="text-sm font-medium text-slate-400">Resolution Notes</label>
+                    <div className="mt-1 bg-green-50 p-4 rounded-lg text-sm text-white">
                       {selectedError.resolution_notes}
                     </div>
                   </div>
                 )}
                 {selectedError.metadata && Object.keys(selectedError.metadata).length > 0 && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Metadata</label>
-                    <pre className="mt-1 bg-gray-50 p-4 rounded-lg text-xs overflow-x-auto">
+                    <label className="text-sm font-medium text-slate-400">Metadata</label>
+                    <pre className="mt-1 bg-slate-900/50 p-4 rounded-lg text-xs overflow-x-auto">
                       {JSON.stringify(selectedError.metadata, null, 2)}
                     </pre>
                   </div>
                 )}
               </div>
             </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+            <div className="bg-slate-900/50 px-6 py-4 border-t border-slate-700 flex items-center justify-end gap-3">
               <button
                 onClick={() => updateErrorStatus(selectedError.id, 'ignored')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg hover:bg-slate-900/50"
               >
                 Ignore
               </button>

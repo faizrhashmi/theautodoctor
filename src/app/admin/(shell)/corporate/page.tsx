@@ -139,23 +139,23 @@ export default function AdminCorporatePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading corporate accounts...</p>
+          <p className="text-slate-400">Loading corporate accounts...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-slate-800">Corporate Account Management</h1>
+              <h1 className="text-xl font-semibold text-slate-100">Corporate Account Management</h1>
               <p className="text-sm text-slate-500">
                 Manage B2B accounts, approve applications, and monitor usage
               </p>
@@ -173,47 +173,47 @@ export default function AdminCorporatePage() {
       <div className="mx-auto max-w-7xl px-4 py-6">
         {/* Stats Cards */}
         <div className="grid md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm font-medium text-slate-600">Total Accounts</div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4">
+            <div className="text-sm font-medium text-slate-400">Total Accounts</div>
+            <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm font-medium text-slate-600">Pending Approval</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4">
+            <div className="text-sm font-medium text-slate-400">Pending Approval</div>
             <div className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm font-medium text-slate-600">Active Accounts</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4">
+            <div className="text-sm font-medium text-slate-400">Active Accounts</div>
             <div className="text-2xl font-bold text-green-600 mt-1">{stats.active}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm font-medium text-slate-600">Total Employees</div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalEmployees}</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4">
+            <div className="text-sm font-medium text-slate-400">Total Employees</div>
+            <div className="text-2xl font-bold text-white mt-1">{stats.totalEmployees}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm font-medium text-slate-600">Fleet Vehicles</div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalVehicles}</div>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4">
+            <div className="text-sm font-medium text-slate-400">Fleet Vehicles</div>
+            <div className="text-2xl font-bold text-white mt-1">{stats.totalVehicles}</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow p-4 mb-6">
           <div className="grid md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Search</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Company name, email..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -223,11 +223,11 @@ export default function AdminCorporatePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Tier</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Tier</label>
               <select
                 value={filterTier}
                 onChange={(e) => setFilterTier(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
               >
                 <option value="">All Tiers</option>
                 <option value="basic">Basic</option>
@@ -243,7 +243,7 @@ export default function AdminCorporatePage() {
                   setFilterStatus('');
                   setFilterTier('');
                 }}
-                className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 text-sm"
+                className="w-full px-4 py-2 border border-slate-700 text-slate-200 rounded-lg hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-sm"
               >
                 Reset Filters
               </button>
@@ -252,10 +252,10 @@ export default function AdminCorporatePage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-slate-50">
+              <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:text-xs [&>th]:font-medium [&>th]:text-slate-500">
                   <th>Company</th>
                   <th>Contact</th>
@@ -277,17 +277,17 @@ export default function AdminCorporatePage() {
                   </tr>
                 ) : (
                   filteredBusinesses.map((business) => (
-                    <tr key={business.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-slate-50">
+                    <tr key={business.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
                       <td>
-                        <div className="font-medium text-slate-900">{business.company_name}</div>
+                        <div className="font-medium text-white">{business.company_name}</div>
                         <div className="text-xs text-slate-500">{business.company_email}</div>
                       </td>
                       <td>
-                        <div className="text-sm text-slate-900">{business.primary_contact_name}</div>
+                        <div className="text-sm text-white">{business.primary_contact_name}</div>
                         <div className="text-xs text-slate-500">{business.primary_contact_email}</div>
                       </td>
                       <td>
-                        <span className="text-sm text-slate-600 capitalize">
+                        <span className="text-sm text-slate-400 capitalize">
                           {business.business_type.replace('_', ' ')}
                         </span>
                       </td>
@@ -298,12 +298,12 @@ export default function AdminCorporatePage() {
                           {business.subscription_tier}
                         </span>
                       </td>
-                      <td className="text-sm text-slate-900">
+                      <td className="text-sm text-white">
                         <div>{business.fleet_size} vehicles</div>
                         <div className="text-xs text-slate-500">{business.employee_count || 0} employees</div>
                       </td>
                       <td className="text-sm">
-                        <div className="text-slate-900">
+                        <div className="text-white">
                           {business.current_month_sessions} / {business.monthly_session_limit || '∞'}
                         </div>
                         <div className="text-xs text-slate-500">
@@ -317,7 +317,7 @@ export default function AdminCorporatePage() {
                           {business.approval_status}
                         </span>
                       </td>
-                      <td className="text-sm text-slate-600 whitespace-nowrap">
+                      <td className="text-sm text-slate-400 whitespace-nowrap">
                         {new Date(business.created_at).toLocaleDateString()}
                       </td>
                       <td>
@@ -386,35 +386,35 @@ export default function AdminCorporatePage() {
       {/* Approval Modal */}
       {showApprovalModal && selectedBusiness && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-semibold text-slate-900 mb-4">
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-semibold text-white mb-4">
               {approvalAction === 'approve' && 'Approve Corporate Account'}
               {approvalAction === 'reject' && 'Reject Application'}
               {approvalAction === 'suspend' && 'Suspend Account'}
             </h3>
 
             <div className="mb-4">
-              <p className="text-sm text-slate-600 mb-2">
+              <p className="text-sm text-slate-400 mb-2">
                 <strong>Company:</strong> {selectedBusiness.company_name}
               </p>
-              <p className="text-sm text-slate-600 mb-2">
+              <p className="text-sm text-slate-400 mb-2">
                 <strong>Contact:</strong> {selectedBusiness.primary_contact_name}
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-400">
                 <strong>Email:</strong> {selectedBusiness.company_email}
               </p>
             </div>
 
             {(approvalAction === 'reject' || approvalAction === 'suspend') && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-200 mb-2">
                   Reason {approvalAction === 'reject' ? '(Optional)' : '(Required)'}
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none resize-none"
+                  className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none resize-none"
                   placeholder={`Reason for ${approvalAction}ing this account...`}
                 />
               </div>
@@ -440,7 +440,7 @@ export default function AdminCorporatePage() {
                   setSelectedBusiness(null);
                   setRejectionReason('');
                 }}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50"
+                className="px-4 py-2 border border-slate-700 text-slate-200 rounded-lg hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
               >
                 Cancel
               </button>

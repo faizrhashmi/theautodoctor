@@ -91,7 +91,7 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
               Back to intakes
             </Link>
           </p>
-          <h1 className="mt-1 text-3xl font-semibold text-slate-900">
+          <h1 className="mt-1 text-3xl font-semibold text-white">
             Intake #{data.id.slice(0, 8)}
           </h1>
           <p className="text-sm text-slate-500">
@@ -106,13 +106,13 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5 shadow-sm">
           <header>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               Customer
             </h2>
           </header>
-          <dl className="grid gap-4 text-sm text-slate-700">
+          <dl className="grid gap-4 text-sm text-slate-200">
             <DetailItem label="Name" value={customerName} />
             <DetailItem label="Email" value={data.email ?? data.customer_email ?? '-'} />
             <DetailItem label="Phone" value={data.phone ?? data.customer_phone ?? '-'} />
@@ -121,13 +121,13 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
           </dl>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5 shadow-sm">
           <header>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
               Vehicle
             </h2>
           </header>
-          <dl className="grid gap-4 text-sm text-slate-700">
+          <dl className="grid gap-4 text-sm text-slate-200">
             <DetailItem label="Year" value={data.year ?? data.vehicle_year ?? '-'} />
             <DetailItem label="Make" value={data.make ?? data.vehicle_make ?? '-'} />
             <DetailItem label="Model" value={data.model ?? data.vehicle_model ?? '-'} />
@@ -139,23 +139,23 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
       </div>
 
       {(concern || notes) && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5 shadow-sm">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Notes and concerns
           </h2>
-          <div className="mt-4 space-y-4 text-sm text-slate-700">
+          <div className="mt-4 space-y-4 text-sm text-slate-200">
             {concern && (
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-600">Primary concern</h3>
-                <p className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 p-4">
+                <h3 className="text-sm font-semibold text-slate-400">Primary concern</h3>
+                <p className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4">
                   {concern}
                 </p>
               </div>
             )}
             {notes && (
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-600">Additional notes</h3>
-                <p className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 p-4">
+                <h3 className="text-sm font-semibold text-slate-400">Additional notes</h3>
+                <p className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4">
                   {notes}
                 </p>
               </div>
@@ -164,7 +164,7 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Attachments
@@ -178,8 +178,8 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
             {signedFiles.map(({ path, url }) => {
               const filename = path.split('/').pop() || path
               return (
-                <li key={path} className="flex flex-col rounded-xl border border-slate-200 p-4">
-                  <div className="mb-3 break-all text-sm font-medium text-slate-700">
+                <li key={path} className="flex flex-col rounded-xl border border-slate-700 p-4">
+                  <div className="mb-3 break-all text-sm font-medium text-slate-200">
                     {filename}
                   </div>
                   <div className="mt-auto flex gap-2 text-sm">
@@ -194,7 +194,7 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
                     <a
                       href={url}
                       download={filename}
-                      className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center font-medium text-slate-700 hover:bg-slate-50"
+                      className="flex-1 rounded-lg border border-slate-700 px-3 py-2 text-center font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
                     >
                       Download
                     </a>
@@ -209,11 +209,11 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Raw data
         </h2>
-        <pre className="mt-4 max-h-96 overflow-auto rounded-lg border border-slate-100 bg-slate-50 p-4 text-xs text-slate-700">
+        <pre className="mt-4 max-h-96 overflow-auto rounded-lg border border-slate-100 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4 text-xs text-slate-200">
           {JSON.stringify(data, null, 2)}
         </pre>
       </section>

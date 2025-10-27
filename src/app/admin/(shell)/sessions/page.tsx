@@ -44,8 +44,8 @@ export default async function AdminSessionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Session Management</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-white">Session Management</h1>
+        <p className="mt-2 text-sm text-slate-400">
           Monitor and manage all customer sessions
         </p>
       </div>

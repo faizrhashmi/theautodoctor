@@ -1,31 +1,23 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-async function getAdminFromCookie(_req: NextRequest) {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_admin')?.value
-
-  if (!token) return null
-
-  // TODO: Implement admin session validation
-  // For now, check if admin cookie exists
-  // In production, validate against admin_sessions table
-  return { id: 'admin', role: 'admin' }
-}
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const admin = await getAdminFromCookie(req)
-
-  if (!admin) {
-    return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
+  // ✅ SECURITY FIX: Replace insecure cookie check with requireAdmin
+  const auth = await requireAdmin(req)
+  if (!auth.authorized) {
+    return auth.response!
   }
 
   const { id: requestId } = await context.params
+
+  console.warn(
+    `[ADMIN ACTION] ${auth.profile?.full_name} manually assigning request ${requestId}`
+  )
   const body = await req.json().catch(() => null)
 
   if (!body || !body.mechanicId) {

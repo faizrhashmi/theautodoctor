@@ -165,8 +165,8 @@ export default function DatabasePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Database Query Tool</h1>
-          <p className="text-sm text-gray-600 mt-1">Execute read-only SQL queries safely</p>
+          <h1 className="text-2xl font-bold text-white">Database Query Tool</h1>
+          <p className="text-sm text-slate-400 mt-1">Execute read-only SQL queries safely</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-3 py-1 bg-yellow-100 border border-yellow-200 rounded-lg">
@@ -191,20 +191,20 @@ export default function DatabasePage() {
       </div>
 
       {/* Query Editor */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-700">SQL Query Editor</div>
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+        <div className="bg-slate-900/50 px-4 py-2 border-b border-slate-700 flex items-center justify-between">
+          <div className="text-sm font-medium text-slate-200">SQL Query Editor</div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSaveDialog(true)}
               disabled={!query.trim()}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-1 text-xs font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded hover:bg-slate-900/50 disabled:opacity-50"
             >
               Save Query
             </button>
             <button
               onClick={() => setQuery('')}
-              className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+              className="px-3 py-1 text-xs font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded hover:bg-slate-900/50"
             >
               Clear
             </button>
@@ -217,14 +217,14 @@ export default function DatabasePage() {
           className="w-full h-64 p-4 font-mono text-sm focus:outline-none resize-none"
           spellCheck={false}
         />
-        <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-xs text-gray-500">
+        <div className="bg-slate-900/50 px-4 py-3 border-t border-slate-700 flex items-center justify-between">
+          <div className="text-xs text-slate-500">
             {query.trim() ? `${query.split('\n').length} lines, ${query.length} characters` : 'Enter your SQL query'}
           </div>
           <button
             onClick={executeQuery}
             disabled={loading || !query.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Executing...' : 'Execute Query'}
           </button>
@@ -232,8 +232,8 @@ export default function DatabasePage() {
       </div>
 
       {/* Results/History/Saved Tabs */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="border-b border-gray-200">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-700">
           <div className="flex">
             <button
               onClick={() => setActiveTab('results')}
@@ -275,33 +275,33 @@ export default function DatabasePage() {
               {results && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
                       <span>Rows: {results.rowCount}</span>
                       <span>Execution Time: {results.executionTime}ms</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => exportResults('json')}
-                        className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-xs font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded hover:bg-slate-900/50"
                       >
                         Export JSON
                       </button>
                       <button
                         onClick={() => exportResults('csv')}
-                        className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-xs font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded hover:bg-slate-900/50"
                       >
                         Export CSV
                       </button>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                  <div className="overflow-x-auto border border-slate-700 rounded-lg">
                     {Array.isArray(results.data) && results.data.length > 0 ? (
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-slate-900/50">
                           <tr>
                             {Object.keys(results.data[0]).map((header) => (
-                              <th key={header} className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                              <th key={header} className="px-4 py-2 text-left font-medium text-slate-200 border-b">
                                 {header}
                               </th>
                             ))}
@@ -309,9 +309,9 @@ export default function DatabasePage() {
                         </thead>
                         <tbody>
                           {results.data.map((row: any, index: number) => (
-                            <tr key={index} className="hover:bg-gray-50">
+                            <tr key={index} className="hover:bg-slate-900/50">
                               {Object.values(row).map((value: any, i: number) => (
-                                <td key={i} className="px-4 py-2 border-b border-gray-200">
+                                <td key={i} className="px-4 py-2 border-b border-slate-700">
                                   {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '')}
                                 </td>
                               ))}
@@ -320,7 +320,7 @@ export default function DatabasePage() {
                         </tbody>
                       </table>
                     ) : (
-                      <div className="p-8 text-center text-gray-500">
+                      <div className="p-8 text-center text-slate-500">
                         {results.data ? 'Query returned no results' : 'Execute a query to see results'}
                       </div>
                     )}
@@ -329,13 +329,13 @@ export default function DatabasePage() {
               )}
 
               {!results && !loading && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-500">
                   Execute a query to see results here
                 </div>
               )}
 
               {loading && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-slate-500">
                   Executing query...
                 </div>
               )}
@@ -346,16 +346,16 @@ export default function DatabasePage() {
           {activeTab === 'history' && (
             <div className="space-y-3">
               {queryHistory.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">No query history</div>
+                <div className="text-center py-12 text-slate-500">No query history</div>
               ) : (
                 queryHistory.map((item) => (
-                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                  <div key={item.id} className="border border-slate-700 rounded-lg p-4 hover:bg-slate-900/50">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <pre className="text-sm font-mono text-gray-900 whitespace-pre-wrap">
+                        <pre className="text-sm font-mono text-white whitespace-pre-wrap">
                           {item.query.substring(0, 200)}{item.query.length > 200 ? '...' : ''}
                         </pre>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                           <span>{new Date(item.executed_at).toLocaleString()}</span>
                           <span>{item.execution_time_ms}ms</span>
                           <span>{item.rows_returned} rows</span>
@@ -384,19 +384,19 @@ export default function DatabasePage() {
             <div className="space-y-4">
               {categories.map((category) => (
                 <div key={category}>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase">{category}</h3>
+                  <h3 className="text-sm font-semibold text-slate-200 mb-2 uppercase">{category}</h3>
                   <div className="space-y-2">
                     {savedQueries
                       .filter((q) => q.category === category)
                       .map((savedQuery) => (
-                        <div key={savedQuery.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div key={savedQuery.id} className="border border-slate-700 rounded-lg p-4 hover:bg-slate-900/50">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="text-sm font-medium text-gray-900">{savedQuery.name}</h4>
+                              <h4 className="text-sm font-medium text-white">{savedQuery.name}</h4>
                               {savedQuery.description && (
-                                <p className="text-sm text-gray-600 mt-1">{savedQuery.description}</p>
+                                <p className="text-sm text-slate-400 mt-1">{savedQuery.description}</p>
                               )}
-                              <pre className="text-xs font-mono text-gray-500 mt-2 whitespace-pre-wrap">
+                              <pre className="text-xs font-mono text-slate-500 mt-2 whitespace-pre-wrap">
                                 {savedQuery.query.substring(0, 150)}{savedQuery.query.length > 150 ? '...' : ''}
                               </pre>
                             </div>
@@ -420,37 +420,37 @@ export default function DatabasePage() {
       {/* Save Query Dialog */}
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Save Query</h3>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-xl max-w-md w-full">
+            <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700">
+              <h3 className="text-lg font-semibold text-white">Save Query</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Query Name</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Query Name</label>
                 <input
                   type="text"
                   value={queryName}
                   onChange={(e) => setQueryName(e.target.value)}
                   placeholder="My Saved Query"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Description (optional)</label>
                 <textarea
                   value={queryDescription}
                   onChange={(e) => setQueryDescription(e.target.value)}
                   placeholder="What does this query do?"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Category</label>
                 <select
                   value={queryCategory}
                   onChange={(e) => setQueryCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="custom">Custom</option>
                   <option value="sessions">Sessions</option>
@@ -461,16 +461,16 @@ export default function DatabasePage() {
                 </select>
               </div>
             </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+            <div className="bg-slate-900/50 px-6 py-4 border-t border-slate-700 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowSaveDialog(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-slate-200 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg hover:bg-slate-900/50"
               >
                 Cancel
               </button>
               <button
                 onClick={saveQuery}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 rounded-lg hover:from-orange-600 hover:to-red-700"
               >
                 Save Query
               </button>

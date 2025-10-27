@@ -111,19 +111,19 @@ function ActionModal({ type, userId, onClose, onSuccess }: ActionModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <h3 className="mb-4 text-lg font-semibold text-slate-900">{titles[type]}</h3>
+      <div className="w-full max-w-md rounded-xl bg-slate-800/50 backdrop-blur-sm p-6 shadow-xl">
+        <h3 className="mb-4 text-lg font-semibold text-white">{titles[type]}</h3>
 
         <form onSubmit={handleSubmit}>
           {(type === 'suspend' || type === 'ban') && (
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Reason</label>
+              <label className="mb-1 block text-sm font-medium text-slate-200">Reason</label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
                 rows={3}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                 placeholder="Explain why this action is being taken..."
               />
             </div>
@@ -131,7 +131,7 @@ function ActionModal({ type, userId, onClose, onSuccess }: ActionModalProps) {
 
           {type === 'suspend' && (
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Duration (days)</label>
+              <label className="mb-1 block text-sm font-medium text-slate-200">Duration (days)</label>
               <input
                 type="number"
                 value={duration}
@@ -139,20 +139,20 @@ function ActionModal({ type, userId, onClose, onSuccess }: ActionModalProps) {
                 required
                 min="1"
                 max="365"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
               />
             </div>
           )}
 
           {type === 'notify' && (
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Message</label>
+              <label className="mb-1 block text-sm font-medium text-slate-200">Message</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 rows={4}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                 placeholder="Enter notification message..."
               />
             </div>
@@ -162,7 +162,7 @@ function ActionModal({ type, userId, onClose, onSuccess }: ActionModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="flex-1 rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
             >
               Cancel
             </button>
@@ -258,7 +258,7 @@ export default function CustomerDetailPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-slate-600">Loading...</div>
+        <div className="text-slate-400">Loading...</div>
       </div>
     );
   }
@@ -272,9 +272,9 @@ export default function CustomerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <div className="border-b bg-white">
+      <div className="border-b bg-slate-800/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -283,7 +283,7 @@ export default function CustomerDetailPage() {
                   ← Back to Customers
                 </Link>
               </div>
-              <h1 className="text-xl font-semibold text-slate-800">
+              <h1 className="text-xl font-semibold text-slate-100">
                 {customer.full_name || 'Unnamed Customer'}
               </h1>
               <p className="text-sm text-slate-500">{customer.email}</p>
@@ -291,7 +291,7 @@ export default function CustomerDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveModal('notify')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
               >
                 Send Notification
               </button>
@@ -305,16 +305,16 @@ export default function CustomerDetailPage() {
           {/* Left Column - Profile & Stats */}
           <div className="space-y-6 lg:col-span-2">
             {/* Profile Card */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Profile Information</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Profile Information</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm font-medium text-slate-500">Email</div>
-                  <div className="mt-1 text-slate-900">{customer.email}</div>
+                  <div className="mt-1 text-white">{customer.email}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Phone</div>
-                  <div className="mt-1 text-slate-900">{customer.phone || 'N/A'}</div>
+                  <div className="mt-1 text-white">{customer.phone || 'N/A'}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Account Status</div>
@@ -330,17 +330,17 @@ export default function CustomerDetailPage() {
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Email Verified</div>
-                  <div className="mt-1 text-slate-900">{customer.email_verified ? 'Yes' : 'No'}</div>
+                  <div className="mt-1 text-white">{customer.email_verified ? 'Yes' : 'No'}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Joined</div>
-                  <div className="mt-1 text-slate-900">
+                  <div className="mt-1 text-white">
                     {new Date(customer.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Last Active</div>
-                  <div className="mt-1 text-slate-900">
+                  <div className="mt-1 text-white">
                     {customer.last_active_at ? new Date(customer.last_active_at).toLocaleDateString() : 'Never'}
                   </div>
                 </div>
@@ -373,7 +373,7 @@ export default function CustomerDetailPage() {
                         </span>
                       )
                     ) : (
-                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-400">
                         N/A (B2B Account)
                       </span>
                     )}
@@ -384,19 +384,19 @@ export default function CustomerDetailPage() {
 
             {/* Statistics */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
                 <div className="text-sm font-medium text-slate-500">Total Sessions</div>
-                <div className="mt-2 text-3xl font-bold text-slate-900">{customer.total_sessions || 0}</div>
+                <div className="mt-2 text-3xl font-bold text-white">{customer.total_sessions || 0}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
                 <div className="text-sm font-medium text-slate-500">Total Spent</div>
-                <div className="mt-2 text-3xl font-bold text-slate-900">${(customer.total_spent || 0).toFixed(2)}</div>
+                <div className="mt-2 text-3xl font-bold text-white">${(customer.total_spent || 0).toFixed(2)}</div>
               </div>
             </div>
 
             {/* Admin Notes */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Admin Notes</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Admin Notes</h2>
 
               <div className="mb-4">
                 <textarea
@@ -404,7 +404,7 @@ export default function CustomerDetailPage() {
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="Add a note..."
                   rows={3}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500"
                 />
                 <button
                   onClick={addNote}
@@ -420,14 +420,14 @@ export default function CustomerDetailPage() {
                   <p className="text-sm text-slate-500">No notes yet</p>
                 )}
                 {notes.map((note) => (
-                  <div key={note.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div key={note.id} className="rounded-lg border border-slate-700 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-3">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-600">{note.admin_email}</span>
+                      <span className="text-xs font-medium text-slate-400">{note.admin_email}</span>
                       <span className="text-xs text-slate-500">
                         {new Date(note.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-900">{note.note}</p>
+                    <p className="text-sm text-white">{note.note}</p>
                   </div>
                 ))}
               </div>
@@ -437,8 +437,8 @@ export default function CustomerDetailPage() {
           {/* Right Column - Actions & History */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Quick Actions</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Quick Actions</h2>
               <div className="space-y-2">
                 {customer.account_status === 'active' && (
                   <button
@@ -466,13 +466,13 @@ export default function CustomerDetailPage() {
                 )}
                 <button
                   onClick={() => setActiveModal('reset')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-4 py-2 text-sm font-medium text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
                 >
                   Send Password Reset
                 </button>
                 {(customer.account_type === 'individual' || !customer.account_type) && (
                   <>
-                    <div className="my-3 border-t border-slate-200"></div>
+                    <div className="my-3 border-t border-slate-700"></div>
                     <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Free Session Control
                     </div>
@@ -500,7 +500,7 @@ export default function CustomerDetailPage() {
                 )}
 
                 {/* Plan Management */}
-                <div className="my-3 border-t border-slate-200"></div>
+                <div className="my-3 border-t border-slate-700"></div>
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Plan Management
                 </div>
@@ -515,7 +515,7 @@ export default function CustomerDetailPage() {
                 </p>
 
                 {/* Custom Message */}
-                <div className="my-3 border-t border-slate-200"></div>
+                <div className="my-3 border-t border-slate-700"></div>
                 <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Custom Message
                 </div>
@@ -532,21 +532,21 @@ export default function CustomerDetailPage() {
             </div>
 
             {/* Action History */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Action History</h2>
+            <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white">Action History</h2>
               <div className="space-y-3">
                 {actions.length === 0 && (
                   <p className="text-sm text-slate-500">No actions yet</p>
                 )}
                 {actions.map((action) => (
                   <div key={action.id} className="border-l-2 border-orange-500 pl-3">
-                    <div className="text-sm font-medium text-slate-900">{action.action_type}</div>
-                    <div className="text-xs text-slate-600">{action.admin_email}</div>
+                    <div className="text-sm font-medium text-white">{action.action_type}</div>
+                    <div className="text-xs text-slate-400">{action.admin_email}</div>
                     <div className="text-xs text-slate-500">
                       {new Date(action.created_at).toLocaleString()}
                     </div>
                     {action.reason && (
-                      <div className="mt-1 text-sm text-slate-700">{action.reason}</div>
+                      <div className="mt-1 text-sm text-slate-200">{action.reason}</div>
                     )}
                   </div>
                 ))}

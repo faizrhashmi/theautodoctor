@@ -138,7 +138,7 @@ export default function RequestsQueuePage() {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="ml-3 text-gray-600">Loading requests...</p>
+        <p className="ml-3 text-slate-400">Loading requests...</p>
       </div>
     )
   }
@@ -147,8 +147,8 @@ export default function RequestsQueuePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Service Requests Queue</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-white">Service Requests Queue</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Manage unassigned requests and manually assign mechanics
         </p>
       </div>
@@ -183,7 +183,7 @@ export default function RequestsQueuePage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -219,7 +219,7 @@ export default function RequestsQueuePage() {
           {/* Refresh */}
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -228,12 +228,12 @@ export default function RequestsQueuePage() {
       </div>
 
       {/* Requests List */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border">
         {filteredRequests.length === 0 ? (
           <div className="text-center py-12">
             <Bell className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">No requests found</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-slate-400 font-medium">No requests found</p>
+            <p className="text-sm text-slate-500 mt-1">
               {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Requests will appear here when customers submit them'}
@@ -268,7 +268,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, bgColor, badge }: StatCardProps) {
   return (
-    <div className="bg-white rounded-lg border p-4">
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border p-4">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 ${bgColor} rounded-lg`}>{icon}</div>
         {badge && (
@@ -277,8 +277,8 @@ function StatCard({ label, value, icon, bgColor, badge }: StatCardProps) {
           </span>
         )}
       </div>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-sm font-medium text-slate-400">{label}</p>
+      <p className="text-2xl font-bold text-white mt-1">{value}</p>
     </div>
   )
 }
@@ -320,20 +320,20 @@ function RequestRow({ request, mechanics, onAssign, actionLoading }: RequestRowP
   }
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition">
+    <div className="p-4 hover:bg-slate-900/50 transition">
       <div className="flex items-start justify-between gap-4">
         {/* Left: Request Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-semibold text-gray-900">
+            <h3 className="font-semibold text-white">
               {request.vehicle_year} {request.vehicle_make} {request.vehicle_model}
             </h3>
             {getStatusBadge()}
           </div>
 
-          <p className="text-sm text-gray-700 mb-2 line-clamp-2">{request.issue_description}</p>
+          <p className="text-sm text-slate-200 mb-2 line-clamp-2">{request.issue_description}</p>
 
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+          <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
             <div className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {request.location || 'No location'}
@@ -366,7 +366,7 @@ function RequestRow({ request, mechanics, onAssign, actionLoading }: RequestRowP
             <button
               onClick={() => selectedMechanic && onAssign(selectedMechanic)}
               disabled={!selectedMechanic || actionLoading}
-              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-1"
+              className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 text-white text-sm font-medium rounded-lg hover:from-orange-600 hover:to-red-700 disabled:opacity-50 transition flex items-center gap-1"
             >
               <UserPlus className="h-3 w-3" />
               Assign

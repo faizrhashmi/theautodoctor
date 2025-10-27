@@ -10,8 +10,15 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdmin } from '@/lib/auth/requireAdmin'
 
 export async function GET(req: NextRequest) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(req)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
   try {
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
@@ -65,6 +72,16 @@ export async function GET(req: NextRequest) {
  * Create a new satisfaction claim (can be done by admin on behalf of customer)
  */
 export async function POST(req: NextRequest) {
+  // ✅ SECURITY FIX: Require admin authentication
+  const auth = await requireAdmin(req)
+  if (!auth.authorized) {
+    return auth.response!
+  }
+
+  console.warn(
+    `[ADMIN ACTION] ${auth.profile?.full_name} creating satisfaction claim`
+  )
+
   try {
     const body = await req.json()
     const { sessionId, customerId, reason } = body as {

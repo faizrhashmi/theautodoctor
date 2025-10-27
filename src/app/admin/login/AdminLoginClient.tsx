@@ -72,22 +72,22 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow border border-slate-100 p-8">
+    <div className="min-h-screen flex items-center justify-center pt-16 pb-8 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 shadow-2xl p-8">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900">Admin Panel</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
+          <h1 className="text-2xl font-semibold text-white">Admin Panel</h1>
+          <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/20 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300">
               Email
             </label>
             <input
@@ -99,13 +99,13 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="admin@yourdomain.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
               Password
             </label>
             <input
@@ -117,7 +117,7 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="••••••••"
             />
           </div>
@@ -125,7 +125,7 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-white font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-2.5 text-white font-medium hover:from-orange-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-orange-500/25 transition"
           >
             {isLoading ? (
               <>
@@ -142,7 +142,7 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
         </form>
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-sm text-slate-600 hover:text-slate-900">
+          <Link href="/" className="text-sm text-slate-400 hover:text-white transition">
             ← Back to site
           </Link>
         </div>

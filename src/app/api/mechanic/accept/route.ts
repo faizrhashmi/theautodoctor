@@ -156,7 +156,35 @@ export async function POST(req: NextRequest) {
 
     const now = new Date().toISOString()
     // Note: Actual schema uses parent_session_id, not metadata.session_id
-    const existingSessionId = request.parent_session_id || null
+    let existingSessionId = request.parent_session_id || null
+
+    // FALLBACK: If parent_session_id is null, try to find the session by customer + time match
+    if (!existingSessionId) {
+      console.log(`[ACCEPT] parent_session_id is null, attempting fallback session lookup`)
+      const { data: matchingSession } = await supabaseAdmin
+        .from('sessions')
+        .select('id')
+        .eq('customer_user_id', request.customer_id)
+        .eq('type', request.session_type)
+        .in('status', ['pending', 'waiting'])
+        .gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString()) // Within 10 mins
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (matchingSession) {
+        existingSessionId = matchingSession.id
+        console.log(`[ACCEPT] Found matching session via fallback: ${existingSessionId}`)
+
+        // Update the request to link it to the session for future reference
+        await supabaseAdmin
+          .from('session_requests')
+          .update({ parent_session_id: existingSessionId })
+          .eq('id', requestId)
+      } else {
+        console.warn(`[ACCEPT] No matching session found for request ${requestId}`)
+      }
+    }
 
     console.log(`[ACCEPT] Request linked to session:`, { existingSessionId })
 
@@ -217,21 +245,18 @@ export async function POST(req: NextRequest) {
       // PREFERRED PATH: Update the existing session created by intake
       console.log(`[ACCEPT] Updating existing session ${existingSessionId}`)
 
-      const { data: updatedSession, error: updateError } = await supabaseAdmin
+      // First, check current session state
+      const { data: currentSession } = await supabaseAdmin
         .from('sessions')
-        .update({
-          mechanic_id: mechanic.id,
-          status: 'waiting', // FSM: pending → waiting
-          // Note: updated_at and metadata don't exist in actual schema
-        })
+        .select('id, status, mechanic_id')
         .eq('id', existingSessionId)
-        .eq('status', 'pending') // Only update if still pending
-        .is('mechanic_id', null) // Only update if no mechanic assigned yet
-        .select()
-        .single()
+        .maybeSingle()
 
-      if (updateError) {
-        console.error('[ACCEPT] Failed to update existing session:', updateError)
+      if (!currentSession) {
+        console.error(`[ACCEPT] Session ${existingSessionId} not found`)
+        // Fall through to create new session
+      } else if (currentSession.mechanic_id && currentSession.mechanic_id !== mechanic.id) {
+        console.error(`[ACCEPT] Session already assigned to another mechanic: ${currentSession.mechanic_id}`)
 
         // Rollback the request acceptance
         await supabaseAdmin
@@ -245,16 +270,52 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
           {
-            error: 'Failed to update session - it may have been claimed by another mechanic',
-            details: updateError.message,
+            error: 'This session was just claimed by another mechanic',
+            code: 'SESSION_ALREADY_CLAIMED',
           },
-          { status: 500 }
+          { status: 409 }
         )
-      }
+      } else {
+        // Update session - allow both 'pending' and 'waiting' status
+        const { data: updatedSession, error: updateError } = await supabaseAdmin
+          .from('sessions')
+          .update({
+            mechanic_id: mechanic.id,
+            status: 'waiting', // Ensure status is 'waiting'
+          })
+          .eq('id', existingSessionId)
+          .in('status', ['pending', 'waiting']) // Allow both states
+          .select()
+          .single()
 
-      session = updatedSession
-      console.log(`[ACCEPT] ✓ Success: Updated session ${session.id} for request ${requestId}`)
-    } else {
+        if (updateError) {
+          console.error('[ACCEPT] Failed to update existing session:', updateError)
+
+          // Rollback the request acceptance
+          await supabaseAdmin
+            .from('session_requests')
+            .update({
+              mechanic_id: null,
+              status: 'pending',
+              accepted_at: null,
+            })
+            .eq('id', requestId)
+
+          return NextResponse.json(
+            {
+              error: 'Failed to update session',
+              details: updateError.message,
+            },
+            { status: 500 }
+          )
+        }
+
+        session = updatedSession
+        console.log(`[ACCEPT] ✓ Success: Updated session ${session.id} with mechanic_id ${mechanic.id}`)
+      }
+    }
+
+    if (!session) {
       // FALLBACK PATH: Create new session (for old requests or edge cases)
       console.warn(`[ACCEPT] No existing session found, creating new session for request ${requestId}`)
 

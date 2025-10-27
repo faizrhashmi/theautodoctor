@@ -164,7 +164,7 @@ export default function ClaimsPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="ml-3 text-gray-600">Loading claims...</p>
+        <p className="ml-3 text-slate-400">Loading claims...</p>
       </div>
     )
   }
@@ -173,8 +173,8 @@ export default function ClaimsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Claims Management</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold text-white">Claims Management</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Handle customer satisfaction claims and refund requests
         </p>
       </div>
@@ -215,7 +215,7 @@ export default function ClaimsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border p-4">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border p-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -250,7 +250,7 @@ export default function ClaimsPage() {
           {/* Refresh */}
           <button
             onClick={fetchClaims}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -259,12 +259,12 @@ export default function ClaimsPage() {
       </div>
 
       {/* Claims List */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border">
         {filteredClaims.length === 0 ? (
           <div className="text-center py-12">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">No claims found</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-slate-400 font-medium">No claims found</p>
+            <p className="text-sm text-slate-500 mt-1">
               {searchQuery || statusFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'Claims will appear here when customers file them'}
@@ -311,7 +311,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, bgColor, badge }: StatCardProps) {
   return (
-    <div className="bg-white rounded-lg border p-4">
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border p-4">
       <div className="flex items-center justify-between mb-2">
         <div className={`p-2 ${bgColor} rounded-lg`}>{icon}</div>
         {badge && (
@@ -320,8 +320,8 @@ function StatCard({ label, value, icon, bgColor, badge }: StatCardProps) {
           </span>
         )}
       </div>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-sm font-medium text-slate-400">{label}</p>
+      <p className="text-2xl font-bold text-white mt-1">{value}</p>
     </div>
   )
 }
@@ -369,18 +369,18 @@ function ClaimRow({ claim, onSelect, onApprove, onReject, actionLoading }: Claim
   }
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition">
+    <div className="p-4 hover:bg-slate-900/50 transition">
       <div className="flex items-start justify-between gap-4">
         {/* Left: Claim Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-semibold text-gray-900">Claim #{claim.id.slice(0, 8)}</h3>
+            <h3 className="font-semibold text-white">Claim #{claim.id.slice(0, 8)}</h3>
             {getStatusBadge()}
           </div>
 
-          <p className="text-sm text-gray-700 mb-2 line-clamp-2">{claim.reason}</p>
+          <p className="text-sm text-slate-200 mb-2 line-clamp-2">{claim.reason}</p>
 
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+          <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
             <div className="flex items-center gap-1">
               <FileText className="h-3 w-3" />
               Session: {claim.session_id.slice(0, 8)}
@@ -452,13 +452,13 @@ function ClaimDetailModal({
 }: ClaimDetailModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Claim Details</h2>
+          <h2 className="text-xl font-bold text-white">Claim Details</h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            className="p-2 text-gray-400 hover:text-slate-400 hover:bg-slate-800/50 rounded-lg transition"
           >
             <XCircle className="h-5 w-5" />
           </button>
@@ -468,7 +468,7 @@ function ClaimDetailModal({
         <div className="p-6 space-y-6">
           {/* Status */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Status</h3>
+            <h3 className="font-semibold text-white mb-2">Status</h3>
             <div className="inline-block">
               {claim.status === 'open' && (
                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded">
@@ -495,7 +495,7 @@ function ClaimDetailModal({
 
           {/* Claim Details */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Claim Information</h3>
+            <h3 className="font-semibold text-white mb-3">Claim Information</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <DetailField label="Claim ID" value={claim.id} />
               <DetailField label="Session ID" value={claim.session_id} />
@@ -515,16 +515,16 @@ function ClaimDetailModal({
 
           {/* Reason */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-2">Customer Reason</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-700">{claim.reason}</p>
+            <h3 className="font-semibold text-white mb-2">Customer Reason</h3>
+            <div className="bg-slate-900/50 p-4 rounded-lg">
+              <p className="text-sm text-slate-200">{claim.reason}</p>
             </div>
           </div>
 
           {/* Session Info */}
           {claim.sessions && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Session Details</h3>
+              <h3 className="font-semibold text-white mb-3">Session Details</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <DetailField label="Plan" value={claim.sessions.plan} />
                 <DetailField label="Type" value={claim.sessions.type} />
@@ -539,7 +539,7 @@ function ClaimDetailModal({
           {/* Refund Info */}
           {claim.refunds && claim.refunds.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Refund Information</h3>
+              <h3 className="font-semibold text-white mb-3">Refund Information</h3>
               {claim.refunds.map((refund) => (
                 <div key={refund.id} className="bg-purple-50 p-4 rounded-lg">
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -558,9 +558,9 @@ function ClaimDetailModal({
           {/* Admin Notes */}
           {claim.admin_notes && (
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Admin Notes</h3>
+              <h3 className="font-semibold text-white mb-2">Admin Notes</h3>
               <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-700">{claim.admin_notes}</p>
+                <p className="text-sm text-slate-200">{claim.admin_notes}</p>
               </div>
             </div>
           )}
@@ -568,10 +568,10 @@ function ClaimDetailModal({
 
         {/* Actions Footer */}
         {claim.status === 'open' && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+          <div className="flex items-center justify-end gap-3 p-6 border-t bg-slate-900/50">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border rounded-lg hover:bg-gray-50 transition"
+              className="px-4 py-2 text-slate-200 bg-slate-800/50 backdrop-blur-sm border rounded-lg hover:bg-slate-900/50 transition"
             >
               Close
             </button>
@@ -607,8 +607,8 @@ interface DetailFieldProps {
 function DetailField({ label, value, fullWidth }: DetailFieldProps) {
   return (
     <div className={fullWidth ? 'col-span-2' : ''}>
-      <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-      <p className="text-sm text-gray-900 break-words">{value}</p>
+      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+      <p className="text-sm text-white break-words">{value}</p>
     </div>
   )
 }

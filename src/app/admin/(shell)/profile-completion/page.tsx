@@ -133,16 +133,16 @@ export default function ProfileCompletionAdminPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-white dark:text-white">
             Profile Completion Statistics
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm text-slate-400 dark:text-slate-400 mt-1">
             Monitor mechanic profile completion and session readiness
           </p>
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 shadow-lg shadow-orange-500/25 text-white rounded-lg hover:from-orange-600 hover:to-red-700"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -193,8 +193,8 @@ export default function ProfileCompletionAdminPage() {
 
       {/* Distribution Chart */}
       {stats && (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+        <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+          <h2 className="text-lg font-semibold text-white dark:text-white mb-4">
             Completion Score Distribution
           </h2>
           <div className="space-y-3">
@@ -208,15 +208,15 @@ export default function ProfileCompletionAdminPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow flex items-center justify-between">
+      <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 p-4 rounded-lg shadow flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label className="text-sm font-medium text-slate-200 dark:text-slate-300">
             Filter:
           </label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm"
+            className="px-3 py-2 rounded-lg border border-slate-700 dark:border-slate-600 bg-slate-800/50 backdrop-blur-sm dark:bg-slate-900 text-sm"
           >
             <option value="all">All Mechanics</option>
             <option value="incomplete">Incomplete (&lt;80%)</option>
@@ -225,13 +225,13 @@ export default function ProfileCompletionAdminPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label className="text-sm font-medium text-slate-200 dark:text-slate-300">
             Sort by:
           </label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-sm"
+            className="px-3 py-2 rounded-lg border border-slate-700 dark:border-slate-600 bg-slate-800/50 backdrop-blur-sm dark:bg-slate-900 text-sm"
           >
             <option value="score">Completion Score</option>
             <option value="name">Name</option>
@@ -241,37 +241,37 @@ export default function ProfileCompletionAdminPage() {
       </div>
 
       {/* Mechanics List */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-100 dark:bg-slate-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Mechanic
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Location
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Completion
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Status
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Can Accept
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-slate-700 dark:text-slate-300 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {filteredMechanics.map((mechanic) => (
-                <tr key={mechanic.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <tr key={mechanic.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 dark:hover:bg-slate-700/50">
                   <td className="px-4 py-3">
                     <div>
-                      <div className="font-medium text-slate-900 dark:text-white">
+                      <div className="font-medium text-white dark:text-white">
                         {mechanic.full_name || 'Unknown'}
                         {mechanic.is_brand_specialist && (
                           <span className="ml-2 text-xs px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded">
@@ -279,12 +279,12 @@ export default function ProfileCompletionAdminPage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                      <div className="text-sm text-slate-400 dark:text-slate-400">
                         {mechanic.email}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                  <td className="px-4 py-3 text-sm text-slate-200 dark:text-slate-300">
                     {mechanic.city && mechanic.country ? (
                       `${mechanic.city}, ${mechanic.country}`
                     ) : (
@@ -307,7 +307,7 @@ export default function ProfileCompletionAdminPage() {
                           style={{ width: `${mechanic.profile_completion_score || 0}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="text-sm font-medium text-white dark:text-white">
                         {mechanic.profile_completion_score || 0}%
                       </span>
                     </div>
@@ -373,17 +373,17 @@ function StatCard({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
+    <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 p-6 rounded-lg shadow-lg">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+          <p className="text-sm font-medium text-slate-400 dark:text-slate-400">
             {title}
           </p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+          <p className="text-3xl font-bold text-white dark:text-white mt-2">
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 dark:text-slate-400 mt-1">
               {subtitle}
             </p>
           )}
@@ -420,8 +420,8 @@ function DistributionBar({
   return (
     <div>
       <div className="flex items-center justify-between text-sm mb-1">
-        <span className="text-slate-700 dark:text-slate-300">{label}</span>
-        <span className="text-slate-600 dark:text-slate-400">
+        <span className="text-slate-200 dark:text-slate-300">{label}</span>
+        <span className="text-slate-400 dark:text-slate-400">
           {count} ({Math.round(percentage)}%)
         </span>
       </div>

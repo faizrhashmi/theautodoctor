@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 
 export interface MatchingCriteria {
   requestType: 'general' | 'brand_specialist'
-  requestedBrand?: string
+  requestedBrand?: string // Primary brand (for backward compatibility)
+  restrictedBrands?: string[] // Array of acceptable brands for brand specialist requests
   extractedKeywords: string[]
   customerCountry?: string
   customerCity?: string
@@ -50,14 +51,18 @@ export async function findMatchingMechanics(
 
   // Step 2: Filter by request type
   if (criteria.requestType === 'brand_specialist') {
-    if (!criteria.requestedBrand) {
-      throw new Error('Brand must be specified for specialist request')
+    const brandsToMatch = criteria.restrictedBrands || (criteria.requestedBrand ? [criteria.requestedBrand] : [])
+
+    if (brandsToMatch.length === 0) {
+      throw new Error('At least one brand must be specified for specialist request')
     }
 
-    // Only brand specialists with matching brand
-    query = query
-      .eq('is_brand_specialist', true)
-      .contains('brand_specializations', [criteria.requestedBrand])
+    // Only brand specialists with at least one matching brand
+    query = query.eq('is_brand_specialist', true)
+
+    // Note: PostgreSQL contains() checks if array contains ALL elements
+    // We want mechanics who have ANY of the requested brands
+    // So we'll filter in JavaScript after fetching
   }
   // For general requests, include ALL mechanics (both general and specialists)
   // Specialists can handle general requests too!
@@ -73,8 +78,30 @@ export async function findMatchingMechanics(
     return []
   }
 
+  // Step 2.5: For brand specialist requests, filter by brand match in JavaScript
+  let filteredMechanics = mechanics
+  if (criteria.requestType === 'brand_specialist') {
+    const brandsToMatch = criteria.restrictedBrands || (criteria.requestedBrand ? [criteria.requestedBrand] : [])
+    filteredMechanics = mechanics.filter(mechanic => {
+      if (!mechanic.brand_specializations || !Array.isArray(mechanic.brand_specializations)) {
+        return false
+      }
+      // Check if mechanic has ANY of the requested brands
+      return mechanic.brand_specializations.some((mechanicBrand: string) =>
+        brandsToMatch.some((requestedBrand: string) =>
+          mechanicBrand.toLowerCase() === requestedBrand.toLowerCase()
+        )
+      )
+    })
+
+    if (filteredMechanics.length === 0) {
+      console.log(`[Matching] No specialists found for brands: ${brandsToMatch.join(', ')}`)
+      return []
+    }
+  }
+
   // Step 3: Score each mechanic
-  const scoredMechanics: MechanicMatch[] = mechanics.map(mechanic => {
+  const scoredMechanics: MechanicMatch[] = filteredMechanics.map(mechanic => {
     let score = 0
     const matchReasons: string[] = []
 
@@ -106,7 +133,11 @@ export async function findMatchingMechanics(
     // Brand specialist bonus (if applicable to request type)
     if (criteria.requestType === 'brand_specialist' && mechanic.is_brand_specialist) {
       score += 30
-      matchReasons.push(`${criteria.requestedBrand} specialist`)
+      const brandsToMatch = criteria.restrictedBrands || (criteria.requestedBrand ? [criteria.requestedBrand] : [])
+      const matchedBrands = mechanic.brand_specializations?.filter((b: string) =>
+        brandsToMatch.some(rb => rb.toLowerCase() === b.toLowerCase())
+      ) || []
+      matchReasons.push(`${matchedBrands.join('/')} specialist`)
     }
 
     // Experience bonus

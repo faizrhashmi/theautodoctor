@@ -22,19 +22,15 @@ const CUSTOMER_PROTECTED_PREFIXES = [
   '/session',
 ]
 
-// CRITICAL: Mechanic-only routes - customers and admins are blocked
-const MECHANIC_PROTECTED_PREFIXES = [
-  '/mechanic/dashboard',
-  '/mechanic/availability',
-  '/mechanic/session',
-  '/mechanic/onboarding',
-]
-
-// Public mechanic routes (login, signup)
+// Public mechanic routes (login, signup, onboarding) - these DO NOT require authentication
 const MECHANIC_PUBLIC_ROUTES = [
   '/mechanic/login',
   '/mechanic/signup',
+  '/mechanic/onboarding',
 ]
+
+// CRITICAL: All other /mechanic/* routes require authentication
+// This is checked by verifying the presence of the aad_mech cookie
 
 function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -91,25 +87,57 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
+    console.log(`[MIDDLEWARE] 🔍 Admin route check for: ${pathname}`)
+    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+
     if (!user) {
+      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
       const loginUrl = new URL('/admin/login', request.url)
       const next = pathname === '/admin' ? '/admin/intakes' : pathname
       loginUrl.searchParams.set('next', next)
       return NextResponse.redirect(loginUrl)
     }
 
-    // TODO: Add admin role verification here
+    console.log(`[MIDDLEWARE] User ID: ${user.id}`)
+    console.log(`[MIDDLEWARE] User email: ${user.email}`)
+
+    // ✅ SECURITY FIX: Verify admin role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, full_name, email')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+    console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+
+    if (profileError) {
+      console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
+    }
+
+    if (!profile || profile.role !== 'admin') {
+      console.warn(
+        `[SECURITY] ❌ Non-admin user ${user.email} (${user.id}) attempted to access ${pathname}`,
+        { hasProfile: !!profile, role: profile?.role }
+      )
+      // Redirect non-admins to home page
+      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    // Log admin access for security monitoring
+    console.log(`[ADMIN] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+
     return response
   }
 
   // ==========================================================================
   // MECHANIC ROUTE PROTECTION
   // ==========================================================================
-  const requiresMechanicAuth = MECHANIC_PROTECTED_PREFIXES.some((prefix) =>
-    matchesPrefix(pathname, prefix)
-  )
+  // All /mechanic/* routes require authentication EXCEPT public routes
+  const isMechanicRoute = pathname.startsWith('/mechanic/')
 
-  if (requiresMechanicAuth) {
+  if (isMechanicRoute) {
     // Skip public routes like login/signup
     if (isPublicMechanicRoute(pathname)) {
       return response

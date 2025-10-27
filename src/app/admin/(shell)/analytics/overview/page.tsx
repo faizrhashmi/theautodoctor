@@ -133,7 +133,7 @@ export default function AnalyticsOverviewPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <Activity className="h-8 w-8 animate-spin text-orange-600 mx-auto mb-2" />
-          <p className="text-slate-600">Loading analytics...</p>
+          <p className="text-slate-400">Loading analytics...</p>
         </div>
       </div>
     )
@@ -144,8 +144,8 @@ export default function AnalyticsOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics Overview</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <h1 className="text-2xl font-bold text-white">Analytics Overview</h1>
+          <p className="mt-1 text-sm text-slate-400">
             Platform-wide metrics and performance insights
           </p>
         </div>
@@ -222,17 +222,17 @@ export default function AnalyticsOverviewPage() {
 
       {/* Beta Program Status */}
       {betaData && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Workshop Beta Program</h2>
-              <p className="text-sm text-slate-600">Track beta program readiness and progress</p>
+              <h2 className="text-lg font-semibold text-white">Workshop Beta Program</h2>
+              <p className="text-sm text-slate-400">Track beta program readiness and progress</p>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-orange-600">
                 {betaData.readinessScore}%
               </div>
-              <div className="text-xs text-slate-600">Readiness Score</div>
+              <div className="text-xs text-slate-400">Readiness Score</div>
             </div>
           </div>
 
@@ -254,23 +254,23 @@ export default function AnalyticsOverviewPage() {
 
           {/* Progress Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="p-3 rounded-lg bg-slate-50">
-              <div className="text-sm font-medium text-slate-600">Active Workshops</div>
-              <div className="text-2xl font-bold text-slate-900">
+            <div className="p-3 rounded-lg bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+              <div className="text-sm font-medium text-slate-400">Active Workshops</div>
+              <div className="text-2xl font-bold text-white">
                 {betaData.workshops.active}
-                <span className="text-sm text-slate-600">/{betaData.workshops.target}</span>
+                <span className="text-sm text-slate-400">/{betaData.workshops.target}</span>
               </div>
             </div>
-            <div className="p-3 rounded-lg bg-slate-50">
-              <div className="text-sm font-medium text-slate-600">With Mechanics</div>
-              <div className="text-2xl font-bold text-slate-900">{betaData.workshops.withMechanics}</div>
+            <div className="p-3 rounded-lg bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+              <div className="text-sm font-medium text-slate-400">With Mechanics</div>
+              <div className="text-2xl font-bold text-white">{betaData.workshops.withMechanics}</div>
             </div>
-            <div className="p-3 rounded-lg bg-slate-50">
-              <div className="text-sm font-medium text-slate-600">Beta Ready</div>
-              <div className="text-2xl font-bold text-slate-900">{betaData.workshops.ready}</div>
+            <div className="p-3 rounded-lg bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+              <div className="text-sm font-medium text-slate-400">Beta Ready</div>
+              <div className="text-2xl font-bold text-white">{betaData.workshops.ready}</div>
             </div>
-            <div className="p-3 rounded-lg bg-slate-50">
-              <div className="text-sm font-medium text-slate-600">Readiness</div>
+            <div className="p-3 rounded-lg bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+              <div className="text-sm font-medium text-slate-400">Readiness</div>
               <div className="text-2xl font-bold text-orange-600">{betaData.readinessScore}%</div>
             </div>
           </div>
@@ -318,25 +318,25 @@ export default function AnalyticsOverviewPage() {
 
       {/* Top Workshops */}
       {betaData?.topWorkshops && betaData.topWorkshops.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Top Performing Workshops</h2>
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Top Performing Workshops</h2>
           <div className="space-y-3">
             {betaData.topWorkshops.map((workshop, idx) => (
               <div
                 key={workshop.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-orange-500 transition"
+                className="flex items-center justify-between p-3 rounded-lg border border-slate-700 hover:border-orange-500 transition"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">
                     #{idx + 1}
                   </div>
                   <div>
-                    <div className="font-medium text-slate-900">{workshop.name}</div>
-                    <div className="text-xs text-slate-600">{workshop.mechanics} mechanics</div>
+                    <div className="font-medium text-white">{workshop.name}</div>
+                    <div className="text-xs text-slate-400">{workshop.mechanics} mechanics</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-slate-900">
+                  <div className="text-sm font-semibold text-white">
                     Health: {workshop.healthScore}%
                   </div>
                   <div className={`text-xs ${
@@ -403,7 +403,7 @@ function MetricCard({ title, value, change, icon, color, subtitle }: MetricCardP
   const isNeutral = change === 0
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6">
+    <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
       <div className="flex items-center justify-between mb-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorClasses[color]}`}>
           {icon}
@@ -418,8 +418,8 @@ function MetricCard({ title, value, change, icon, color, subtitle }: MetricCardP
         </div>
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-600">{title}</p>
-        <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+        <p className="text-sm font-medium text-slate-400">{title}</p>
+        <p className="text-2xl font-bold text-white mt-1">{value}</p>
         {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
       </div>
     </div>
@@ -444,15 +444,15 @@ function QuickActionCard({ title, description, href, icon, color }: QuickActionC
   return (
     <a
       href={href}
-      className="group rounded-xl border border-slate-200 bg-white p-4 transition hover:border-orange-500 hover:shadow-md"
+      className="group rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4 transition hover:border-orange-500 hover:shadow-md"
     >
       <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition ${colorClasses[color]}`}>
         {icon}
       </div>
-      <h3 className="font-semibold text-slate-900 group-hover:text-orange-600 mb-1">
+      <h3 className="font-semibold text-white group-hover:text-orange-600 mb-1">
         {title}
       </h3>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-slate-400">
         {description}
       </p>
     </a>
