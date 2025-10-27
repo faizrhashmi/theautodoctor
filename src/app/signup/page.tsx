@@ -34,26 +34,25 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-16 lg:items-start">
-            {/* Left Side - Branding & Benefits */}
-            <div className="flex flex-col justify-start lg:sticky lg:top-12">
+          <div className="grid gap-12 place-items-center lg:place-items-start lg:grid-cols-[1.2fr_1fr] lg:gap-16">
+            {/* Left Side - Branding & Benefits - ORDER: Desktop 1st, Mobile 2nd */}
+            <div className="flex flex-col justify-start w-full max-w-lg lg:max-w-none lg:sticky lg:top-12 order-2 lg:order-1">
               <div className="inline-flex items-center gap-2 rounded-full bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300 w-fit border border-orange-500/20">
                 <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                 </svg>
-                Certified Auto Diagnostics
+                Live Mechanic Support
               </div>
 
               <h1 className="mt-6 text-4xl font-bold text-white md:text-5xl lg:text-6xl">
-                Get Expert Help
+                Car Trouble?
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-red-400 to-orange-500">
-                  For Your Vehicle
+                  Get Help in Minutes
                 </span>
               </h1>
 
               <p className="mt-6 text-lg text-slate-300 leading-relaxed">
-                Connect with Red Seal mechanics instantly. Get professional diagnostics,
-                troubleshooting, and repair guidance from the comfort of your home.
+                Video call a certified mechanic instantly—no appointment, no shop visit.
               </p>
 
               <div className="mt-10 space-y-5">
@@ -64,25 +63,23 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">Live Video Diagnostics</h3>
+                    <h3 className="font-semibold text-white">Live Video Help</h3>
                     <p className="mt-1 text-sm text-slate-400">
-                      Show your mechanic the problem in real-time via HD video call
+                      Show the problem, get solutions
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-red-800 border border-red-500/30">
-                    <img
-                      src="https://www.red-seal.ca/images/redsealmapleleafbilingual-eng.png"
-                      alt="Red Seal"
-                      className="h-7 w-7 object-contain"
-                    />
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
+                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">Red Seal Certified Mechanics</h3>
+                    <h3 className="font-semibold text-white">Certified Experts</h3>
                     <p className="mt-1 text-sm text-slate-400">
-                      Every mechanic holds Red Seal certification for quality assurance
+                      Real mechanics, real answers
                     </p>
                   </div>
                 </div>
@@ -90,13 +87,13 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                 <div className="flex items-start gap-4">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
                     <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">Save Time & Money</h3>
+                    <h3 className="font-semibold text-white">5-Min Free Trial</h3>
                     <p className="mt-1 text-sm text-slate-400">
-                      Get answers instantly without driving to a shop
+                      Try before you buy
                     </p>
                   </div>
                 </div>
@@ -108,17 +105,17 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                   <div>
-                    <p className="font-semibold text-orange-200">100% Satisfaction Guarantee</p>
+                    <p className="font-semibold text-orange-200">Money-Back Guarantee</p>
                     <p className="mt-1 text-sm text-slate-300">
-                      Not satisfied? Get a full refund, no questions asked.
+                      Not happy? Full refund. No questions asked.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Side - Login/Signup Form */}
-            <div className="flex flex-col items-start justify-center gap-4 lg:pt-0">
+            {/* Right Side - Login/Signup Form - ORDER: Desktop 2nd, Mobile 1st */}
+            <div className="flex flex-col items-center lg:items-start justify-center gap-4 w-full max-w-lg lg:max-w-none lg:pt-0 order-1 lg:order-2">
               {errorCode === 'otp_expired' && (
                 <div className="w-full max-w-md rounded-xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-300">
                   <p className="font-semibold">Email Verification Link Expired</p>

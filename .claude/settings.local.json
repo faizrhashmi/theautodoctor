@@ -62,7 +62,10 @@
       "Bash(timeout 120 bash -c 'while ! grep -q \"\"Compiled successfully\\|Failed to compile\"\" <(npm run build 2>&1); do sleep 1; done; npm run build 2>&1')",
       "Bash(cd:*)",
       "Bash(del \"c:\\Users\\Faiz Hashmi\\theautodoctor\\src\\app\\chat\\[id]\\ChatRoomV4.tsx\")",
-      "Bash(timeout 90 npm run build:*)"
+      "Bash(timeout 90 npm run build:*)",
+      "Bash(cmd //c \"taskkill /F /PID 11588\")",
+      "Bash(netstat:*)",
+      "Bash(cmd //c \"taskkill /F /PID 9084 /PID 15020\")"
     ],
     "deny": [],
     "ask": []

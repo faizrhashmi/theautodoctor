@@ -32,12 +32,25 @@ const MECHANIC_PUBLIC_ROUTES = [
 // CRITICAL: All other /mechanic/* routes require authentication
 // This is checked by verifying the presence of the aad_mech cookie
 
+// Public workshop routes (login, signup) - these DO NOT require authentication
+const WORKSHOP_PUBLIC_ROUTES = [
+  '/workshop/login',
+  '/workshop/signup',
+]
+
+// CRITICAL: All other /workshop/* routes require authentication
+// This is checked via Supabase auth and organization membership
+
 function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
 function isPublicMechanicRoute(pathname: string): boolean {
   return MECHANIC_PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
+}
+
+function isPublicWorkshopRoute(pathname: string): boolean {
+  return WORKSHOP_PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
 }
 
 export async function middleware(request: NextRequest) {
@@ -160,6 +173,59 @@ export async function middleware(request: NextRequest) {
   }
 
   // ==========================================================================
+  // WORKSHOP ROUTE PROTECTION
+  // ==========================================================================
+  // All /workshop/* routes require authentication EXCEPT public routes
+  const isWorkshopRoute = pathname.startsWith('/workshop/')
+
+  if (isWorkshopRoute) {
+    // Skip public routes like login/signup
+    if (isPublicWorkshopRoute(pathname)) {
+      return response
+    }
+
+    console.log(`[MIDDLEWARE] 🔍 Workshop route check for: ${pathname}`)
+    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+
+    if (!user) {
+      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      const loginUrl = new URL('/workshop/login', request.url)
+      const safeRedirect = validateRedirect(pathname, '/workshop/dashboard')
+      loginUrl.searchParams.set('next', safeRedirect)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    // Verify user is a workshop admin via organization membership
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select(`
+        id,
+        role,
+        status,
+        organizations (
+          organization_type,
+          status
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    const org = membership?.organizations as any
+
+    if (!membership || !org || org.organization_type !== 'workshop') {
+      console.warn(
+        `[SECURITY] ❌ Non-workshop user ${user.email} (${user.id}) attempted to access ${pathname}`
+      )
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    console.log(`[WORKSHOP] ✅ ${user.email} accessing ${pathname} (Role: ${membership.role})`)
+
+    return response
+  }
+
+  // ==========================================================================
   // CUSTOMER ROUTE PROTECTION
   // ==========================================================================
   const requiresCustomerAuth = CUSTOMER_PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))
@@ -203,6 +269,8 @@ export const config = {
     '/admin/:path*',
     // Mechanic routes
     '/mechanic/:path*',
+    // Workshop routes
+    '/workshop/:path*',
     // Customer routes
     '/customer/dashboard',
     '/customer/dashboard/:path*',

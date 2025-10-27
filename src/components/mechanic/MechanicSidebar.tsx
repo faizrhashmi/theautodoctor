@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Calendar,
@@ -80,6 +80,25 @@ const NAV_ITEMS = [
 export default function MechanicSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [mechanicFirstName, setMechanicFirstName] = useState<string>('')
+
+  // Fetch mechanic's name on mount
+  useEffect(() => {
+    const fetchMechanicName = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (response.ok) {
+          const data = await response.json()
+          const firstName = data.name ? data.name.split(' ')[0] : ''
+          setMechanicFirstName(firstName)
+        }
+      } catch (error) {
+        console.error('Failed to fetch mechanic name:', error)
+      }
+    }
+
+    fetchMechanicName()
+  }, [])
 
   async function handleSignOut() {
     try {
@@ -126,7 +145,9 @@ export default function MechanicSidebar() {
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/mechanic/dashboard" variant="mechanic" />
-            <p className="text-xs text-slate-500 mt-1">Mechanic Portal</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {mechanicFirstName ? `Hi ${mechanicFirstName}` : 'Mechanic Portal'}
+            </p>
           </div>
 
           {/* Navigation */}

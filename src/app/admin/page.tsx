@@ -26,21 +26,30 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import { DashboardStats } from '@/components/admin/DashboardStats'
+import QuickNav from '@/components/admin/QuickNav'
 
 export default function AdminPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-20 pb-6 sm:px-6 lg:px-8">
-      <div className="space-y-8">
-        {/* Header */}
+    <div className="pb-6">
+      {/* Header */}
+      <div className="mx-auto max-w-7xl px-4 pt-20 pb-6 sm:px-6 lg:px-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
           <p className="mt-2 text-sm text-slate-400">
             Comprehensive platform management and monitoring
           </p>
         </div>
+      </div>
+
+      {/* Quick Navigation */}
+      <QuickNav />
+
+      {/* Main Content */}
+      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+        <div className="space-y-8">
 
       {/* Core Operations */}
-      <Section title="Core Operations" description="Primary admin functions">
+      <Section id="core-operations" title="Core Operations" description="Primary admin functions">
         <AdminCard
           href="/admin/intakes"
           icon={<FileText className="h-6 w-6" />}
@@ -81,7 +90,7 @@ export default function AdminPage() {
       </Section>
 
       {/* User Management */}
-      <Section title="User Management" description="Manage all platform users">
+      <Section id="user-management" title="User Management" description="Manage all platform users">
         <AdminCard
           href="/admin/customers"
           icon={<Users className="h-6 w-6" />}
@@ -127,7 +136,7 @@ export default function AdminPage() {
       </Section>
 
       {/* Analytics & Monitoring */}
-      <Section title="Analytics & Monitoring" description="Platform insights and performance">
+      <Section id="analytics" title="Analytics & Monitoring" description="Platform insights and performance">
         <AdminCard
           href="/admin/analytics/overview"
           icon={<BarChart3 className="h-6 w-6" />}
@@ -174,7 +183,7 @@ export default function AdminPage() {
       </Section>
 
       {/* System Tools */}
-      <Section title="System Tools" description="Advanced admin utilities">
+      <Section id="system-tools" title="System Tools" description="Advanced admin utilities">
         <AdminCard
           href="/admin/database"
           icon={<Database className="h-6 w-6" />}
@@ -213,7 +222,7 @@ export default function AdminPage() {
       </Section>
 
       {/* Emergency Tools */}
-      <Section title="Emergency Tools" description="Destructive operations - use with extreme caution">
+      <Section id="emergency-tools" title="Emergency Tools" description="Destructive operations - use with extreme caution">
         <AdminCard
           href="/admin/emergency"
           icon={<AlertTriangle className="h-6 w-6 animate-pulse" />}
@@ -225,25 +234,27 @@ export default function AdminPage() {
       </Section>
 
       {/* Real-Time Stats */}
-      <Section title="Platform Overview" description="Real-time platform metrics">
+      <Section id="platform-overview" title="Platform Overview" description="Real-time platform metrics">
         <div className="col-span-full">
           <DashboardStats />
         </div>
       </Section>
+        </div>
       </div>
     </div>
   )
 }
 
 interface SectionProps {
+  id?: string
   title: string
   description: string
   children: React.ReactNode
 }
 
-function Section({ title, description, children }: SectionProps) {
+function Section({ id, title, description, children }: SectionProps) {
   return (
-    <div className="space-y-4">
+    <div id={id} className="space-y-4 scroll-mt-32">
       <div>
         <h2 className="text-xl font-semibold text-white">{title}</h2>
         <p className="text-sm text-slate-400">{description}</p>

@@ -1,7 +1,5 @@
 // src/app/admin/layout.tsx
 import type { Metadata } from 'next'
-import { LogoutButton } from '@/components/admin/LogoutButton'
-import { AuthCheck } from '@/components/admin/AuthCheck'
 
 export const metadata: Metadata = {
   title: 'Admin - AskAutoDoctor',
@@ -16,3 +14,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )
 }
+
