@@ -1,0 +1,885 @@
+
+> theautodoctor@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local, .env.production
+  - Experiments (use with caution):
+    · turbo
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings
+
+./src/components/analytics/AdminWorkshopDashboard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/AlertCard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AlertCard.tsx
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/AlertCard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AlertCard.tsx
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/BetaProgramTracker.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/BetaProgramTracker.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/BetaProgramTracker.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/BetaProgramTracker.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/WorkshopHealthScorecard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/WorkshopHealthScorecard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/AdminWorkshopDashboard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/AlertCard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AlertCard.tsx
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/AlertCard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/AlertCard.tsx
+./src/components/analytics/AdminWorkshopDashboard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/BetaProgramTracker.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/BetaProgramTracker.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/BetaProgramTracker.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/BetaProgramTracker.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+./src/components/analytics/WorkshopHealthScorecard.tsx
+Attempted import error: 'formatDistanceToNow' is not exported from '__barrel_optimize__?names=formatDistanceToNow!=!date-fns' (imported as 'formatDistanceToNow').
+
+Import trace for requested module:
+./src/components/analytics/WorkshopHealthScorecard.tsx
+./src/app/admin/analytics/workshop/page.tsx
+
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/274) ...
+[ANALYTICS] Error fetching workshop overview: n [Error]: Dynamic server usage: Route /api/admin/analytics/workshop-overview couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at n (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\test\mechanic-password-test\route.js:1:3466)
+    at o (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\test\mechanic-password-test\route.js:1:2438)
+    at d (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\analytics\workshop-overview\route.js:1:952)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093) {
+  description: "Route /api/admin/analytics/workshop-overview couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[ANALYTICS] Error fetching beta program data: n [Error]: Dynamic server usage: Route /api/admin/analytics/beta-program couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\3235.js:1:1770)
+    at n (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\analytics\workshop-health\[id]\route.js:1:6841)
+    at o (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\analytics\workshop-health\[id]\route.js:1:5813)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\analytics\beta-program\route.js:1:1089)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093) {
+  description: "Route /api/admin/analytics/beta-program couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Error fetching cleanup history: B [Error]: Dynamic server usage: Route /api/admin/cleanup/history couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29137)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\cleanup\history\route.js:1:700)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/cleanup/history couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Error fetching saved queries: B [Error]: Dynamic server usage: Route /api/admin/database/saved-queries couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29137)
+    at d (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\database\saved-queries\route.js:1:700)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/database/saved-queries couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Admin corporate GET error: n [Error]: Dynamic server usage: Route /api/admin/corporate couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at a (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\sessions\[id]\files\route.js:1:8576)
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\corporate\route.js:1:915)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/admin/corporate couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Error generating cleanup preview: {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column sessions.customer_id does not exist'
+}
+Error fetching log stats: B [Error]: Dynamic server usage: Route /api/admin/logs/stats couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29137)
+    at c (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\logs\stats\route.js:1:597)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/logs/stats couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Error fetching query history: B [Error]: Dynamic server usage: Route /api/admin/database/history couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29137)
+    at p (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\database\history\route.js:1:700)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/database/history couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[ADMIN] Error: B [Error]: Dynamic server usage: Route /api/admin/mechanics/applications couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\mechanics\applications\route.js:1:740)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/admin/mechanics/applications couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Admin Workshops GET] Error: B [Error]: Dynamic server usage: Route /api/admin/workshops couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\corporate\[id]\approve\route.js:1:2591)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/admin/workshops couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Brands API] Unexpected error: n [Error]: Dynamic server usage: Route /api/brands couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at i (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\intakes\[id]\route.js:1:5424)
+    at p (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\brands\route.js:1:890)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/brands couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[auth/me] Error: B [Error]: Dynamic server usage: Route /api/auth/me couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\auth\me\route.js:1:896)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/auth/me couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Countries API] Unexpected error: n [Error]: Dynamic server usage: Route /api/countries couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\3235.js:1:1770)
+    at n (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\analytics\workshop-health\[id]\route.js:1:6841)
+    at c (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\countries\route.js:1:890)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/countries couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Cities API] Unexpected error: B [Error]: Dynamic server usage: Route /api/cities couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29137)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\cities\route.js:1:888)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/cities couldn't be rendered statically because it used `nextUrl.searchParams`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Corporate dashboard error: n [Error]: Dynamic server usage: Route /api/corporate/dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at a (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\corporate\[id]\generate-invoice\route.js:1:10051)
+    at c (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\corporate\dashboard\route.js:1:915)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/corporate/dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+Active sessions API error: B [Error]: Dynamic server usage: Route /api/customer/active-sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\customer\active-sessions\route.js:1:896)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/customer/active-sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+API error: B [Error]: Dynamic server usage: Route /api/customer/sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\customer\sessions\route.js:1:896)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/customer/sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+API error: B [Error]: Dynamic server usage: Route /api/customer/quotes couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\customer\quotes\route.js:1:896)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/customer/quotes couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (68/274) 
+[fix-schema] Dropping old foreign key constraint...
+[fix-schema] Error dropping constraint: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.exec_sql with parameter sql or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: null,
+  message: 'Could not find the function public.exec_sql(sql) in the schema cache'
+}
+[fix-schema] Attempting manual fix - please run this SQL in Supabase Studio:
+[geo/detect] Error: B [Error]: Dynamic server usage: Route /api/geo/detect couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at s (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\geo\detect\route.js:1:524)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/geo/detect couldn't be rendered statically because it used `request.headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[Mechanic Active Sessions] API error: B [Error]: Dynamic server usage: Route /api/mechanic/active-sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\mechanic\active-sessions\route.js:1:589)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/mechanic/active-sessions couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[mechanic-earnings] Error: B [Error]: Dynamic server usage: Route /api/mechanic/earnings couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at d (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\mechanic\earnings\route.js:1:585)
+    at m (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\mechanic\earnings\route.js:1:1046)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/mechanic/earnings couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (136/274) 
+[Service Keywords API] Unexpected error: n [Error]: Dynamic server usage: Route /api/service-keywords couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at n (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\test\mechanic-password-test\route.js:1:3466)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\service-keywords\route.js:1:889)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/service-keywords couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[GET /api/upsells] Error: n [Error]: Dynamic server usage: Route /api/upsells couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\upsells\route.js:1:949
+    at d (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\upsells\route.js:1:1273)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/upsells couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[waiver/check] Error: B [Error]: Dynamic server usage: Route /api/waiver/check couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\waiver\check\route.js:1:961)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/waiver/check couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[workshop-earnings] Error: B [Error]: Dynamic server usage: Route /api/workshop/earnings couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at u (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\workshop\earnings\route.js:1:654)
+    at c (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\workshop\earnings\route.js:10:418)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/workshop/earnings couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[waiver/get] Error: B [Error]: Dynamic server usage: Route /api/waiver/get couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\waiver\get\route.js:1:965)
+    at e (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:347)
+    at r (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:440)
+    at Object.getItem (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\7721.js:5:3103)
+    at getItemAsync (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\lib\helpers.js:158:33)
+    at SupabaseAuthClient.__loadSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1114:67)
+    at SupabaseAuthClient._useSession (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1095:39)
+    at SupabaseAuthClient._getUser (c:\Users\Faiz Hashmi\theautodoctor\node_modules\@supabase\auth-js\dist\main\GoTrueClient.js:1200:31) {
+  description: "Route /api/waiver/get couldn't be rendered statically because it used `request.cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[WORKSHOP DASHBOARD] Error: n [Error]: Dynamic server usage: Route /api/workshop/dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at l (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\8948.js:1:37220)
+    at f (c:\Users\Faiz Hashmi\theautodoctor\.next\server\chunks\1203.js:1:1770)
+    at i (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\admin\intakes\[id]\route.js:1:5424)
+    at p (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\workshop\dashboard\route.js:1:1070)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854) {
+  description: "Route /api/workshop/dashboard couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+[workshop-directory] Error: B [Error]: Dynamic server usage: Route /api/workshops/directory couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at V (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:21778)
+    at Object.get (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:29465)
+    at c (c:\Users\Faiz Hashmi\theautodoctor\.next\server\app\api\workshops\directory\route.js:1:736)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38417
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at c:\Users\Faiz Hashmi\theautodoctor\node_modules\next\dist\server\lib\trace\tracer.js:122:103 {
+  description: "Route /api/workshops/directory couldn't be rendered statically because it used `request.url`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+   Generating static pages (205/274) 
+ ✓ Generating static pages (274/274)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                           Size     First Load JS
+┌ ƒ /                                                 5.24 kB         151 kB
+├ ƒ /_not-found                                       880 B          88.4 kB
+├ ƒ /about                                            349 B           132 kB
+├ ƒ /account/live                                     190 B          96.5 kB
+├ ƒ /admin                                            5.54 kB         102 kB
+├ ƒ /admin/analytics/overview                         5.3 kB         92.9 kB
+├ ƒ /admin/analytics/workshop                         17.1 kB         105 kB
+├ ƒ /admin/brands                                     3.62 kB         136 kB
+├ ƒ /admin/claims                                     4.87 kB        92.4 kB
+├ ƒ /admin/cleanup                                    2.74 kB        90.3 kB
+├ ƒ /admin/corporate                                  3.05 kB        99.3 kB
+├ ƒ /admin/customers                                  4.43 kB         101 kB
+├ ƒ /admin/customers/[id]                             3.49 kB        99.8 kB
+├ ƒ /admin/dashboard                                  3.06 kB        99.3 kB
+├ ƒ /admin/database                                   3.32 kB        90.9 kB
+├ ƒ /admin/documents                                  4.57 kB        92.1 kB
+├ ƒ /admin/emergency                                  3.75 kB        91.3 kB
+├ ƒ /admin/errors                                     2.77 kB        90.3 kB
+├ ƒ /admin/feature-flags                              4.03 kB         136 kB
+├ ƒ /admin/fees                                       2.13 kB        98.4 kB
+├ ƒ /admin/health                                     2.63 kB        90.2 kB
+├ ƒ /admin/intakes                                    4.47 kB         101 kB
+├ ƒ /admin/intakes/[id]                               185 B          87.7 kB
+├ ƒ /admin/intakes/[id]/details                       1.55 kB        97.8 kB
+├ ƒ /admin/intakes/deletions                          190 B          96.5 kB
+├ ƒ /admin/login                                      1.8 kB         98.1 kB
+├ ƒ /admin/logout                                     620 B          88.2 kB
+├ ƒ /admin/logs                                       2.78 kB        90.3 kB
+├ ƒ /admin/mechanics                                  5.37 kB         102 kB
+├ ƒ /admin/mechanics/[id]                             2.98 kB        99.3 kB
+├ ƒ /admin/mechanics/applications                     4.83 kB        92.4 kB
+├ ƒ /admin/plans                                      5.74 kB        93.3 kB
+├ ƒ /admin/profile-completion                         4.37 kB         145 kB
+├ ƒ /admin/requests                                   3.84 kB        91.4 kB
+├ ƒ /admin/sessions                                   13.7 kB         146 kB
+├ ƒ /admin/unattended                                 2.53 kB        90.1 kB
+├ ƒ /admin/workshops                                  4.22 kB        91.8 kB
+├ ƒ /admin/workshops/applications                     4.71 kB        92.3 kB
+├ ƒ /api/admin/analytics/beta-program                 0 B                0 B
+├ ƒ /api/admin/analytics/workshop-health/[id]         0 B                0 B
+├ ƒ /api/admin/analytics/workshop-overview            0 B                0 B
+├ ƒ /api/admin/claims                                 0 B                0 B
+├ ƒ /api/admin/claims/[id]/approve                    0 B                0 B
+├ ƒ /api/admin/claims/[id]/reject                     0 B                0 B
+├ ƒ /api/admin/cleanup/execute                        0 B                0 B
+├ ƒ /api/admin/cleanup/history                        0 B                0 B
+├ ƒ /api/admin/cleanup/preview                        0 B                0 B
+├ ƒ /api/admin/clear-all-sessions                     0 B                0 B
+├ ƒ /api/admin/clear-session-requests                 0 B                0 B
+├ ƒ /api/admin/corporate                              0 B                0 B
+├ ƒ /api/admin/corporate/[id]/approve                 0 B                0 B
+├ ƒ /api/admin/corporate/[id]/generate-invoice        0 B                0 B
+├ ƒ /api/admin/corporate/[id]/reject                  0 B                0 B
+├ ƒ /api/admin/corporate/[id]/suspend                 0 B                0 B
+├ ƒ /api/admin/dashboard/stats                        0 B                0 B
+├ ƒ /api/admin/database/history                       0 B                0 B
+├ ƒ /api/admin/database/query                         0 B                0 B
+├ ƒ /api/admin/database/saved-queries                 0 B                0 B
+├ ƒ /api/admin/debug-auth                             0 B                0 B
+├ ƒ /api/admin/errors                                 0 B                0 B
+├ ƒ /api/admin/errors/[id]                            0 B                0 B
+├ ƒ /api/admin/fees/rules                             0 B                0 B
+├ ƒ /api/admin/fees/rules/[ruleId]                    0 B                0 B
+├ ○ /api/admin/health                                 0 B                0 B
+├ ƒ /api/admin/intakes/[id]                           0 B                0 B
+├ ƒ /api/admin/intakes/[id]/status                    0 B                0 B
+├ ƒ /api/admin/intakes/export                         0 B                0 B
+├ ƒ /api/admin/intakes/query                          0 B                0 B
+├ ƒ /api/admin/intakes/update-status                  0 B                0 B
+├ ƒ /api/admin/login                                  0 B                0 B
+├ ƒ /api/admin/logout                                 0 B                0 B
+├ ƒ /api/admin/logs                                   0 B                0 B
+├ ƒ /api/admin/logs/stats                             0 B                0 B
+├ ƒ /api/admin/mechanic-documents                     0 B                0 B
+├ ƒ /api/admin/mechanic-documents/[id]/review         0 B                0 B
+├ ƒ /api/admin/mechanics/[id]/approve                 0 B                0 B
+├ ƒ /api/admin/mechanics/[id]/reject                  0 B                0 B
+├ ƒ /api/admin/mechanics/[id]/request_info            0 B                0 B
+├ ƒ /api/admin/mechanics/applications                 0 B                0 B
+├ ƒ /api/admin/plans                                  0 B                0 B
+├ ƒ /api/admin/plans/[id]                             0 B                0 B
+├ ƒ /api/admin/plans/[id]/toggle                      0 B                0 B
+├ ƒ /api/admin/requests                               0 B                0 B
+├ ƒ /api/admin/requests/[id]/assign                   0 B                0 B
+├ ƒ /api/admin/sessions/[id]/chat                     0 B                0 B
+├ ƒ /api/admin/sessions/[id]/files                    0 B                0 B
+├ ƒ /api/admin/sessions/[id]/timeline                 0 B                0 B
+├ ƒ /api/admin/sessions/bulk-cancel                   0 B                0 B
+├ ƒ /api/admin/sessions/export                        0 B                0 B
+├ ƒ /api/admin/sessions/force-cancel                  0 B                0 B
+├ ƒ /api/admin/sessions/force-end                     0 B                0 B
+├ ƒ /api/admin/sessions/join                          0 B                0 B
+├ ƒ /api/admin/sessions/reassign                      0 B                0 B
+├ ƒ /api/admin/sessions/stats                         0 B                0 B
+├ ƒ /api/admin/test-login                             0 B                0 B
+├ ƒ /api/admin/users/[id]                             0 B                0 B
+├ ƒ /api/admin/users/[id]/ban                         0 B                0 B
+├ ƒ /api/admin/users/[id]/free-session-override       0 B                0 B
+├ ƒ /api/admin/users/[id]/notes                       0 B                0 B
+├ ƒ /api/admin/users/[id]/notify                      0 B                0 B
+├ ƒ /api/admin/users/[id]/reset-password              0 B                0 B
+├ ƒ /api/admin/users/[id]/suspend                     0 B                0 B
+├ ƒ /api/admin/users/[id]/verify-email                0 B                0 B
+├ ƒ /api/admin/users/customers                        0 B                0 B
+├ ƒ /api/admin/users/export                           0 B                0 B
+├ ƒ /api/admin/users/mechanics                        0 B                0 B
+├ ƒ /api/admin/users/mechanics/[id]                   0 B                0 B
+├ ƒ /api/admin/users/mechanics/[id]/adjust-rating     0 B                0 B
+├ ƒ /api/admin/users/mechanics/[id]/approve           0 B                0 B
+├ ƒ /api/admin/workshops                              0 B                0 B
+├ ƒ /api/admin/workshops/[id]/approve                 0 B                0 B
+├ ƒ /api/admin/workshops/[id]/reactivate              0 B                0 B
+├ ƒ /api/admin/workshops/[id]/reject                  0 B                0 B
+├ ƒ /api/admin/workshops/[id]/suspend                 0 B                0 B
+├ ƒ /api/admin/workshops/applications                 0 B                0 B
+├ ƒ /api/auth/me                                      0 B                0 B
+├ ƒ /api/auth/set-session                             0 B                0 B
+├ ƒ /api/brands                                       0 B                0 B
+├ ƒ /api/chat/debug-messages                          0 B                0 B
+├ ƒ /api/chat/send-message                            0 B                0 B
+├ ƒ /api/chat/session-info                            0 B                0 B
+├ ƒ /api/checkout                                     0 B                0 B
+├ ƒ /api/checkout/create-session                      0 B                0 B
+├ ƒ /api/checkout/resolve                             0 B                0 B
+├ ƒ /api/cities                                       0 B                0 B
+├ ƒ /api/contact                                      0 B                0 B
+├ ƒ /api/corporate/dashboard                          0 B                0 B
+├ ƒ /api/corporate/employees                          0 B                0 B
+├ ƒ /api/corporate/employees/[id]                     0 B                0 B
+├ ƒ /api/corporate/signup                             0 B                0 B
+├ ƒ /api/countries                                    0 B                0 B
+├ ƒ /api/cron/monitor-sessions                        0 B                0 B
+├ ƒ /api/cron/workshop-alerts                         0 B                0 B
+├ ƒ /api/cron/workshop-metrics                        0 B                0 B
+├ ƒ /api/customer/active-sessions                     0 B                0 B
+├ ƒ /api/customer/bookings                            0 B                0 B
+├ ƒ /api/customer/clear-plan                          0 B                0 B
+├ ƒ /api/customer/dashboard/stats                     0 B                0 B
+├ ƒ /api/customer/favorites                           0 B                0 B
+├ ƒ /api/customer/favorites/[favoriteId]              0 B                0 B
+├ ƒ /api/customer/force-cancel-session                0 B                0 B
+├ ƒ /api/customer/forgot-password                     0 B                0 B
+├ ƒ /api/customer/logout                              0 B                0 B
+├ ƒ /api/customer/profile                             0 B                0 B
+├ ƒ /api/customer/quotes                              0 B                0 B
+├ ƒ /api/customer/schedule                            0 B                0 B
+├ ƒ /api/customer/sessions                            0 B                0 B
+├ ƒ /api/customer/sessions/[sessionId]                0 B                0 B
+├ ƒ /api/customer/sessions/[sessionId]/cancel         0 B                0 B
+├ ƒ /api/customer/sessions/[sessionId]/rate           0 B                0 B
+├ ƒ /api/customer/sessions/[sessionId]/reschedule     0 B                0 B
+├ ƒ /api/customer/signup                              0 B                0 B
+├ ƒ /api/customer/vehicles                            0 B                0 B
+├ ƒ /api/debug/auth-status                            0 B                0 B
+├ ƒ /api/debug/check-active-sessions                  0 B                0 B
+├ ƒ /api/debug/check-request                          0 B                0 B
+├ ○ /api/debug/check-schema                           0 B                0 B
+├ ƒ /api/debug/check-session                          0 B                0 B
+├ ƒ /api/debug/cleanup-ghost-requests                 0 B                0 B
+├ ƒ /api/debug/cleanup-live-sessions                  0 B                0 B
+├ ○ /api/debug/cleanup-pending-sessions               0 B                0 B
+├ ƒ /api/debug/cleanup-sessions                       0 B                0 B
+├ ƒ /api/debug/cleanup-user-data                      0 B                0 B
+├ ƒ /api/debug/clear-customer-sessions                0 B                0 B
+├ ƒ /api/debug/clear-old-requests                     0 B                0 B
+├ ƒ /api/debug/create-missing-request                 0 B                0 B
+├ ƒ /api/debug/fix-orphaned-session                   0 B                0 B
+├ ○ /api/debug/fix-schema                             0 B                0 B
+├ ƒ /api/debug/fix-session                            0 B                0 B
+├ ƒ /api/debug/force-cancel-session                   0 B                0 B
+├ ƒ /api/debug/mechanic-requests                      0 B                0 B
+├ ○ /api/debug/pending-requests                       0 B                0 B
+├ ƒ /api/debug/request-details                        0 B                0 B
+├ ○ /api/debug/reset-broken-requests                  0 B                0 B
+├ ○ /api/debug/session-health                         0 B                0 B
+├ ○ /api/debug/session-requests                       0 B                0 B
+├ ƒ /api/debug/vehicles                               0 B                0 B
+├ ƒ /api/dev/create-test-users                        0 B                0 B
+├ ƒ /api/fees/calculate                               0 B                0 B
+├ ƒ /api/follow-up                                    0 B                0 B
+├ ○ /api/geo/countries                                0 B                0 B
+├ ƒ /api/geo/detect                                   0 B                0 B
+├ ○ /api/health                                       0 B                0 B
+├ ƒ /api/intake/start                                 0 B                0 B
+├ ƒ /api/keywords/extract                             0 B                0 B
+├ ƒ /api/livekit                                      0 B                0 B
+├ ƒ /api/livekit/token                                0 B                0 B
+├ ƒ /api/matching/find-mechanics                      0 B                0 B
+├ ƒ /api/mechanic/accept                              0 B                0 B
+├ ƒ /api/mechanic/active-sessions                     0 B                0 B
+├ ƒ /api/mechanic/availability                        0 B                0 B
+├ ƒ /api/mechanic/clear-stuck-requests                0 B                0 B
+├ ƒ /api/mechanic/collect-sin                         0 B                0 B
+├ ƒ /api/mechanic/dashboard/stats                     0 B                0 B
+├ ƒ /api/mechanic/documents                           0 B                0 B
+├ ƒ /api/mechanic/documents/[id]                      0 B                0 B
+├ ƒ /api/mechanic/earnings                            0 B                0 B
+├ ƒ /api/mechanic/escalate-session                    0 B                0 B
+├ ƒ /api/mechanic/force-end-all                       0 B                0 B
+├ ƒ /api/mechanic/reviews                             0 B                0 B
+├ ƒ /api/mechanic/sessions/[sessionId]                0 B                0 B
+├ ƒ /api/mechanic/sessions/complete                   0 B                0 B
+├ ƒ /api/mechanic/sessions/history                    0 B                0 B
+├ ƒ /api/mechanic/signup                              0 B                0 B
+├ ƒ /api/mechanic/signup/draft                        0 B                0 B
+├ ƒ /api/mechanic/time-off                            0 B                0 B
+├ ƒ /api/mechanic/time-off/[id]                       0 B                0 B
+├ ƒ /api/mechanic/upload-document                     0 B                0 B
+├ ƒ /api/mechanic/workshop-signup                     0 B                0 B
+├ ƒ /api/mechanics/[mechanicId]/profile               0 B                0 B
+├ ƒ /api/mechanics/[mechanicId]/profile-completion    0 B                0 B
+├ ƒ /api/mechanics/analytics                          0 B                0 B
+├ ƒ /api/mechanics/availability                       0 B                0 B
+├ ○ /api/mechanics/available-count                    0 B                0 B
+├ ƒ /api/mechanics/bay-bookings                       0 B                0 B
+├ ƒ /api/mechanics/clients                            0 B                0 B
+├ ƒ /api/mechanics/clients/[clientId]                 0 B                0 B
+├ ƒ /api/mechanics/dashboard/stats                    0 B                0 B
+├ ƒ /api/mechanics/earnings                           0 B                0 B
+├ ƒ /api/mechanics/jobs                               0 B                0 B
+├ ƒ /api/mechanics/login                              0 B                0 B
+├ ƒ /api/mechanics/logout                             0 B                0 B
+├ ƒ /api/mechanics/me                                 0 B                0 B
+├ ƒ /api/mechanics/onboarding/service-tier            0 B                0 B
+├ ƒ /api/mechanics/onboarding/virtual-only            0 B                0 B
+├ ƒ /api/mechanics/partnerships/applications          0 B                0 B
+├ ƒ /api/mechanics/partnerships/programs              0 B                0 B
+├ ƒ /api/mechanics/requests                           0 B                0 B
+├ ƒ /api/mechanics/requests/[id]/accept               0 B                0 B
+├ ƒ /api/mechanics/requests/[id]/cancel               0 B                0 B
+├ ƒ /api/mechanics/requests/history                   0 B                0 B
+├ ƒ /api/mechanics/sessions/virtual                   0 B                0 B
+├ ƒ /api/mechanics/signup                             0 B                0 B
+├ ƒ /api/mechanics/statements                         0 B                0 B
+├ ƒ /api/mechanics/stripe/onboard                     0 B                0 B
+├ ƒ /api/plans                                        0 B                0 B
+├ ƒ /api/quotes/[quoteId]                             0 B                0 B
+├ ƒ /api/quotes/[quoteId]/respond                     0 B                0 B
+├ ƒ /api/requests                                     0 B                0 B
+├ ƒ /api/reviews                                      0 B                0 B
+├ ƒ /api/service-keywords                             0 B                0 B
+├ ƒ /api/session/extend                               0 B                0 B
+├ ƒ /api/session/invite                               0 B                0 B
+├ ƒ /api/session/start                                0 B                0 B
+├ ƒ /api/sessions                                     0 B                0 B
+├ ƒ /api/sessions/[id]                                0 B                0 B
+├ ƒ /api/sessions/[id]/delete                         0 B                0 B
+├ ƒ /api/sessions/[id]/end                            0 B                0 B
+├ ƒ /api/sessions/[id]/files                          0 B                0 B
+├ ƒ /api/sessions/[id]/start                          0 B                0 B
+├ ƒ /api/sessions/[id]/status                         0 B                0 B
+├ ƒ /api/sessions/[id]/summary                        0 B                0 B
+├ ƒ /api/sessions/[id]/upgrade                        0 B                0 B
+├ ƒ /api/sessions/[id]/upsells                        0 B                0 B
+├ ƒ /api/sessions/extend                              0 B                0 B
+├ ƒ /api/sessions/resolve-by-stripe                   0 B                0 B
+├ ƒ /api/sessions/upgrade/payment                     0 B                0 B
+├ ƒ /api/stripe/webhook                               0 B                0 B
+├ ƒ /api/test-create-request                          0 B                0 B
+├ ƒ /api/test/check-mechanic-auth                     0 B                0 B
+├ ○ /api/test/check-mechanics-tables                  0 B                0 B
+├ ○ /api/test/check-sessions                          0 B                0 B
+├ ƒ /api/test/mechanic-password-test                  0 B                0 B
+├ ƒ /api/unsubscribe                                  0 B                0 B
+├ ƒ /api/uploads/put                                  0 B                0 B
+├ ƒ /api/uploads/sign                                 0 B                0 B
+├ ƒ /api/upsells                                      0 B                0 B
+├ ƒ /api/upsells/[id]                                 0 B                0 B
+├ ƒ /api/upsells/[id]/click                           0 B                0 B
+├ ƒ /api/upsells/[id]/dismiss                         0 B                0 B
+├ ƒ /api/vin/decode                                   0 B                0 B
+├ ƒ /api/waiver/check                                 0 B                0 B
+├ ƒ /api/waiver/get                                   0 B                0 B
+├ ƒ /api/waiver/submit                                0 B                0 B
+├ ƒ /api/workshop/dashboard                           0 B                0 B
+├ ƒ /api/workshop/diagnostics/[sessionId]             0 B                0 B
+├ ƒ /api/workshop/diagnostics/[sessionId]/complete    0 B                0 B
+├ ƒ /api/workshop/earnings                            0 B                0 B
+├ ƒ /api/workshop/escalation-queue                    0 B                0 B
+├ ƒ /api/workshop/invite-mechanic                     0 B                0 B
+├ ƒ /api/workshop/logout                              0 B                0 B
+├ ƒ /api/workshop/quotes/create                       0 B                0 B
+├ ƒ /api/workshop/signup                              0 B                0 B
+├ ƒ /api/workshop/stripe/onboard                      0 B                0 B
+├ ƒ /api/workshops/applications                       0 B                0 B
+├ ƒ /api/workshops/applications/[applicationId]       0 B                0 B
+├ ƒ /api/workshops/directory                          0 B                0 B
+├ ƒ /api/workshops/programs                           0 B                0 B
+├ ○ /apple-icon.png                                   0 B                0 B
+├ ƒ /auth/callback                                    0 B                0 B
+├ ƒ /auth/confirm                                     1.8 kB          134 kB
+├ ƒ /chat/[id]                                        10.2 kB         142 kB
+├ ƒ /checkout/success                                 1.52 kB        89.1 kB
+├ ƒ /contact                                          3.32 kB        90.9 kB
+├ ƒ /corporate/dashboard                              3.52 kB        99.8 kB
+├ ƒ /corporate/signup                                 4.1 kB          100 kB
+├ ƒ /customer/dashboard                               10.9 kB         152 kB
+├ ƒ /customer/forgot-password                         1.7 kB           98 kB
+├ ƒ /customer/profile                                 3.56 kB        91.1 kB
+├ ƒ /customer/quotes                                  3.38 kB        99.7 kB
+├ ƒ /customer/quotes/[quoteId]                        2.83 kB        90.4 kB
+├ ƒ /customer/schedule                                7.67 kB        95.2 kB
+├ ƒ /customer/sessions                                8.34 kB         105 kB
+├ ƒ /customer/signup                                  14.8 kB         147 kB
+├ ƒ /customer/vehicles                                5.44 kB         146 kB
+├ ƒ /customer/verify-email                            1.45 kB        97.7 kB
+├ ƒ /dashboard/intakes                                184 B          87.7 kB
+├ ƒ /diagnostic/[id]                                  10.6 kB         285 kB
+├ ƒ /diagnostics/revalidate-check                     184 B          87.7 kB
+├ ƒ /how-it-works                                     192 B          96.5 kB
+├ ○ /icon.png                                         0 B                0 B
+├ ƒ /intake                                           7.35 kB         140 kB
+├ ƒ /intake/waiver                                    10.6 kB        98.1 kB
+├ ƒ /knowledge-base                                   191 B          96.5 kB
+├ ● /knowledge-base/[slug]                            190 B           102 kB
+├   └ /knowledge-base/prepare-for-diagnostic-session
+├ ƒ /login                                            184 B          87.7 kB
+├ ƒ /mechanic/analytics                               3.2 kB         99.5 kB
+├ ƒ /mechanic/availability                            4.6 kB         92.2 kB
+├ ƒ /mechanic/crm                                     4.92 kB        92.5 kB
+├ ƒ /mechanic/dashboard                               5.43 kB         150 kB
+├ ƒ /mechanic/dashboard/virtual                       3.26 kB         148 kB
+├ ƒ /mechanic/documents                               4.78 kB        92.3 kB
+├ ƒ /mechanic/earnings                                4.04 kB        91.6 kB
+├ ƒ /mechanic/job-recording                           3.68 kB         100 kB
+├ ƒ /mechanic/login                                   2.48 kB        98.8 kB
+├ ƒ /mechanic/onboarding/service-tier                 3.96 kB        91.5 kB
+├ ƒ /mechanic/onboarding/stripe                       2.72 kB        90.3 kB
+├ ƒ /mechanic/onboarding/stripe/complete              184 B          87.7 kB
+├ ƒ /mechanic/onboarding/virtual-only                 5.11 kB        92.7 kB
+├ ƒ /mechanic/partnerships/applications               3.83 kB        91.4 kB
+├ ƒ /mechanic/partnerships/apply/[programId]          4.08 kB        91.6 kB
+├ ƒ /mechanic/partnerships/browse                     4.42 kB          92 kB
+├ ƒ /mechanic/profile                                 9.8 kB          151 kB
+├ ƒ /mechanic/reviews                                 4.28 kB        91.8 kB
+├ ƒ /mechanic/session/[id]                            2.96 kB         104 kB
+├ ƒ /mechanic/session/[id]/complete                   3.93 kB         100 kB
+├ ƒ /mechanic/sessions                                4.79 kB        92.3 kB
+├ ƒ /mechanic/sessions/virtual                        4.78 kB        92.3 kB
+├ ƒ /mechanic/signup                                  9.38 kB         106 kB
+├ ƒ /mechanic/signup/[inviteCode]                     5.76 kB         138 kB
+├ ƒ /mechanic/signup/success                          2.41 kB        98.7 kB
+├ ƒ /mechanic/statements                              3.21 kB        99.5 kB
+├ ƒ /onboarding/pricing                               2.2 kB         89.8 kB
+├ ƒ /pricing                                          184 B          87.7 kB
+├ ƒ /services-pricing                                 192 B          96.5 kB
+├ ƒ /session/[id]                                     4.7 kB          293 kB
+├ ƒ /session/[id]/complete                            2.35 kB        98.6 kB
+├ ƒ /sessions/[id]/summary                            3.09 kB        90.6 kB
+├ ƒ /signup                                           152 B           157 kB
+├ ƒ /start                                            152 B           157 kB
+├ ƒ /test-auth                                        1.02 kB        88.6 kB
+├ ƒ /test-mechanics                                   1.23 kB        88.8 kB
+├ ƒ /test-new-features                                5.22 kB        92.8 kB
+├ ƒ /thank-you                                        858 B          97.1 kB
+├ ƒ /unsubscribe                                      1.51 kB        89.1 kB
+├ ƒ /video                                            1.24 kB         232 kB
+├ ƒ /video/[id]                                       11.8 kB         286 kB
+├ ƒ /waiver                                           2.29 kB        89.8 kB
+├ ƒ /workshop/analytics                               4.38 kB         145 kB
+├ ƒ /workshop/dashboard                               8.53 kB         141 kB
+├ ƒ /workshop/diagnostics/[sessionId]/complete        4.12 kB        91.7 kB
+├ ƒ /workshop/escalations                             4.49 kB         101 kB
+├ ƒ /workshop/partnerships/applications               3.69 kB         100 kB
+├ ƒ /workshop/partnerships/programs                   4.13 kB         100 kB
+├ ƒ /workshop/quotes/create/[sessionId]               3.25 kB        90.8 kB
+├ ƒ /workshop/settings/revenue                        4.31 kB         145 kB
+├ ƒ /workshop/signup                                  8.79 kB         141 kB
+└ ƒ /workshop/signup/success                          3.3 kB          135 kB
++ First Load JS shared by all                         87.6 kB
+  ├ chunks/2117-caec1013ecaab3d7.js                   31.9 kB
+  ├ chunks/fd9d1056-d1f63a548549343f.js               53.6 kB
+  └ other shared chunks (total)                       2.03 kB
+
+
+ƒ Middleware                                          68.2 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

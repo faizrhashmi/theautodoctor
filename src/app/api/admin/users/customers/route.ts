@@ -81,13 +81,36 @@ export async function GET(req: NextRequest) {
 
     // Get user emails from auth.users
     const userIds = profiles?.map(p => p.id) || [];
-    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    const emailMap = new Map<string, string>();
+    let pageIndex = 1;
+    const perPage = 100;
+    while (true) {
+      const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+        page: pageIndex,
+        perPage,
+      });
 
-    if (authError) {
-      console.error('Auth users query error', authError);
+      if (authError) {
+        console.error('Auth users query error', authError);
+        break;
+      }
+
+      authUsers?.users.forEach((user) => {
+        if (user.id) {
+          emailMap.set(user.id, user.email || '');
+        }
+      });
+
+      if (!authUsers || authUsers.users.length < perPage) {
+        break;
+      }
+
+      pageIndex += 1;
+      if (pageIndex > 20) {
+        console.warn('Reached auth users pagination guard limit');
+        break;
+      }
     }
-
-    const emailMap = new Map(authUsers?.users.map(u => [u.id, u.email]) || []);
 
     // Enrich profiles with emails and session stats
     const enrichedProfiles = await Promise.all(
@@ -96,7 +119,7 @@ export async function GET(req: NextRequest) {
         const { count: sessionCount } = await supabaseAdmin
           .from('sessions')
           .select('*', { count: 'exact', head: true })
-          .eq('customer_id', profile.id);
+          .eq('customer_user_id', profile.id);
 
         const { data: payments } = await supabaseAdmin
           .from('payments')
