@@ -118,6 +118,21 @@ export default function ChatRoom({
     return 30
   }, [plan])
 
+  // Sync messages state with initialMessages prop when navigating back to chat
+  useEffect(() => {
+    // Only update if we have initial messages and they're different from current state
+    if (initialMessages.length > 0) {
+      setMessages((prev) => {
+        // If current state is empty or significantly different, reset to initial messages
+        if (prev.length === 0 || prev.length !== initialMessages.length) {
+          return [...initialMessages]
+        }
+        // Otherwise keep current state (which includes real-time updates)
+        return prev
+      })
+    }
+  }, [initialMessages])
+
   // Fetch updated participant info, vehicle data, and mechanic profile
   useEffect(() => {
     async function fetchSessionInfo() {
@@ -563,6 +578,26 @@ export default function ChatRoom({
 
       const data = await response.json()
       console.log('[ChatRoom] Message sent successfully:', data.message)
+
+      // Add message to local state immediately so sender sees it
+      if (data.message) {
+        setMessages((prev) => {
+          // Check for duplicate to prevent double-adding
+          if (prev.some((m) => m.id === data.message.id)) {
+            return prev
+          }
+          return [
+            ...prev,
+            {
+              id: data.message.id,
+              content: data.message.content,
+              sender_id: data.message.sender_id,
+              created_at: data.message.created_at,
+              attachments: data.message.attachments || [],
+            },
+          ]
+        })
+      }
 
       // Broadcast the message to all connected clients (including self)
       // CRITICAL FIX: Reuse existing channel instead of creating a new one to prevent socket leaks

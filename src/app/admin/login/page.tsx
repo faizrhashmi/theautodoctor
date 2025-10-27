@@ -10,8 +10,8 @@ type SearchParams = Promise<{ error?: string; next?: string }>
 
 export default async function AdminLoginPage(props: { searchParams: SearchParams }) {
   const { error, next } = await props.searchParams
-  // Redirect to the admin dashboard home page
-  const redirectTo = next && next.startsWith('/admin') ? next : '/admin'
+  // FIX: Redirect to /admin/intakes instead of /admin to avoid homepage redirect
+  const redirectTo = next && next.startsWith('/admin') ? next : '/admin/intakes'
 
   return <AdminLoginClient redirectTo={redirectTo} initialError={error ? decodeURIComponent(error) : undefined} />
 }

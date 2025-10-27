@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       const data = await request.json()
       email = data.email
       password = data.password
-      redirectTo = data.redirect || '/admin'
+      // FIX: Default to /admin/intakes instead of just /admin
+      redirectTo = data.redirect || '/admin/intakes'
       isJsonRequest = true
     } else if (contentType.includes('application/x-www-form-urlencoded')) {
       // Handle URL-encoded data
@@ -28,13 +29,13 @@ export async function POST(request: NextRequest) {
       const params = new URLSearchParams(text)
       email = params.get('email') as string
       password = params.get('password') as string
-      redirectTo = params.get('redirect') as string || '/admin'
+      redirectTo = params.get('redirect') as string || '/admin/intakes'
     } else {
       // Handle form data from HTML form
       const formData = await request.formData()
       email = formData.get('email') as string
       password = formData.get('password') as string
-      redirectTo = formData.get('redirect') as string || '/admin'
+      redirectTo = formData.get('redirect') as string || '/admin/intakes'
     }
 
     console.log('Login attempt:', { email, redirectTo, isJsonRequest })
@@ -83,15 +84,15 @@ export async function POST(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          // Ensure proper cookie settings for production
+          // FIX: Don't set domain explicitly - allows cookies to work on any deployment URL
+          // This fixes production login issues where domain mismatch prevented cookie storage
           const cookieOptions = {
             ...options,
             sameSite: 'lax' as const,
             secure: isProduction, // Set secure flag in production
             httpOnly: true,
             path: '/',
-            // Set domain to work with both www and non-www
-            domain: isProduction ? '.askautodoctor.com' : undefined
+            // Removed explicit domain setting for better compatibility
           }
           response.cookies.set({ name, value, ...cookieOptions })
         },
@@ -103,8 +104,7 @@ export async function POST(request: NextRequest) {
             httpOnly: true,
             path: '/',
             maxAge: 0,
-            // Set domain to work with both www and non-www
-            domain: isProduction ? '.askautodoctor.com' : undefined
+            // Removed explicit domain setting
           }
           response.cookies.set({ name, value: '', ...cookieOptions })
         },
