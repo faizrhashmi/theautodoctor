@@ -56,16 +56,16 @@ export default function CustomerNavbar() {
       // Give it a moment to propagate
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Set a flag BEFORE clearing storage to communicate logout to next page
-      sessionStorage.setItem('logout-pending', 'true');
-
+      // CRITICAL: Clear ALL storage first to remove any stale Supabase data
       localStorage.clear();
+      sessionStorage.clear();
 
-      // Don't clear sessionStorage yet - we need the logout-pending flag to persist
+      // Now set the logout flag AFTER clearing (so it's the only thing in sessionStorage)
+      sessionStorage.setItem('logout-pending', 'true');
 
       // Clear the singleton browser client so fresh client is created on next page load
       clearBrowserClient();
-      console.log('[CustomerNavbar] Client-side cleanup complete');
+      console.log('[CustomerNavbar] Client-side cleanup complete (all storage cleared)');
 
       // Step 2: Clear server-side cookies
       console.log('[CustomerNavbar] Calling server logout API...');
@@ -96,10 +96,10 @@ export default function CustomerNavbar() {
       console.error('[CustomerNavbar] Sign out error:', error);
       // Fail-safe: force cleanup and reload anyway
       try {
-        sessionStorage.setItem('logout-pending', 'true');
         await supabase.auth.signOut();
         localStorage.clear();
-        // Don't clear sessionStorage - need logout-pending flag
+        sessionStorage.clear();
+        sessionStorage.setItem('logout-pending', 'true');
         clearBrowserClient();
       } catch (e) {
         console.error('[CustomerNavbar] Cleanup error:', e);

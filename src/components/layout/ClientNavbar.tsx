@@ -68,51 +68,27 @@ export default function ClientNavbar() {
   useEffect(() => {
     console.log('[ClientNavbar] Component mounted, initializing auth state...')
 
-    // CRITICAL: Check for logout first, before any async operations
     const isPostLogout = window.location.search.includes('logout=')
     const hasLogoutFlag = sessionStorage.getItem('logout-pending') === 'true'
+    let skipInitialSessionCheck = false
 
     if (isPostLogout || hasLogoutFlag) {
-      console.log('[ClientNavbar] 🔴 LOGOUT DETECTED - Setting logged out state immediately')
+      console.log('[ClientNavbar] Logout flag detected - forcing cleared state')
       clearBrowserClient()
       sessionStorage.removeItem('logout-pending')
-
-      // Force state update synchronously
       setUser(null)
       setUserRole(null)
       setLoading(false)
-
-      console.log('[ClientNavbar] ✅ Logged out state set - Login button should appear')
-      return
+      skipInitialSessionCheck = true
     }
 
-    // Only check session if NOT post-logout
-    console.log('[ClientNavbar] No logout detected, checking session...')
     const supabase = createClient()
 
-    // Get and VALIDATE initial session (this refreshes expired tokens)
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      if (error) {
-        console.error('[ClientNavbar] Session validation error:', error)
-        // Clear invalid session
-        await supabase.auth.signOut()
-        setUser(null)
-        setUserRole(null)
-        setLoading(false)
-        return
-      }
-
-      const user = session?.user ?? null
-      console.log('[ClientNavbar] Initial session check:', user ? `User ${user.id}` : 'No user')
-      setUser(user)
-
-      if (user) {
-        // Verify session is actually valid by checking user data
-        const { data: userData, error: userError } = await supabase.auth.getUser()
-
-        if (userError || !userData.user) {
-          // Session is invalid, sign out
-          console.log('[ClientNavbar] Invalid session detected, signing out')
+    if (!skipInitialSessionCheck) {
+      console.log('[ClientNavbar] Checking current session...')
+      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+        if (error) {
+          console.error('[ClientNavbar] Session validation error:', error)
           await supabase.auth.signOut()
           setUser(null)
           setUserRole(null)
@@ -120,51 +96,69 @@ export default function ClientNavbar() {
           return
         }
 
-        // Check user role
-        const role = await determineUserRole(user.id, supabase)
-        console.log('[ClientNavbar] User role:', role)
-        setUserRole(role)
-      } else {
-        console.log('[ClientNavbar] No user - showing public navigation')
-        setUserRole(null)
-      }
+        const currentUser = session?.user ?? null
+        console.log('[ClientNavbar] Initial session check:', currentUser ? `User ${currentUser.id}` : 'No user')
+        setUser(currentUser)
 
-      setLoading(false)
-    })
+        if (currentUser) {
+          const { data: userData, error: userError } = await supabase.auth.getUser()
 
-    // Listen for auth changes
+          if (userError || !userData.user) {
+            console.log('[ClientNavbar] Invalid session detected, signing out')
+            await supabase.auth.signOut()
+            setUser(null)
+            setUserRole(null)
+            setLoading(false)
+            return
+          }
+
+          const role = await determineUserRole(currentUser.id, supabase)
+          console.log('[ClientNavbar] User role:', role)
+          setUserRole(role)
+        } else {
+          console.log('[ClientNavbar] No user - showing public navigation')
+          setUserRole(null)
+        }
+
+        setLoading(false)
+      })
+    } else {
+      console.log('[ClientNavbar] Skipping initial session check after logout; waiting for auth events')
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[ClientNavbar] Auth state changed:', event)
 
-      // Handle sign out
       if (event === 'SIGNED_OUT') {
-        console.log('[ClientNavbar] 🔴 SIGNED_OUT event - Clearing user state')
+        console.log('[ClientNavbar] SIGNED_OUT event - clearing user state')
         setUser(null)
         setUserRole(null)
         setLoading(false)
         return
       }
 
-      // Handle token refresh failures
       if (event === 'TOKEN_REFRESHED' && !session) {
         console.log('[ClientNavbar] Token refresh failed, signing out')
         await supabase.auth.signOut()
         setUser(null)
         setUserRole(null)
+        setLoading(false)
         return
       }
 
-      const user = session?.user ?? null
-      setUser(user)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
 
-      if (user) {
-        const role = await determineUserRole(user.id, supabase)
+      if (currentUser) {
+        const role = await determineUserRole(currentUser.id, supabase)
         setUserRole(role)
       } else {
         setUserRole(null)
       }
+
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

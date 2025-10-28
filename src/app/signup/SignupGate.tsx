@@ -79,14 +79,27 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // CRITICAL: Clear any stale logout flags when entering login/signup page
-  // This prevents logout cleanup from interfering with fresh login attempts
+  // CRITICAL: Clean up any stale auth data when entering login/signup page
+  // This prevents old session data from interfering with fresh login attempts
   useEffect(() => {
+    console.log('[SignupGate] Component mounted, performing auth cleanup...');
+
+    // Remove logout flag
     const logoutFlag = sessionStorage.getItem('logout-pending');
     if (logoutFlag) {
-      console.log('[SignupGate] Clearing stale logout-pending flag');
+      console.log('[SignupGate] Removing logout-pending flag');
       sessionStorage.removeItem('logout-pending');
     }
+
+    // Clear any Supabase auth data from storage (but keep other app data)
+    const storageKey = 'autodoctor.auth.token';
+    const oldToken = localStorage.getItem(storageKey);
+    if (oldToken) {
+      console.log('[SignupGate] Removing stale auth token from localStorage');
+      localStorage.removeItem(storageKey);
+    }
+
+    console.log('[SignupGate] Auth cleanup complete - ready for fresh login');
   }, []);
 
   // Check for hash-based errors from Supabase OAuth/email confirmation
@@ -292,7 +305,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         hasUser: !!data?.user,
         hasSession: !!(data as any)?.session,
         errorCode: signInError?.status,
-        errorMessage: signInError?.message
+        errorMessage: signInError?.message,
+        fullData: data,
+        fullError: signInError
       });
 
       if (signInError) {
@@ -307,6 +322,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         }
       }
 
+      console.log('[handleLogin] Checking email confirmation...');
       if (data?.user && !data.user.email_confirmed_at) {
         console.log('[handleLogin] Email not confirmed, signing out...');
         await supabase.auth.signOut();
@@ -314,9 +330,16 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       }
 
       // Ensure we have a session object from Supabase
+      console.log('[handleLogin] Extracting session from response...');
       const session = (data as any)?.session
+      console.log('[handleLogin] Session extracted:', {
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        hasRefreshToken: !!session?.refresh_token
+      });
+
       if (!session || !session.access_token) {
-        console.error('[handleLogin] No session in response');
+        console.error('[handleLogin] No session in response - cannot proceed');
         throw new Error('Authentication failed. Please try again.');
       }
 
