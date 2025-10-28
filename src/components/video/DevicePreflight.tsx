@@ -17,6 +17,7 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   const [networkStatus, setNetworkStatus] = useState<PreflightStatus>('checking')
   const [networkRTT, setNetworkRTT] = useState<number | null>(null)
   const [networkQuality, setNetworkQuality] = useState<NetworkQuality | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
@@ -51,27 +52,51 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   }, [skipPreflight])
 
   async function testDevices() {
+    setErrorMessage(null) // Clear previous errors
+
     // Test camera
     try {
+      console.log('[DevicePreflight] Requesting camera access...')
       const stream = await navigator.mediaDevices.getUserMedia({ video: true })
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
       }
       setCameraStatus('passed')
-    } catch (err) {
-      console.error('Camera test failed:', err)
+      console.log('[DevicePreflight] Camera access granted')
+    } catch (err: any) {
+      console.error('[DevicePreflight] Camera test failed:', err)
       setCameraStatus('failed')
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMessage('Camera permission denied. Please allow camera access and retry.')
+      } else if (err.name === 'NotFoundError') {
+        setErrorMessage('No camera found. Please connect a camera and retry.')
+      } else if (err.name === 'NotReadableError') {
+        setErrorMessage('Camera is in use by another application. Please close other apps and retry.')
+      } else {
+        setErrorMessage(`Camera error: ${err.message || 'Unknown error'}`)
+      }
     }
 
     // Test microphone
     try {
+      console.log('[DevicePreflight] Requesting microphone access...')
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach((track) => track.stop()) // Don't keep mic open
       setMicStatus('passed')
-    } catch (err) {
-      console.error('Mic test failed:', err)
+      console.log('[DevicePreflight] Microphone access granted')
+    } catch (err: any) {
+      console.error('[DevicePreflight] Mic test failed:', err)
       setMicStatus('failed')
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMessage('Microphone permission denied. Please allow microphone access and retry.')
+      } else if (err.name === 'NotFoundError') {
+        setErrorMessage('No microphone found. Please connect a microphone and retry.')
+      } else if (err.name === 'NotReadableError') {
+        setErrorMessage('Microphone is in use by another application. Please close other apps and retry.')
+      } else {
+        setErrorMessage(`Microphone error: ${err.message || 'Unknown error'}`)
+      }
     }
 
     // Test network (ping API)
@@ -92,8 +117,8 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
   }
 
   // Only block on camera/mic failures - network warnings are shown but don't block
-  const isDevelopment = process.env.NODE_ENV === 'development'
-  const canJoin = isDevelopment ? true : (cameraStatus === 'passed' && micStatus === 'passed')
+  // IMPORTANT: Always require camera/mic permissions, even in development
+  const canJoin = (cameraStatus === 'passed' && micStatus === 'passed')
   const hasNetworkWarning = networkQuality && ['fair', 'poor', 'critical'].includes(networkQuality)
 
   // Helper function to get network warning message
@@ -157,6 +182,19 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
             detail={networkRTT ? `${networkRTT}ms` : undefined}
           />
         </div>
+
+        {/* Error Message Banner */}
+        {errorMessage && (
+          <div className="mt-3 sm:mt-4 rounded-lg border border-red-500/50 bg-red-500/10 p-3">
+            <div className="flex items-start gap-2">
+              <XCircle className="h-5 w-5 flex-shrink-0 text-red-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-red-200">Permission Required</p>
+                <p className="mt-1 text-xs text-red-300">{errorMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Network Warning Banner */}
         {networkWarning && (
@@ -223,20 +261,28 @@ export function DevicePreflight({ onComplete, skipPreflight = false }: DevicePre
           }
         </button>
 
-        {/* Retry Test Button */}
-        {hasNetworkWarning && (
+        {/* Retry Test Button - Show for failed tests OR network warnings */}
+        {(!canJoin || hasNetworkWarning) && (
           <button
             onClick={testDevices}
-            className="mt-2 sm:mt-3 w-full rounded-lg border border-slate-600 bg-slate-800/50 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-slate-300 transition hover:bg-slate-700"
+            className="mt-2 sm:mt-3 w-full rounded-lg border border-blue-600 bg-blue-600/20 px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-blue-200 transition hover:bg-blue-600/30 hover:border-blue-500"
           >
-            🔄 Retry Connection Test
+            🔄 Retry Device Check
           </button>
         )}
 
         {!canJoin && (
-          <p className="mt-3 text-center text-xs sm:text-sm text-slate-400">
-            Please allow camera and microphone access to continue.
-          </p>
+          <div className="mt-3 rounded-lg bg-slate-800/50 border border-slate-700 p-3">
+            <p className="text-center text-xs sm:text-sm font-semibold text-yellow-200 mb-2">
+              ⚠️ Action Required
+            </p>
+            <p className="text-center text-xs text-slate-300">
+              When your browser asks for permission, click <strong className="text-white">"Allow"</strong> to enable camera and microphone access.
+            </p>
+            <p className="mt-2 text-center text-[10px] text-slate-400">
+              If you accidentally blocked access, click the camera icon in your browser's address bar to change permissions.
+            </p>
+          </div>
         )}
       </div>
     </div>

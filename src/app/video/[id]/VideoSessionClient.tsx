@@ -920,6 +920,43 @@ export default function VideoSessionClient({
     }
   }, [mechanicPresent, customerPresent, sessionStarted, sessionId])
 
+  // CRITICAL: Ensure camera and mic are enabled after preflight
+  // This component within LiveKitRoom will have access to useLocalParticipant
+  const CameraEnabler = () => {
+    const { localParticipant } = useLocalParticipant()
+    const [hasEnabledDevices, setHasEnabledDevices] = useState(false)
+
+    useEffect(() => {
+      if (!hasEnabledDevices && localParticipant) {
+        console.log('[CameraEnabler] Explicitly enabling camera and microphone...')
+
+        // Enable camera
+        localParticipant.setCameraEnabled(true)
+          .then(() => {
+            console.log('[CameraEnabler] Camera enabled successfully')
+          })
+          .catch((err) => {
+            console.error('[CameraEnabler] Failed to enable camera:', err)
+            alert('Failed to enable camera. Please check your permissions and try again.')
+          })
+
+        // Enable microphone
+        localParticipant.setMicrophoneEnabled(true)
+          .then(() => {
+            console.log('[CameraEnabler] Microphone enabled successfully')
+          })
+          .catch((err) => {
+            console.error('[CameraEnabler] Failed to enable microphone:', err)
+            alert('Failed to enable microphone. Please check your permissions and try again.')
+          })
+
+        setHasEnabledDevices(true)
+      }
+    }, [localParticipant, hasEnabledDevices])
+
+    return null
+  }
+
   const handleTimeWarning = useCallback((minutesLeft: number) => {
     setTimeWarning(`${minutesLeft} minute${minutesLeft > 1 ? 's' : ''} remaining`)
     setTimeout(() => setTimeWarning(null), 5000)
@@ -1320,11 +1357,26 @@ export default function VideoSessionClient({
       <LiveKitRoom
         serverUrl={serverUrl}
         token={token}
-        connect
-        video
-        audio
+        connect={true}
+        video={true}
+        audio={true}
         className="h-full w-full"
+        options={{
+          publishDefaults: {
+            videoSimulcastLayers: [
+              { width: 1280, height: 720, encoding: { maxBitrate: 1500000 } },
+              { width: 640, height: 360, encoding: { maxBitrate: 500000 } },
+            ],
+          },
+        }}
+        onError={(error) => {
+          console.error('[LiveKitRoom] Error:', error)
+          if (error.message.includes('permission') || error.message.includes('NotAllowedError')) {
+            alert('Camera or microphone access denied. Please allow permissions and reload the page.')
+          }
+        }}
       >
+        <CameraEnabler />
         <ParticipantMonitor
           onMechanicJoined={handleMechanicJoined}
           onMechanicLeft={handleMechanicLeft}
