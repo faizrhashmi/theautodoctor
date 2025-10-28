@@ -6,13 +6,6 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 let browserClient: SupabaseClient<Database> | null = null
 
-// Check for logout flag at module load time
-if (typeof window !== 'undefined' && sessionStorage.getItem('logout-pending') === 'true') {
-  console.log('[supabase] Detected logout-pending flag, preventing singleton creation')
-  browserClient = null
-  sessionStorage.removeItem('logout-pending')
-}
-
 /**
  * Clear the singleton browser client
  * Call this when you need to force a fresh client (e.g., after logout)
@@ -26,14 +19,6 @@ export function createClient() {
   if (!url || !key) {
     console.warn('[supabase] Missing NEXT_PUBLIC_SUPABASE_* environment variables')
     throw new Error('Supabase client cannot be instantiated without URL and anon key')
-  }
-
-  // CRITICAL: Check for logout flag EVERY TIME createClient is called
-  // This ensures that even if the module was already loaded, we detect logout
-  if (typeof window !== 'undefined' && sessionStorage.getItem('logout-pending') === 'true') {
-    console.log('[supabase] Logout-pending detected in createClient(), clearing singleton')
-    browserClient = null
-    sessionStorage.removeItem('logout-pending')
   }
 
   if (!browserClient) {

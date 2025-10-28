@@ -79,27 +79,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // CRITICAL: Clean up any stale auth data when entering login/signup page
-  // This prevents old session data from interfering with fresh login attempts
+  // Cleanup any stale auth data when entering login/signup page
   useEffect(() => {
-    console.log('[SignupGate] Component mounted, performing auth cleanup...');
-
-    // Remove logout flag
-    const logoutFlag = sessionStorage.getItem('logout-pending');
-    if (logoutFlag) {
-      console.log('[SignupGate] Removing logout-pending flag');
-      sessionStorage.removeItem('logout-pending');
-    }
-
-    // Clear any Supabase auth data from storage (but keep other app data)
-    const storageKey = 'autodoctor.auth.token';
-    const oldToken = localStorage.getItem(storageKey);
-    if (oldToken) {
-      console.log('[SignupGate] Removing stale auth token from localStorage');
-      localStorage.removeItem(storageKey);
-    }
-
-    console.log('[SignupGate] Auth cleanup complete - ready for fresh login');
+    console.log('[SignupGate] Component mounted - ready for login');
   }, []);
 
   // Check for hash-based errors from Supabase OAuth/email confirmation

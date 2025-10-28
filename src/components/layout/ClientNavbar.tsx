@@ -52,41 +52,17 @@ async function determineUserRole(
 export default function ClientNavbar() {
   const pathname = usePathname()
 
-  // Smart initialization - if logout is detected, start with logged-out state
-  const isLogout = typeof window !== 'undefined' && (
-    window.location.search.includes('logout=') ||
-    sessionStorage.getItem('logout-pending') === 'true'
-  )
-
   const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(!isLogout) // If logout, don't show loading
+  const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState<'customer' | 'mechanic' | 'workshop' | null>(null)
-
-  console.log('[ClientNavbar] Component render - isLogout:', isLogout, 'loading:', loading, 'user:', user ? 'exists' : 'null')
 
   // Initialize user state - must be before early return to follow Rules of Hooks
   useEffect(() => {
-    console.log('[ClientNavbar] Component mounted, initializing auth state...')
-
-    const isPostLogout = window.location.search.includes('logout=')
-    const hasLogoutFlag = sessionStorage.getItem('logout-pending') === 'true'
-    let skipInitialSessionCheck = false
-
-    if (isPostLogout || hasLogoutFlag) {
-      console.log('[ClientNavbar] Logout flag detected - forcing cleared state')
-      clearBrowserClient()
-      sessionStorage.removeItem('logout-pending')
-      setUser(null)
-      setUserRole(null)
-      setLoading(false)
-      skipInitialSessionCheck = true
-    }
-
+    console.log('[ClientNavbar] Component mounted, checking session...')
     const supabase = createClient()
 
-    if (!skipInitialSessionCheck) {
-      console.log('[ClientNavbar] Checking current session...')
-      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+    // Check current session
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
         if (error) {
           console.error('[ClientNavbar] Session validation error:', error)
           await supabase.auth.signOut()
@@ -122,9 +98,6 @@ export default function ClientNavbar() {
 
         setLoading(false)
       })
-    } else {
-      console.log('[ClientNavbar] Skipping initial session check after logout; waiting for auth events')
-    }
 
     const {
       data: { subscription },
