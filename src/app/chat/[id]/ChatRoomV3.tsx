@@ -166,6 +166,7 @@ export default function ChatRoom({
   const [showVehicleBar, setShowVehicleBar] = useState(true) // Collapsed by default
   const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
   const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
+  const [justSentMessage, setJustSentMessage] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -551,12 +552,17 @@ export default function ChatRoom({
     }
   }, [])
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (but not when user just sent a message)
   useEffect(() => {
+    // Don't auto-scroll if user just sent a message (keeps focus on input/keyboard)
+    if (justSentMessage) {
+      return
+    }
+
     if (!showScrollButton) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages, showScrollButton])
+  }, [messages, showScrollButton, justSentMessage])
 
   // Scroll to bottom function
   const scrollToBottom = () => {
@@ -843,6 +849,8 @@ export default function ChatRoom({
       return
     }
 
+    // Mark that user is sending a message (prevents auto-scroll)
+    setJustSentMessage(true)
     setSending(true)
     setError(null)
 
@@ -926,9 +934,20 @@ export default function ChatRoom({
 
       setInput('')
       setAttachments([])
+
+      // Keep focus on input after sending (especially important on mobile)
+      setTimeout(() => {
+        messageInputRef.current?.focus()
+      }, 100)
+
+      // Reset the flag after a short delay to allow auto-scroll for incoming messages
+      setTimeout(() => {
+        setJustSentMessage(false)
+      }, 1000)
     } catch (insertErr: any) {
       console.error('Send message error:', insertErr)
       setError(insertErr?.message ?? 'Unable to send message right now.')
+      setJustSentMessage(false) // Reset on error
     } finally {
       setSending(false)
       setUploading(false)
@@ -1146,8 +1165,8 @@ export default function ChatRoom({
 
             {showSessionMenu && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowSessionMenu(false)} />
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
+                <div className="fixed inset-0 z-[60]" onClick={() => setShowSessionMenu(false)} />
+                <div className="absolute right-0 top-full z-[70] mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800/95 backdrop-blur-sm shadow-2xl">
                   <div className="p-2">
                     {/* Session Status Badge */}
                     <div className="px-4 py-2 mb-2">

@@ -258,63 +258,30 @@ export function getSubCategoryBySlug(categorySlug: string, subCategorySlug: stri
  */
 export function getConcernTemplate(categorySlug: string, subCategorySlug?: string): string {
   const templates: Record<string, string> = {
-    'check-engine': `My check engine light came on.
+    'check-engine': `My check engine light came on recently. It is steady/blinking (please specify). I first noticed it [when]. The car is running normally/has issues (please describe any symptoms like rough idle, loss of power, unusual sounds, etc.).`,
 
-When did it first appear? _____________
+    'oil-leak': `I noticed an oil leak under my vehicle in the [location - front/center/rear]. There is a small spot/puddle of fluid (please specify). I first noticed it [when]. The car is/isn't losing oil quickly (please specify).`,
 
-Is it blinking or steady? _____________
+    'brake-noise': `My brakes are making a squealing/grinding/clicking sound (please specify). It happens when stopping/turning/both (please specify). This started [when]. The braking performance is normal/reduced (please specify).`,
 
-Any other symptoms? (rough idle, loss of power, etc.)
-_____________________________________________
+    'ac-not-cold': `My AC is not blowing cold air. It is blowing warm air/not blowing at all (please specify). This started [when]. There is/isn't any unusual smell or noise (please describe if present).`,
 
-Do you have error codes? _____________`,
+    'dead-battery': `My battery is dead or won't hold a charge. The battery is [age] old. The car won't start/starts with jump/starts but dies (please specify). This started happening [when]. There are/aren't any other electrical issues (please describe if present).`,
 
-    'oil-leak': `I noticed an oil leak under my vehicle.
+    // Add more templates based on sub-category slugs
+    'abs': `My ABS light is on. It came on [when]. The brakes are working normally/feel different (please specify). There is/isn't a warning message on the dashboard (please describe).`,
 
-Where is the leak? (front, center, rear) _____________
+    'battery-light': `My battery warning light is on. It came on [when]. The car is running normally/having electrical issues (please describe any symptoms). The battery is [age] old.`,
 
-How much fluid? (small spots, puddle) _____________
+    'oil-change': `I need an oil change. The car has [mileage] miles. Last oil change was [when]. Using conventional/synthetic oil (please specify).`,
 
-When did you first notice it? _____________`,
-
-    'brake-noise': `My brakes are making noise.
-
-What type of sound? (squealing, grinding, clicking) _____________
-
-When does it happen? (stopping, turning, etc.) _____________
-
-How long has this been happening? _____________`,
-
-    'ac-not-cold': `My AC is not blowing cold air.
-
-Is it blowing warm air or not blowing at all? _____________
-
-When did this start? _____________
-
-Any other symptoms? (strange smell, noise) _____________`,
-
-    'dead-battery': `My battery is dead or won't hold a charge.
-
-How old is the battery? _____________
-
-Does it start with a jump? _____________
-
-Any electrical issues? _____________`,
+    'squeaking': `I hear a squeaking noise from my car. It happens when driving/turning/braking (please specify). The sound is coming from [location]. This started [when].`,
   }
 
   if (subCategorySlug && templates[subCategorySlug]) {
     return templates[subCategorySlug]
   }
 
-  // Default template
-  return `Please describe your concern in detail.
-
-What is happening?
-_____________________________________________
-
-When did it start?
-_____________________________________________
-
-Any other symptoms?
-_____________________________________________`
+  // Default template - clean and simple
+  return `Please describe your concern in detail, including what's happening, when it started, and any other symptoms you've noticed.`
 }

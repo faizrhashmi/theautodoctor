@@ -104,28 +104,11 @@ export default function IntakePage() {
     }
   }
 
-  // Check for active sessions on mount - enforce business rule
-  useEffect(() => {
-    async function checkActiveSessions() {
-      try {
-        const response = await fetch('/api/customer/active-sessions')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.hasActiveSessions && data.sessions.length > 0) {
-            const session = data.sessions[0]
-            setActiveSessionModal({
-              sessionId: session.id,
-              sessionType: session.type,
-              sessionStatus: session.status
-            })
-          }
-        }
-      } catch (err) {
-        console.error('Error checking active sessions:', err)
-      }
-    }
-    checkActiveSessions()
-  }, [])
+  // REMOVED: Active session check on mount
+  // This was causing users to get blocked before even filling the form.
+  // The proper check happens server-side in /api/intake/start when they submit.
+  // The API will return a 409 conflict if there's an active session, and we'll
+  // show the modal then (see submit function line 371-378)
 
   // Load user profile and vehicle info
   useEffect(() => {
@@ -873,8 +856,8 @@ function Textarea({
         aria-describedby={error ? `${label}-error` : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        rows={5}
-        className={`mt-2 block w-full rounded-xl border px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 ${
+        rows={6}
+        className={`mt-2 block w-full rounded-xl border px-3 sm:px-4 py-3 sm:py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 min-h-[120px] sm:min-h-[140px] ${
           error
             ? 'border-rose-400/60 bg-rose-950/40 focus:border-rose-300 focus:ring-rose-400/60'
             : 'border-white/10 bg-slate-900/60 focus:border-orange-300 focus:ring-orange-400/60'

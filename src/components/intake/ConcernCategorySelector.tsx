@@ -67,7 +67,7 @@ export default function ConcernCategorySelector({
                 onClick={() => handleCategoryClick(category)}
                 className={`
                   relative flex flex-col items-center justify-center
-                  min-h-[100px] sm:min-h-[120px] p-3 sm:p-4
+                  min-h-[90px] sm:min-h-[110px] p-2.5 sm:p-4
                   rounded-lg border-2 transition-all
                   ${isSelected
                     ? `${category.borderColor} ${category.bgColor} shadow-lg`
@@ -78,14 +78,14 @@ export default function ConcernCategorySelector({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {/* Icon */}
-                <span className="text-3xl sm:text-4xl mb-2">
+                {/* Icon - Smaller on mobile */}
+                <span className="text-2xl sm:text-3xl lg:text-4xl mb-1.5 sm:mb-2">
                   {category.icon}
                 </span>
 
                 {/* Name */}
                 <span className={`
-                  text-xs sm:text-sm font-medium text-center
+                  text-[11px] sm:text-sm font-medium text-center leading-tight
                   ${isSelected ? 'text-white' : 'text-slate-200'}
                 `}>
                   {category.name}
@@ -126,7 +126,7 @@ export default function ConcernCategorySelector({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-2xl z-50"
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full sm:max-w-2xl z-50 mx-auto"
             >
               <div className="bg-slate-900 border-2 border-slate-700 rounded-xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
                 {/* Header */}
@@ -148,7 +148,7 @@ export default function ConcernCategorySelector({
 
                   <button
                     onClick={closeModal}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors touch-manipulation"
+                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors touch-manipulation flex-shrink-0"
                     aria-label="Close"
                   >
                     <X className="w-5 h-5 text-slate-400" />
@@ -157,11 +157,11 @@ export default function ConcernCategorySelector({
 
                 {/* Sub-categories List */}
                 <div className="overflow-y-auto p-4 sm:p-6">
-                  <p className="text-sm text-slate-400 mb-4">
+                  <p className="text-sm text-slate-400 mb-4 text-center">
                     Select a specific issue:
                   </p>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-w-xl mx-auto">
                     {activeCategory.subCategories?.map((subCategory) => (
                       <motion.button
                         key={subCategory.id}
@@ -171,7 +171,7 @@ export default function ConcernCategorySelector({
                         whileHover={{ x: 4 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <span className="text-sm sm:text-base font-medium text-slate-200">
+                        <span className="text-sm sm:text-base font-medium text-slate-200 flex-1">
                           {subCategory.name}
                         </span>
                         <svg

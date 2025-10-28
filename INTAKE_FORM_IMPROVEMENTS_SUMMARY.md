@@ -33,12 +33,19 @@ Implemented industry-standard UX improvements for the customer intake form with 
 12. ⛽ Fuel System
 13. 📝 Other / Multiple
 
+**Template Examples:**
+- **Check Engine:** "My check engine light came on recently. It is steady/blinking (please specify). I first noticed it [when]..."
+- **Oil Leak:** "I noticed an oil leak under my vehicle in the [location]. There is a small spot/puddle..."
+- **Brake Noise:** "My brakes are making a squealing/grinding/clicking sound (please specify)..."
+- **AC Issues:** "My AC is not blowing cold air. It is blowing warm air/not blowing at all..."
+
 **Mobile Optimizations:**
-- Touch-friendly spacing
+- Touch-friendly spacing with max-width container
 - `active:scale-95` for tap feedback
 - `touch-manipulation` CSS for better touch handling
-- Full-screen modal on mobile
-- Fixed menu positioning to prevent scroll issues
+- Perfectly centered modal on all screen sizes
+- Fixed positioning with `left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`
+- Sub-category buttons centered with `max-w-xl mx-auto`
 
 ---
 
