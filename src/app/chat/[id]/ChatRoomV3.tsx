@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
+import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import type { ChatMessage } from '@/types/supabase'
 import type { PlanKey } from '@/config/pricing'
@@ -166,6 +167,7 @@ export default function ChatRoom({
   const [showVehicleBar, setShowVehicleBar] = useState(true) // Collapsed by default
   const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
   const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
+  const [isMounted, setIsMounted] = useState(false) // Track if component is mounted (for Portal)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -192,6 +194,12 @@ export default function ChatRoom({
     // Default fallback (shouldn't happen)
     return 30
   }, [plan])
+
+  // Track component mount state for Portal rendering
+  useEffect(() => {
+    setIsMounted(true)
+    return () => setIsMounted(false)
+  }, [])
 
   // Reset zoom/pan when image changes
   useEffect(() => {
@@ -528,6 +536,7 @@ export default function ChatRoom({
   }, [sessionId, currentStatus, currentStartedAt, sessionDurationMinutes, sessionEnded, dashboardUrl])
 
   // Scroll monitoring for scroll-to-bottom button with debouncing
+  // With flex-col-reverse, scrollTop=0 is the visual bottom (newest messages)
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
@@ -538,8 +547,9 @@ export default function ChatRoom({
       // Debounce scroll handling for better performance
       clearTimeout(timeoutId)
       timeoutId = setTimeout(() => {
-        const { scrollTop, scrollHeight, clientHeight } = container
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 200
+        const { scrollTop } = container
+        // With flex-col-reverse: scrollTop=0 is bottom, higher values = scrolling up
+        const isNearBottom = Math.abs(scrollTop) < 200
         setShowScrollButton(!isNearBottom)
       }, 100) // Update every 100ms max
     }
@@ -553,6 +563,7 @@ export default function ChatRoom({
 
   // Auto-scroll messages container to bottom (NOT the whole page)
   // This keeps the input box in view while showing latest messages
+  // With flex-col-reverse, scrollTop=0 is the visual bottom
   const prevMessagesLengthRef = useRef(messages.length)
 
   useEffect(() => {
@@ -567,7 +578,7 @@ export default function ChatRoom({
     if (newLength > prevLength) {
       // Small delay to ensure DOM is updated
       setTimeout(() => {
-        container.scrollTop = container.scrollHeight
+        container.scrollTop = 0 // With flex-col-reverse, 0 is the bottom
       }, 50)
     }
 
@@ -575,10 +586,11 @@ export default function ChatRoom({
   }, [messages.length])
 
   // Scroll to bottom function - scrolls ONLY the messages container
+  // With flex-col-reverse, scrollTop=0 is the visual bottom
   const scrollToBottom = () => {
     const container = messagesContainerRef.current
     if (container) {
-      container.scrollTop = container.scrollHeight
+      container.scrollTop = 0 // With flex-col-reverse, 0 is the bottom
     }
   }
 
@@ -1168,7 +1180,8 @@ export default function ChatRoom({
               </svg>
             </button>
 
-            {showSessionMenu && (
+            {/* Render menu via Portal to escape stacking context */}
+            {showSessionMenu && isMounted && createPortal(
               <>
                 <div className="fixed inset-0 z-[9998]" onClick={() => setShowSessionMenu(false)} />
                 <div className="fixed right-4 top-20 z-[9999] w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
@@ -1246,7 +1259,8 @@ export default function ChatRoom({
                     </button>
                   </div>
                 </div>
-              </>
+              </>,
+              document.body
             )}
           </div>
         </div>
@@ -1408,7 +1422,7 @@ export default function ChatRoom({
         )}
         <div
           ref={messagesContainerRef}
-          className="flex-1 space-y-4 overflow-y-auto rounded-2xl bg-slate-800/50 p-3 sm:p-6 shadow-2xl border border-slate-700/50 backdrop-blur-sm relative"
+          className="flex-1 flex flex-col-reverse space-y-reverse space-y-4 overflow-y-auto rounded-2xl bg-slate-800/50 p-3 sm:p-6 shadow-2xl border border-slate-700/50 backdrop-blur-sm relative"
         >
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
@@ -1432,7 +1446,8 @@ export default function ChatRoom({
               </div>
             </div>
           ) : (
-            messages.map((message) => {
+            // Reverse messages array for flex-col-reverse: newest at visual bottom
+            [...messages].reverse().map((message) => {
               // Role-based alignment: mechanic always right, customer always left
               const isSenderMechanic = mechanicId && message.sender_id === mechanicId
 
