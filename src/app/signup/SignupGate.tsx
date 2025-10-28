@@ -79,6 +79,18 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('[SignupGate] User already logged in, redirecting to dashboard');
+        router.push(redirectTo || '/customer/dashboard');
+      }
+    };
+    checkExistingSession();
+  }, [supabase, router, redirectTo]);
+
   // Cleanup any stale auth data when entering login/signup page
   useEffect(() => {
     console.log('[SignupGate] Component mounted - ready for login');
@@ -276,25 +288,41 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     console.log('[handleLogin] Starting login attempt for:', email);
 
     try {
-      console.log('[handleLogin] Calling Supabase signInWithPassword...');
+      // FIRST: Check if this email belongs to a mechanic or workshop BEFORE authenticating
+      console.log('[handleLogin] Checking if email is mechanic or workshop...');
+
+      const { data: mechanic } = await supabase
+        .from('mechanics')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (mechanic) {
+        console.log('[handleLogin] Email belongs to mechanic account');
+        throw new Error('This is a mechanic account. Please use the "For Mechanics" login.');
+      }
+
+      const { data: workshop } = await supabase
+        .from('organizations')
+        .select('email, organization_type')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (workshop && workshop.organization_type === 'workshop') {
+        console.log('[handleLogin] Email belongs to workshop account');
+        throw new Error('This is a workshop account. Please use the "For Workshops" login.');
+      }
+
+      console.log('[handleLogin] Email validated as customer, proceeding with authentication...');
+
+      // NOW authenticate the user
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('[handleLogin] Supabase response:', {
-        hasData: !!data,
-        hasUser: !!data?.user,
-        hasSession: !!(data as any)?.session,
-        errorCode: signInError?.status,
-        errorMessage: signInError?.message,
-        fullData: data,
-        fullError: signInError
-      });
-
       if (signInError) {
         console.error('[handleLogin] Sign in error:', signInError);
-        // Handle specific error cases with user-friendly messages
         if (signInError.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please try again.');
         } else if (signInError.message.includes('Email not confirmed')) {
@@ -311,53 +339,13 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         throw new Error("Please confirm your email before logging in. Check your inbox for the confirmation link.");
       }
 
-      // Ensure we have a session object from Supabase
-      console.log('[handleLogin] Extracting session from response...');
       const session = (data as any)?.session
-      console.log('[handleLogin] Session extracted:', {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        hasRefreshToken: !!session?.refresh_token
-      });
-
       if (!session || !session.access_token) {
         console.error('[handleLogin] No session in response - cannot proceed');
         throw new Error('Authentication failed. Please try again.');
       }
 
-      console.log('[handleLogin] Validating user role...');
-      // Validate that the user is a customer (not a mechanic or workshop)
-      const userId = data.user.id;
-
-      // Check if user is a mechanic
-      const { data: mechanic } = await supabase
-        .from('mechanics')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (mechanic) {
-        console.log('[handleLogin] User is a mechanic, rejecting customer login');
-        await supabase.auth.signOut();
-        throw new Error('This is a mechanic account. Please use the "For Mechanics" login.');
-      }
-
-      // Check if user is a workshop owner
-      const { data: workshop } = await supabase
-        .from('workshops')
-        .select('id')
-        .eq('owner_id', userId)
-        .maybeSingle();
-
-      if (workshop) {
-        console.log('[handleLogin] User is a workshop owner, rejecting customer login');
-        await supabase.auth.signOut();
-        throw new Error('This is a workshop account. Please use the "For Workshops" login.');
-      }
-
-      console.log('[handleLogin] User role validated as customer');
       console.log('[handleLogin] Setting server session...');
-      // Post the session tokens to the server so middleware can set cookies
       const setRes = await fetch('/api/auth/set-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -371,7 +359,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       }
 
       console.log('[handleLogin] Login successful, redirecting...');
-      // Do a hard redirect so the middleware runs and picks up the auth cookie
       if (redirectTo) {
         window.location.href = redirectTo
       } else {
@@ -379,7 +366,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       }
     } catch (error: any) {
       console.error('[handleLogin] Error caught:', error);
-      // Ensure we always show an error message and reset loading state
       const errorMessage = error?.message || 'Login failed. Please check your credentials and try again.';
       console.error('[handleLogin] Setting error:', errorMessage);
       setError(errorMessage);

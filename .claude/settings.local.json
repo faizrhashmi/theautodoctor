@@ -73,7 +73,8 @@
       "Bash(npx eslint:*)",
       "Bash(timeout 60 tail:*)",
       "Bash(cmd /c \"taskkill /F /IM node.exe\")",
-      "Bash(cmd //c \"taskkill //F //IM node.exe\")"
+      "Bash(cmd //c \"taskkill //F //IM node.exe\")",
+      "Bash(python -m json.tool:*)"
     ],
     "deny": [],
     "ask": []

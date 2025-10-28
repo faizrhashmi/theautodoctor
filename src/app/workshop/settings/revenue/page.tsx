@@ -50,16 +50,42 @@ export default function RevenueSettingsPage() {
         return
       }
 
-      // Fetch workshop profile
-      const { data: workshopData, error: workshopError } = await supabase
-        .from('workshops')
-        .select('*')
-        .eq('id', user.id)
+      // Get workshop from organization_members
+      const { data: membership, error: memberError } = await supabase
+        .from('organization_members')
+        .select(`
+          organization_id,
+          organizations (
+            id,
+            name,
+            commission_rate,
+            platform_fee_percentage,
+            status,
+            organization_type
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
         .single()
 
-      if (workshopError || !workshopData) {
+      if (memberError || !membership) {
         setError('Workshop profile not found')
         return
+      }
+
+      const org = membership.organizations as any
+      if (!org || org.organization_type !== 'workshop') {
+        setError('Not a workshop account')
+        return
+      }
+
+      // Map organization to workshop format
+      const workshopData = {
+        id: org.id,
+        name: org.name,
+        business_name: org.name,
+        revenue_share_percentage: org.platform_fee_percentage || 15,
+        status: org.status
       }
 
       setWorkshop(workshopData)
@@ -90,9 +116,9 @@ export default function RevenueSettingsPage() {
       setSuccess(null)
 
       const { error: updateError } = await supabase
-        .from('workshops')
+        .from('organizations')
         .update({
-          revenue_share_percentage: revenueShare,
+          platform_fee_percentage: revenueShare,
           updated_at: new Date().toISOString()
         })
         .eq('id', workshop.id)
@@ -100,17 +126,6 @@ export default function RevenueSettingsPage() {
       if (updateError) {
         throw updateError
       }
-
-      // Log the change in workshop_events
-      await supabase.from('workshop_events').insert({
-        workshop_id: workshop.id,
-        event_type: 'revenue_share_updated',
-        event_data: {
-          old_percentage: workshop.revenue_share_percentage,
-          new_percentage: revenueShare,
-          updated_at: new Date().toISOString()
-        }
-      })
 
       setSuccess('Revenue share updated successfully!')
       setTimeout(() => setSuccess(null), 3000)

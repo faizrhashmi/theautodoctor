@@ -24,31 +24,44 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * }
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('workshop_session')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate workshop session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('workshop_sessions')
-      .select('workshop_id, expires_at')
-      .eq('token', token)
+    // Get user from Supabase auth using request cookies
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '') || req.cookies.get('sb-access-token')?.value
+
+    if (!token) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Verify user with Supabase
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+    }
+
+    // Get workshop from organization_members
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('organization_members')
+      .select('organization_id, role, organizations(id, organization_type, status)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
       .single()
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    if (memberError || !membership) {
+      return NextResponse.json({ error: 'Workshop not found' }, { status: 404 })
     }
 
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+    const org = membership.organizations as any
+    if (!org || org.organization_type !== 'workshop') {
+      return NextResponse.json({ error: 'Not a workshop account' }, { status: 403 })
     }
+
+    const workshopId = membership.organization_id
 
     // Parse request body
     const body = await req.json()
@@ -113,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     // Create program
     const programData = {
-      workshop_id: session.workshop_id,
+      workshop_id: workshopId,
       program_name,
       program_type,
       description: description || null,
@@ -161,31 +174,44 @@ export async function POST(req: NextRequest) {
  *   - include_inactive: boolean (default: false)
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('workshop_session')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate workshop session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('workshop_sessions')
-      .select('workshop_id, expires_at')
-      .eq('token', token)
+    // Get user from Supabase auth using request cookies
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '') || req.cookies.get('sb-access-token')?.value
+
+    if (!token) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Verify user with Supabase
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+    }
+
+    // Get workshop from organization_members
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('organization_members')
+      .select('organization_id, role, organizations(id, organization_type, status)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
       .single()
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    if (memberError || !membership) {
+      return NextResponse.json({ error: 'Workshop not found' }, { status: 404 })
     }
 
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+    const org = membership.organizations as any
+    if (!org || org.organization_type !== 'workshop') {
+      return NextResponse.json({ error: 'Not a workshop account' }, { status: 403 })
     }
+
+    const workshopId = membership.organization_id
 
     // Query params
     const { searchParams } = new URL(req.url)
@@ -195,7 +221,7 @@ export async function GET(req: NextRequest) {
     let query = supabaseAdmin
       .from('workshop_partnership_programs')
       .select('*')
-      .eq('workshop_id', session.workshop_id)
+      .eq('workshop_id', workshopId)
 
     if (!includeInactive) {
       query = query.eq('is_active', true)
