@@ -280,29 +280,54 @@ function VideoControls({
     getCameras()
   }, [])
 
-  // Check if device supports torch (flashlight)
-  useEffect(() => {
-    async function checkTorchSupport() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        })
-        const track = stream.getVideoTracks()[0]
-        const capabilities = track.getCapabilities()
-
-        // @ts-ignore - torch is not in TypeScript types yet
-        if (capabilities.torch) {
-          setTorchSupported(true)
-          console.log('[VideoControls] Torch supported')
-        }
-
-        track.stop()
-      } catch (error) {
-        console.log('[VideoControls] Torch not supported or error checking:', error)
+  // Check if current camera supports torch (flashlight)
+  // This is checked whenever camera changes or session starts
+  const checkCurrentCameraTorch = useCallback(async () => {
+    try {
+      const videoPublication = localParticipant.getTrackPublication(Track.Source.Camera)
+      if (!videoPublication || !videoPublication.track) {
+        console.log('[VideoControls] No camera track available for torch check')
+        setTorchSupported(false)
+        return
       }
+
+      const mediaStreamTrack = videoPublication.track.mediaStreamTrack
+      if (!mediaStreamTrack) {
+        console.log('[VideoControls] No MediaStreamTrack available for torch check')
+        setTorchSupported(false)
+        return
+      }
+
+      const capabilities = mediaStreamTrack.getCapabilities()
+      // @ts-ignore - torch is not in TypeScript types yet
+      const hasTorch = !!capabilities.torch
+
+      setTorchSupported(hasTorch)
+      console.log('[VideoControls] Torch supported on current camera:', hasTorch)
+
+      // If torch was on but new camera doesn't support it, turn it off
+      if (!hasTorch && isFlashlightOn) {
+        setIsFlashlightOn(false)
+      }
+    } catch (error) {
+      console.log('[VideoControls] Error checking torch support:', error)
+      setTorchSupported(false)
     }
-    checkTorchSupport()
-  }, [])
+  }, [localParticipant, isFlashlightOn])
+
+  // Check torch support when camera is ready and when camera changes
+  useEffect(() => {
+    if (isCameraEnabled) {
+      // Delay to ensure track is published
+      const timer = setTimeout(() => {
+        checkCurrentCameraTorch()
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else {
+      setTorchSupported(false)
+      setIsFlashlightOn(false)
+    }
+  }, [isCameraEnabled, currentCameraIndex, checkCurrentCameraTorch])
 
   const toggleCamera = useCallback(async () => {
     try {
@@ -329,11 +354,18 @@ function VideoControls({
   const flipCamera = useCallback(async () => {
     if (availableCameras.length <= 1) {
       console.log('[VideoControls] Only one camera available, cannot flip')
+      alert('Only one camera detected. Cannot switch cameras.')
       return
     }
 
     try {
       console.log('[VideoControls] Flipping camera, current index:', currentCameraIndex)
+
+      // Turn off flashlight before switching (if it's on)
+      if (isFlashlightOn) {
+        console.log('[VideoControls] Turning off flashlight before camera switch')
+        setIsFlashlightOn(false)
+      }
 
       // Cycle to next camera
       const nextIndex = (currentCameraIndex + 1) % availableCameras.length
@@ -346,40 +378,64 @@ function VideoControls({
 
       setCurrentCameraIndex(nextIndex)
       console.log('[VideoControls] Camera flipped successfully to:', nextCamera.label)
-    } catch (error) {
+
+      // The torch support check will automatically run via useEffect
+    } catch (error: any) {
       console.error('[VideoControls] Failed to flip camera:', error)
-      alert('Failed to switch camera. Please try again.')
+      alert(`Failed to switch camera: ${error.message || 'Please try again'}`)
     }
-  }, [localParticipant, availableCameras, currentCameraIndex])
+  }, [localParticipant, availableCameras, currentCameraIndex, isFlashlightOn])
 
   const toggleFlashlight = useCallback(async () => {
     if (!torchSupported) {
       console.log('[VideoControls] Torch not supported on this device')
+      alert('Flashlight is not supported on this device')
       return
     }
 
     try {
       console.log('[VideoControls] Toggling flashlight, current state:', isFlashlightOn)
 
-      // Get the current video track from LiveKit
-      const videoTrack = await localParticipant.getTrack(Track.Source.Camera)
-      if (!videoTrack || !videoTrack.mediaStreamTrack) {
-        console.error('[VideoControls] No camera track available')
+      // Get the current video track publication from LiveKit
+      const videoPublication = localParticipant.getTrackPublication(Track.Source.Camera)
+      if (!videoPublication || !videoPublication.track) {
+        console.error('[VideoControls] No camera track publication available')
+        alert('Camera track not available. Please ensure your camera is on.')
         return
       }
 
-      const track = videoTrack.mediaStreamTrack as MediaStreamTrack
+      // Access the underlying MediaStreamTrack
+      const videoTrack = videoPublication.track
+      const mediaStreamTrack = videoTrack.mediaStreamTrack
 
+      if (!mediaStreamTrack) {
+        console.error('[VideoControls] No MediaStreamTrack available')
+        alert('Cannot access camera track')
+        return
+      }
+
+      console.log('[VideoControls] MediaStreamTrack found:', mediaStreamTrack.label)
+
+      // Check capabilities to confirm torch is supported
+      const capabilities = mediaStreamTrack.getCapabilities()
       // @ts-ignore - torch is not in TypeScript types yet
-      await track.applyConstraints({
+      if (!capabilities.torch) {
+        console.error('[VideoControls] Torch capability not available on this track')
+        alert('Flashlight not available on current camera. Try switching to rear camera.')
+        return
+      }
+
+      // Apply torch constraint
+      // @ts-ignore - torch is not in TypeScript types yet
+      await mediaStreamTrack.applyConstraints({
         advanced: [{ torch: !isFlashlightOn }]
       })
 
       setIsFlashlightOn(!isFlashlightOn)
       console.log('[VideoControls] Flashlight toggled successfully to:', !isFlashlightOn)
-    } catch (error) {
+    } catch (error: any) {
       console.error('[VideoControls] Failed to toggle flashlight:', error)
-      // Silently fail - not critical enough for alert
+      alert(`Failed to toggle flashlight: ${error.message || 'Unknown error'}`)
     }
   }, [localParticipant, torchSupported, isFlashlightOn])
 
@@ -924,35 +980,37 @@ export default function VideoSessionClient({
   // This component within LiveKitRoom will have access to useLocalParticipant
   const CameraEnabler = () => {
     const { localParticipant } = useLocalParticipant()
-    const [hasEnabledDevices, setHasEnabledDevices] = useState(false)
+    const hasTriedEnabling = useRef(false)
 
     useEffect(() => {
-      if (!hasEnabledDevices && localParticipant) {
+      if (!hasTriedEnabling.current && localParticipant) {
+        hasTriedEnabling.current = true
         console.log('[CameraEnabler] Explicitly enabling camera and microphone...')
 
-        // Enable camera
-        localParticipant.setCameraEnabled(true)
-          .then(() => {
-            console.log('[CameraEnabler] Camera enabled successfully')
-          })
-          .catch((err) => {
-            console.error('[CameraEnabler] Failed to enable camera:', err)
-            alert('Failed to enable camera. Please check your permissions and try again.')
-          })
+        // Small delay to ensure LiveKit is fully initialized
+        setTimeout(() => {
+          // Enable camera
+          localParticipant.setCameraEnabled(true)
+            .then(() => {
+              console.log('[CameraEnabler] Camera enabled successfully')
+            })
+            .catch((err) => {
+              console.error('[CameraEnabler] Failed to enable camera:', err)
+              alert('Failed to enable camera. Please check your permissions and try again.')
+            })
 
-        // Enable microphone
-        localParticipant.setMicrophoneEnabled(true)
-          .then(() => {
-            console.log('[CameraEnabler] Microphone enabled successfully')
-          })
-          .catch((err) => {
-            console.error('[CameraEnabler] Failed to enable microphone:', err)
-            alert('Failed to enable microphone. Please check your permissions and try again.')
-          })
-
-        setHasEnabledDevices(true)
+          // Enable microphone
+          localParticipant.setMicrophoneEnabled(true)
+            .then(() => {
+              console.log('[CameraEnabler] Microphone enabled successfully')
+            })
+            .catch((err) => {
+              console.error('[CameraEnabler] Failed to enable microphone:', err)
+              alert('Failed to enable microphone. Please check your permissions and try again.')
+            })
+        }, 500)
       }
-    }, [localParticipant, hasEnabledDevices])
+    }, [localParticipant])
 
     return null
   }
