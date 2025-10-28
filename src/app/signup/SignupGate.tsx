@@ -325,6 +325,37 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         throw new Error('Authentication failed. Please try again.');
       }
 
+      console.log('[handleLogin] Validating user role...');
+      // Validate that the user is a customer (not a mechanic or workshop)
+      const userId = data.user.id;
+
+      // Check if user is a mechanic
+      const { data: mechanic } = await supabase
+        .from('mechanics')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (mechanic) {
+        console.log('[handleLogin] User is a mechanic, rejecting customer login');
+        await supabase.auth.signOut();
+        throw new Error('This is a mechanic account. Please use the "For Mechanics" login.');
+      }
+
+      // Check if user is a workshop owner
+      const { data: workshop } = await supabase
+        .from('workshops')
+        .select('id')
+        .eq('owner_id', userId)
+        .maybeSingle();
+
+      if (workshop) {
+        console.log('[handleLogin] User is a workshop owner, rejecting customer login');
+        await supabase.auth.signOut();
+        throw new Error('This is a workshop account. Please use the "For Workshops" login.');
+      }
+
+      console.log('[handleLogin] User role validated as customer');
       console.log('[handleLogin] Setting server session...');
       // Post the session tokens to the server so middleware can set cookies
       const setRes = await fetch('/api/auth/set-session', {
