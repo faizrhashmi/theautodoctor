@@ -59,11 +59,35 @@ export default function ClientNavbar() {
   useEffect(() => {
     const supabase = createClient()
 
-    // Get initial user and determine role
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    // Get and VALIDATE initial session (this refreshes expired tokens)
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('[ClientNavbar] Session validation error:', error)
+        // Clear invalid session
+        await supabase.auth.signOut()
+        setUser(null)
+        setUserRole(null)
+        setLoading(false)
+        return
+      }
+
+      const user = session?.user ?? null
       setUser(user)
 
       if (user) {
+        // Verify session is actually valid by checking user data
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !userData.user) {
+          // Session is invalid, sign out
+          console.log('[ClientNavbar] Invalid session detected, signing out')
+          await supabase.auth.signOut()
+          setUser(null)
+          setUserRole(null)
+          setLoading(false)
+          return
+        }
+
         // Check user role
         const role = await determineUserRole(user.id, supabase)
         setUserRole(role)
@@ -77,11 +101,30 @@ export default function ClientNavbar() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_, session) => {
-      setUser(session?.user ?? null)
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[ClientNavbar] Auth state changed:', event)
 
-      if (session?.user) {
-        const role = await determineUserRole(session.user.id, supabase)
+      // Handle sign out
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setUserRole(null)
+        return
+      }
+
+      // Handle token refresh failures
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        console.log('[ClientNavbar] Token refresh failed, signing out')
+        await supabase.auth.signOut()
+        setUser(null)
+        setUserRole(null)
+        return
+      }
+
+      const user = session?.user ?? null
+      setUser(user)
+
+      if (user) {
+        const role = await determineUserRole(user.id, supabase)
         setUserRole(role)
       } else {
         setUserRole(null)
@@ -89,6 +132,26 @@ export default function ClientNavbar() {
     })
 
     return () => subscription.unsubscribe()
+  }, [])
+
+  // Check session validity when user returns to the page
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const supabase = createClient()
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (error || !session) {
+          console.log('[ClientNavbar] Session invalid on page return, signing out')
+          await supabase.auth.signOut()
+          setUser(null)
+          setUserRole(null)
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   // Hide ClientNavbar ONLY on authenticated dashboard pages with sidebars and active sessions

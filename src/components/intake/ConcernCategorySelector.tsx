@@ -111,76 +111,76 @@ export default function ConcernCategorySelector({
       {/* Sub-Category Modal - Mobile Optimized */}
       <AnimatePresence>
         {showSubCategories && activeCategory && (
-          <>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
 
-            {/* Modal */}
+            {/* Modal - Centered Container */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:w-full sm:max-w-2xl z-50 mx-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg mx-auto z-10"
             >
-              <div className="bg-slate-900 border-2 border-slate-700 rounded-xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="bg-slate-900 border-2 border-slate-700 rounded-xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div
-                  className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700"
+                  className="relative p-4 sm:p-5 border-b border-slate-700"
                   style={{ backgroundColor: `${activeCategory.color}20` }}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl sm:text-4xl">{activeCategory.icon}</span>
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-white">
-                        {activeCategory.name}
-                      </h3>
-                      <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                        {activeCategory.description}
-                      </p>
-                    </div>
-                  </div>
-
+                  {/* Close Button - Top Right */}
                   <button
                     onClick={closeModal}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors touch-manipulation flex-shrink-0"
+                    className="absolute top-3 right-3 p-2 hover:bg-slate-800/50 rounded-lg transition-colors touch-manipulation z-10"
                     aria-label="Close"
                   >
-                    <X className="w-5 h-5 text-slate-400" />
+                    <X className="w-5 h-5 text-slate-300" />
                   </button>
+
+                  {/* Header Content - Centered on Mobile */}
+                  <div className="flex flex-col items-center text-center pr-8">
+                    <span className="text-4xl sm:text-5xl mb-3">{activeCategory.icon}</span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
+                      {activeCategory.name}
+                    </h3>
+                    <p className="text-sm text-slate-300">
+                      {activeCategory.description}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Sub-categories List */}
-                <div className="overflow-y-auto p-4 sm:p-6">
-                  <p className="text-sm text-slate-400 mb-4 text-center">
+                <div className="overflow-y-auto p-4 sm:p-5">
+                  <p className="text-sm text-slate-400 mb-4 text-center font-medium">
                     Select a specific issue:
                   </p>
 
-                  <div className="space-y-2 max-w-xl mx-auto">
+                  <div className="space-y-3">
                     {activeCategory.subCategories?.map((subCategory) => (
                       <motion.button
                         key={subCategory.id}
                         type="button"
                         onClick={() => handleSubCategoryClick(subCategory)}
-                        className="w-full flex items-center justify-between p-4 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all text-left touch-manipulation min-h-[60px]"
-                        whileHover={{ x: 4 }}
-                        whileTap={{ scale: 0.98 }}
+                        className="w-full flex items-center justify-between p-4 sm:p-4 rounded-lg border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 active:border-slate-500 transition-all text-left touch-manipulation min-h-[64px]"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
                       >
-                        <span className="text-sm sm:text-base font-medium text-slate-200 flex-1">
+                        <span className="text-base sm:text-base font-medium text-slate-100 flex-1 pr-3">
                           {subCategory.name}
                         </span>
                         <svg
-                          className="w-5 h-5 text-slate-500 flex-shrink-0 ml-2"
+                          className="w-6 h-6 text-slate-400 flex-shrink-0"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                         </svg>
                       </motion.button>
                     ))}
@@ -188,7 +188,7 @@ export default function ConcernCategorySelector({
                 </div>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </>

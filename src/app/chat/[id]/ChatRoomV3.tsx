@@ -1170,8 +1170,8 @@ export default function ChatRoom({
 
             {showSessionMenu && (
               <>
-                <div className="fixed inset-0 z-[150]" onClick={() => setShowSessionMenu(false)} />
-                <div className="absolute right-0 top-full z-[200] mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
+                <div className="fixed inset-0 z-[9998]" onClick={() => setShowSessionMenu(false)} />
+                <div className="fixed right-4 top-20 z-[9999] w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
                   <div className="p-2">
                     {/* Session Status Badge */}
                     <div className="px-4 py-2 mb-2">
@@ -1681,8 +1681,9 @@ export default function ChatRoom({
             </div>
           )}
 
-          <div className="flex items-end gap-2">
-            {/* Hidden file inputs - one for files, one for camera */}
+          {/* Input Area - WhatsApp-style with full-width textbox and compact buttons */}
+          <div className="relative">
+            {/* Hidden file inputs */}
             <input
               ref={fileInputRef}
               type="file"
@@ -1692,117 +1693,122 @@ export default function ChatRoom({
               accept="image/*,application/pdf,.doc,.docx,.txt"
             />
 
-            {/* Camera Button - Opens camera on mobile */}
-            <button
-              type="button"
-              onClick={() => {
-                if (fileInputRef.current) {
-                  // Set capture attribute for camera on mobile
-                  fileInputRef.current.setAttribute('capture', 'environment')
-                  fileInputRef.current.setAttribute('accept', 'image/*')
-                  fileInputRef.current.removeAttribute('multiple')
-                  fileInputRef.current.click()
-                  // Reset attributes after click
-                  setTimeout(() => {
+            {/* Main Input Container with integrated buttons */}
+            <div className="flex items-end gap-1.5 sm:gap-2">
+              {/* Left Buttons Group - Camera & Paperclip */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Camera Button - Compact */}
+                <button
+                  type="button"
+                  onClick={() => {
                     if (fileInputRef.current) {
+                      // Set capture attribute for camera on mobile
+                      fileInputRef.current.setAttribute('capture', 'environment')
+                      fileInputRef.current.setAttribute('accept', 'image/*')
+                      fileInputRef.current.removeAttribute('multiple')
+                      fileInputRef.current.click()
+                      // Reset attributes after click
+                      setTimeout(() => {
+                        if (fileInputRef.current) {
+                          fileInputRef.current.removeAttribute('capture')
+                          fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
+                          fileInputRef.current.setAttribute('multiple', 'true')
+                        }
+                      }, 100)
+                    }
+                  }}
+                  disabled={sending || uploading || sessionEnded}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
+                  title="Take photo"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </button>
+
+                {/* Attach File Button - Compact */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      // Ensure normal file selection attributes
                       fileInputRef.current.removeAttribute('capture')
                       fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
                       fileInputRef.current.setAttribute('multiple', 'true')
+                      fileInputRef.current.click()
                     }
-                  }, 100)
-                }
-              }}
-              disabled={sending || uploading || sessionEnded}
-              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-blue-400 hover:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
-              title="Take photo"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-
-            {/* Attach File Button - 44px touch target on mobile */}
-            <button
-              type="button"
-              onClick={() => {
-                if (fileInputRef.current) {
-                  // Ensure normal file selection attributes
-                  fileInputRef.current.removeAttribute('capture')
-                  fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
-                  fileInputRef.current.setAttribute('multiple', 'true')
-                  fileInputRef.current.click()
-                }
-              }}
-              disabled={sending || uploading || sessionEnded}
-              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-orange-400 hover:border-orange-500/50 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
-              title="Attach file"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                />
-              </svg>
-            </button>
-
-            {/* Textarea - Full width */}
-            <div className="flex-1">
-              <textarea
-                ref={messageInputRef}
-                value={input}
-                onChange={(event) => {
-                  setInput(event.target.value)
-                  handleTyping()
-                  // Auto-resize textarea
-                  event.target.style.height = 'auto'
-                  event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px'
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    const form = event.currentTarget.form as HTMLFormElement | null
-                    form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
-                    // Reset height
-                    if (messageInputRef.current) {
-                      messageInputRef.current.style.height = 'auto'
-                    }
-                  }
-                }}
-                placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
-                rows={1}
-                maxLength={2000}
-                style={{ maxHeight: '120px' }}
-                className="w-full resize-none rounded-xl border border-slate-600/50 bg-slate-700/50 px-3 py-2.5 sm:px-4 sm:py-3 text-sm text-white placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-800/50 disabled:cursor-not-allowed"
-                disabled={sending || uploading || sessionEnded}
-              />
-              <div className="mt-1.5 sm:mt-2 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
-                <span>{input.length} / 2000</span>
-                <span className="hidden sm:inline">Press Enter to send</span>
+                  }}
+                  disabled={sending || uploading || sessionEnded}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
+                  title="Attach file"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                </button>
               </div>
-            </div>
 
-            {/* Send Button - 44px touch target on mobile */}
-            <button
-              type="submit"
-              disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
-              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none flex-shrink-0"
-              title="Send message"
-            >
+              {/* Textarea Container - Takes full remaining width */}
+              <div className="flex-1 min-w-0">
+                <textarea
+                  ref={messageInputRef}
+                  value={input}
+                  onChange={(event) => {
+                    setInput(event.target.value)
+                    handleTyping()
+                    // Auto-resize textarea
+                    event.target.style.height = 'auto'
+                    event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px'
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      const form = event.currentTarget.form as HTMLFormElement | null
+                      form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+                      // Reset height
+                      if (messageInputRef.current) {
+                        messageInputRef.current.style.height = 'auto'
+                      }
+                    }
+                  }}
+                  placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
+                  rows={1}
+                  maxLength={2000}
+                  style={{ maxHeight: '120px' }}
+                  className="w-full resize-none rounded-xl border border-slate-600/50 bg-slate-700/50 px-3 py-2.5 text-sm text-white placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                  disabled={sending || uploading || sessionEnded}
+                />
+                <div className="mt-1.5 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+                  <span>{input.length} / 2000</span>
+                  <span className="hidden sm:inline">Press Enter to send</span>
+                </div>
+              </div>
+
+              {/* Send Button - Compact but prominent */}
+              <button
+                type="submit"
+                disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none flex-shrink-0"
+                title="Send message"
+              >
                 {sending || uploading ? (
-                  <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path
                       className="opacity-75"
@@ -1811,12 +1817,13 @@ export default function ChatRoom({
                     />
                   </svg>
                 ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 )}
               </button>
             </div>
+          </div>
 
           {error && (
             <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-300">
