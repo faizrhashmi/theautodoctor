@@ -71,7 +71,8 @@
       "Bash(timeout 120 bash:*)",
       "Bash(del \"c:\\Users\\Faiz Hashmi\\theautodoctor\\vercel.json\")",
       "Bash(npx eslint:*)",
-      "Bash(timeout 60 tail:*)"
+      "Bash(timeout 60 tail:*)",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")"
     ],
     "deny": [],
     "ask": []

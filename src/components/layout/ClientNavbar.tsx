@@ -59,6 +59,8 @@ export default function ClientNavbar() {
   useEffect(() => {
     const supabase = createClient()
 
+    console.log('[ClientNavbar] Initializing...')
+
     // Get and VALIDATE initial session (this refreshes expired tokens)
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
@@ -72,6 +74,7 @@ export default function ClientNavbar() {
       }
 
       const user = session?.user ?? null
+      console.log('[ClientNavbar] Initial session check:', user ? `User ${user.id}` : 'No user')
       setUser(user)
 
       if (user) {
@@ -90,8 +93,10 @@ export default function ClientNavbar() {
 
         // Check user role
         const role = await determineUserRole(user.id, supabase)
+        console.log('[ClientNavbar] User role:', role)
         setUserRole(role)
       } else {
+        console.log('[ClientNavbar] No user - showing public navigation')
         setUserRole(null)
       }
 

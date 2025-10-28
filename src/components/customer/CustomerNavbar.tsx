@@ -46,25 +46,51 @@ export default function CustomerNavbar() {
 
   async function handleSignOut() {
     try {
-      // ✅ Call API route for server-side cleanup (matches mechanic/admin pattern)
-      await fetch('/api/customer/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
+      console.log('[CustomerNavbar] Starting sign out...');
 
-      // Then do client-side cleanup
-      await supabase.auth.signOut()
+      // Step 1: Client-side cleanup FIRST - this immediately updates auth state
+      console.log('[CustomerNavbar] Clearing client-side session...');
+      await supabase.auth.signOut();
 
-      // Clear any cached data
-      localStorage.clear()
-      sessionStorage.clear()
+      // This triggers SIGNED_OUT event which all listeners will hear
+      // Give it a moment to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // ✅ Hard redirect to clear state (matches mechanic/admin pattern)
-      window.location.href = '/'
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('[CustomerNavbar] Client-side cleanup complete');
+
+      // Step 2: Clear server-side cookies
+      console.log('[CustomerNavbar] Calling server logout API...');
+      try {
+        const response = await fetch('/api/customer/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          console.log('[CustomerNavbar] Server-side cookies cleared');
+        } else {
+          console.warn('[CustomerNavbar] Logout API non-OK status:', response.status);
+        }
+      } catch (apiError) {
+        console.error('[CustomerNavbar] Logout API error (continuing anyway):', apiError);
+      }
+
+      // Step 3: Force a complete page reload to clear all state
+      console.log('[CustomerNavbar] Reloading page to clear all state...');
+      window.location.href = '/';
     } catch (error) {
-      console.error('Sign out error:', error)
-      // Fail-safe: redirect anyway
-      window.location.href = '/'
+      console.error('[CustomerNavbar] Sign out error:', error);
+      // Fail-safe: force cleanup and reload anyway
+      try {
+        await supabase.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.error('[CustomerNavbar] Cleanup error:', e);
+      }
+      window.location.href = '/';
     }
   }
 

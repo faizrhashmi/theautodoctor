@@ -268,27 +268,49 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     setError(null);
     setMessage(null);
 
+    console.log('[handleLogin] Starting login attempt for:', email);
+
     try {
+      console.log('[handleLogin] Calling Supabase signInWithPassword...');
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('[handleLogin] Supabase response:', {
+        hasData: !!data,
+        hasUser: !!data?.user,
+        hasSession: !!(data as any)?.session,
+        errorCode: signInError?.status,
+        errorMessage: signInError?.message
+      });
+
       if (signInError) {
-        throw signInError;
+        console.error('[handleLogin] Sign in error:', signInError);
+        // Handle specific error cases with user-friendly messages
+        if (signInError.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please try again.');
+        } else if (signInError.message.includes('Email not confirmed')) {
+          throw new Error('Please confirm your email before logging in. Check your inbox for the confirmation link.');
+        } else {
+          throw new Error(signInError.message || 'Login failed. Please try again.');
+        }
       }
 
       if (data?.user && !data.user.email_confirmed_at) {
+        console.log('[handleLogin] Email not confirmed, signing out...');
         await supabase.auth.signOut();
-        throw new Error("Please confirm your email before logging in.");
+        throw new Error("Please confirm your email before logging in. Check your inbox for the confirmation link.");
       }
 
       // Ensure we have a session object from Supabase
       const session = (data as any)?.session
       if (!session || !session.access_token) {
-        throw new Error('No session returned from Supabase')
+        console.error('[handleLogin] No session in response');
+        throw new Error('Authentication failed. Please try again.');
       }
 
+      console.log('[handleLogin] Setting server session...');
       // Post the session tokens to the server so middleware can set cookies
       const setRes = await fetch('/api/auth/set-session', {
         method: 'POST',
@@ -298,9 +320,11 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
       if (!setRes.ok) {
         const text = await setRes.text()
-        throw new Error('Failed to set server session: ' + text)
+        console.error('[handleLogin] Failed to set server session:', text);
+        throw new Error('Failed to establish session. Please try again.');
       }
 
+      console.log('[handleLogin] Login successful, redirecting...');
       // Do a hard redirect so the middleware runs and picks up the auth cookie
       if (redirectTo) {
         window.location.href = redirectTo
@@ -308,9 +332,12 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         window.location.href = '/customer/dashboard'
       }
     } catch (error: any) {
-      console.error('[login] error:', error)
-      setError(error?.message || 'Login failed')
-      setLoading(false)
+      console.error('[handleLogin] Error caught:', error);
+      // Ensure we always show an error message and reset loading state
+      const errorMessage = error?.message || 'Login failed. Please check your credentials and try again.';
+      console.error('[handleLogin] Setting error:', errorMessage);
+      setError(errorMessage);
+      setLoading(false);
     }
   }
 

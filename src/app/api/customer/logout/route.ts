@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
 
     console.log('[logout] Sign out successful, clearing cookies...')
 
-    // Clear all cookies and redirect to homepage
-    const redirectUrl = new URL('/', req.nextUrl.origin)
-    const response = NextResponse.redirect(redirectUrl, 303)
+    // Return success response with cookies cleared
+    // Don't redirect here - let the client handle the redirect
+    const response = NextResponse.json({ success: true })
 
     // Clear ALL Supabase auth cookies - iterate through all request cookies
     // and delete any that look like Supabase auth cookies
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       })
     })
 
-    console.log('[logout] All cookies cleared, redirecting to homepage')
+    console.log('[logout] All cookies cleared, returning success')
 
     return response
   } catch (error: any) {
