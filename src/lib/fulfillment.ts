@@ -3,6 +3,11 @@ import { type PlanKey } from '@/config/pricing'
 import type { Database, Json } from '@/types/supabase'
 import { broadcastSessionRequest } from '@/lib/sessionRequests'
 import { trackInteraction } from '@/lib/crm'
+import {
+  validateSessionRequestReferences,
+  validateSessionParticipantReferences,
+  ForeignKeyValidationError
+} from '@/lib/validation/foreignKeyValidator'
 
 type SessionType = 'chat' | 'video' | 'diagnostic'
 type SessionInsert = Database['public']['Tables']['sessions']['Insert']
@@ -239,6 +244,19 @@ async function upsertParticipant(sessionId: string, supabaseUserId?: string | nu
     return
   }
 
+  // Validate foreign keys before insert
+  try {
+    await validateSessionParticipantReferences({
+      sessionId,
+      userId: supabaseUserId
+    })
+  } catch (error) {
+    if (error instanceof ForeignKeyValidationError) {
+      throw new Error(`[fulfillment] Foreign key validation failed: ${error.message}`)
+    }
+    throw error
+  }
+
   const payload: ParticipantInsert = {
     session_id: sessionId,
     user_id: supabaseUserId,
@@ -275,6 +293,20 @@ async function createSessionRequest({
   routingType = 'broadcast',
 }: CreateSessionRequestOptions) {
   try {
+    // Validate foreign keys before creating session request
+    try {
+      await validateSessionRequestReferences({
+        customerId,
+        workshopId
+      })
+    } catch (error) {
+      if (error instanceof ForeignKeyValidationError) {
+        console.error(`[fulfillment] Foreign key validation failed: ${error.message}`)
+        throw new Error(`Cannot create session request: ${error.message}`)
+      }
+      throw error
+    }
+
     // Cancel any old pending requests for this customer (they're starting a new session)
     const { data: oldRequests } = await supabaseAdmin
       .from('session_requests')

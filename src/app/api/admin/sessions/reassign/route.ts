@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdmin } from '@/lib/auth/requireAdmin'
+import {
+  validateMechanicExists,
+  validateSessionParticipantReferences,
+  ForeignKeyValidationError
+} from '@/lib/validation/foreignKeyValidator'
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +26,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Phase 3.2: Validate foreign keys before reassigning
+    try {
+      await validateMechanicExists(mechanicId)
+    } catch (error) {
+      if (error instanceof ForeignKeyValidationError) {
+        return NextResponse.json(
+          { error: `Mechanic validation failed: ${error.message}` },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
+
     // Get current session
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('sessions')
@@ -30,26 +48,6 @@ export async function POST(request: NextRequest) {
 
     if (sessionError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-    }
-
-    // Verify mechanic exists
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
-      .from('users' as any)
-      .select('id, user_metadata')
-      .eq('id', mechanicId)
-      .single()
-
-    if (mechanicError || !mechanic) {
-      return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
-    }
-
-    // Check if mechanic role
-    const userMetadata = (mechanic as any)?.user_metadata
-    if (userMetadata?.role !== 'mechanic') {
-      return NextResponse.json(
-        { error: 'User is not a mechanic' },
-        { status: 400 }
-      )
     }
 
     const oldMechanicId = session.mechanic_id
@@ -85,17 +83,41 @@ export async function POST(request: NextRequest) {
         .eq('role', 'mechanic')
     }
 
+    // Phase 3.2: Validate session participant references before insert
+    try {
+      await validateSessionParticipantReferences({
+        sessionId,
+        userId: mechanicId
+      })
+    } catch (error) {
+      if (error instanceof ForeignKeyValidationError) {
+        return NextResponse.json(
+          { error: `Session participant validation failed: ${error.message}` },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
+
     // Add new mechanic to participants
-    await supabaseAdmin.from('session_participants').insert({
+    const { error: participantError } = await supabaseAdmin.from('session_participants').insert({
       session_id: sessionId,
       user_id: mechanicId,
       role: 'mechanic',
       metadata: {
         assigned_by_admin: true,
-        assigned_by: user.id,
+        assigned_by: auth.user!.id,
         assigned_at: new Date().toISOString(),
       },
     })
+
+    if (participantError) {
+      console.error('[Admin] Failed to add session participant:', participantError)
+      return NextResponse.json(
+        { error: `Failed to add mechanic to session: ${participantError.message}` },
+        { status: 500 }
+      )
+    }
 
     // Log the action
     console.warn(

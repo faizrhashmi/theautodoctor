@@ -92,11 +92,18 @@ export async function POST(request: NextRequest) {
     console.log('Setting preferred_plan to:', body.plan)
   }
 
+  // Handle both camelCase and snake_case field names for flexibility
   const fullNameInput =
+    typeof body.full_name === 'string' ? body.full_name.trim() :
     typeof body.fullName === 'string' ? body.fullName.trim() : undefined
+
   const phoneInput = typeof body.phone === 'string' ? body.phone.trim() : undefined
+
+  const cityInput = typeof body.city === 'string' ? body.city.trim() : undefined
+
   const vehicleInput =
     typeof body.vehicle === 'string' ? body.vehicle.trim() : undefined
+
   const dobInput =
     typeof body.dateOfBirth === 'string' ? body.dateOfBirth.trim() : undefined
 
@@ -110,6 +117,10 @@ export async function POST(request: NextRequest) {
     update.phone = phoneInput
   } else if (user.user_metadata?.phone) {
     update.phone = String(user.user_metadata.phone)
+  }
+
+  if (cityInput) {
+    update.city = cityInput
   }
 
   if (vehicleInput) {

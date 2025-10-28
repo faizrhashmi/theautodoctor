@@ -48,11 +48,39 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
   const [participants, setParticipants] = useState<Participant[]>([])
   const [uploading, setUploading] = useState(false)
   const [sending, setSending] = useState(false)
+  const [sessionValid, setSessionValid] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = useMemo(() => createClient(), [])
 
   const mechanicJoinedAt = participants.find(p => p.role === 'mechanic')?.joined_at || null
+
+  // Validate session exists on mount (Phase 3.2: Pre-insert validation)
+  useEffect(() => {
+    let isActive = true
+
+    const validateSession = async () => {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (!isActive) return
+
+      if (error || !data) {
+        console.error('[ChatPopup] Session validation failed:', error)
+        setSessionValid(false)
+        alert('This session no longer exists. Please return to the dashboard.')
+      }
+    }
+
+    void validateSession()
+
+    return () => {
+      isActive = false
+    }
+  }, [sessionId, supabase])
 
   useEffect(() => {
     let isActive = true
@@ -133,18 +161,36 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
     e.preventDefault()
     if (!newMessage.trim() || sending) return
 
+    // Phase 3.2: Validate session before inserting message
+    if (!sessionValid) {
+      alert('Cannot send message: session is invalid')
+      return
+    }
+
     setSending(true)
     try {
-      await supabase.from('chat_messages').insert({
+      const { error } = await supabase.from('chat_messages').insert({
         session_id: sessionId,
         sender_email: userEmail,
         content: newMessage.trim(),
         attachments: [],
       })
 
+      if (error) {
+        // Handle foreign key constraint violations
+        if (error.code === '23503') {
+          console.error('[ChatPopup] Foreign key violation:', error)
+          alert('Cannot send message: session or sender reference is invalid')
+          setSessionValid(false)
+          return
+        }
+        throw error
+      }
+
       setNewMessage('')
     } catch (error) {
       console.error('Error sending message:', error)
+      alert('Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
@@ -153,6 +199,12 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Phase 3.2: Validate session before file upload
+    if (!sessionValid) {
+      alert('Cannot upload file: session is invalid')
+      return
+    }
 
     // 10MB limit
     if (file.size > 10 * 1024 * 1024) {
@@ -175,7 +227,7 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
         .from('chat-attachments')
         .getPublicUrl(fileName)
 
-      await supabase.from('chat_messages').insert({
+      const { error } = await supabase.from('chat_messages').insert({
         session_id: sessionId,
         sender_email: userEmail,
         content: `Sent a file: ${file.name}`,
@@ -188,6 +240,17 @@ export default function ChatPopup({ sessionId, sessionType, userEmail, onClose }
           },
         ],
       })
+
+      if (error) {
+        // Handle foreign key constraint violations
+        if (error.code === '23503') {
+          console.error('[ChatPopup] Foreign key violation on file upload:', error)
+          alert('Cannot send file: session or sender reference is invalid')
+          setSessionValid(false)
+          return
+        }
+        throw error
+      }
     } catch (error) {
       console.error('Error uploading file:', error)
       alert('Failed to upload file')

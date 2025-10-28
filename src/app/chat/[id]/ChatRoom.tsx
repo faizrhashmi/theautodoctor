@@ -42,9 +42,37 @@ export default function ChatRoom({
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sessionValid, setSessionValid] = useState(true)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const mechanicCount = participants.filter((p) => p.role === 'mechanic').length
+
+  // Validate session exists on mount (Phase 3.2: Pre-insert validation)
+  useEffect(() => {
+    let isActive = true
+
+    const validateSession = async () => {
+      const { data, error: validationError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (!isActive) return
+
+      if (validationError || !data) {
+        console.error('[ChatRoom] Session validation failed:', validationError)
+        setSessionValid(false)
+        setError('This session no longer exists. Please return to the dashboard.')
+      }
+    }
+
+    void validateSession()
+
+    return () => {
+      isActive = false
+    }
+  }, [sessionId, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -116,6 +144,12 @@ export default function ChatRoom({
       return
     }
 
+    // Phase 3.2: Validate session before inserting message
+    if (!sessionValid) {
+      setError('Cannot send message: session is invalid')
+      return
+    }
+
     setSending(true)
     setError(null)
     try {
@@ -124,6 +158,13 @@ export default function ChatRoom({
         content: trimmed,
       })
       if (insertError) {
+        // Handle foreign key constraint violations
+        if (insertError.code === '23503') {
+          console.error('[ChatRoom] Foreign key violation:', insertError)
+          setError('Cannot send message: session or sender reference is invalid')
+          setSessionValid(false)
+          return
+        }
         throw insertError
       }
       setInput('')
