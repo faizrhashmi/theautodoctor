@@ -288,81 +288,49 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     console.log('[handleLogin] Starting login attempt for:', email);
 
     try {
-      // FIRST: Check if this email belongs to a mechanic or workshop BEFORE authenticating
-      console.log('[handleLogin] Checking if email is mechanic or workshop...');
+      // Call server-side API for validation and authentication
+      console.log('[handleLogin] Calling server-side login API...');
 
-      const { data: mechanic } = await supabase
-        .from('mechanics')
-        .select('email')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (mechanic) {
-        console.log('[handleLogin] Email belongs to mechanic account');
-        throw new Error('This is a mechanic account. Please use the "For Mechanics" login.');
-      }
-
-      const { data: workshop } = await supabase
-        .from('organizations')
-        .select('email, organization_type')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (workshop && workshop.organization_type === 'workshop') {
-        console.log('[handleLogin] Email belongs to workshop account');
-        throw new Error('This is a workshop account. Please use the "For Workshops" login.');
-      }
-
-      console.log('[handleLogin] Email validated as customer, proceeding with authentication...');
-
-      // NOW authenticate the user
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const loginRes = await fetch('/api/customer/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (signInError) {
-        console.error('[handleLogin] Sign in error:', signInError);
-        if (signInError.message.includes('Invalid login credentials')) {
-          throw new Error('Invalid email or password. Please try again.');
-        } else if (signInError.message.includes('Email not confirmed')) {
-          throw new Error('Please confirm your email before logging in. Check your inbox for the confirmation link.');
-        } else {
-          throw new Error(signInError.message || 'Login failed. Please try again.');
-        }
+      const loginData = await loginRes.json();
+
+      if (!loginRes.ok) {
+        console.error('[handleLogin] Login API error:', loginData.error);
+        throw new Error(loginData.error || 'Login failed. Please try again.');
       }
 
-      console.log('[handleLogin] Checking email confirmation...');
-      if (data?.user && !data.user.email_confirmed_at) {
-        console.log('[handleLogin] Email not confirmed, signing out...');
-        await supabase.auth.signOut();
-        throw new Error("Please confirm your email before logging in. Check your inbox for the confirmation link.");
+      if (!loginData.access_token || !loginData.refresh_token) {
+        throw new Error('Failed to receive authentication tokens.');
       }
 
-      const session = (data as any)?.session
-      if (!session || !session.access_token) {
-        console.error('[handleLogin] No session in response - cannot proceed');
-        throw new Error('Authentication failed. Please try again.');
-      }
+      console.log('[handleLogin] Login API successful, setting session...');
 
-      console.log('[handleLogin] Setting server session...');
+      // Set session cookies
       const setRes = await fetch('/api/auth/set-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }),
-      })
+        body: JSON.stringify({
+          access_token: loginData.access_token,
+          refresh_token: loginData.refresh_token
+        }),
+      });
 
       if (!setRes.ok) {
-        const text = await setRes.text()
+        const text = await setRes.text();
         console.error('[handleLogin] Failed to set server session:', text);
         throw new Error('Failed to establish session. Please try again.');
       }
 
       console.log('[handleLogin] Login successful, redirecting...');
       if (redirectTo) {
-        window.location.href = redirectTo
+        window.location.href = redirectTo;
       } else {
-        window.location.href = '/customer/dashboard'
+        window.location.href = '/customer/dashboard';
       }
     } catch (error: any) {
       console.error('[handleLogin] Error caught:', error);
