@@ -166,7 +166,6 @@ export default function ChatRoom({
   const [showVehicleBar, setShowVehicleBar] = useState(true) // Collapsed by default
   const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
   const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
-  const [justSentMessage, setJustSentMessage] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -552,21 +551,35 @@ export default function ChatRoom({
     }
   }, [])
 
-  // Auto-scroll to bottom on new messages (but not when user just sent a message)
+  // Auto-scroll messages container to bottom (NOT the whole page)
+  // This keeps the input box in view while showing latest messages
+  const prevMessagesLengthRef = useRef(messages.length)
+
   useEffect(() => {
-    // Don't auto-scroll if user just sent a message (keeps focus on input/keyboard)
-    if (justSentMessage) {
-      return
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const prevLength = prevMessagesLengthRef.current
+    const newLength = messages.length
+
+    // Always auto-scroll the messages container to bottom when new messages arrive
+    // But DON'T scroll the page itself (keeps input box visible)
+    if (newLength > prevLength) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight
+      }, 50)
     }
 
-    if (!showScrollButton) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages, showScrollButton, justSentMessage])
+    prevMessagesLengthRef.current = newLength
+  }, [messages.length])
 
-  // Scroll to bottom function
+  // Scroll to bottom function - scrolls ONLY the messages container
   const scrollToBottom = () => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
   }
 
   // Real-time subscriptions including typing indicators
@@ -849,8 +862,6 @@ export default function ChatRoom({
       return
     }
 
-    // Mark that user is sending a message (prevents auto-scroll)
-    setJustSentMessage(true)
     setSending(true)
     setError(null)
 
@@ -939,15 +950,9 @@ export default function ChatRoom({
       setTimeout(() => {
         messageInputRef.current?.focus()
       }, 100)
-
-      // Reset the flag after a short delay to allow auto-scroll for incoming messages
-      setTimeout(() => {
-        setJustSentMessage(false)
-      }, 1000)
     } catch (insertErr: any) {
       console.error('Send message error:', insertErr)
       setError(insertErr?.message ?? 'Unable to send message right now.')
-      setJustSentMessage(false) // Reset on error
     } finally {
       setSending(false)
       setUploading(false)
@@ -1165,8 +1170,8 @@ export default function ChatRoom({
 
             {showSessionMenu && (
               <>
-                <div className="fixed inset-0 z-[60]" onClick={() => setShowSessionMenu(false)} />
-                <div className="absolute right-0 top-full z-[70] mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800/95 backdrop-blur-sm shadow-2xl">
+                <div className="fixed inset-0 z-[150]" onClick={() => setShowSessionMenu(false)} />
+                <div className="absolute right-0 top-full z-[200] mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
                   <div className="p-2">
                     {/* Session Status Badge */}
                     <div className="px-4 py-2 mb-2">
