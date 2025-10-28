@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Home, DollarSign, BookOpen, Wrench, Menu, X, Building2 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import Logo from '@/components/branding/Logo'
+import { createClient } from '@/lib/supabase'
 
 const NAV_ITEMS = [
   { label: 'How It Works', href: '/how-it-works', icon: Home },
@@ -14,8 +15,103 @@ const NAV_ITEMS = [
   { label: 'About', href: '/about', icon: Building2 },
 ]
 
+/**
+ * Determine user role by checking mechanics, workshops tables
+ */
+async function determineUserRole(userId: string): Promise<'customer' | 'mechanic' | 'workshop' | null> {
+  try {
+    const supabase = createClient()
+
+    // Check if user is a mechanic
+    const { data: mechanic } = await supabase
+      .from('mechanics')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (mechanic) return 'mechanic'
+
+    // Check if user is a workshop owner
+    const { data: workshop } = await supabase
+      .from('workshops')
+      .select('id')
+      .eq('owner_id', userId)
+      .maybeSingle()
+
+    if (workshop) return 'workshop'
+
+    // Default to customer
+    return 'customer'
+  } catch (error) {
+    console.error('Error determining user role:', error)
+    return null
+  }
+}
+
 export default function ClientNavbar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  // Smart login handlers that check for existing sessions
+  const handleCustomerLogin = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        const role = await determineUserRole(session.user.id)
+        if (role === 'customer') {
+          router.push('/customer/dashboard')
+          return
+        }
+      }
+
+      router.push('/signup?mode=login')
+    } catch (error) {
+      console.error('Customer login check error:', error)
+      router.push('/signup?mode=login')
+    }
+  }
+
+  const handleMechanicLogin = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        const role = await determineUserRole(session.user.id)
+        if (role === 'mechanic') {
+          router.push('/mechanic/dashboard')
+          return
+        }
+      }
+
+      router.push('/mechanic/login')
+    } catch (error) {
+      console.error('Mechanic login check error:', error)
+      router.push('/mechanic/login')
+    }
+  }
+
+  const handleWorkshopLogin = async () => {
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        const role = await determineUserRole(session.user.id)
+        if (role === 'workshop') {
+          router.push('/workshop/dashboard')
+          return
+        }
+      }
+
+      router.push('/workshop/login')
+    } catch (error) {
+      console.error('Workshop login check error:', error)
+      router.push('/workshop/login')
+    }
+  }
 
   // Hide ClientNavbar ONLY on authenticated dashboard pages with sidebars and active sessions
   // Strategy: Be specific about what to hide, not broad
@@ -118,37 +214,42 @@ export default function ClientNavbar() {
             )
           })}
 
-          {/* Simple static Log In link - always visible like "For Mechanics" and "For Workshops" */}
-          <Link
-            href="/signup?mode=login"
+          {/* Smart Log In button - checks session and redirects appropriately */}
+          <button
+            onClick={handleCustomerLogin}
             className="group relative px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5"
           >
             Log In
-          </Link>
+          </button>
         </nav>
 
         <div className="ml-auto md:ml-0 flex items-center gap-3 md:gap-4">
 
-          {/* Provider Links - Modern Cards */}
+          {/* Provider Links - Modern Cards with smart session checking */}
           <div className="hidden lg:flex items-center gap-2">
-            <Link
-              href="/mechanic/login"
+            <button
+              onClick={handleMechanicLogin}
               className="group relative flex items-center gap-2 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-3 py-2 text-xs font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:bg-orange-500/20 hover:shadow-lg hover:shadow-orange-500/20"
             >
               <Wrench className="h-3.5 w-3.5" />
               <span>For Mechanics</span>
-            </Link>
-            <Link
-              href="/workshop/login"
+            </button>
+            <button
+              onClick={handleWorkshopLogin}
               className="group relative flex items-center gap-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-3 py-2 text-xs font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:bg-blue-500/20 hover:shadow-lg hover:shadow-blue-500/20"
             >
               <Building2 className="h-3.5 w-3.5" />
               <span>For Workshops</span>
-            </Link>
+            </button>
           </div>
 
           {/* Mobile Menu */}
-          <MobileMenu pathname={pathname} />
+          <MobileMenu
+            pathname={pathname}
+            onCustomerLogin={handleCustomerLogin}
+            onMechanicLogin={handleMechanicLogin}
+            onWorkshopLogin={handleWorkshopLogin}
+          />
         </div>
       </div>
     </header>
@@ -156,9 +257,19 @@ export default function ClientNavbar() {
 }
 
 /**
- * Mobile Menu Component - Simple static menu
+ * Mobile Menu Component - Smart menu with session checking
  */
-function MobileMenu({ pathname }: { pathname: string }) {
+function MobileMenu({
+  pathname,
+  onCustomerLogin,
+  onMechanicLogin,
+  onWorkshopLogin
+}: {
+  pathname: string
+  onCustomerLogin: () => void
+  onMechanicLogin: () => void
+  onWorkshopLogin: () => void
+}) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -208,42 +319,48 @@ function MobileMenu({ pathname }: { pathname: string }) {
 
           <DropdownMenu.Separator className="my-3 h-px bg-white/10" />
 
-          {/* Simple static Log In link */}
+          {/* Smart Log In button with session checking */}
           <div className="mb-3">
             <DropdownMenu.Item asChild>
-              <Link
-                href="/signup?mode=login"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 bg-white/5 border border-white/10 transition-all hover:bg-white/10 hover:text-white hover:border-orange-400/50 focus:outline-none"
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  onCustomerLogin()
+                }}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-200 bg-white/5 border border-white/10 transition-all hover:bg-white/10 hover:text-white hover:border-orange-400/50 focus:outline-none w-full"
               >
                 Log In
-              </Link>
+              </button>
             </DropdownMenu.Item>
           </div>
 
           <DropdownMenu.Separator className="my-3 h-px bg-white/10" />
 
-          {/* Provider Links */}
+          {/* Provider Links with smart session checking */}
           <div className="space-y-2">
             <DropdownMenu.Item asChild>
-              <Link
-                href="/mechanic/login"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-4 py-3 text-sm font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:from-orange-500/20 hover:to-orange-600/10 focus:outline-none"
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  onMechanicLogin()
+                }}
+                className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-4 py-3 text-sm font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:from-orange-500/20 hover:to-orange-600/10 focus:outline-none w-full"
               >
                 <Wrench className="h-4 w-4" />
                 For Mechanics
-              </Link>
+              </button>
             </DropdownMenu.Item>
             <DropdownMenu.Item asChild>
-              <Link
-                href="/workshop/login"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-4 py-3 text-sm font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:from-blue-500/20 hover:to-blue-600/10 focus:outline-none"
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  onWorkshopLogin()
+                }}
+                className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-4 py-3 text-sm font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:from-blue-500/20 hover:to-blue-600/10 focus:outline-none w-full"
               >
                 <Building2 className="h-4 w-4" />
                 For Workshops
-              </Link>
+              </button>
             </DropdownMenu.Item>
           </div>
         </DropdownMenu.Content>
