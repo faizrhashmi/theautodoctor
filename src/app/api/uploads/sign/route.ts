@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'intakes';
 
 function bad(msg: string, status = 400) {
@@ -9,6 +12,52 @@ function bad(msg: string, status = 400) {
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured on server', 500);
+
+  // SECURITY: Verify user is authenticated (customer or mechanic)
+  let userId: string | null = null;
+  let userType: 'customer' | 'mechanic' | null = null;
+
+  // Try Supabase auth first (customers/admins)
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return req.cookies.get(name)?.value
+      },
+      set() {},
+      remove() {},
+    },
+  });
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (user && !authError) {
+    userId = user.id;
+    userType = 'customer';
+    console.log('[Upload Sign] Customer authenticated:', userId);
+  } else {
+    // Try mechanic auth
+    const mechanicToken = req.cookies.get('aad_mech')?.value;
+
+    if (mechanicToken) {
+      const { data: mechanicSession } = await supabaseAdmin
+        .from('mechanic_sessions')
+        .select('mechanic_id, expires_at')
+        .eq('token', mechanicToken)
+        .maybeSingle();
+
+      if (mechanicSession && new Date(mechanicSession.expires_at) > new Date()) {
+        userId = mechanicSession.mechanic_id;
+        userType = 'mechanic';
+        console.log('[Upload Sign] Mechanic authenticated:', userId);
+      }
+    }
+  }
+
+  // Reject if not authenticated
+  if (!userId) {
+    console.warn('[Upload Sign] Unauthorized upload attempt');
+    return bad('Unauthorized: You must be authenticated to upload files', 401);
+  }
 
   const { filename, contentType } = await req.json().catch(() => ({}));
   if (!filename) return bad('filename required');

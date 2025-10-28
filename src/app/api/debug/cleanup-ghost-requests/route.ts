@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 // Prevent this from being called during build
 export const dynamic = 'force-dynamic'
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic'
  * Cleanup endpoint to remove ghost/test session requests
  * that were created during builds and are causing repeated notifications
  */
-export async function POST() {
+async function postHandler() {
   try {
     console.log('[cleanup-ghost-requests] Starting cleanup...')
 
@@ -27,15 +28,32 @@ export async function POST() {
 
     console.log('[cleanup-ghost-requests] Deleted requests:', deletedRequests?.length || 0)
 
-    // Also clean up any old pending requests (older than 24 hours)
-    const twentyFourHoursAgo = new Date()
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24)
+    // UPDATED: Instead of deleting old pending requests, expire them properly
+    const now = new Date().toISOString()
+    const { data: shouldExpire, error: expireCheckError } = await supabaseAdmin
+      .from('session_requests')
+      .select('id')
+      .eq('status', 'pending')
+      .not('expires_at', 'is', null)
+      .lt('expires_at', now)
+
+    let expiredCount = 0
+    if (!expireCheckError && shouldExpire && shouldExpire.length > 0) {
+      // Call the expiration function
+      const { data: expireResult } = await supabaseAdmin.rpc('expire_old_session_requests')
+      expiredCount = expireResult?.[0]?.expired_count ?? 0
+      console.log('[cleanup-ghost-requests] Expired pending requests:', expiredCount)
+    }
+
+    // Also clean up very old requests (older than 7 days) by deleting them
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
     const { data: oldRequests, error: oldError } = await supabaseAdmin
       .from('session_requests')
       .delete()
-      .eq('status', 'pending')
-      .lt('created_at', twentyFourHoursAgo.toISOString())
+      .in('status', ['pending', 'expired', 'cancelled'])
+      .lt('created_at', sevenDaysAgo.toISOString())
       .select()
 
     if (oldError) {
@@ -48,10 +66,11 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Cleaned up ${totalDeleted} ghost requests`,
+      message: `Cleaned up ${totalDeleted} ghost requests and expired ${expiredCount} stuck requests`,
       details: {
         testCustomerRequests: deletedRequests?.length || 0,
-        oldPendingRequests: oldRequests?.length || 0,
+        expiredStuckRequests: expiredCount,
+        oldRequestsDeleted: oldRequests?.length || 0,
       }
     })
   } catch (error: any) {
@@ -59,3 +78,6 @@ export async function POST() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { verifyPassword, hashPassword } from '@/lib/auth'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const { email, password } = await req.json()
 
@@ -51,3 +52,6 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Admin endpoint to clean up stale 'live' sessions
@@ -7,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * Finds sessions that have been in 'live' status for more than a specified time
  * and marks them as 'completed' to prevent ghost sessions from blocking customers.
  */
-export async function POST(request: Request) {
+async function postHandler(request: Request) {
   try {
     const { maxAgeMinutes = 120 } = await request.json().catch(() => ({}))
 
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
 /**
  * GET endpoint to check how many stale live sessions exist without cleaning them
  */
-export async function GET(request: Request) {
+async function getHandler(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const maxAgeMinutes = parseInt(searchParams.get('maxAgeMinutes') || '120', 10)
@@ -124,3 +125,7 @@ export async function GET(request: Request) {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

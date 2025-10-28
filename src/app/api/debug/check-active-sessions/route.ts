@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * DEBUG ENDPOINT - Check why active sessions aren't showing
  * GET /api/debug/check-active-sessions?sessionId=xxx
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const sessionId = searchParams.get('sessionId')
@@ -177,3 +178,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

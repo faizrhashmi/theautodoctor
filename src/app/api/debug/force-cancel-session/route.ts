@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Emergency endpoint to force-cancel a specific stuck session
@@ -7,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * Usage: POST /api/debug/force-cancel-session
  * Body: { "sessionId": "c35420d9-88ce-4fb0-a7c4-9b10a580ba3d" }
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const body = await req.json()
     const { sessionId } = body
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 /**
  * GET endpoint to check session status
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('sessionId')
 
@@ -70,3 +71,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ session: data })
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

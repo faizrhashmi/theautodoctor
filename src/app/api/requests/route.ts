@@ -99,6 +99,10 @@ export async function POST(request: NextRequest) {
   const customerName =
     profile?.full_name ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? 'Customer'
 
+  // Set expiration time (15 minutes from now)
+  const expiresAt = new Date()
+  expiresAt.setMinutes(expiresAt.getMinutes() + 15)
+
   const { data: inserted, error: insertError } = await supabase
     .from('session_requests')
     .insert({
@@ -108,6 +112,7 @@ export async function POST(request: NextRequest) {
       notes,
       customer_name: customerName,
       customer_email: user.email ?? null,
+      expires_at: expiresAt.toISOString(),
     })
     .select()
     .single()

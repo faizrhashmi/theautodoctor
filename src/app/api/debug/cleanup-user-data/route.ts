@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Clean up ALL session-related data for the authenticated customer user
  * This is useful for clearing test data from the customer dashboard
  *
  * WARNING: This deletes ALL sessions, not just old ones!
+ * SECURITY: Protected by admin-only access in production
  */
-export async function POST(_req: NextRequest) {
+async function postHandler(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
 
@@ -117,8 +119,9 @@ export async function POST(_req: NextRequest) {
 
 /**
  * GET endpoint to preview what would be deleted
+ * SECURITY: Protected by admin-only access in production
  */
-export async function GET(_req: NextRequest) {
+async function getHandler(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
 
@@ -183,3 +186,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

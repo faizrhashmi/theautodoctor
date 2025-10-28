@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 async function clearOldRequests() {
   try {
@@ -47,10 +48,14 @@ async function clearOldRequests() {
   }
 }
 
-export async function GET() {
+async function getHandler() {
   return clearOldRequests()
 }
 
-export async function POST() {
+async function postHandler() {
   return clearOldRequests()
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)
+export const POST = withDebugAuth(postHandler)

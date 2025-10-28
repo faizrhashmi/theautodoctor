@@ -1,13 +1,76 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { ChatMessage } from '@/types/supabase'
 import type { PlanKey } from '@/config/pricing'
+import toast, { Toaster } from 'react-hot-toast'
 
 type Message = Pick<ChatMessage, 'id' | 'content' | 'created_at' | 'sender_id'> & {
   attachments?: Array<{ name: string; url: string; size: number; type: string }>
+  read_at?: string | null
 }
+
+// Lazy-loaded image component with IntersectionObserver
+const LazyImage = memo(({ src, alt, className, onClick }: {
+  src: string
+  alt: string
+  className?: string
+  onClick?: () => void
+}) => {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [isInView, setIsInView] = useState(false)
+  const imgRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '100px' } // Load images 100px before they enter viewport
+    )
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={imgRef} className="relative w-full">
+      {isInView ? (
+        <>
+          {!isLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-800/50 animate-pulse rounded-lg">
+              <svg className="h-8 w-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          )}
+          <img
+            src={src}
+            alt={alt}
+            className={`${className} ${!isLoaded ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+            onLoad={() => setIsLoaded(true)}
+            onClick={onClick}
+          />
+        </>
+      ) : (
+        <div className="w-full h-48 bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center">
+          <svg className="h-8 w-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      )}
+    </div>
+  )
+})
+
+LazyImage.displayName = 'LazyImage'
 
 type ChatRoomProps = {
   sessionId: string
@@ -92,8 +155,20 @@ export default function ChatRoom({
   const [showSidebar, setShowSidebar] = useState(false) // Hidden by default on mobile
   const [vehicleInfo, setVehicleInfo] = useState<any>(null)
   const [mechanicProfile, setMechanicProfile] = useState<any>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageZoom, setImageZoom] = useState(1)
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map())
+  const [showScrollButton, setShowScrollButton] = useState(false)
+  const [showVehicleBar, setShowVehicleBar] = useState(true) // Collapsed by default
+  const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
+  const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -117,6 +192,126 @@ export default function ChatRoom({
     // Default fallback (shouldn't happen)
     return 30
   }, [plan])
+
+  // Reset zoom/pan when image changes
+  useEffect(() => {
+    if (selectedImage) {
+      setImageZoom(1)
+      setImagePosition({ x: 0, y: 0 })
+      setLastTouchDistance(null)
+    }
+  }, [selectedImage])
+
+  // Image zoom/pan handlers
+  const handleImageWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    setImageZoom((prev) => Math.max(0.5, Math.min(5, prev * delta)))
+  }
+
+  const handleImageTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch gesture
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+      setLastTouchDistance(distance)
+    } else if (e.touches.length === 1 && imageZoom > 1) {
+      // Pan gesture (only when zoomed)
+      setIsDragging(true)
+      setDragStart({ x: e.touches[0].clientX - imagePosition.x, y: e.touches[0].clientY - imagePosition.y })
+    }
+  }
+
+  const handleImageTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDistance) {
+      // Pinch zoom
+      e.preventDefault()
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY)
+      const scale = distance / lastTouchDistance
+      setImageZoom((prev) => Math.max(0.5, Math.min(5, prev * scale)))
+      setLastTouchDistance(distance)
+    } else if (e.touches.length === 1 && isDragging && imageZoom > 1) {
+      // Pan
+      e.preventDefault()
+      setImagePosition({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      })
+    }
+  }
+
+  const handleImageTouchEnd = () => {
+    setIsDragging(false)
+    setLastTouchDistance(null)
+  }
+
+  const handleImageMouseDown = (e: React.MouseEvent) => {
+    if (imageZoom > 1) {
+      e.preventDefault()
+      setIsDragging(true)
+      setDragStart({ x: e.clientX - imagePosition.x, y: e.clientY - imagePosition.y })
+    }
+  }
+
+  const handleImageMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && imageZoom > 1) {
+      setImagePosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      })
+    }
+  }
+
+  const handleImageMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleImageDoubleClick = () => {
+    if (imageZoom > 1) {
+      setImageZoom(1)
+      setImagePosition({ x: 0, y: 0 })
+    } else {
+      setImageZoom(2)
+    }
+  }
+
+  const closeImageModal = () => {
+    setSelectedImage(null)
+    setImageZoom(1)
+    setImagePosition({ x: 0, y: 0 })
+    setIsDragging(false)
+    setLastTouchDistance(null)
+  }
+
+  // Sidebar swipe gesture handlers
+  const handleSidebarTouchStart = (e: React.TouchEvent) => {
+    setSidebarSwipeStart(e.touches[0].clientX)
+    setSidebarSwipeOffset(0)
+  }
+
+  const handleSidebarTouchMove = (e: React.TouchEvent) => {
+    if (sidebarSwipeStart === null) return
+
+    const currentX = e.touches[0].clientX
+    const diff = currentX - sidebarSwipeStart
+
+    // Only allow swiping right (closing)
+    if (diff > 0) {
+      setSidebarSwipeOffset(diff)
+    }
+  }
+
+  const handleSidebarTouchEnd = () => {
+    if (sidebarSwipeOffset > 100) {
+      // Swipe distance threshold to close
+      setShowSidebar(false)
+    }
+    setSidebarSwipeStart(null)
+    setSidebarSwipeOffset(0)
+  }
 
   // Sync messages state with initialMessages prop when navigating back to chat
   useEffect(() => {
@@ -310,7 +505,10 @@ export default function ChatRoom({
           .then((data) => {
             console.log('[ChatRoom] Session auto-ended:', data)
             // Show toast notification
-            alert('Your session time has ended. Redirecting to dashboard...')
+            toast.error('Your session time has ended', {
+              duration: 4000,
+              position: 'top-center',
+            })
             // Force redirect after brief delay
             setTimeout(() => {
               window.location.href = dashboardUrl
@@ -329,9 +527,41 @@ export default function ChatRoom({
     return () => clearInterval(interval)
   }, [sessionId, currentStatus, currentStartedAt, sessionDurationMinutes, sessionEnded, dashboardUrl])
 
+  // Scroll monitoring for scroll-to-bottom button with debouncing
   useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    let timeoutId: NodeJS.Timeout
+
+    const handleScroll = () => {
+      // Debounce scroll handling for better performance
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 200
+        setShowScrollButton(!isNearBottom)
+      }, 100) // Update every 100ms max
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      clearTimeout(timeoutId)
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (!showScrollButton) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, showScrollButton])
+
+  // Scroll to bottom function
+  const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }
 
   // Real-time subscriptions including typing indicators
   useEffect(() => {
@@ -377,6 +607,7 @@ export default function ChatRoom({
                 id: msg.id,
                 content: msg.content,
                 created_at: msg.created_at,
+                read_at: msg.read_at || null,
                 sender_id: msg.sender_id,
                 attachments: msg.attachments || [],
               },
@@ -391,7 +622,13 @@ export default function ChatRoom({
         setCurrentStatus(status)
 
         // Show notification to user
-        alert(`Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant. You will be redirected to your dashboard.`)
+        toast.error(
+          `Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant`,
+          {
+            duration: 5000,
+            position: 'top-center',
+          }
+        )
 
         // Redirect to dashboard
         setTimeout(() => {
@@ -403,7 +640,11 @@ export default function ChatRoom({
         const { extensionMinutes, newExpiresAt } = payload.payload
 
         // Show notification
-        alert(`Session extended by ${extensionMinutes} minutes!`)
+        toast.success(`Session extended by ${extensionMinutes} minutes!`, {
+          duration: 4000,
+          position: 'top-center',
+          icon: '⏱️',
+        })
 
         // Reset timer based on new expiry time
         if (newExpiresAt && currentStartedAt) {
@@ -490,28 +731,91 @@ export default function ChatRoom({
   async function uploadFile(file: File): Promise<{ name: string; url: string; size: number; type: string }> {
     const fileExt = file.name.split('.').pop()
     const fileName = `${sessionId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileKey = file.name // Use filename as key for progress tracking
 
-    const { error: uploadError } = await supabase.storage
-      .from('chat-attachments')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
+    // Initialize progress
+    setUploadProgress((prev) => new Map(prev).set(fileKey, 0))
 
-    if (uploadError) {
-      throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`)
-    }
+    return new Promise((resolve, reject) => {
+      // Get upload URL from Supabase
+      supabase.storage
+        .from('chat-attachments')
+        .createSignedUploadUrl(fileName)
+        .then(({ data, error }) => {
+          if (error || !data) {
+            setUploadProgress((prev) => {
+              const next = new Map(prev)
+              next.delete(fileKey)
+              return next
+            })
+            reject(new Error(`Failed to create upload URL: ${error?.message}`))
+            return
+          }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from('chat-attachments').getPublicUrl(fileName)
+          // Use XMLHttpRequest for progress tracking
+          const xhr = new XMLHttpRequest()
 
-    return {
-      name: file.name,
-      url: publicUrl,
-      size: file.size,
-      type: file.type,
-    }
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = Math.round((e.loaded / e.total) * 100)
+              setUploadProgress((prev) => new Map(prev).set(fileKey, percentComplete))
+            }
+          })
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Upload successful, get public URL
+              const {
+                data: { publicUrl },
+              } = supabase.storage.from('chat-attachments').getPublicUrl(fileName)
+
+              // Clear progress after a short delay to show completion
+              setTimeout(() => {
+                setUploadProgress((prev) => {
+                  const next = new Map(prev)
+                  next.delete(fileKey)
+                  return next
+                })
+              }, 500)
+
+              resolve({
+                name: file.name,
+                url: publicUrl,
+                size: file.size,
+                type: file.type,
+              })
+            } else {
+              setUploadProgress((prev) => {
+                const next = new Map(prev)
+                next.delete(fileKey)
+                return next
+              })
+              reject(new Error(`Upload failed with status ${xhr.status}`))
+            }
+          })
+
+          xhr.addEventListener('error', () => {
+            setUploadProgress((prev) => {
+              const next = new Map(prev)
+              next.delete(fileKey)
+              return next
+            })
+            reject(new Error(`Failed to upload ${file.name}`))
+          })
+
+          xhr.open('PUT', data.signedUrl)
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+          xhr.send(file)
+        })
+        .catch((err) => {
+          setUploadProgress((prev) => {
+            const next = new Map(prev)
+            next.delete(fileKey)
+            return next
+          })
+          reject(err)
+        })
+    })
   }
 
   // Handle typing indicator
@@ -594,6 +898,7 @@ export default function ChatRoom({
               sender_id: data.message.sender_id,
               created_at: data.message.created_at,
               attachments: data.message.attachments || [],
+              read_at: null, // New messages start unread
             },
           ]
         })
@@ -612,6 +917,7 @@ export default function ChatRoom({
               sender_id: data.message.sender_id,
               created_at: data.message.created_at,
               attachments: data.message.attachments || [],
+              read_at: null, // New messages start unread
             },
           },
         })
@@ -730,28 +1036,56 @@ export default function ChatRoom({
 
   return (
     <div className="flex h-screen flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          className: 'text-sm sm:text-base',
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid #475569',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
+      {/* Header - Mobile First Design */}
       <header className="border-b border-slate-700/50 bg-slate-800/90 backdrop-blur-sm shadow-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            {/* Back Button */}
+        <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
+          {/* Left: Back Button + Session Info */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            {/* Back Button - Larger for mobile */}
             <a
               href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
-              className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700/50 hover:text-white"
+              className="flex h-11 w-11 sm:h-10 sm:w-auto items-center justify-center sm:justify-start sm:gap-2 rounded-lg sm:px-3 text-slate-300 transition hover:bg-slate-700/50 hover:text-white flex-shrink-0"
               title="Back to dashboard"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span className="hidden sm:inline">Dashboard</span>
+              <span className="hidden sm:inline text-sm font-medium">Dashboard</span>
             </a>
 
-            <div className="h-8 w-px bg-slate-700" />
-
-            {/* Session Info */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg">
-                <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* Session Info - Compact on mobile */}
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 hover:bg-slate-700/30 rounded-lg px-2 sm:px-3 py-1.5 transition"
+              title="Tap for session info"
+            >
+              <div className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg flex-shrink-0">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -760,131 +1094,227 @@ export default function ChatRoom({
                   />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-sm font-semibold text-white">{planName}</h1>
-                <p className={`flex items-center gap-1.5 text-xs font-medium ${headerColor}`}>
-                  <span className={`inline-block h-2 w-2 rounded-full ${(isMechanic || mechanicName) ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+              <div className="flex-1 min-w-0 text-left">
+                <h1 className="text-sm sm:text-base font-semibold text-white truncate">
+                  {isMechanic
+                    ? customerName || 'Customer'
+                    : mechanicName || 'Waiting for mechanic...'}
+                </h1>
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
+                  {/* Timer on mobile, status on desktop */}
                   {isTyping ? (
-                    <span className="text-green-400 animate-pulse">typing...</span>
+                    <span className="flex items-center gap-1.5 font-medium text-green-400">
+                      <span className="flex items-center gap-0.5">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce [animation-delay:0s]" />
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce [animation-delay:200ms]" />
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce [animation-delay:400ms]" />
+                      </span>
+                      <span className="text-[10px] sm:text-xs">typing</span>
+                    </span>
+                  ) : timeRemaining !== null && currentStatus?.toLowerCase() === 'live' ? (
+                    <span className="flex items-center gap-1 font-medium text-blue-300">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                      <span className="hidden sm:inline text-slate-400 ml-1">• {planName}</span>
+                    </span>
                   ) : (
-                    headerStatus
+                    <span className={`flex items-center gap-1.5 font-medium ${headerColor}`}>
+                      <span className={`inline-block h-2 w-2 rounded-full ${(isMechanic || mechanicName) ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                      <span className="truncate">{currentStatus === 'live' ? 'Live' : currentStatus === 'waiting' ? 'Waiting' : currentStatus || 'Pending'}</span>
+                      <span className="hidden sm:inline text-slate-400">• {planName}</span>
+                    </span>
                   )}
-                </p>
+                </div>
               </div>
-            </div>
+            </button>
           </div>
 
-          {/* Right Side */}
-          <div className="flex items-center gap-3">
-            {/* Sidebar Toggle */}
+          {/* Right: Menu Only (Everything else goes inside) */}
+          <div className="relative flex-shrink-0">
+            {/* Mobile: Only show menu button */}
             <button
-              onClick={() => setShowSidebar(!showSidebar)}
-              className="flex h-10 items-center gap-2 rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:border-slate-500"
-              title="Toggle sidebar"
+              onClick={() => setShowSessionMenu(!showSessionMenu)}
+              className="flex h-11 w-11 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:border-slate-500"
+              title="Options"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
-              <span className="hidden sm:inline">Info</span>
-            </button>
-            {/* Timer */}
-            {timeRemaining !== null && currentStatus?.toLowerCase() === 'live' && (
-              <div className="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1.5 text-xs font-semibold text-blue-300 border border-blue-500/30">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
-              </div>
-            )}
-
-            {/* Status Badge */}
-            <span className="rounded-full bg-slate-700/50 px-3 py-1.5 text-xs font-medium text-slate-300 border border-slate-600/50">
-              {currentStatus === 'live' ? '🟢 Live' : currentStatus === 'waiting' ? '🟡 Waiting' : `⚪ ${currentStatus || 'pending'}`}
-            </span>
-
-            {/* Mechanic Badge */}
-            {isMechanic && (
-              <span className="rounded-full bg-blue-500/20 px-3 py-1.5 text-xs font-semibold text-blue-300 border border-blue-500/30">
-                Mechanic
-              </span>
-            )}
-
-            {/* End Session Button - Always Visible */}
-            <button
-              onClick={() => setShowEndSessionModal(true)}
-              className="flex items-center gap-2 rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/20 hover:border-red-500"
-              title="End this session"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              <span className="hidden sm:inline">End Session</span>
             </button>
 
-            {/* Session Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSessionMenu(!showSessionMenu)}
-                className="flex items-center gap-2 rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:border-slate-500"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-                <span className="hidden sm:inline">Options</span>
-              </button>
-
-              {showSessionMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowSessionMenu(false)} />
-                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
-                    <div className="p-2">
-                      {!isMechanic && currentStatus?.toLowerCase() === 'live' && (
-                        <button
-                          onClick={() => {
-                            setShowSessionMenu(false)
-                            setShowExtensionModal(true)
-                          }}
-                          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-orange-500/10 hover:text-orange-400"
-                        >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Extend Session Time
-                        </button>
+            {showSessionMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowSessionMenu(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-700/50 bg-slate-800 shadow-2xl">
+                  <div className="p-2">
+                    {/* Session Status Badge */}
+                    <div className="px-4 py-2 mb-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className={`inline-block h-2 w-2 rounded-full ${currentStatus === 'live' ? 'bg-green-500' : currentStatus === 'waiting' ? 'bg-amber-500' : 'bg-slate-500'}`} />
+                        <span className="text-white font-medium">
+                          {currentStatus === 'live' ? 'Live Session' : currentStatus === 'waiting' ? 'Waiting for participant' : currentStatus || 'Pending'}
+                        </span>
+                      </div>
+                      {isMechanic && (
+                        <div className="mt-1 text-xs text-blue-300 font-medium">Mechanic View</div>
                       )}
-                      <a
-                        href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
-                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700/50"
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        View Dashboard
-                      </a>
-                      <div className="my-1 h-px bg-slate-700" />
+                    </div>
+
+                    <div className="my-1 h-px bg-slate-700" />
+
+                    {/* Session Info Button */}
+                    <button
+                      onClick={() => {
+                        setShowSessionMenu(false)
+                        setShowSidebar(true)
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700/50"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Session Info & Vehicle Details
+                    </button>
+
+                    {/* Extend Session - Customers only, live sessions only */}
+                    {!isMechanic && currentStatus?.toLowerCase() === 'live' && (
                       <button
                         onClick={() => {
                           setShowSessionMenu(false)
-                          setShowEndSessionModal(true)
+                          setShowExtensionModal(true)
                         }}
-                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-orange-500/10 hover:text-orange-400"
                       >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        End Session
+                        Extend Session Time
                       </button>
-                    </div>
+                    )}
+
+                    {/* Dashboard Link */}
+                    <a
+                      href={isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'}
+                      className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700/50"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      Return to Dashboard
+                    </a>
+
+                    <div className="my-1 h-px bg-slate-700" />
+
+                    {/* End Session Button */}
+                    <button
+                      onClick={() => {
+                        setShowSessionMenu(false)
+                        setShowEndSessionModal(true)
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      End Session
+                    </button>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Messages Area */}
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-x-hidden overflow-y-visible px-6 py-6">
+      {/* Collapsible Vehicle Info Bar */}
+      {vehicleInfo && (
+        <div className="border-b border-slate-700/50 bg-slate-800/70 backdrop-blur-sm">
+          {/* Toggle Button */}
+          <button
+            onClick={() => setShowVehicleBar(!showVehicleBar)}
+            className="flex w-full items-center justify-between px-3 sm:px-6 py-2 text-sm hover:bg-slate-700/30 transition"
+          >
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-medium text-slate-300">
+                {vehicleInfo.year && vehicleInfo.make && vehicleInfo.model
+                  ? `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}`
+                  : 'Vehicle Info'}
+              </span>
+            </div>
+            <svg
+              className={`h-4 w-4 text-slate-400 transition-transform ${showVehicleBar ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Collapsible Content */}
+          {showVehicleBar && (
+            <div className="px-3 sm:px-6 pb-3 animate-fade-in">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {vehicleInfo.vin && (
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/30 px-3 py-2">
+                    <svg className="h-4 w-4 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-500">VIN</p>
+                      <p className="text-white font-mono truncate">{vehicleInfo.vin}</p>
+                    </div>
+                  </div>
+                )}
+
+                {vehicleInfo.license_plate && (
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/30 px-3 py-2">
+                    <svg className="h-4 w-4 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-500">License Plate</p>
+                      <p className="text-white font-semibold">{vehicleInfo.license_plate}</p>
+                    </div>
+                  </div>
+                )}
+
+                {vehicleInfo.mileage && (
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/30 px-3 py-2">
+                    <svg className="h-4 w-4 text-orange-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-500">Mileage</p>
+                      <p className="text-white">{vehicleInfo.mileage.toLocaleString()} miles</p>
+                    </div>
+                  </div>
+                )}
+
+                {vehicleInfo.color && (
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/30 px-3 py-2">
+                    <svg className="h-4 w-4 text-purple-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-500">Color</p>
+                      <p className="text-white capitalize">{vehicleInfo.color}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Messages Area - Full Screen on Mobile */}
+      <main className="flex w-full flex-1 flex-col overflow-x-hidden overflow-y-visible px-3 sm:px-6 py-3 sm:py-6">
         {/* Join Notification */}
         {participantJoined && mechanicName && !isMechanic && (
           <div className="mb-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center backdrop-blur-sm animate-fade-in">
@@ -952,7 +1382,10 @@ export default function ChatRoom({
             </a>
           </div>
         )}
-        <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl bg-slate-800/50 p-6 shadow-2xl border border-slate-700/50 backdrop-blur-sm">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 space-y-4 overflow-y-auto rounded-2xl bg-slate-800/50 p-3 sm:p-6 shadow-2xl border border-slate-700/50 backdrop-blur-sm relative"
+        >
           {messages.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
@@ -981,24 +1414,24 @@ export default function ChatRoom({
 
               return (
                 <div key={message.id} className={`flex ${isSenderMechanic ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex max-w-2xl gap-3 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {/* Avatar */}
+                  <div className={`flex max-w-[85%] sm:max-w-lg gap-2 sm:gap-3 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {/* Avatar - Smaller on mobile */}
                     <div
-                      className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
+                      className={`flex h-8 w-8 sm:h-9 sm:w-9 flex-shrink-0 items-center justify-center rounded-full ${
                         isSenderMechanic
                           ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg'
                           : 'bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg'
-                      } text-xs font-bold text-white border-2 ${
+                      } text-[10px] sm:text-xs font-bold text-white border-2 ${
                         isSenderMechanic ? 'border-orange-400/30' : 'border-blue-500/30'
                       }`}
                     >
                       {isSenderMechanic ? 'M' : 'C'}
                     </div>
 
-                    {/* Message Bubble */}
+                    {/* Message Bubble - Tighter padding on mobile */}
                     <div className="flex flex-col gap-1">
                       <div
-                        className={`rounded-2xl px-4 py-3 shadow-lg ${
+                        className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-lg ${
                           isSenderMechanic
                             ? 'rounded-tr-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white border border-orange-400/30'
                             : 'rounded-tl-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white border border-blue-500/30'
@@ -1008,51 +1441,95 @@ export default function ChatRoom({
                           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
                         )}
 
-                        {/* Attachments */}
+                        {/* Attachments - Inline images or file links */}
                         {message.attachments && message.attachments.length > 0 && (
                           <div className={`${message.content ? 'mt-2' : ''} space-y-2`}>
-                            {message.attachments.map((file, idx) => (
-                              <a
-                                key={idx}
-                                href={file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`flex items-center gap-2 rounded-lg border p-2 text-xs transition ${
-                                  isSenderMechanic
-                                    ? 'border-orange-400/50 bg-orange-500/20 hover:bg-orange-500/30'
-                                    : 'border-blue-500/50 bg-blue-600/20 hover:bg-blue-600/30'
-                                }`}
-                              >
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                                  />
-                                </svg>
-                                <div className="flex-1 truncate">
-                                  <p className="truncate font-medium">{file.name}</p>
-                                  <p className={`text-xs ${isSenderMechanic ? 'text-orange-200' : 'text-blue-200'}`}>
-                                    {formatFileSize(file.size)}
-                                  </p>
-                                </div>
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                  />
-                                </svg>
-                              </a>
-                            ))}
+                            {message.attachments.map((file, idx) => {
+                              const isImage = file.type.startsWith('image/')
+
+                              if (isImage) {
+                                // Show image inline with click to expand - using lazy loading
+                                return (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setSelectedImage(file.url)}
+                                    className="block w-full rounded-lg overflow-hidden border border-white/20 hover:border-white/40 transition"
+                                  >
+                                    <LazyImage
+                                      src={file.url}
+                                      alt={file.name}
+                                      className="w-full h-auto max-h-64 object-cover"
+                                    />
+                                  </button>
+                                )
+                              } else {
+                                // Show as file download link
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`flex items-center gap-2 rounded-lg border p-2 text-xs transition ${
+                                      isSenderMechanic
+                                        ? 'border-orange-400/50 bg-orange-500/20 hover:bg-orange-500/30'
+                                        : 'border-blue-500/50 bg-blue-600/20 hover:bg-blue-600/30'
+                                    }`}
+                                  >
+                                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                                      />
+                                    </svg>
+                                    <div className="flex-1 truncate">
+                                      <p className="truncate font-medium">{file.name}</p>
+                                      <p className={`text-xs ${isSenderMechanic ? 'text-orange-200' : 'text-blue-200'}`}>
+                                        {formatFileSize(file.size)}
+                                      </p>
+                                    </div>
+                                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                      />
+                                    </svg>
+                                  </a>
+                                )
+                              }
+                            })}
                           </div>
                         )}
                       </div>
-                      <span className={`px-1 text-[10px] text-slate-500 ${isSenderMechanic ? 'text-right' : 'text-left'}`}>
-                        {formatTimestamp(message.created_at)}
-                      </span>
+
+                      {/* Timestamp with Read Receipts */}
+                      <div className={`flex items-center gap-1 px-1 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <span className={`text-[10px] text-slate-500`}>
+                          {formatTimestamp(message.created_at)}
+                        </span>
+
+                        {/* Read Receipts - Only show for own messages */}
+                        {((userRole === 'mechanic' && isSenderMechanic) || (userRole === 'customer' && !isSenderMechanic)) && (
+                          <span className="text-[10px] text-slate-400 flex items-center">
+                            {message.read_at ? (
+                              // Double checkmark for read messages
+                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M0.5 8.5l1.5 1.5 3-3-1.5-1.5-3 3zm5 0l1.5 1.5 8-8-1.5-1.5-8 8z" />
+                                <path d="M3.5 8.5l1.5 1.5 8-8-1.5-1.5-8 8z" opacity="0.6" />
+                              </svg>
+                            ) : (
+                              // Single checkmark for sent messages
+                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M3.5 8.5l1.5 1.5 8-8-1.5-1.5-8 8z" />
+                              </svg>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1062,41 +1539,202 @@ export default function ChatRoom({
           <div ref={bottomRef} />
         </div>
 
-        {/* Input Area */}
-        <form onSubmit={handleSend} className="mt-4 rounded-2xl border border-slate-700/50 bg-slate-800/50 p-4 shadow-2xl backdrop-blur-sm">
-          {/* File Previews */}
+        {/* Scroll to Bottom Button - Floating */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-4 sm:right-6 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-orange-500 text-white shadow-2xl transition hover:bg-orange-600 active:scale-95"
+            title="Scroll to bottom"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
+        )}
+
+        {/* Input Area - Mobile Optimized with Safe Area */}
+        <form onSubmit={handleSend} className="mt-3 sm:mt-4 rounded-2xl border border-slate-700/50 bg-slate-800/50 p-3 sm:p-4 shadow-2xl backdrop-blur-sm pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4">
+          {/* File Previews - Enhanced with Image Thumbnails */}
           {attachments.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {attachments.map((file, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 py-2 text-xs"
+            <div className="mb-3 space-y-2">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">
+                  {attachments.length} file{attachments.length > 1 ? 's' : ''} attached
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAttachments([])}
+                  className="text-xs text-slate-500 hover:text-red-400 transition"
                 >
-                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span className="max-w-xs truncate font-medium text-slate-300">{file.name}</span>
-                  <span className="text-slate-500">({formatFileSize(file.size)})</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(idx)}
-                    className="ml-1 text-slate-500 hover:text-red-400"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                  Clear all
+                </button>
+              </div>
+
+              {/* Files Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {attachments.map((file, idx) => {
+                  const isImage = file.type.startsWith('image/')
+                  const isPDF = file.type === 'application/pdf'
+                  const isDoc = file.type.includes('word') || file.type.includes('document') || file.name.endsWith('.doc') || file.name.endsWith('.docx')
+
+                  return (
+                    <div
+                      key={idx}
+                      className="relative group rounded-lg border border-slate-600/50 bg-slate-700/50 overflow-hidden hover:border-slate-500 transition"
+                    >
+                      {/* Remove button - Always visible on mobile, hover on desktop */}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(idx)}
+                        className="absolute top-1 right-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition hover:bg-red-600"
+                        title="Remove file"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+
+                      {/* Preview */}
+                      <div className="aspect-square w-full">
+                        {isImage ? (
+                          // Image thumbnail
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="h-full w-full object-cover"
+                            onLoad={(e) => URL.revokeObjectURL(e.currentTarget.src)}
+                          />
+                        ) : (
+                          // File icon for non-images
+                          <div className="flex h-full w-full flex-col items-center justify-center bg-slate-800/50 p-3">
+                            {isPDF ? (
+                              <svg className="h-12 w-12 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18.5,9L13,3.5V9H18.5Z" />
+                              </svg>
+                            ) : isDoc ? (
+                              <svg className="h-12 w-12 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18.5,9L13,3.5V9H18.5M7,13V11H9V13H7M11,13V11H17V13H11M7,17V15H9V17H7M11,17V15H17V17H11Z" />
+                              </svg>
+                            ) : (
+                              <svg className="h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* File Info */}
+                      <div className="p-2 bg-slate-800/70">
+                        <p className="text-xs font-medium text-slate-300 truncate" title={file.name}>
+                          {file.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          {formatFileSize(file.size)}
+                        </p>
+
+                        {/* Upload Progress Bar */}
+                        {uploadProgress.has(file.name) && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-orange-400 font-medium">Uploading...</span>
+                              <span className="text-slate-400">{uploadProgress.get(file.name)}%</span>
+                            </div>
+                            <div className="h-1 bg-slate-600 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-300 ease-out"
+                                style={{ width: `${uploadProgress.get(file.name)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 
-          <div className="flex items-end gap-3">
+          <div className="flex items-end gap-2">
+            {/* Hidden file inputs - one for files, one for camera */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              accept="image/*,application/pdf,.doc,.docx,.txt"
+            />
+
+            {/* Camera Button - Opens camera on mobile */}
+            <button
+              type="button"
+              onClick={() => {
+                if (fileInputRef.current) {
+                  // Set capture attribute for camera on mobile
+                  fileInputRef.current.setAttribute('capture', 'environment')
+                  fileInputRef.current.setAttribute('accept', 'image/*')
+                  fileInputRef.current.removeAttribute('multiple')
+                  fileInputRef.current.click()
+                  // Reset attributes after click
+                  setTimeout(() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.removeAttribute('capture')
+                      fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
+                      fileInputRef.current.setAttribute('multiple', 'true')
+                    }
+                  }, 100)
+                }
+              }}
+              disabled={sending || uploading || sessionEnded}
+              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-blue-400 hover:border-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
+              title="Take photo"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+
+            {/* Attach File Button - 44px touch target on mobile */}
+            <button
+              type="button"
+              onClick={() => {
+                if (fileInputRef.current) {
+                  // Ensure normal file selection attributes
+                  fileInputRef.current.removeAttribute('capture')
+                  fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
+                  fileInputRef.current.setAttribute('multiple', 'true')
+                  fileInputRef.current.click()
+                }
+              }}
+              disabled={sending || uploading || sessionEnded}
+              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-orange-400 hover:border-orange-500/50 disabled:cursor-not-allowed disabled:opacity-50 flex-shrink-0"
+              title="Attach file"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                />
+              </svg>
+            </button>
+
+            {/* Textarea - Full width */}
             <div className="flex-1">
               <textarea
                 ref={messageInputRef}
@@ -1119,50 +1757,26 @@ export default function ChatRoom({
                     }
                   }
                 }}
-                placeholder={sessionEnded ? "Session has ended" : "Type your message... (Shift+Enter for new line)"}
+                placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
                 rows={1}
                 maxLength={2000}
                 style={{ maxHeight: '120px' }}
-                className="w-full resize-none rounded-xl border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-sm text-white placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-800/50 disabled:cursor-not-allowed"
+                className="w-full resize-none rounded-xl border border-slate-600/50 bg-slate-700/50 px-3 py-2.5 sm:px-4 sm:py-3 text-sm text-white placeholder-slate-400 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-slate-800/50 disabled:cursor-not-allowed"
                 disabled={sending || uploading || sessionEnded}
               />
-              <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+              <div className="mt-1.5 sm:mt-2 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
                 <span>{input.length} / 2000</span>
-                <span>Press Enter to send, Shift+Enter for new line</span>
+                <span className="hidden sm:inline">Press Enter to send</span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="image/*,application/pdf,.doc,.docx,.txt"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={sending || uploading || sessionEnded}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/50 text-slate-300 transition hover:bg-slate-700 hover:text-orange-400 hover:border-orange-500/50 disabled:cursor-not-allowed disabled:opacity-50"
-                title="Attach file"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
-              </button>
-              <button
-                type="submit"
-                disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-                title="Send message"
-              >
+            {/* Send Button - 44px touch target on mobile */}
+            <button
+              type="submit"
+              disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
+              className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none flex-shrink-0"
+              title="Send message"
+            >
                 {sending || uploading ? (
                   <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -1179,7 +1793,6 @@ export default function ChatRoom({
                 )}
               </button>
             </div>
-          </div>
 
           {error && (
             <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-300">
@@ -1199,21 +1812,38 @@ export default function ChatRoom({
         </form>
       </main>
 
-      {/* Sidebar - Files, Vehicle Info, Mechanic Profile */}
+      {/* Sidebar - Mobile Drawer with Animation */}
       {showSidebar && (
-        <div className="fixed right-0 top-0 bottom-0 z-40 w-full sm:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto">
-          {/* Sidebar Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-800 p-4">
-            <h2 className="text-lg font-semibold text-white">Session Info</h2>
-            <button
-              onClick={() => setShowSidebar(false)}
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setShowSidebar(false)}
+          />
+
+          {/* Drawer - Slides in from right with swipe gesture */}
+          <div
+            className="fixed right-0 top-0 bottom-0 z-50 w-full sm:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto animate-slide-in-right transition-transform touch-none"
+            style={{
+              transform: sidebarSwipeOffset > 0 ? `translateX(${sidebarSwipeOffset}px)` : 'none',
+            }}
+            onTouchStart={handleSidebarTouchStart}
+            onTouchMove={handleSidebarTouchMove}
+            onTouchEnd={handleSidebarTouchEnd}
+          >
+            {/* Sidebar Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-800 p-4">
+              <h2 className="text-base sm:text-lg font-semibold text-white">Session Info</h2>
+              <button
+                onClick={() => setShowSidebar(false)}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white h-11 w-11 flex items-center justify-center"
+                title="Close"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
           <div className="p-4 space-y-6">
             {/* Mechanic Profile Card - Only for customers */}
@@ -1377,7 +2007,8 @@ export default function ChatRoom({
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Extension Modal */}
@@ -1554,6 +2185,68 @@ export default function ChatRoom({
                 {currentStatus?.toLowerCase() === 'live' ? 'Keep Session Active' : 'Go Back'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Image Viewer with Zoom/Pan */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm overflow-hidden touch-none"
+          onClick={closeImageModal}
+          onMouseMove={handleImageMouseMove}
+          onMouseUp={handleImageMouseUp}
+          onMouseLeave={handleImageMouseUp}
+        >
+          {/* Close Button */}
+          <button
+            onClick={closeImageModal}
+            className="absolute top-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 text-white transition hover:bg-slate-700 backdrop-blur-sm"
+            title="Close (ESC)"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Zoom Indicator */}
+          {imageZoom !== 1 && (
+            <div className="absolute top-4 left-4 z-20 rounded-full bg-slate-800/80 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+              {Math.round(imageZoom * 100)}%
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 rounded-full bg-slate-800/80 px-4 py-2 text-xs text-slate-300 backdrop-blur-sm">
+            <span className="hidden sm:inline">Scroll to zoom • </span>
+            <span className="sm:hidden">Pinch to zoom • </span>
+            Double-click to reset
+          </div>
+
+          {/* Image Container */}
+          <div
+            className="relative flex items-center justify-center w-full h-full select-none"
+            onWheel={handleImageWheel}
+            onTouchStart={handleImageTouchStart}
+            onTouchMove={handleImageTouchMove}
+            onTouchEnd={handleImageTouchEnd}
+            onMouseDown={handleImageMouseDown}
+            onDoubleClick={handleImageDoubleClick}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              cursor: imageZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+            }}
+          >
+            <img
+              src={selectedImage}
+              alt="Full size"
+              className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl select-none pointer-events-none"
+              style={{
+                transform: `scale(${imageZoom}) translate(${imagePosition.x / imageZoom}px, ${imagePosition.y / imageZoom}px)`,
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+              }}
+              draggable={false}
+            />
           </div>
         </div>
       )}

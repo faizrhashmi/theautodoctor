@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * DEBUG ENDPOINT - Fix orphaned session (no mechanic_id, no parent_session_id link)
  * POST /api/debug/fix-orphaned-session
  * Body: { sessionId: "xxx" }
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const { sessionId } = await req.json()
 
@@ -126,3 +127,6 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)

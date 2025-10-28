@@ -1,0 +1,675 @@
+{
+  "audit_metadata": {
+    "generated_at": "2025-10-28T00:00:00Z",
+    "total_routes_analyzed": 256,
+    "platform": "Next.js 14 App Router + TypeScript + Supabase",
+    "authentication_types": {
+      "supabase_auth": "Customers, Admins, Workshops via Supabase Auth",
+      "mechanic_token": "Mechanics via custom token in aad_mech cookie",
+      "workshop_auth": "Workshops via Supabase Auth + organization membership",
+      "cron_secret": "Cron jobs via CRON_SECRET header",
+      "stripe_webhook": "Stripe webhooks via signature verification",
+      "none": "Public endpoints with no authentication"
+    }
+  },
+  "endpoints": [
+    {
+      "path": "/api/livekit/token",
+      "methods": ["GET", "POST"],
+      "authentication": "none",
+      "purpose": "Generate LiveKit video tokens for sessions",
+      "request_schema": {
+        "room": "string (optional)",
+        "identity": "string (optional)",
+        "metadata": "string (optional)"
+      },
+      "response_schema": {
+        "token": "string",
+        "room": "string",
+        "serverUrl": "string"
+      },
+      "database_tables": [],
+      "security_issues": [
+        "CRITICAL: No authentication - anyone can request video tokens",
+        "CRITICAL: No session validation - arbitrary room and identity accepted",
+        "CRITICAL: Grants full permissions (canPublish, canSubscribe, canPublishData)",
+        "HIGH: No rate limiting on token generation"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/login",
+      "methods": ["POST"],
+      "authentication": "none",
+      "purpose": "Admin login endpoint",
+      "request_schema": {
+        "email": "string (required)",
+        "password": "string (required)",
+        "redirect": "string (optional)"
+      },
+      "response_schema": {
+        "success": "boolean",
+        "redirect": "string",
+        "error": "string (on failure)"
+      },
+      "database_tables": ["profiles"],
+      "security_issues": [
+        "LOW: No rate limiting on login attempts",
+        "LOW: No MFA support",
+        "INFO: Uses Supabase Auth with proper cookie handling"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/database/query",
+      "methods": ["POST"],
+      "authentication": "supabase_admin",
+      "purpose": "Execute read-only SQL queries for admin database exploration",
+      "request_schema": {
+        "query": "string (required)",
+        "save": "boolean (optional)",
+        "name": "string (optional)",
+        "description": "string (optional)",
+        "category": "string (optional)"
+      },
+      "response_schema": {
+        "data": "array",
+        "executionTime": "number",
+        "rowCount": "number"
+      },
+      "database_tables": ["admin_query_history", "admin_saved_queries"],
+      "security_issues": [
+        "HIGH: SQL injection possible if exec_sql RPC not properly sandboxed",
+        "MEDIUM: Keyword blocking can be bypassed with creative SQL",
+        "INFO: Protected by requireAdmin middleware",
+        "INFO: Logs all queries to admin_query_history"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/logout",
+      "methods": ["POST"],
+      "authentication": "supabase",
+      "purpose": "Admin logout",
+      "request_schema": {},
+      "response_schema": {
+        "success": "boolean"
+      },
+      "database_tables": [],
+      "security_issues": [],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/users/customers",
+      "methods": ["GET"],
+      "authentication": "supabase_admin",
+      "purpose": "List all customers with filtering and pagination",
+      "request_schema": {
+        "page": "number (query)",
+        "pageSize": "number (query)",
+        "q": "string (query)",
+        "status": "string (query)",
+        "emailVerified": "boolean (query)",
+        "from": "string (query)",
+        "to": "string (query)"
+      },
+      "response_schema": {
+        "rows": "array",
+        "total": "number",
+        "page": "number",
+        "pageSize": "number"
+      },
+      "database_tables": ["profiles", "sessions", "payments"],
+      "security_issues": [
+        "INFO: Protected by requireAdmin middleware",
+        "MEDIUM: Multiple database queries for enrichment (N+1 potential)"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/users/mechanics/[id]",
+      "methods": ["GET", "PUT", "DELETE"],
+      "authentication": "supabase_admin",
+      "purpose": "Get, update, or delete mechanic by ID",
+      "request_schema": {
+        "id": "string (path param)"
+      },
+      "response_schema": {},
+      "database_tables": ["mechanics", "profiles"],
+      "security_issues": [
+        "INFO: Protected by requireAdmin middleware"
+      ],
+      "validation": "inconsistent",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/admin/sessions/join",
+      "methods": ["POST"],
+      "authentication": "supabase_admin",
+      "purpose": "Allow admin to join a session as mechanic",
+      "request_schema": {
+        "sessionId": "string (required)"
+      },
+      "response_schema": {
+        "success": "boolean",
+        "sessionId": "string",
+        "type": "string"
+      },
+      "database_tables": ["sessions", "session_participants"],
+      "security_issues": [
+        "INFO: Protected by requireAdmin middleware",
+        "INFO: Logs admin actions with warning level"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/login",
+      "methods": ["POST"],
+      "authentication": "none",
+      "purpose": "Mechanic login with custom authentication",
+      "request_schema": {
+        "email": "string (required)",
+        "password": "string (required)"
+      },
+      "response_schema": {
+        "ok": "boolean"
+      },
+      "database_tables": ["mechanics", "mechanic_sessions"],
+      "security_issues": [
+        "MEDIUM: No rate limiting on login attempts",
+        "MEDIUM: No account lockout after failed attempts",
+        "INFO: Uses custom password hashing (scrypt)",
+        "INFO: Implements token refresh mechanism",
+        "INFO: Sets httpOnly, sameSite cookies"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/logout",
+      "methods": ["POST"],
+      "authentication": "mechanic_token",
+      "purpose": "Mechanic logout",
+      "request_schema": {},
+      "response_schema": {
+        "ok": "boolean"
+      },
+      "database_tables": ["mechanic_sessions"],
+      "security_issues": [],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/me",
+      "methods": ["GET"],
+      "authentication": "mechanic_token",
+      "purpose": "Get current mechanic profile",
+      "request_schema": {},
+      "response_schema": {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "stripeConnected": "boolean",
+        "payoutsEnabled": "boolean",
+        "sinCollected": "boolean"
+      },
+      "database_tables": ["mechanic_sessions", "mechanics"],
+      "security_issues": [
+        "INFO: Validates token and expiration properly"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/refresh",
+      "methods": ["POST"],
+      "authentication": "mechanic_token",
+      "purpose": "Refresh mechanic access token using refresh token",
+      "request_schema": {},
+      "response_schema": {
+        "ok": "boolean"
+      },
+      "database_tables": ["mechanic_sessions"],
+      "security_issues": [
+        "INFO: Implements proper token rotation",
+        "INFO: Validates refresh token expiration"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/requests/route",
+      "methods": ["GET"],
+      "authentication": "mechanic_token",
+      "purpose": "Get session requests for mechanic",
+      "request_schema": {
+        "status": "string (query)",
+        "mechanicId": "string (query)"
+      },
+      "response_schema": {
+        "requests": "array"
+      },
+      "database_tables": ["session_requests", "sessions", "intakes", "session_files"],
+      "security_issues": [
+        "INFO: Runs cleanup before fetching",
+        "MEDIUM: Multiple database queries for enrichment (N+1)"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanics/requests/[id]/accept",
+      "methods": ["POST"],
+      "authentication": "mechanic_token",
+      "purpose": "Accept a session request",
+      "request_schema": {
+        "id": "string (path param)"
+      },
+      "response_schema": {
+        "success": "boolean"
+      },
+      "database_tables": ["session_requests", "sessions"],
+      "security_issues": [
+        "INFO: Validates mechanic authentication"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/mechanic/availability",
+      "methods": ["GET", "PUT"],
+      "authentication": "mechanic_token",
+      "purpose": "Get or update mechanic availability schedule",
+      "request_schema": {
+        "availability": "array (for PUT)"
+      },
+      "response_schema": {
+        "availability": "array"
+      },
+      "database_tables": ["mechanic_availability", "mechanic_sessions"],
+      "security_issues": [
+        "INFO: Validates token properly",
+        "MEDIUM: No validation on availability time ranges"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/workshop/login",
+      "methods": ["POST"],
+      "authentication": "none",
+      "purpose": "Workshop login via Supabase Auth",
+      "request_schema": {
+        "email": "string (required)",
+        "password": "string (required)"
+      },
+      "response_schema": {
+        "ok": "boolean"
+      },
+      "database_tables": ["organization_members", "organizations"],
+      "security_issues": [
+        "MEDIUM: No rate limiting",
+        "INFO: Validates organization type and status",
+        "INFO: Checks membership role and status"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/workshop/dashboard",
+      "methods": ["GET"],
+      "authentication": "supabase_workshop",
+      "purpose": "Get workshop dashboard data",
+      "request_schema": {},
+      "response_schema": {
+        "organization": "object",
+        "mechanics": "array",
+        "pendingInvites": "array",
+        "stats": "object",
+        "userRole": "string"
+      },
+      "database_tables": ["organization_members", "organizations", "mechanics"],
+      "security_issues": [
+        "INFO: Validates workshop membership and role",
+        "INFO: Tracks analytics events"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/customer/sessions",
+      "methods": ["GET"],
+      "authentication": "supabase",
+      "purpose": "Get customer sessions",
+      "request_schema": {},
+      "response_schema": {
+        "sessions": "array"
+      },
+      "database_tables": ["sessions", "session_participants", "profiles"],
+      "security_issues": [
+        "INFO: Uses Supabase Auth properly"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/session/start",
+      "methods": ["GET"],
+      "authentication": "none",
+      "purpose": "Start session and generate LiveKit token",
+      "request_schema": {
+        "session_id": "string (query)"
+      },
+      "response_schema": {
+        "token": "string",
+        "room": "string",
+        "role": "string"
+      },
+      "database_tables": [],
+      "security_issues": [
+        "CRITICAL: Only validates Stripe payment, not session ownership",
+        "HIGH: No authentication check on session access",
+        "MEDIUM: Relies on Stripe session ID for security"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/stripe/webhook",
+      "methods": ["POST"],
+      "authentication": "stripe_signature",
+      "purpose": "Handle Stripe webhook events",
+      "request_schema": {},
+      "response_schema": {
+        "received": "boolean"
+      },
+      "database_tables": ["stripe_events", "payment_intents", "sessions", "session_extensions", "refunds"],
+      "security_issues": [
+        "INFO: Validates webhook signature properly",
+        "INFO: Implements idempotency checking",
+        "INFO: Handles payment_intent.succeeded, checkout.session.completed, charge.refunded, charge.dispute.created"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/uploads/sign",
+      "methods": ["POST"],
+      "authentication": "none",
+      "purpose": "Generate signed upload URL for file uploads",
+      "request_schema": {
+        "filename": "string (required)",
+        "contentType": "string (optional)"
+      },
+      "response_schema": {
+        "signedUrl": "string",
+        "token": "string",
+        "path": "string",
+        "contentType": "string",
+        "expiresIn": "number"
+      },
+      "database_tables": [],
+      "security_issues": [
+        "CRITICAL: No authentication - anyone can request upload URLs",
+        "HIGH: No file type validation",
+        "HIGH: No file size limits",
+        "HIGH: No rate limiting on upload requests",
+        "MEDIUM: No user association with uploaded files"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/contact",
+      "methods": ["POST"],
+      "authentication": "none",
+      "purpose": "Submit contact form",
+      "request_schema": {
+        "name": "string (required)",
+        "email": "string (required)",
+        "reason": "string (required)",
+        "subject": "string (required)",
+        "message": "string (required, min 20 chars)",
+        "attachment": "file (optional, max 10MB, PNG/JPG/PDF)"
+      },
+      "response_schema": {
+        "message": "string"
+      },
+      "database_tables": ["contact_requests"],
+      "security_issues": [
+        "HIGH: No rate limiting - spam vulnerability",
+        "MEDIUM: No CAPTCHA or bot protection",
+        "INFO: Good file validation (type, size)",
+        "INFO: Sends confirmation email"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/health",
+      "methods": ["GET"],
+      "authentication": "none",
+      "purpose": "Health check endpoint",
+      "request_schema": {},
+      "response_schema": "ok",
+      "database_tables": [],
+      "security_issues": [],
+      "validation": "none",
+      "error_handling": "minimal"
+    },
+    {
+      "path": "/api/cron/monitor-sessions",
+      "methods": ["GET"],
+      "authentication": "cron_secret",
+      "purpose": "Cron job to monitor and manage sessions",
+      "request_schema": {},
+      "response_schema": {
+        "success": "boolean",
+        "timestamp": "string",
+        "results": "object"
+      },
+      "database_tables": ["sessions"],
+      "security_issues": [
+        "INFO: Protected by CRON_SECRET header",
+        "INFO: Handles session nudges, alerts, auto-end"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/debug/cleanup-sessions",
+      "methods": ["GET", "POST"],
+      "authentication": "none",
+      "purpose": "Debug endpoint to cleanup stale sessions",
+      "request_schema": {},
+      "response_schema": {
+        "success": "boolean",
+        "stats": "object"
+      },
+      "database_tables": ["sessions", "session_requests"],
+      "security_issues": [
+        "CRITICAL: No authentication - anyone can trigger cleanup",
+        "CRITICAL: Can be used to DOS by repeatedly triggering cleanup",
+        "HIGH: Should require admin authentication"
+      ],
+      "validation": "none",
+      "error_handling": "good"
+    },
+    {
+      "path": "/api/checkout/create-session",
+      "methods": ["GET"],
+      "authentication": "supabase",
+      "purpose": "Create Stripe checkout session",
+      "request_schema": {
+        "plan": "string (query, required)",
+        "intake_id": "string (query, optional)",
+        "slot_id": "string (query, optional)",
+        "workshop_id": "string (query, optional)",
+        "routing_type": "string (query, optional)"
+      },
+      "response_schema": "redirect to Stripe",
+      "database_tables": [],
+      "security_issues": [
+        "INFO: Requires Supabase authentication",
+        "MEDIUM: No validation on intake_id ownership",
+        "MEDIUM: No validation on workshop_id existence"
+      ],
+      "validation": "manual",
+      "error_handling": "good"
+    }
+  ],
+  "summary": {
+    "total_endpoints": 256,
+    "by_authentication": {
+      "none": 42,
+      "supabase": 78,
+      "supabase_admin": 89,
+      "mechanic_token": 34,
+      "workshop_auth": 8,
+      "cron_secret": 3,
+      "stripe_signature": 1,
+      "mixed": 1
+    },
+    "by_http_method": {
+      "GET": 142,
+      "POST": 87,
+      "PUT": 18,
+      "DELETE": 9
+    },
+    "validation_patterns": {
+      "none": 128,
+      "manual": 98,
+      "zod": 30
+    },
+    "error_handling": {
+      "good": 234,
+      "inconsistent": 18,
+      "poor": 4
+    },
+    "critical_security_issues": [
+      {
+        "severity": "CRITICAL",
+        "endpoint": "/api/livekit/token",
+        "issue": "No authentication - anyone can request video tokens with arbitrary room/identity",
+        "impact": "Unauthorized users can join any video session, intercept communications, impersonate participants",
+        "recommendation": "Add session-based authentication, validate room ownership, restrict permissions"
+      },
+      {
+        "severity": "CRITICAL",
+        "endpoint": "/api/uploads/sign",
+        "issue": "No authentication - anyone can request upload URLs",
+        "impact": "Attackers can fill storage, upload malicious content, DOS the system",
+        "recommendation": "Require authentication, validate file types/sizes, implement rate limiting"
+      },
+      {
+        "severity": "CRITICAL",
+        "endpoint": "/api/debug/*",
+        "issue": "Multiple debug endpoints with no authentication",
+        "impact": "Attackers can trigger cleanup, view sensitive data, manipulate sessions",
+        "recommendation": "Remove from production or add admin authentication"
+      },
+      {
+        "severity": "HIGH",
+        "endpoint": "/api/session/start",
+        "issue": "Only validates Stripe payment, not session ownership",
+        "impact": "Users can access sessions they didn't pay for by guessing session IDs",
+        "recommendation": "Add session ownership validation, link to authenticated user"
+      },
+      {
+        "severity": "HIGH",
+        "endpoint": "/api/contact",
+        "issue": "No rate limiting or bot protection",
+        "impact": "Spam attacks, email bombing, storage exhaustion",
+        "recommendation": "Add CAPTCHA, rate limiting, and bot detection"
+      },
+      {
+        "severity": "MEDIUM",
+        "endpoint": "/api/admin/database/query",
+        "issue": "SQL injection possible if RPC not sandboxed",
+        "impact": "Data exfiltration, potential data manipulation if RPC misconfigured",
+        "recommendation": "Ensure exec_sql RPC is properly sandboxed, add query result limits"
+      }
+    ],
+    "authentication_gaps": [
+      "42 endpoints have no authentication (16% of total)",
+      "Debug endpoints exposed without protection",
+      "File upload endpoints lack authentication",
+      "LiveKit token generation is completely open",
+      "Some admin endpoints may lack proper authorization checks"
+    ],
+    "database_coverage": {
+      "covered_tables": [
+        "profiles",
+        "sessions",
+        "session_participants",
+        "session_requests",
+        "session_files",
+        "session_extensions",
+        "mechanics",
+        "mechanic_sessions",
+        "mechanic_availability",
+        "organizations",
+        "organization_members",
+        "intakes",
+        "payments",
+        "payment_intents",
+        "refunds",
+        "stripe_events",
+        "contact_requests",
+        "admin_logs",
+        "admin_errors",
+        "admin_query_history",
+        "admin_saved_queries"
+      ],
+      "missing_api_coverage": [
+        "workshop_events",
+        "workshop_metrics",
+        "workshop_alerts",
+        "diagnostic_sessions",
+        "in_person_visits",
+        "repair_quotes",
+        "quote_modifications",
+        "platform_fee_rules",
+        "repair_payments",
+        "platform_chat_messages",
+        "customer_favorites",
+        "workshop_earnings",
+        "mechanic_earnings",
+        "workshop_partnership_programs",
+        "partnership_applications",
+        "partnership_agreements",
+        "bay_bookings",
+        "partnership_revenue_splits",
+        "mechanic_clients",
+        "mechanic_earnings_breakdown",
+        "session_recordings",
+        "waiver_signatures",
+        "mechanic_documents",
+        "mechanic_admin_actions",
+        "corporate_businesses",
+        "corporate_employees",
+        "corporate_invoices",
+        "corporate_vehicles",
+        "supported_countries",
+        "major_cities",
+        "brand_specializations",
+        "service_keywords",
+        "mechanic_profile_requirements",
+        "pricing_tiers",
+        "feature_flags",
+        "mechanic_time_off",
+        "workshop_escalation_queue",
+        "workshop_escalation_preferences",
+        "mechanic_escalation_stats",
+        "mechanic_shift_logs",
+        "service_plans"
+      ]
+    }
+  }
+}

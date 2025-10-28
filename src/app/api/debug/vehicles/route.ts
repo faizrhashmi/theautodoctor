@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { createServerClient } from '@supabase/ssr'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       cookies: {
@@ -84,3 +85,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

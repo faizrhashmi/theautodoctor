@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function GET() {
+async function getHandler() {
   try {
     // Find any session_requests that have a mechanic_id that doesn't exist in mechanics table
     // or requests that are in a broken state (accepted but no mechanic in sessions)
@@ -59,3 +60,6 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

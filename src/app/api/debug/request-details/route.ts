@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * DEBUG ENDPOINT - Check specific request and session details
  * GET /api/debug/request-details?requestId=xxx
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const requestId = searchParams.get('requestId')
@@ -93,3 +94,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

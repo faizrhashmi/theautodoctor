@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const requestId = searchParams.get('id')
 
@@ -96,3 +97,6 @@ export async function GET(req: NextRequest) {
     diagnosis,
   })
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

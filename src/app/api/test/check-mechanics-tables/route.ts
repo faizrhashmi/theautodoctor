@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function GET() {
+async function getHandler() {
   try {
     // Check if mechanics table exists and get row count
     const { data: mechanics, error: mechanicsError, count: mechanicsCount } = await supabaseAdmin
@@ -42,3 +43,6 @@ export async function GET() {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

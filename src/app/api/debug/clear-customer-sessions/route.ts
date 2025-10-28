@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getSupabaseServer } from '@/lib/supabaseServer'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function POST(_req: NextRequest) {
+async function postHandler(_req: NextRequest) {
   try {
     const supabase = getSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
@@ -50,3 +51,6 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)

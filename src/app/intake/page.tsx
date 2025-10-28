@@ -3,6 +3,10 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import ConcernCategorySelector from '@/components/intake/ConcernCategorySelector'
+import SmartYearSelector from '@/components/intake/SmartYearSelector'
+import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
+import type { ConcernCategory, SubCategory } from '@/lib/concernCategories'
 
 type Errors = Partial<
   Record<
@@ -71,6 +75,7 @@ export default function IntakePage() {
     plate: '',
     concern: '',
   })
+  const [concernCategory, setConcernCategory] = useState<string>('')
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [decoding, setDecoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +91,18 @@ export default function IntakePage() {
   } | null>(null)
   const firstErrorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const supabase = createClient()
+
+  // Handle concern category selection
+  const handleConcernCategorySelect = (
+    category: ConcernCategory,
+    subCategory?: SubCategory,
+    template?: string
+  ) => {
+    setConcernCategory(category.slug)
+    if (template) {
+      setForm(prev => ({ ...prev, concern: template }))
+    }
+  }
 
   // Check for active sessions on mount - enforce business rule
   useEffect(() => {
@@ -565,23 +582,17 @@ export default function IntakePage() {
               </button>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Input
+              <SmartYearSelector
                 label="Year * (if no VIN)"
                 value={form.year}
                 onChange={(value) => setForm((prev) => ({ ...prev, year: value }))}
-                error={errors.year}
-                inputRef={(el) => {
-                  if (errors.year && !firstErrorRef.current) firstErrorRef.current = el
-                }}
+                required={!form.vin.trim()}
               />
-              <Input
+              <SmartBrandSelector
                 label="Make * (if no VIN)"
                 value={form.make}
                 onChange={(value) => setForm((prev) => ({ ...prev, make: value }))}
-                error={errors.make}
-                inputRef={(el) => {
-                  if (errors.make && !firstErrorRef.current) firstErrorRef.current = el
-                }}
+                required={!form.vin.trim()}
               />
               <Input
                 label="Model * (if no VIN)"
@@ -600,6 +611,11 @@ export default function IntakePage() {
           </Section>
 
           <Section title="What's going on?">
+            <ConcernCategorySelector
+              onSelect={handleConcernCategorySelect}
+              selectedCategory={concernCategory}
+              className="mb-4"
+            />
             <Textarea
               label="Describe the issue *"
               value={form.concern}

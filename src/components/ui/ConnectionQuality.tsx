@@ -47,20 +47,20 @@ export function ConnectionQuality({ quality, showLabel = true, rtt }: Connection
   const config = qualityConfig[quality]
 
   return (
-    <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${config.bgColor}`}>
+    <div className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 ${config.bgColor}`}>
       {/* WiFi icon or bars */}
       {quality === 'offline' ? (
-        <WifiOff className={`h-4 w-4 ${config.color}`} />
+        <WifiOff className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${config.color}`} />
       ) : (
-        <Wifi className={`h-4 w-4 ${config.color}`} />
+        <Wifi className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${config.color}`} />
       )}
 
       {/* Label and RTT */}
       {showLabel && (
-        <div className="flex items-center gap-1.5">
-          <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          <span className={`text-[10px] sm:text-xs font-medium ${config.color}`}>{config.label}</span>
           {rtt !== undefined && (
-            <span className="text-xs text-slate-400">({rtt}ms)</span>
+            <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">({rtt}ms)</span>
           )}
         </div>
       )}

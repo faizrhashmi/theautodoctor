@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function GET() {
+async function getHandler() {
   try {
     console.log('[fix-schema] Dropping old foreign key constraint...')
 
@@ -84,3 +85,6 @@ ALTER TABLE public.session_requests
     })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

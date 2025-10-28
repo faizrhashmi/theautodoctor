@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Cleanup endpoint for pending sessions that never started
@@ -10,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * - unattended (5+ minutes old, never started)
  * - expired (120+ minutes old, never started)
  */
-export async function GET() {
+async function getHandler() {
   try {
     const unattendedCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString()
     const expiredCutoff = new Date(Date.now() - 120 * 60 * 1000).toISOString()
@@ -88,3 +89,6 @@ export async function GET() {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

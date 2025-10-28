@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
 import MechanicActiveSessionsManager from '@/components/mechanic/MechanicActiveSessionsManager'
 import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { PresenceChip } from '@/components/ui/PresenceChip'
+import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
 import { createClient } from '@/lib/supabase'
 
 interface ActiveSession {
@@ -359,8 +362,15 @@ export default function MechanicDashboardPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 pt-20 lg:pt-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Mechanic Dashboard</h1>
-          <p className="text-sm sm:text-base text-slate-400 mt-1">Manage your sessions and quotes</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Mechanic Dashboard</h1>
+              <p className="text-sm sm:text-base text-slate-400 mt-1">Manage your sessions and quotes</p>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <ConnectionQuality quality="excellent" showLabel={true} />
+            </div>
+          </div>
         </div>
 
         {notification === 'quote_sent' && (
@@ -659,8 +669,6 @@ export default function MechanicDashboardPage() {
             <div className="space-y-3">
               {recentSessions.map((session) => {
                 const sessionIcon = session.session_type === 'video' ? Video : session.session_type === 'chat' ? MessageSquare : FileText
-                const statusIcon = session.status === 'completed' ? CheckCircle : session.status === 'cancelled' ? XCircle : Clock
-                const statusColor = session.status === 'completed' ? 'text-green-400' : session.status === 'cancelled' ? 'text-red-400' : 'text-yellow-400'
 
                 return (
                   <div
@@ -676,9 +684,15 @@ export default function MechanicDashboardPage() {
                       </div>
 
                       <div className="flex-1 min-w-0">
+                        <div className="mb-2">
+                          <PresenceChip
+                            name={session.customer_name}
+                            status={session.status === 'live' || session.status === 'waiting' ? 'online' : 'offline'}
+                            size="sm"
+                            showName={true}
+                          />
+                        </div>
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-white truncate">{session.customer_name}</h3>
-                          <span className="text-xs text-slate-500">•</span>
                           <span className="text-sm text-slate-400 capitalize">{session.session_type}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
@@ -696,15 +710,7 @@ export default function MechanicDashboardPage() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                      <div className="flex items-center gap-2 justify-center sm:justify-start">
-                        {(() => {
-                          const StatusIcon = statusIcon
-                          return <StatusIcon className={`h-4 w-4 ${statusColor}`} />
-                        })()}
-                        <span className={`text-sm font-medium capitalize ${statusColor}`}>
-                          {session.status}
-                        </span>
-                      </div>
+                      <StatusBadge status={session.status as any} size="md" showIcon={true} />
 
                       <Link
                         href={`/mechanic/session/${session.id}`}

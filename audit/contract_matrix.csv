@@ -1,0 +1,119 @@
+Page Path,Page Type,Authentication Required,API Endpoints Used,Database Tables Accessed,Data Operations,Status,Notes
+/,Landing Page,No (Public),None,None,None,Complete,Static marketing page
+/about,Static Page,No (Public),None,None,None,Complete,Company information
+/pricing,Static Page,No (Public),GET /api/plans,service_plans,SELECT,Complete,Public pricing plans
+/how-it-works,Static Page,No (Public),None,None,None,Complete,Educational content
+/contact,Form,No (Public),POST /api/contact,contact_requests,INSERT,Complete,NEEDS CAPTCHA + rate limiting
+/start,Redirect,No (Public),None,None,None,Complete,Routes to /intake or /login
+/thank-you,Confirmation,No (Public),None,None,None,Complete,Post-submission confirmation
+/waiver,Static Page,No (Public),None,None,None,Complete,Legal disclaimer
+/login,Auth Form,No (Public),POST /api/auth/login,auth.users,SELECT,Complete,Customer login via Supabase
+/signup,Auth Form,No (Public),POST /api/customer/signup,"auth.users, profiles",INSERT,Complete,Customer registration
+/auth/confirm,Auth Callback,No (Public),None,auth.users,UPDATE,Complete,Email verification callback
+/intake,Intake Form,No (Public),"POST /api/intake/start, GET /api/waiver/check, POST /api/waiver/submit","intakes, waiver_signatures",INSERT,Complete,Multi-step intake flow
+/intake/waiver,Waiver Form,No (Public),"POST /api/waiver/submit, GET /api/waiver/get",waiver_signatures,INSERT,Complete,Digital waiver signature
+/knowledge-base,Article List,No (Public),None,None,None,Incomplete,NO BACKEND - static content only
+/knowledge-base/[slug],Article Detail,No (Public),None,None,None,Incomplete,NO BACKEND - static content only
+/checkout/success,Confirmation,No (Public),"GET /api/checkout/resolve, GET /api/sessions/resolve-by-stripe","sessions, profiles",UPDATE,Complete,Post-payment redirect
+/services-pricing,Static Page,No (Public),None,None,None,Complete,Service tier pricing
+/onboarding/pricing,Plan Selection,Yes (Supabase),"GET /api/plans, POST /api/checkout",service_plans,SELECT,Complete,Customer plan selection
+/unsubscribe,Action Page,No (Public),POST /api/unsubscribe,profiles,UPDATE,Complete,Email unsubscribe handler
+/customer/dashboard,Customer Dashboard,Yes (Supabase),"GET /api/customer/dashboard/stats, GET /api/mechanics/available-count, GET /api/customer/active-sessions","profiles, sessions, mechanics, repair_quotes",SELECT,Complete,3 real-time subscriptions
+/customer/profile,Customer Profile,Yes (Supabase),"GET /api/customer/profile, PUT /api/customer/profile",profiles,SELECT|UPDATE,Complete,Profile management
+/customer/vehicles,Customer List,Yes (Supabase),"GET /api/customer/vehicles, POST /api/customer/vehicles, DELETE /api/customer/vehicles/[id]",vehicles,SELECT|INSERT|DELETE,Complete,Vehicle fleet management
+/customer/sessions,Customer List,Yes (Supabase),GET /api/customer/sessions,"sessions, mechanics",SELECT,Complete,Session history with filters
+/customer/quotes,Customer List,Yes (Supabase),GET /api/customer/quotes,"repair_quotes, sessions",SELECT,Complete,Repair quote management
+/customer/quotes/[quoteId],Customer Detail,Yes (Supabase),"GET /api/quotes/[quoteId], POST /api/quotes/[quoteId]/respond",repair_quotes,SELECT|UPDATE,Complete,Quote approval/rejection
+/customer/schedule,Scheduler,Yes (Supabase),POST /api/customer/schedule,"sessions, session_requests",INSERT,Complete,Session scheduling interface
+/customer/signup,Auth Form,No (Public),POST /api/customer/signup,"auth.users, profiles",INSERT,Complete,Duplicate of /signup
+/customer/forgot-password,Auth Form,No (Public),POST /api/customer/forgot-password,auth.users,UPDATE,Complete,Password reset flow
+/customer/verify-email,Email Verification,Yes (Supabase),None,profiles,UPDATE,Complete,Email verification reminder
+/mechanic/login,Auth Form,No (Public),POST /api/mechanics/login,"mechanics, mechanic_sessions",SELECT|INSERT,Complete,Custom token authentication
+/mechanic/signup,Registration Form,No (Public),POST /api/mechanic/signup,mechanics,INSERT,Complete,Independent mechanic signup
+/mechanic/signup/[inviteCode],Registration Form,No (Public),POST /api/mechanic/signup,"mechanics, organizations",INSERT,Complete,Workshop-invited mechanic signup
+/mechanic/signup/success,Confirmation,No (Public),None,None,None,Complete,Post-signup confirmation
+/mechanic/dashboard,Mechanic Dashboard,Yes (Mechanic Token),"GET /api/mechanics/me, GET /api/mechanic/active-sessions, GET /api/mechanics/requests, GET /api/mechanic/dashboard/stats","mechanics, sessions, session_requests, repair_quotes",SELECT,Complete,3 real-time subscriptions + on-shift tracking
+/mechanic/dashboard/virtual,Mechanic Dashboard,Yes (Mechanic Token),"GET /api/mechanics/me, GET /api/mechanics/requests, GET /api/mechanic/dashboard/stats","mechanics, sessions, session_requests",SELECT,Complete,Virtual-only mechanic dashboard
+/mechanic/profile,Mechanic Profile,Yes (Mechanic Token),"GET /api/mechanics/me, PUT /api/mechanics/[mechanicId]/profile","mechanics, mechanic_specializations",SELECT|UPDATE,Complete,Profile + specializations
+/mechanic/availability,Availability Manager,Yes (Mechanic Token),"GET /api/mechanics/availability, PUT /api/mechanics/availability","mechanics, mechanic_time_off",SELECT|UPDATE|INSERT,Complete,Schedule + time-off management
+/mechanic/sessions,Mechanic List,Yes (Mechanic Token),"GET /api/mechanic/sessions/history, GET /api/mechanic/active-sessions","sessions, profiles",SELECT,Complete,Session history
+/mechanic/sessions/virtual,Mechanic List,Yes (Mechanic Token),GET /api/mechanics/sessions/virtual,sessions,SELECT,Complete,Virtual session history
+/mechanic/session/[id],Session Detail,Yes (Mechanic Token),"GET /api/mechanic/sessions/[sessionId], PUT /api/mechanic/sessions/[sessionId]","sessions, session_files",SELECT|UPDATE,Complete,Active session interface
+/mechanic/session/[id]/complete,Session Completion,Yes (Mechanic Token),POST /api/mechanic/sessions/complete,"sessions, repair_quotes",UPDATE|INSERT,Complete,Session summary + quote creation
+/mechanic/analytics,Analytics Dashboard,Yes (Mechanic Token),GET /api/mechanics/analytics,"sessions, mechanics, micro_sessions",SELECT,Incomplete,MISSING API - no analytics data
+/mechanic/earnings,Earnings Report,Yes (Mechanic Token),GET /api/mechanics/earnings,"sessions, payments, fee_applications",SELECT,Incomplete,PARTIAL - basic earnings only
+/mechanic/statements,Financial Statements,Yes (Mechanic Token),GET /api/mechanics/statements,"sessions, payments, fee_applications",SELECT,Incomplete,MISSING DETAILED DATA
+/mechanic/reviews,Review List,Yes (Mechanic Token),GET /api/mechanic/reviews,"session_reviews, sessions",SELECT,Complete,Customer reviews
+/mechanic/crm,CRM Dashboard,Yes (Mechanic Token),"GET /api/mechanics/clients, POST /api/mechanics/clients","mechanic_clients, sessions",SELECT|INSERT,Incomplete,BASIC IMPLEMENTATION ONLY
+/mechanic/documents,Document Manager,Yes (Mechanic Token),"GET /api/mechanic/documents, POST /api/mechanic/upload-document, DELETE /api/mechanic/documents/[id]",mechanic_documents,SELECT|INSERT|DELETE,Complete,Certificate uploads
+/mechanic/job-recording,Job Recording,Yes (Mechanic Token),POST /api/mechanics/jobs,micro_sessions,INSERT,Complete,Bay work time tracking
+/mechanic/partnerships/browse,Partnership List,Yes (Mechanic Token),GET /api/mechanics/partnerships/programs,partnership_programs,SELECT,Complete,Available programs
+/mechanic/partnerships/applications,Application List,Yes (Mechanic Token),GET /api/mechanics/partnerships/applications,partnership_applications,SELECT,Complete,My applications
+/mechanic/partnerships/apply/[programId],Application Form,Yes (Mechanic Token),POST /api/mechanics/partnerships/applications,partnership_applications,INSERT,Complete,Apply to program
+/mechanic/onboarding/service-tier,Onboarding Step,Yes (Mechanic Token),POST /api/mechanics/onboarding/service-tier,mechanics,UPDATE,Complete,Select service tier
+/mechanic/onboarding/virtual-only,Onboarding Step,Yes (Mechanic Token),POST /api/mechanics/onboarding/virtual-only,mechanics,UPDATE,Complete,Virtual-only confirmation
+/mechanic/onboarding/stripe,Stripe Onboarding,Yes (Mechanic Token),POST /api/mechanics/stripe/onboard,mechanics,UPDATE,Complete,Stripe Connect setup
+/mechanic/onboarding/stripe/complete,Stripe Callback,Yes (Mechanic Token),None,mechanics,UPDATE,Complete,Stripe onboarding callback
+/workshop/login,Auth Form,No (Public),POST /api/workshop/login,"organizations, organization_members",SELECT,Complete,Workshop authentication
+/workshop/signup,Registration Form,No (Public),POST /api/workshop/signup,organizations,INSERT,Complete,Workshop registration
+/workshop/signup/success,Confirmation,No (Public),None,None,None,Complete,Post-signup confirmation
+/workshop/dashboard,Workshop Dashboard,Yes (Workshop Token),"GET /api/workshop/dashboard, GET /api/workshop/escalation-queue","organizations, sessions, mechanics",SELECT,Complete,Workshop overview
+/workshop/analytics,Analytics Dashboard,Yes (Workshop Token),GET /api/admin/analytics/workshop-health/[id],"workshop_analytics_daily, workshop_analytics_monthly",SELECT,Incomplete,MISSING COMPREHENSIVE DATA
+/workshop/diagnostics,Diagnostic Queue,Yes (Workshop Token),GET /api/workshop/diagnostics,"sessions, session_requests",SELECT,Complete,Escalated session queue
+/workshop/diagnostics/[sessionId],Diagnostic Detail,Yes (Workshop Token),GET /api/workshop/diagnostics/[sessionId],sessions,SELECT,Complete,Session details
+/workshop/diagnostics/[sessionId]/complete,Diagnostic Completion,Yes (Workshop Token),POST /api/workshop/diagnostics/[sessionId]/complete,sessions,UPDATE,Complete,Mark diagnostic complete
+/workshop/quotes,Quote List,Yes (Workshop Token),GET /api/workshop/quotes,repair_quotes,SELECT,Complete,Workshop quotes
+/workshop/quotes/create/[sessionId],Quote Creation,Yes (Workshop Token),POST /api/workshop/quotes/create,repair_quotes,INSERT,Complete,Create repair quote
+/workshop/escalations,Escalation Queue,Yes (Workshop Token),GET /api/workshop/escalation-queue,sessions,SELECT,Complete,Escalated sessions
+/workshop/settings/revenue,Revenue Settings,Yes (Workshop Token),"GET /api/workshop/dashboard, PUT /api/workshop/revenue",organizations,SELECT|UPDATE,Incomplete,MISSING UPDATE API
+/workshop/partnerships/programs,Partnership Programs,Yes (Workshop Token),GET /api/workshops/programs,partnership_programs,SELECT,Complete,Manage programs
+/workshop/partnerships/applications,Partnership Applications,Yes (Workshop Token),GET /api/workshops/applications,partnership_applications,SELECT,Complete,Review applications
+/admin/login,Auth Form,No (Public),POST /api/admin/login,"auth.users, profiles",SELECT,Complete,Admin Supabase auth + role check
+/admin/logout,Action Page,Yes (Admin),"POST /api/admin/logout, GET /api/admin/logout",None,None,Complete,Admin logout
+/admin/dashboard,Admin Dashboard,Yes (Admin),GET /api/admin/dashboard/stats,"sessions, profiles, mechanics, organizations",SELECT,Complete,Platform overview with real-time stats
+/admin/(shell)/customers,Customer List,Yes (Admin),GET /api/admin/users/customers,profiles,SELECT,Complete,Customer management
+/admin/(shell)/customers/[id],Customer Detail,Yes (Admin),"GET /api/admin/users/[id], POST /api/admin/users/[id]/notes, POST /api/admin/users/[id]/suspend","profiles, admin_notes",SELECT|INSERT|UPDATE,Complete,Customer details + actions
+/admin/(shell)/mechanics,Mechanic List,Yes (Admin),GET /api/admin/users/mechanics,mechanics,SELECT,Complete,Mechanic directory
+/admin/(shell)/mechanics/[id],Mechanic Detail,Yes (Admin),"GET /api/admin/users/mechanics/[id], POST /api/admin/users/mechanics/[id]/approve, POST /api/admin/users/mechanics/[id]/adjust-rating","mechanics, mechanic_sessions",SELECT|UPDATE,Complete,Mechanic admin controls
+/admin/(shell)/mechanics/applications,Application List,Yes (Admin),GET /api/admin/mechanics/applications,mechanics,SELECT,Complete,Pending mechanic applications
+/admin/(shell)/workshops,Workshop List,Yes (Admin),GET /api/admin/workshops,organizations,SELECT,Complete,Workshop directory
+/admin/(shell)/workshops/[id],Workshop Detail,Yes (Admin),"GET /api/admin/workshops/[id], POST /api/admin/workshops/[id]/approve, POST /api/admin/workshops/[id]/suspend",organizations,SELECT|UPDATE,Incomplete,MISSING DETAIL API
+/admin/(shell)/workshops/applications,Application List,Yes (Admin),GET /api/admin/workshops/applications,organizations,SELECT,Complete,Pending workshop applications
+/admin/(shell)/sessions,Session List,Yes (Admin),"GET /api/admin/sessions/stats, POST /api/admin/sessions/export","sessions, profiles, mechanics",SELECT,Complete,All platform sessions
+/admin/(shell)/intakes,Intake List,Yes (Admin),"GET /api/admin/intakes/query, POST /api/admin/intakes/export",intakes,SELECT,Complete,Intake management
+/admin/(shell)/intakes/[id],Intake Detail,Yes (Admin),"GET /api/admin/intakes/[id], PUT /api/admin/intakes/[id]/status","intakes, sessions",SELECT|UPDATE,Complete,Intake details + conversion
+/admin/(shell)/intakes/[id]/details,Intake Details,Yes (Admin),GET /api/admin/intakes/[id],intakes,SELECT,Complete,Detailed intake view
+/admin/(shell)/intakes/deletions,Deletion Log,Yes (Admin),None,None,None,Incomplete,NO BACKEND
+/admin/(shell)/corporate,Corporate List,Yes (Admin),GET /api/admin/corporate,corporate_businesses,SELECT,Complete,Corporate accounts
+/admin/(shell)/requests,Request Queue,Yes (Admin),GET /api/admin/requests,session_requests,SELECT,Complete,Pending session requests
+/admin/(shell)/logs,System Logs,Yes (Admin),"GET /api/admin/logs, GET /api/admin/logs/stats",admin_logs,SELECT,Complete,Admin audit trail
+/admin/(shell)/errors,Error Log,Yes (Admin),"GET /api/admin/errors, DELETE /api/admin/errors/[id]",error_logs,SELECT|DELETE,Complete,Application errors
+/admin/(shell)/health,System Health,Yes (Admin),GET /api/admin/health,"sessions, mechanics, profiles",SELECT,Complete,Health checks
+/admin/(shell)/database,Database Tools,Yes (Admin),"POST /api/admin/database/query, GET /api/admin/database/history",query_history,SELECT|INSERT,Complete,DANGEROUS - direct SQL access
+/admin/(shell)/cleanup,Data Cleanup,Yes (Admin),"GET /api/admin/cleanup/preview, POST /api/admin/cleanup/execute, GET /api/admin/cleanup/history","sessions, session_requests",SELECT|DELETE,Complete,Mass cleanup tool
+/admin/(shell)/documents,Document Review,Yes (Admin),"GET /api/admin/mechanic-documents, POST /api/admin/mechanic-documents/[id]/review",mechanic_documents,SELECT|UPDATE,Complete,Mechanic document approval
+/admin/(shell)/profile-completion,Profile Completion,Yes (Admin),None,profiles,SELECT,Incomplete,NO API IMPLEMENTATION
+/admin/(shell)/brands,Brand Management,Yes (Admin),GET /api/brands,vehicle_brands,SELECT,Incomplete,READ-ONLY - no CRUD
+/admin/(shell)/claims,Claims Management,Yes (Admin),"GET /api/admin/claims, POST /api/admin/claims/[id]/approve",warranty_claims,SELECT|UPDATE,Complete,Warranty claim processing
+/admin/(shell)/plans,Plan Management,Yes (Admin),"GET /api/admin/plans, POST /api/admin/plans, PUT /api/admin/plans/[id], POST /api/admin/plans/[id]/toggle",service_plans,SELECT|INSERT|UPDATE,Complete,Service plan CRUD
+/admin/(shell)/feature-flags,Feature Flags,Yes (Admin),None,None,None,Incomplete,NO BACKEND
+/admin/(shell)/analytics/overview,Analytics Overview,Yes (Admin),None,None,None,Incomplete,NO IMPLEMENTATION
+/admin/(shell)/unattended,Unattended Sessions,Yes (Admin),None,sessions,SELECT,Incomplete,NO API
+/admin/fees,Fee Rules,Yes (Admin),"GET /api/admin/fees/rules, POST /api/admin/fees/rules, PUT /api/admin/fees/rules/[ruleId]",fee_rules,SELECT|INSERT|UPDATE,Complete,Platform fee management
+/admin/emergency,Emergency Controls,Yes (Admin),"POST /api/admin/sessions/force-cancel, POST /api/admin/sessions/force-end, POST /api/admin/clear-all-sessions",sessions,UPDATE|DELETE,Complete,DANGEROUS - emergency actions
+/admin/analytics/workshop,Workshop Analytics,Yes (Admin),GET /api/admin/analytics/workshop-overview,workshop_analytics_monthly,SELECT,Incomplete,LIMITED DATA
+/corporate/signup,Registration Form,No (Public),POST /api/corporate/signup,corporate_businesses,INSERT,Complete,Corporate account signup
+/corporate/dashboard,Corporate Dashboard,Yes (Corporate),GET /api/corporate/dashboard,"corporate_businesses, corporate_employees, sessions",SELECT,Incomplete,MINIMAL IMPLEMENTATION
+/session/[id],Session Interface,Yes (Supabase),"GET /api/sessions/[id], PUT /api/sessions/[id], GET /api/sessions/[id]/files","sessions, session_files, chat_messages",SELECT|UPDATE,Complete,Live session interface
+/session/[id]/complete,Session Completion,Yes (Supabase),POST /api/sessions/[id]/end,sessions,UPDATE,Complete,End session + summary
+/sessions/[id]/summary,Session Summary,Yes (Supabase),GET /api/sessions/[id]/summary,sessions,SELECT,Complete,Post-session review
+/video/[id],Video Session,Yes (Supabase),"GET /api/livekit/token, GET /api/sessions/[id]","sessions, livekit_rooms",SELECT,Complete,SECURITY RISK - token endpoint unauthenticated
+/chat/[id],Chat Session,Yes (Supabase),"POST /api/chat/send-message, GET /api/chat/session-info","chat_messages, sessions",SELECT|INSERT,Complete,Real-time chat
+/diagnostic/[id],Diagnostic Session,Yes (Supabase),"GET /api/sessions/[id], POST /api/session/extend","sessions, session_files",SELECT|UPDATE,Complete,Diagnostic interface
+/dashboard/intakes,Intake Dashboard,Yes (Supabase),None,intakes,SELECT,Incomplete,DUPLICATE OF CUSTOMER DASHBOARD?
+/account/live,Live Account,Yes (Supabase),None,None,None,Incomplete,UNKNOWN PURPOSE
+/video,Video List,Yes (Supabase),None,sessions,SELECT,Incomplete,NO BACKEND
+/test-auth,Debug Page,No (Public),GET /api/auth/me,None,None,Complete,REMOVE IN PRODUCTION
+/test-mechanics,Debug Page,No (Public),None,mechanics,SELECT,Complete,REMOVE IN PRODUCTION
+/test-new-features,Debug Page,No (Public),None,None,None,Complete,REMOVE IN PRODUCTION
+/diagnostics/revalidate-check,Debug Page,No (Public),None,None,None,Complete,REMOVE IN PRODUCTION

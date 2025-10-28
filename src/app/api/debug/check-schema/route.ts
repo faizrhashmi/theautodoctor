@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * DEBUG ENDPOINT - Check actual database schema
  * GET /api/debug/check-schema
  */
-export async function GET() {
+async function getHandler() {
   try {
     const results: any = {}
 
@@ -152,3 +153,6 @@ export async function GET() {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

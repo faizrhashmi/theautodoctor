@@ -26,6 +26,9 @@ import {
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ProgressTracker } from '@/components/ui/ProgressTracker'
+import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface DashboardStats {
@@ -266,9 +269,41 @@ export default function CustomerDashboardPage() {
 
         {/* Active Sessions Manager - Shows when customer has an active session */}
         {activeSessions.length > 0 && (
-          <div className="mb-6 sm:mb-8">
-            <ActiveSessionsManager sessions={activeSessions} />
-          </div>
+          <>
+            {/* Progress Tracker */}
+            <div className="mb-4 sm:mb-6">
+              <ProgressTracker
+                steps={[
+                  {
+                    id: 'intake',
+                    label: 'Intake',
+                    completed: true,
+                  },
+                  {
+                    id: 'photos',
+                    label: 'Photos',
+                    completed: activeSessions[0].status !== 'pending',
+                    current: activeSessions[0].status === 'pending',
+                  },
+                  {
+                    id: 'session',
+                    label: 'Session',
+                    completed: activeSessions[0].status === 'completed',
+                    current: activeSessions[0].status === 'live' || activeSessions[0].status === 'waiting',
+                  },
+                  {
+                    id: 'summary',
+                    label: 'Summary',
+                    completed: false,
+                    current: activeSessions[0].status === 'completed',
+                  },
+                ]}
+              />
+            </div>
+            <div className="mb-6 sm:mb-8">
+              <ActiveSessionsManager sessions={activeSessions} />
+            </div>
+          </>
         )}
 
         {/* Unified Session Launcher - Account-Type Aware */}
@@ -345,6 +380,7 @@ export default function CustomerDashboardPage() {
               <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Your account</div>
             </Link>
 
+            {/* Messages feature - Coming soon
             <Link
               href="/customer/messages"
               className="bg-gradient-to-br from-pink-500/10 to-pink-600/5 border border-pink-500/30 rounded-lg p-3 sm:p-4 hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/20 transition-all group"
@@ -353,6 +389,7 @@ export default function CustomerDashboardPage() {
               <div className="text-xs sm:text-sm font-medium text-white">Messages</div>
               <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Communicate</div>
             </Link>
+            */}
           </div>
         </div>
 
@@ -495,22 +532,20 @@ export default function CustomerDashboardPage() {
                 >
                   <div className="flex-1 w-full sm:w-auto">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                      <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg">
-                        <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
-                      </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs sm:text-sm font-medium text-white truncate block">{session.mechanic_name}</span>
-                        <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+                        <div className="mb-2">
+                          <PresenceChip
+                            name={session.mechanic_name}
+                            status={session.status === 'live' || session.status === 'waiting' ? 'online' : 'offline'}
+                            size="sm"
+                            showName={true}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                           <span className="text-xs px-2 py-0.5 sm:py-1 rounded-full bg-slate-700 text-slate-300 capitalize">
                             {session.session_type}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 sm:py-1 rounded-full capitalize ${
-                            session.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                            session.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {session.status}
-                          </span>
+                          <StatusBadge status={session.status as any} size="sm" showIcon={true} />
                         </div>
                       </div>
                     </div>

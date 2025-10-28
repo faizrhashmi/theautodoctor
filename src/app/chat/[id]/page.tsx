@@ -121,7 +121,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
 
   const { data: messages, error: messagesError } = await supabase
     .from('chat_messages')
-    .select('id, content, sender_id, created_at, attachments')
+    .select('id, content, sender_id, created_at, attachments, read_at')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: true })
 
@@ -192,6 +192,7 @@ function mapMessage(message: {
   sender_id: string
   created_at: string
   attachments: Json
+  read_at: string | null
 }) {
   return {
     id: message.id,
@@ -199,6 +200,7 @@ function mapMessage(message: {
     sender_id: message.sender_id,
     created_at: message.created_at,
     attachments: normalizeAttachments(message.attachments),
+    read_at: message.read_at,
   }
 }
 

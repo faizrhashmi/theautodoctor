@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Health check endpoint to monitor session and request state
@@ -10,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * - Age distribution of waiting sessions
  * - Potential problems (stale sessions, orphaned sessions, etc.)
  */
-export async function GET() {
+async function getHandler() {
   try {
     const now = Date.now()
     const fifteenMinutesAgo = new Date(now - 15 * 60 * 1000).toISOString()
@@ -165,3 +166,6 @@ export async function GET() {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

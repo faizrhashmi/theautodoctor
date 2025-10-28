@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { runFullCleanup } from '@/lib/sessionCleanup'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * Admin endpoint to manually trigger comprehensive session cleanup
@@ -11,7 +12,7 @@ import { runFullCleanup } from '@/lib/sessionCleanup'
  *
  * Safe to run frequently - only cleans up truly problematic sessions
  */
-export async function POST() {
+async function postHandler() {
   try {
     console.log('[debug/cleanup-sessions] Manual cleanup triggered')
 
@@ -37,7 +38,7 @@ export async function POST() {
 /**
  * GET endpoint to check cleanup stats without making changes
  */
-export async function GET() {
+async function getHandler() {
   try {
     const { supabaseAdmin } = await import('@/lib/supabaseAdmin')
 
@@ -100,3 +101,7 @@ export async function GET() {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

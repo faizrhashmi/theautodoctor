@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
-export async function GET(_req: NextRequest) {
+async function getHandler(_req: NextRequest) {
   try {
     const cookieStore = cookies()
     const token = cookieStore.get('aad_mech')?.value
@@ -50,3 +51,6 @@ export async function GET(_req: NextRequest) {
     )
   }
 }
+
+// Apply debug authentication wrapper
+export const GET = withDebugAuth(getHandler)

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
 
 /**
  * DEBUG ENDPOINT - Manually fix session with missing mechanic_id
  * POST /api/debug/fix-session
  * Body: { sessionId: "xxx" }
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const { sessionId } = await req.json()
 
@@ -92,3 +93,6 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// Apply debug authentication wrapper
+export const POST = withDebugAuth(postHandler)
