@@ -79,6 +79,16 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // CRITICAL: Clear any stale logout flags when entering login/signup page
+  // This prevents logout cleanup from interfering with fresh login attempts
+  useEffect(() => {
+    const logoutFlag = sessionStorage.getItem('logout-pending');
+    if (logoutFlag) {
+      console.log('[SignupGate] Clearing stale logout-pending flag');
+      sessionStorage.removeItem('logout-pending');
+    }
+  }, []);
+
   // Check for hash-based errors from Supabase OAuth/email confirmation
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {

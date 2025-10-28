@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Home, DollarSign, BookOpen, Wrench, Menu, X, LayoutDashboard, Building2 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { createClient } from '@/lib/supabase'
+import { createClient, clearBrowserClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
 
 const NAV_ITEMS = [
@@ -51,15 +51,44 @@ async function determineUserRole(
 
 export default function ClientNavbar() {
   const pathname = usePathname()
+
+  // Smart initialization - if logout is detected, start with logged-out state
+  const isLogout = typeof window !== 'undefined' && (
+    window.location.search.includes('logout=') ||
+    sessionStorage.getItem('logout-pending') === 'true'
+  )
+
   const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isLogout) // If logout, don't show loading
   const [userRole, setUserRole] = useState<'customer' | 'mechanic' | 'workshop' | null>(null)
+
+  console.log('[ClientNavbar] Component render - isLogout:', isLogout, 'loading:', loading, 'user:', user ? 'exists' : 'null')
 
   // Initialize user state - must be before early return to follow Rules of Hooks
   useEffect(() => {
-    const supabase = createClient()
+    console.log('[ClientNavbar] Component mounted, initializing auth state...')
 
-    console.log('[ClientNavbar] Initializing...')
+    // CRITICAL: Check for logout first, before any async operations
+    const isPostLogout = window.location.search.includes('logout=')
+    const hasLogoutFlag = sessionStorage.getItem('logout-pending') === 'true'
+
+    if (isPostLogout || hasLogoutFlag) {
+      console.log('[ClientNavbar] 🔴 LOGOUT DETECTED - Setting logged out state immediately')
+      clearBrowserClient()
+      sessionStorage.removeItem('logout-pending')
+
+      // Force state update synchronously
+      setUser(null)
+      setUserRole(null)
+      setLoading(false)
+
+      console.log('[ClientNavbar] ✅ Logged out state set - Login button should appear')
+      return
+    }
+
+    // Only check session if NOT post-logout
+    console.log('[ClientNavbar] No logout detected, checking session...')
+    const supabase = createClient()
 
     // Get and VALIDATE initial session (this refreshes expired tokens)
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
@@ -111,8 +140,10 @@ export default function ClientNavbar() {
 
       // Handle sign out
       if (event === 'SIGNED_OUT') {
+        console.log('[ClientNavbar] 🔴 SIGNED_OUT event - Clearing user state')
         setUser(null)
         setUserRole(null)
+        setLoading(false)
         return
       }
 
@@ -301,18 +332,28 @@ export default function ClientNavbar() {
               </Link>
             )
           })}
+
+          {/* Login link - styled like other nav items for consistency */}
+          {(() => {
+            const shouldShow = !user && !loading
+            console.log('[ClientNavbar] Login button render check:', {
+              user: user ? `User ${user.id.slice(0, 8)}` : 'null',
+              loading,
+              shouldShow,
+              timestamp: Date.now()
+            })
+            return shouldShow ? (
+              <Link
+                href="/signup?mode=login"
+                className="group relative px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5"
+              >
+                Log In
+              </Link>
+            ) : null
+          })()}
         </nav>
 
         <div className="ml-auto md:ml-0 flex items-center gap-3 md:gap-4">
-          {/* Login link for existing customers - hide if logged in */}
-          {!user && !loading && (
-            <Link
-              href="/signup?mode=login"
-              className="hidden text-sm font-medium text-slate-300 hover:text-white transition-colors md:block"
-            >
-              Log In
-            </Link>
-          )}
 
           {/* Dashboard button for logged-in users only */}
           {renderCTA()}

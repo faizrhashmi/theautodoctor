@@ -6,10 +6,34 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 let browserClient: SupabaseClient<Database> | null = null
 
+// Check for logout flag at module load time
+if (typeof window !== 'undefined' && sessionStorage.getItem('logout-pending') === 'true') {
+  console.log('[supabase] Detected logout-pending flag, preventing singleton creation')
+  browserClient = null
+  sessionStorage.removeItem('logout-pending')
+}
+
+/**
+ * Clear the singleton browser client
+ * Call this when you need to force a fresh client (e.g., after logout)
+ */
+export function clearBrowserClient() {
+  console.log('[supabase] Clearing singleton browser client')
+  browserClient = null
+}
+
 export function createClient() {
   if (!url || !key) {
     console.warn('[supabase] Missing NEXT_PUBLIC_SUPABASE_* environment variables')
     throw new Error('Supabase client cannot be instantiated without URL and anon key')
+  }
+
+  // CRITICAL: Check for logout flag EVERY TIME createClient is called
+  // This ensures that even if the module was already loaded, we detect logout
+  if (typeof window !== 'undefined' && sessionStorage.getItem('logout-pending') === 'true') {
+    console.log('[supabase] Logout-pending detected in createClient(), clearing singleton')
+    browserClient = null
+    sessionStorage.removeItem('logout-pending')
   }
 
   if (!browserClient) {
@@ -40,7 +64,7 @@ export function createClient() {
   return browserClient
 }
 
-// Convenience export (some components import `supabase` directly)
-// We instantiate here so existing code that expects a client instance continues to work.
-// If env vars are missing this may throw at import time — that's consistent with prior runtime behavior.
-export const supabase = createClient()
+// REMOVED: Direct export was creating singleton at module load time, before logout flag could be checked
+// This caused logout issues where the old session persisted in the singleton
+// All components should use createClient() directly instead
+// export const supabase = createClient()

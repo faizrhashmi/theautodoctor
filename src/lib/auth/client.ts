@@ -4,7 +4,10 @@
  * Handles session validation, refresh, and cleanup
  */
 
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
+
+// Create client instance for this module
+const supabase = createClient()
 
 /**
  * Validates the current session and clears it if invalid

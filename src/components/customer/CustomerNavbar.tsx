@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Calendar, FileText, Car, MessageSquare, User, Clock, LogOut } from 'lucide-react'
-import { createClient } from '@/lib/supabase'
+import { createClient, clearBrowserClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
 
 const NAV_ITEMS = [
@@ -56,8 +56,15 @@ export default function CustomerNavbar() {
       // Give it a moment to propagate
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Set a flag BEFORE clearing storage to communicate logout to next page
+      sessionStorage.setItem('logout-pending', 'true');
+
       localStorage.clear();
-      sessionStorage.clear();
+
+      // Don't clear sessionStorage yet - we need the logout-pending flag to persist
+
+      // Clear the singleton browser client so fresh client is created on next page load
+      clearBrowserClient();
       console.log('[CustomerNavbar] Client-side cleanup complete');
 
       // Step 2: Clear server-side cookies
@@ -89,9 +96,11 @@ export default function CustomerNavbar() {
       console.error('[CustomerNavbar] Sign out error:', error);
       // Fail-safe: force cleanup and reload anyway
       try {
+        sessionStorage.setItem('logout-pending', 'true');
         await supabase.auth.signOut();
         localStorage.clear();
-        sessionStorage.clear();
+        // Don't clear sessionStorage - need logout-pending flag
+        clearBrowserClient();
       } catch (e) {
         console.error('[CustomerNavbar] Cleanup error:', e);
       }
