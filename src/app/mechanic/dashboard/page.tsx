@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
 import MechanicActiveSessionsManager from '@/components/mechanic/MechanicActiveSessionsManager'
+import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 import { createClient } from '@/lib/supabase'
 
 interface ActiveSession {
@@ -369,6 +370,14 @@ export default function MechanicDashboardPage() {
             </p>
           </div>
         )}
+
+        {/* On-Shift Status Toggle */}
+        <div className="mb-6 sm:mb-8">
+          <OnShiftToggle onStatusChange={(status) => {
+            console.log('[MechanicDashboard] Shift status changed:', status)
+            // Optionally refresh data when status changes
+          }} />
+        </div>
 
         {/* Error Banner */}
         {error && (

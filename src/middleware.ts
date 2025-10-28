@@ -102,9 +102,33 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Try to get user, but handle errors gracefully
+  let user = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+
+    if (error) {
+      console.log('[MIDDLEWARE] Auth error:', error.message)
+      // Clear invalid auth cookies
+      response.cookies.set({
+        name: 'sb-access-token',
+        value: '',
+        maxAge: 0,
+        path: '/',
+      })
+      response.cookies.set({
+        name: 'sb-refresh-token',
+        value: '',
+        maxAge: 0,
+        path: '/',
+      })
+    } else {
+      user = data.user
+    }
+  } catch (error) {
+    console.error('[MIDDLEWARE] Exception getting user:', error)
+    // Continue without user
+  }
 
   // ==========================================================================
   // ADMIN ROUTE PROTECTION

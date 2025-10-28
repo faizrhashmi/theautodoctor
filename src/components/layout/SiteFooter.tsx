@@ -23,16 +23,19 @@ const NO_SIDEBAR_ROUTES = [
   '/mechanic/signup',
   '/customer/login',
   '/customer/signup',
+  '/workshop/login',
+  '/workshop/signup',
 ]
 
 function shouldHaveSidebarMargin(pathname: string | null): boolean {
   if (!pathname) return false
 
-  // Check if it's a mechanic or customer route
+  // Check if it's a mechanic, customer, or workshop route
   const isMechanicRoute = pathname.startsWith('/mechanic')
   const isCustomerRoute = pathname.startsWith('/customer')
+  const isWorkshopRoute = pathname.startsWith('/workshop')
 
-  if (!isMechanicRoute && !isCustomerRoute) {
+  if (!isMechanicRoute && !isCustomerRoute && !isWorkshopRoute) {
     return false
   }
 
@@ -46,7 +49,7 @@ function shouldHaveSidebarMargin(pathname: string | null): boolean {
     return false
   }
 
-  // All other mechanic/customer routes have sidebar
+  // All other mechanic/customer/workshop routes have sidebar
   return true
 }
 

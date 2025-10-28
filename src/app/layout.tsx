@@ -11,6 +11,7 @@ import { Inter } from 'next/font/google';
 import SiteFooter from '@/components/layout/SiteFooter';
 import ClientNavbar from '@/components/layout/ClientNavbar';
 import ConditionalMainWrapper from '@/components/layout/ConditionalMainWrapper';
+import { SessionMonitor } from '@/components/auth/AuthValidator';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,6 +26,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
+        {/* Global session monitoring - validates auth and handles stale sessions */}
+        <SessionMonitor />
+
         {/* Client-side Navbar with user state awareness */}
         <ClientNavbar />
 

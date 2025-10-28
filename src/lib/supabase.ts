@@ -16,7 +16,24 @@ export function createClient() {
     browserClient = createBrowserClient<Database>(url, key, {
       auth: {
         storageKey: 'autodoctor.auth.token',
+        autoRefreshToken: true, // Auto-refresh tokens to prevent expiry
+        persistSession: true, // Persist session in storage
+        detectSessionInUrl: true, // Detect session from URL (for magic links)
+        flowType: 'pkce', // Use PKCE flow for better security
       },
+    })
+
+    // Add global error handler for auth errors
+    browserClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        console.log(`[Supabase Auth] ${event}`, session ? 'Session active' : 'No session')
+      }
+
+      // If session becomes null unexpectedly, clear storage
+      if (event === 'SIGNED_OUT' && !session) {
+        console.log('[Supabase Auth] Session ended, clearing storage')
+        // Storage is already cleared by Supabase, but we log it
+      }
     })
   }
 

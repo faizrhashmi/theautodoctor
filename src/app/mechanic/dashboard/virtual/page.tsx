@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 import MechanicActiveSessionsManager from '@/components/mechanic/MechanicActiveSessionsManager'
+import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 
 interface DashboardStats {
   pending_sessions: number
@@ -211,6 +212,13 @@ export default function VirtualMechanicDashboard() {
               Virtual Consultation Specialist
             </span>
           </div>
+        </div>
+
+        {/* On-Shift Status Toggle */}
+        <div className="mb-8">
+          <OnShiftToggle onStatusChange={(status) => {
+            console.log('[VirtualDashboard] Shift status changed:', status)
+          }} />
         </div>
 
         {/* Error Message */}
