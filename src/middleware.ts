@@ -27,6 +27,7 @@ const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
 // CRITICAL: Customer-only routes - mechanics and admins are blocked
 // Note: /chat and /video are NOT included here because they're accessible by both customers AND mechanics
 // These pages handle authentication for both roles based on session assignment
+// Note: /onboarding/pricing is NOT protected here - it handles its own auth to avoid circular redirects
 const CUSTOMER_PROTECTED_PREFIXES = [
   '/customer/dashboard',
   '/customer/schedule',
@@ -34,7 +35,6 @@ const CUSTOMER_PROTECTED_PREFIXES = [
   '/session',
   '/intake',
   '/waiver',
-  '/onboarding/pricing',
 ]
 
 // Public mechanic routes (login, signup, onboarding) - these DO NOT require authentication
@@ -363,6 +363,6 @@ export const config = {
     // Intake and waiver routes (authentication required)
     '/intake/:path*',
     '/waiver/:path*',
-    '/onboarding/pricing',
+    // Note: /onboarding/pricing removed - handles its own auth
   ],
 }
