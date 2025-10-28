@@ -19,8 +19,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[logout] Sign out successful, clearing cookies...')
 
-    // Return success response with cookies cleared
-    // Don't redirect here - let the client handle the redirect
+    // Create JSON response with cookie clearing
     const response = NextResponse.json({ success: true })
 
     // Clear ALL Supabase auth cookies - iterate through all request cookies

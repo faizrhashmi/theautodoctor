@@ -77,9 +77,14 @@ export default function CustomerNavbar() {
         console.error('[CustomerNavbar] Logout API error (continuing anyway):', apiError);
       }
 
-      // Step 3: Force a complete page reload to clear all state
+      // Step 3: Give browser time to process cookie headers before navigation
+      console.log('[CustomerNavbar] Waiting for cookie processing...');
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Step 4: Force a complete page reload with cache-busting to ensure fresh state
       console.log('[CustomerNavbar] Reloading page to clear all state...');
-      window.location.href = '/';
+      // Add timestamp to prevent any browser caching
+      window.location.href = '/?logout=' + Date.now();
     } catch (error) {
       console.error('[CustomerNavbar] Sign out error:', error);
       // Fail-safe: force cleanup and reload anyway
@@ -90,7 +95,7 @@ export default function CustomerNavbar() {
       } catch (e) {
         console.error('[CustomerNavbar] Cleanup error:', e);
       }
-      window.location.href = '/';
+      window.location.href = '/?logout=' + Date.now();
     }
   }
 
