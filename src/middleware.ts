@@ -109,25 +109,52 @@ export async function middleware(request: NextRequest) {
 
     if (error) {
       console.log('[MIDDLEWARE] Auth error:', error.message)
-      // Clear invalid auth cookies
-      response.cookies.set({
-        name: 'sb-access-token',
-        value: '',
-        maxAge: 0,
-        path: '/',
+
+      // Clear ALL Supabase auth cookies on error
+      request.cookies.getAll().forEach((cookie) => {
+        if (cookie.name.startsWith('sb-')) {
+          console.log('[MIDDLEWARE] Clearing invalid cookie:', cookie.name)
+          response.cookies.set({
+            name: cookie.name,
+            value: '',
+            maxAge: 0,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          })
+        }
       })
-      response.cookies.set({
-        name: 'sb-refresh-token',
-        value: '',
-        maxAge: 0,
-        path: '/',
+
+      // Also clear known cookie names
+      const knownCookies = ['sb-access-token', 'sb-refresh-token']
+      knownCookies.forEach((name) => {
+        response.cookies.set({
+          name,
+          value: '',
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        })
       })
     } else {
       user = data.user
     }
   } catch (error) {
     console.error('[MIDDLEWARE] Exception getting user:', error)
-    // Continue without user
+    // Clear cookies on exception too
+    request.cookies.getAll().forEach((cookie) => {
+      if (cookie.name.startsWith('sb-')) {
+        response.cookies.set({
+          name: cookie.name,
+          value: '',
+          maxAge: 0,
+          path: '/',
+        })
+      }
+    })
   }
 
   // ==========================================================================
