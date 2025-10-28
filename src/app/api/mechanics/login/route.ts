@@ -29,25 +29,55 @@ export async function POST(req: NextRequest) {
 
   if (!ok) return bad('Invalid credentials', 401);
 
-  const token = makeSessionToken();
-  const expires = new Date(Date.now() + 1000*60*60*24*30);
-  const { error: sErr } = await supabaseAdmin.from('mechanic_sessions').insert({
+  // ✅ Priority 5: Token Refresh - Create access token (2 hours) and refresh token (30 days)
+  const accessToken = makeSessionToken();
+  const refreshToken = makeSessionToken();
+  const accessExpires = new Date(Date.now() + 1000 * 60 * 60 * 2); // 2 hours
+  const refreshExpires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+
+  // Try new format first (with refresh tokens and last_activity)
+  let { error: sErr } = await supabaseAdmin.from('mechanic_sessions').insert({
     mechanic_id: mech.id,
-    token,
-    expires_at: expires.toISOString(),
+    token: accessToken,
+    expires_at: accessExpires.toISOString(),
+    refresh_token: refreshToken,
+    refresh_expires_at: refreshExpires.toISOString(),
+    last_activity: new Date().toISOString(),
   });
+
+  // Fallback to old format if new columns don't exist yet (backwards compatibility)
+  if (sErr && sErr.message.includes('last_activity')) {
+    console.log('[MECHANIC LOGIN] New columns not available yet, using legacy format');
+    const result = await supabaseAdmin.from('mechanic_sessions').insert({
+      mechanic_id: mech.id,
+      token: accessToken,
+      expires_at: accessExpires.toISOString(),
+    });
+    sErr = result.error;
+  }
 
   console.log('[MECHANIC LOGIN] Session creation:', { success: !sErr, error: sErr?.message });
 
   if (sErr) return bad(sErr.message, 500);
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set('aad_mech', token, {
+
+  // Set access token cookie (2 hours)
+  res.cookies.set('aad_mech', accessToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 60*60*24*30,
+    maxAge: 60 * 60 * 2, // 2 hours
+  });
+
+  // Set refresh token cookie (30 days)
+  res.cookies.set('aad_mech_refresh', refreshToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
   console.log('[MECHANIC LOGIN] Success! Cookie set for mechanic:', mech.id);

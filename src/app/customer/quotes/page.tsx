@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { FileText, Clock, CheckCircle, XCircle, AlertCircle, DollarSign, Wrench } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface Quote {
   id: string
@@ -20,6 +21,9 @@ interface Quote {
 }
 
 export default function CustomerQuotesPage() {
+  // ✅ Auth guard - ensures user is authenticated as customer
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,8 +31,10 @@ export default function CustomerQuotesPage() {
   const [responding, setResponding] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchQuotes()
-  }, [])
+    if (user) {
+      fetchQuotes()
+    }
+  }, [user])
 
   async function fetchQuotes() {
     try {
@@ -87,15 +93,23 @@ export default function CustomerQuotesPage() {
     }
   }
 
-  if (loading) {
+  // Show loading state while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-300">Loading quotes...</p>
+          <p className="mt-4 text-slate-300">
+            {authLoading ? 'Verifying authentication...' : 'Loading quotes...'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
   }
 
   if (error) {

@@ -9,6 +9,7 @@ import {
   X, Phone, User, ChevronDown, ExternalLink, Image as ImageIcon,
   BarChart3, Zap
 } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface Session {
   id: string
@@ -36,6 +37,9 @@ interface SessionAnalytics {
 }
 
 export default function CustomerSessionsPage() {
+  // ✅ Auth guard - ensures user is authenticated as customer
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,8 +62,10 @@ export default function CustomerSessionsPage() {
   const [sortBy, setSortBy] = useState<'date' | 'price' | 'rating'>('date')
 
   useEffect(() => {
-    fetchSessions()
-  }, [])
+    if (user) {
+      fetchSessions()
+    }
+  }, [user])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -262,15 +268,23 @@ export default function CustomerSessionsPage() {
     return <Icon className="w-5 h-5" />
   }
 
-  if (loading) {
+  // Show loading state while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-300">Loading sessions...</p>
+          <p className="mt-4 text-slate-300">
+            {authLoading ? 'Verifying authentication...' : 'Loading sessions...'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
   }
 
   if (error) {

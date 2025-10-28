@@ -46,6 +46,8 @@ export default function MechanicSessionCompletePage() {
   const [session, setSession] = useState<DiagnosticSession | null>(null)
   const [escalationStatus, setEscalationStatus] = useState<EscalationStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [escalating, setEscalating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -54,9 +56,29 @@ export default function MechanicSessionCompletePage() {
   const [priority, setPriority] = useState<'low' | 'normal' | 'high' | 'urgent'>('normal')
   const [mechanicNotes, setMechanicNotes] = useState('')
 
+  // ✅ Auth guard
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth
     loadSessionData()
-  }, [sessionId])
+  }, [sessionId, isAuthenticated])
 
   const loadSessionData = async () => {
     try {

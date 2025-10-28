@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface DashboardStats {
   total_services: number
@@ -66,6 +67,9 @@ interface ActiveSession {
 }
 
 export default function CustomerDashboardPage() {
+  // ✅ Auth guard - ensures user is authenticated as customer
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionLauncherRef = useRef<HTMLDivElement>(null)
@@ -79,6 +83,8 @@ export default function CustomerDashboardPage() {
   const [shouldHighlight, setShouldHighlight] = useState(false)
 
   useEffect(() => {
+    if (!user) return
+
     async function fetchDashboardData() {
       try {
         console.log('[CustomerDashboard] Fetching dashboard data...')
@@ -125,6 +131,7 @@ export default function CustomerDashboardPage() {
 
     // Refresh availability every 30 seconds
     const interval = setInterval(async () => {
+      if (!user) return
       try {
         const response = await fetch('/api/mechanics/available-count')
         if (response.ok) {
@@ -137,7 +144,7 @@ export default function CustomerDashboardPage() {
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [user])
 
   // Handle auto-focus on session launcher
   useEffect(() => {
@@ -162,15 +169,23 @@ export default function CustomerDashboardPage() {
     }
   }, [searchParams, loading])
 
-  if (loading) {
+  // Show loading state while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-300">Loading dashboard...</p>
+          <p className="mt-4 text-slate-300">
+            {authLoading ? 'Verifying authentication...' : 'Loading dashboard...'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
   }
 
   if (error) {

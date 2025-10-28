@@ -47,6 +47,8 @@ export default function MechanicSessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [stats, setStats] = useState<SessionStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [error, setError] = useState<string | null>(null)
 
   // Filters
@@ -61,9 +63,30 @@ export default function MechanicSessionsPage() {
   const [limit] = useState(20)
   const [hasMore, setHasMore] = useState(true)
 
+  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth check
     fetchSessions()
-  }, [page, statusFilter, typeFilter, fromDate, toDate])
+  }, [page, statusFilter, typeFilter, fromDate, toDate, isAuthenticated])
 
   async function fetchSessions() {
     try {
@@ -207,7 +230,7 @@ export default function MechanicSessionsPage() {
 
   if (loading && page === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
@@ -218,7 +241,7 @@ export default function MechanicSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">

@@ -71,6 +71,8 @@ interface FormData {
 export default function VirtualOnlyOnboardingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [completionPercentage, setCompletionPercentage] = useState(0)
@@ -90,7 +92,27 @@ export default function VirtualOnlyOnboardingPage() {
 
   const [newCertification, setNewCertification] = useState('')
 
+  // ✅ Auth guard
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth
     // Load existing data if any
     setLoading(true)
     fetch('/api/mechanics/onboarding/virtual-only')
@@ -117,7 +139,7 @@ export default function VirtualOnlyOnboardingPage() {
         console.error('Failed to load onboarding data:', err)
         setLoading(false)
       })
-  }, [])
+  }, [isAuthenticated])
 
   const handleAddCertification = () => {
     if (newCertification.trim()) {

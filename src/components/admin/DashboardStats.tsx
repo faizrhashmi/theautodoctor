@@ -55,9 +55,9 @@ export function DashboardStats() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-lg border border-slate-200 p-4 animate-pulse">
-            <div className="h-4 bg-slate-200 rounded w-24 mb-2"></div>
-            <div className="h-8 bg-slate-300 rounded w-16"></div>
+          <div key={i} className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 animate-pulse">
+            <div className="h-4 bg-slate-700 rounded w-24 mb-2"></div>
+            <div className="h-8 bg-slate-600 rounded w-16"></div>
           </div>
         ))}
       </div>
@@ -66,15 +66,15 @@ export function DashboardStats() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400">
         <p className="font-medium">Error loading statistics</p>
-        <p className="text-sm mt-1">{error}</p>
+        <p className="text-sm mt-1 text-red-300">{error}</p>
         <button
           onClick={() => {
             setLoading(true)
             fetchStats()
           }}
-          className="mt-2 text-sm text-red-600 underline"
+          className="mt-2 text-sm text-red-400 hover:text-red-300 underline"
         >
           Retry
         </button>
@@ -144,14 +144,14 @@ export function DashboardStats() {
       </div>
 
       {/* Last updated */}
-      <div className="text-xs text-slate-500 text-right">
+      <div className="text-xs text-slate-400 text-right">
         Last updated: {new Date(stats.generatedAt).toLocaleTimeString()}
         <button
           onClick={() => {
             setLoading(true)
             fetchStats()
           }}
-          className="ml-2 text-orange-600 hover:text-orange-700 underline"
+          className="ml-2 text-orange-400 hover:text-orange-300 underline transition-colors"
         >
           Refresh
         </button>
@@ -171,37 +171,37 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, color, subtitle, badge }: StatCardProps) {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    orange: 'bg-orange-100 text-orange-600',
-    red: 'bg-red-100 text-red-600',
-    indigo: 'bg-indigo-100 text-indigo-600',
+    blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    green: 'bg-green-500/20 text-green-400 border-green-500/30',
+    purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    red: 'bg-red-500/20 text-red-400 border-red-500/30',
+    indigo: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
   }
 
   const badgeColors = {
     blue: 'bg-blue-500',
-    green: 'bg-green-500',
+    green: 'bg-green-500 animate-pulse',
     purple: 'bg-purple-500',
     orange: 'bg-orange-500',
-    red: 'bg-red-500',
+    red: 'bg-red-500 animate-pulse',
     indigo: 'bg-indigo-500',
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 relative">
+    <div className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-4 relative hover:border-orange-500/50 transition-all">
       {badge && (
-        <span className={`absolute top-2 right-2 ${badgeColors[color]} text-white text-xs font-bold px-2 py-0.5 rounded`}>
+        <span className={`absolute top-2 right-2 ${badgeColors[color]} text-white text-xs font-bold px-2 py-0.5 rounded shadow-lg`}>
           {badge}
         </span>
       )}
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorClasses[color]}`}>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${colorClasses[color]}`}>
           {icon}
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+          <p className="text-sm font-medium text-slate-400">{label}</p>
+          <p className="text-2xl font-bold text-white mt-1">{value}</p>
           {subtitle && (
             <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
           )}

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import MechanicSidebar from '@/components/mechanic/MechanicSidebar'
+import { useActivityTimeout } from '@/hooks/useActivityTimeout'
 
 // Routes that should NOT show the sidebar
 const NO_SIDEBAR_ROUTES = [
@@ -36,6 +37,20 @@ export default function MechanicLayout({
 }) {
   const pathname = usePathname()
   const showSidebar = shouldShowSidebar(pathname || '')
+
+  // ✅ Activity-based session timeout - 4 hours for mechanics
+  useActivityTimeout({
+    timeoutMs: 4 * 60 * 60 * 1000, // 4 hours
+    onTimeout: async () => {
+      // Call logout API
+      await fetch('/api/mechanics/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      // Hard redirect to login
+      window.location.href = '/mechanic/login'
+    },
+  })
 
   if (!showSidebar) {
     // No sidebar for auth/onboarding pages

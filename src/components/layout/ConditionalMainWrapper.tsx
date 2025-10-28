@@ -6,11 +6,16 @@ import { ReactNode } from 'react'
 export default function ConditionalMainWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
+  // Special handling for workshop pages
+  const isWorkshopLogin = pathname === '/workshop/login'
+
   // Pages with their own navbar (or customer flow pages) don't need top padding
   const needsTopPadding =
     !pathname?.startsWith('/customer') &&
     !pathname?.startsWith('/mechanic') &&
     !pathname?.startsWith('/admin') &&
+    // Workshop: Only login page needs padding (has navbar), signup and dashboard don't
+    (!pathname?.startsWith('/workshop') || isWorkshopLogin) &&
     // Customer flow pages
     !pathname?.startsWith('/intake') &&
     !pathname?.startsWith('/checkout') &&

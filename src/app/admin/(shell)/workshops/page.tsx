@@ -21,6 +21,7 @@ import {
   Ban,
   Eye
 } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface Workshop {
   id: string
@@ -45,6 +46,9 @@ interface Workshop {
 type StatusFilter = 'all' | 'pending' | 'approved' | 'suspended'
 
 export default function WorkshopsPage() {
+  // ✅ Auth guard - requires admin role
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'admin' })
+
   const [loading, setLoading] = useState(true)
   const [workshops, setWorkshops] = useState<Workshop[]>([])
   const [filteredWorkshops, setFilteredWorkshops] = useState<Workshop[]>([])

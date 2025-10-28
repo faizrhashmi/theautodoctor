@@ -1,16 +1,12 @@
 import { redirect } from 'next/navigation'
-import { getSupabaseServer } from '@/lib/supabaseServer'
 
+/**
+ * Stripe Onboarding Complete Redirect Page
+ * Note: Authentication is handled by middleware - /mechanic/* routes require mechanic auth
+ * This page simply redirects to the dashboard after Stripe onboarding completes
+ */
 export default async function StripeOnboardingCompletePage() {
-  const supabase = getSupabaseServer()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/mechanic/login')
-  }
-
-  // Redirect to dashboard - the dashboard will check and display Stripe status
+  // Middleware already verified mechanic auth via custom token (aad_mech cookie)
+  // Just redirect to dashboard with success flag
   redirect('/mechanic/dashboard?stripe_onboarding=complete')
 }

@@ -122,7 +122,7 @@ export default function HeroSection() {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Red Seal Certified</p>
+                  <p className="text-sm font-semibold text-white">Real Certified Mechanics</p>
                   <p className="text-xs text-slate-300/90">Professionals you can trust</p>
                 </div>
               </div>

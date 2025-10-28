@@ -128,15 +128,13 @@ export default function ClientNavbar() {
       return !isMechanicAuth
     }
 
-    // HIDE: Workshop authenticated dashboard pages (where sidebar is visible)
-    // SHOW: Workshop login, signup (no sidebar)
+    // HIDE: Workshop signup and authenticated dashboard pages
+    // SHOW: Workshop login page (has navbar)
     if (pathname.startsWith('/workshop')) {
-      const isWorkshopAuth =
-        pathname === '/workshop/login' ||
-        pathname === '/workshop/signup'
+      const isWorkshopLogin = pathname === '/workshop/login'
 
-      // Show navbar on auth pages, hide on dashboard pages
-      return !isWorkshopAuth
+      // Show navbar ONLY on login page, hide on signup and dashboard
+      return !isWorkshopLogin
     }
 
     // HIDE: Customer authenticated dashboard pages (where sidebar is visible)

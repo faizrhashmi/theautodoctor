@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Mail, Phone, MapPin, Key, Bell, CreditCard } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface ProfileData {
   full_name: string
@@ -11,6 +12,9 @@ interface ProfileData {
 }
 
 export default function CustomerProfilePage() {
+  // ✅ Auth guard - ensures user is authenticated as customer
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,8 +27,10 @@ export default function CustomerProfilePage() {
   })
 
   useEffect(() => {
-    fetchProfile()
-  }, [])
+    if (user) {
+      fetchProfile()
+    }
+  }, [user])
 
   async function fetchProfile() {
     try {
@@ -74,15 +80,23 @@ export default function CustomerProfilePage() {
     }
   }
 
-  if (loading) {
+  // Show loading state while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-300">Loading profile...</p>
+          <p className="mt-4 text-slate-300">
+            {authLoading ? 'Verifying authentication...' : 'Loading profile...'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
   }
 
   return (

@@ -44,13 +44,36 @@ interface AnalyticsData {
 export default function MechanicAnalyticsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [period, setPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth check
     fetchAnalytics()
-  }, [period])
+  }, [period, isAuthenticated])
 
   const fetchAnalytics = async () => {
     try {

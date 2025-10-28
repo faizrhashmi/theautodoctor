@@ -46,10 +46,25 @@ export default function CustomerNavbar() {
 
   async function handleSignOut() {
     try {
+      // ✅ Call API route for server-side cleanup (matches mechanic/admin pattern)
+      await fetch('/api/customer/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+
+      // Then do client-side cleanup
       await supabase.auth.signOut()
-      router.push('/')
+
+      // Clear any cached data
+      localStorage.clear()
+      sessionStorage.clear()
+
+      // ✅ Hard redirect to clear state (matches mechanic/admin pattern)
+      window.location.href = '/'
     } catch (error) {
       console.error('Sign out error:', error)
+      // Fail-safe: redirect anyway
+      window.location.href = '/'
     }
   }
 

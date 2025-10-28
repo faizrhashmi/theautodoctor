@@ -170,59 +170,47 @@ export async function GET(req: NextRequest) {
     const earningsGrowth = previousEarnings > 0 ? ((totalEarnings - previousEarnings) / previousEarnings) * 100 : 0
     const jobsGrowth = previousJobs > 0 ? ((totalJobs - previousJobs) / previousJobs) * 100 : 0
 
-    // Build analytics response
+    // Build analytics response (matching frontend interface)
     const analytics = {
-      period: {
-        type: period,
-        start_date: startDate.toISOString(),
-        end_date: now.toISOString()
+      period: period,
+      totalJobs: totalJobs,
+      totalRevenue: totalRevenue,
+      totalEarnings: totalEarnings,
+      avgRevenuePerJob: avgRevenuePerJob,
+      virtualJobs: {
+        count: virtualJobsCount,
+        revenue: virtualRevenue,
+        earnings: virtualEarnings
       },
-      summary: {
-        total_jobs: totalJobs,
-        total_revenue: totalRevenue,
-        total_earnings: totalEarnings,
-        avg_revenue_per_job: avgRevenuePerJob
+      physicalJobs: {
+        count: physicalJobsCount,
+        revenue: physicalRevenue,
+        earnings: physicalEarnings
       },
-      breakdown: {
-        virtual: {
-          jobs: virtualJobsCount,
-          revenue: virtualRevenue,
-          earnings: virtualEarnings,
-          chat_sessions: chatSessions.length,
-          video_sessions: videoSessions.length
+      sessionTypes: {
+        chat: {
+          count: chatSessions.length,
+          revenue: chatSessions.reduce((sum, s) => sum + s.total_price, 0)
         },
-        physical: {
-          jobs: physicalJobsCount,
-          revenue: physicalRevenue,
-          earnings: physicalEarnings
+        video: {
+          count: videoSessions.length,
+          revenue: videoSessions.reduce((sum, s) => sum + s.total_price, 0)
         }
       },
-      daily_breakdown: dailyBreakdown,
+      dailyData: dailyBreakdown,
       growth: {
-        revenue_growth_percentage: revenueGrowth,
-        earnings_growth_percentage: earningsGrowth,
-        jobs_growth_percentage: jobsGrowth,
-        previous_period: {
-          revenue: previousRevenue,
-          earnings: previousEarnings,
-          jobs: previousJobs
-        }
+        revenueGrowthPercentage: revenueGrowth,
+        earningsGrowthPercentage: earningsGrowth,
+        jobsGrowthPercentage: jobsGrowth
       },
       clients: {
-        total_clients: totalClients || 0,
-        active_this_period: activeClients?.length || 0,
-        top_clients: topClients || []
-      },
-      performance_metrics: {
-        virtual_conversion_rate: virtualJobsCount > 0 ? (videoSessions.length / virtualJobsCount) * 100 : 0,
-        avg_job_value: totalJobs > 0 ? totalRevenue / totalJobs : 0,
-        earnings_margin: totalRevenue > 0 ? (totalEarnings / totalRevenue) * 100 : 0
+        totalClients: totalClients || 0,
+        activeThisPeriod: activeClients?.length || 0,
+        topClients: topClients || []
       }
     }
 
-    return NextResponse.json({
-      analytics
-    })
+    return NextResponse.json(analytics)
 
   } catch (error) {
     console.error('[ANALYTICS API] Error:', error)

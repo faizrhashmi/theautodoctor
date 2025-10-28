@@ -230,7 +230,7 @@ export default function WorkshopSignupPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
                 <Building2 className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">TheAutoDoctor for Workshops</span>
+              <span className="text-xl font-bold text-white">AskAutoDoctor for Workshops</span>
             </Link>
             <Link href="/login" className="text-sm text-slate-400 hover:text-white">
               Already have an account? <span className="font-semibold text-orange-400">Sign In</span>

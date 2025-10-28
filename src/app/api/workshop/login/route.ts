@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
@@ -18,10 +21,41 @@ export async function POST(req: NextRequest) {
       return bad('Email and password are required');
     }
 
-    // Create a client for auth operations
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Prepare response
+    const response = NextResponse.json({ ok: true });
+
+    // Determine if we're in production
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // Create Supabase client with cookie handling (same pattern as admin login)
+    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          const cookieOptions = {
+            ...options,
+            sameSite: 'lax' as const,
+            secure: isProduction,
+            httpOnly: true,
+            path: '/',
+          };
+          response.cookies.set({ name, value, ...cookieOptions });
+        },
+        remove(name: string, options: any) {
+          const cookieOptions = {
+            ...options,
+            sameSite: 'lax' as const,
+            secure: isProduction,
+            httpOnly: true,
+            path: '/',
+            maxAge: 0,
+          };
+          response.cookies.set({ name, value: '', ...cookieOptions });
+        },
+      },
+    });
 
     // Authenticate with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -78,37 +112,16 @@ export async function POST(req: NextRequest) {
 
     console.log('[WORKSHOP LOGIN] Success! Workshop member:', membership.role);
 
-    // Return session tokens for client to set
-    const res = NextResponse.json({
-      ok: true,
-      user: {
-        id: authData.user.id,
-        email: authData.user.email,
-        role: membership.role,
-        organizationId: membership.organization_id,
-      },
+    // DEBUG: Log cookies being set
+    const cookieHeaders = response.headers.getSetCookie();
+    console.log('[WORKSHOP LOGIN] 🍪 Cookies being set:', cookieHeaders.length);
+    cookieHeaders.forEach((cookie, i) => {
+      const cookieName = cookie.split('=')[0];
+      console.log(`   ${i + 1}. ${cookieName}`);
     });
 
-    // Set session cookies
-    if (authData.session) {
-      res.cookies.set('sb-access-token', authData.session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: authData.session.expires_in || 3600,
-      });
-
-      res.cookies.set('sb-refresh-token', authData.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
-    }
-
-    return res;
+    // Return the response with cookies
+    return response;
   } catch (error: any) {
     console.error('[WORKSHOP LOGIN] Error:', error);
     return bad(error.message || 'Login failed', 500);

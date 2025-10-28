@@ -373,6 +373,16 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                 </>
               )}
         </p>
+        <p className="mt-4 text-center text-sm text-slate-400">
+          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setMode(mode === "login" ? "signup" : "login")}
+            className="font-semibold text-orange-400 transition hover:text-orange-300 hover:underline"
+          >
+            {mode === "login" ? "Create account" : "Sign in"}
+          </button>
+        </p>
       </div>
 
       {/* OAuth Buttons - Only show in Login mode */}
@@ -677,19 +687,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           We will email you a confirmation link. You must verify your email before selecting a session.
         </p>
       )}
-
-      <div className="mt-6 text-center">
-        <p className="text-sm text-slate-400">
-          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="font-semibold text-orange-400 transition hover:text-orange-300 hover:underline"
-          >
-            {mode === "login" ? "Create account" : "Sign in"}
-          </button>
-        </p>
-      </div>
 
       <WaiverModal
         isOpen={showWaiver}

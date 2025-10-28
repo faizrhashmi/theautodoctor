@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Logo from '@/components/branding/Logo'
 
 interface AdminLoginClientProps {
   redirectTo: string
@@ -72,8 +73,13 @@ export default function AdminLoginClient({ redirectTo, initialError }: AdminLogi
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center pt-16 pb-8 px-4">
+    <div className="min-h-screen flex items-center justify-center pt-16 pb-8 px-4 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <div className="w-full max-w-md rounded-2xl bg-slate-800/50 backdrop-blur-sm border border-slate-700 shadow-2xl p-8">
+        {/* Logo Section */}
+        <div className="mb-8 flex justify-center">
+          <Logo size="lg" showText={true} href="/" />
+        </div>
+
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-semibold text-white">Admin Panel</h1>
           <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>

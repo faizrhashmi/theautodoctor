@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 interface Quote {
   id: string
@@ -49,6 +50,9 @@ interface Quote {
 }
 
 export default function CustomerQuoteViewPage() {
+  // ✅ Auth guard - ensures user is authenticated as customer
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+
   const router = useRouter()
   const params = useParams()
   const quoteId = params.quoteId as string
@@ -62,6 +66,8 @@ export default function CustomerQuoteViewPage() {
 
   // Load quote
   useEffect(() => {
+    if (!user) return
+
     async function loadQuote() {
       try {
         const response = await fetch(`/api/quotes/${quoteId}`)
@@ -80,7 +86,7 @@ export default function CustomerQuoteViewPage() {
     }
 
     loadQuote()
-  }, [quoteId])
+  }, [quoteId, user])
 
   // Approve quote
   async function approveQuote() {
@@ -152,15 +158,23 @@ export default function CustomerQuoteViewPage() {
     }
   }
 
-  if (loading) {
+  // Show loading state while checking authentication
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-300">Loading quote...</p>
+          <p className="mt-4 text-slate-300">
+            {authLoading ? 'Verifying authentication...' : 'Loading quote...'}
+          </p>
         </div>
       </div>
     )
+  }
+
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
   }
 
   if (!quote) {

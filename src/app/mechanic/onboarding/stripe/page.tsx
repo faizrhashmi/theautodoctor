@@ -10,6 +10,8 @@ export default function StripeOnboardingPage() {
   const isRefresh = searchParams.get('refresh') === 'true'
 
   const [loading, setLoading] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<{
     connected: boolean
@@ -17,10 +19,30 @@ export default function StripeOnboardingPage() {
     payouts_enabled: boolean
   } | null>(null)
 
+  // ✅ Auth guard
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth
     // Check current status on mount
     checkStatus()
-  }, [])
+  }, [isAuthenticated])
 
   const checkStatus = async () => {
     try {

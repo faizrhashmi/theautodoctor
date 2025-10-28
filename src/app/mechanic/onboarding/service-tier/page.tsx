@@ -7,10 +7,32 @@ import { MessageCircle, Video, Wrench, Building2, CheckCircle, ArrowRight, Info 
 export default function ServiceTierSelectionPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [currentTier, setCurrentTier] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Auth guard
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth
     // Check current service tier
     fetch('/api/mechanics/onboarding/service-tier')
       .then(res => res.json())
@@ -22,7 +44,7 @@ export default function ServiceTierSelectionPage() {
       .catch(err => {
         console.error('Failed to fetch service tier:', err)
       })
-  }, [])
+  }, [isAuthenticated])
 
   const handleSelectTier = async (tier: 'virtual_only' | 'workshop_partner') => {
     setLoading(true)

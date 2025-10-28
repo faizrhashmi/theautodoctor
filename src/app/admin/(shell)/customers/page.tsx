@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 type Customer = {
   id: string;
@@ -65,6 +66,9 @@ function VerifiedBadge({ verified }: { verified: boolean }) {
 }
 
 export default function CustomersPage() {
+  // ✅ Auth guard - requires admin role
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'admin' })
+
   const [search, setSearch] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [emailVerified, setEmailVerified] = useState<string>('');

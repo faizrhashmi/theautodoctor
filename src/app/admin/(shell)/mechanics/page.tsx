@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 type Mechanic = {
   id: string;
@@ -95,6 +96,9 @@ function RatingDisplay({ rating }: { rating: number }) {
 }
 
 export default function MechanicsPage() {
+  // ✅ Auth guard - requires admin role
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'admin' })
+
   const [search, setSearch] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [approvalStatus, setApprovalStatus] = useState<string>('');

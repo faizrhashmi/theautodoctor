@@ -43,6 +43,8 @@ export default function MechanicDashboardPage() {
   const notification = searchParams.get('notification')
   const [loading, setLoading] = useState(true)
   const [checkingTier, setCheckingTier] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -62,7 +64,29 @@ export default function MechanicDashboardPage() {
     setRetryCount(prev => prev + 1)
   }
 
+  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth check
+
     // Check mechanic's service tier and route appropriately
     const checkServiceTier = async () => {
       try {
@@ -91,7 +115,7 @@ export default function MechanicDashboardPage() {
     }
 
     checkServiceTier()
-  }, [router])
+  }, [router, isAuthenticated])
 
   // Fetch active sessions - mechanics can only have ONE active session at a time
   useEffect(() => {
@@ -331,7 +355,7 @@ export default function MechanicDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen py-4 sm:py-8 pt-20 lg:pt-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 pt-20 lg:pt-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Mechanic Dashboard</h1>
@@ -339,8 +363,8 @@ export default function MechanicDashboardPage() {
         </div>
 
         {notification === 'quote_sent' && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-green-800 font-medium">
+          <div className="mb-6 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+            <p className="text-green-200 font-medium">
               ✓ Quote sent successfully! Customer will be notified.
             </p>
           </div>

@@ -58,6 +58,8 @@ export default function MechanicProfilePage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('basic')
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -81,21 +83,44 @@ export default function MechanicProfilePage() {
     specializations: []
   })
 
+  // ✅ Auth guard - Check mechanic authentication first
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
   // Fetch current user and profile
   useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth check
+
     const fetchProfile = async () => {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
+        // Get mechanic info from /api/mechanics/me (uses custom token auth, not Supabase)
+        const meResponse = await fetch('/api/mechanics/me')
+        if (!meResponse.ok) {
           router.push('/mechanic/login')
           return
         }
 
-        setMechanicId(user.id)
+        const meData = await meResponse.json()
+        setMechanicId(meData.id)
 
         // Fetch mechanic profile
-        const response = await fetch(`/api/mechanics/${user.id}/profile`)
+        const response = await fetch(`/api/mechanics/${meData.id}/profile`)
         if (!response.ok) {
           throw new Error('Failed to fetch profile')
         }
@@ -111,7 +136,7 @@ export default function MechanicProfilePage() {
     }
 
     fetchProfile()
-  }, [supabase, router])
+  }, [router, isAuthenticated])
 
   const handleSave = async () => {
     if (!mechanicId) return
@@ -172,12 +197,12 @@ export default function MechanicProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-12">
       {/* Header */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 border-b">
+      <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Mechanic Profile</h1>
-              <p className="text-slate-600 mt-1">
+              <h1 className="text-2xl font-bold text-white">Mechanic Profile</h1>
+              <p className="text-slate-400 mt-1">
                 Complete your profile to start accepting sessions
               </p>
             </div>
@@ -212,27 +237,27 @@ export default function MechanicProfilePage() {
       {/* Status Messages */}
       {error && (
         <div className="max-w-6xl mx-auto px-4 mt-6">
-          <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <p>{error}</p>
+          <div className="flex items-center gap-2 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-400" />
+            <p className="text-red-300">{error}</p>
           </div>
         </div>
       )}
 
       {success && (
         <div className="max-w-6xl mx-auto px-4 mt-6">
-          <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-            <p>Profile updated successfully!</p>
+          <div className="flex items-center gap-2 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-400" />
+            <p className="text-green-300">Profile updated successfully!</p>
           </div>
         </div>
       )}
 
       {/* Tabs */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow-sm overflow-hidden">
           {/* Tab Headers */}
-          <div className="flex border-b border-slate-200 overflow-x-auto">
+          <div className="flex border-b border-slate-700 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -241,8 +266,8 @@ export default function MechanicProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-4 font-medium whitespace-nowrap transition-colors ${
                     activeTab === tab.id
-                      ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950'
+                      ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-500/10'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                   }`}
                 >
                   <Icon className="h-5 w-5" />

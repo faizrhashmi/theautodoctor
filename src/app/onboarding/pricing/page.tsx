@@ -38,7 +38,7 @@ export default async function PricingSelectionPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <header className="border-b border-white/10 bg-white/5 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-white">Choose Your Plan</h1>
+          <h1 className="text-lg font-semibold text-white">Book a Session</h1>
           <div className="flex items-center gap-4">
             <a
               href="/customer/dashboard"
@@ -65,9 +65,9 @@ export default async function PricingSelectionPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-amber-300">Plan Selection Locked</h3>
+              <h3 className="text-lg font-bold text-amber-300">Session Booking Locked</h3>
               <p className="text-sm text-amber-200/90 mt-2">
-                You have {activeSessionsData.length} active session{activeSessionsData.length > 1 ? 's' : ''}. Please complete or cancel your active session{activeSessionsData.length > 1 ? 's' : ''} before selecting a new plan or starting a new booking.
+                You have {activeSessionsData.length} active session{activeSessionsData.length > 1 ? 's' : ''}. Please complete or cancel your active session{activeSessionsData.length > 1 ? 's' : ''} before starting a new session.
               </p>
               <div className="mt-4 space-y-2">
                 {activeSessionsData.map((session) => (
@@ -96,7 +96,7 @@ export default async function PricingSelectionPage() {
 
         <div className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-orange-300">
-            Select Your Plan
+            Select Session Type
           </div>
           <h2 className="text-4xl font-bold text-white md:text-5xl">
             Choose the Right Session
@@ -105,13 +105,13 @@ export default async function PricingSelectionPage() {
             </span>
           </h2>
           <p className="mt-6 text-lg text-slate-300 max-w-3xl mx-auto">
-            Connect with certified mechanics instantly. Select the plan that matches your needs - you can upgrade anytime.
+            Connect with certified mechanics instantly. One-time payment per session - no subscriptions or recurring charges.
           </p>
           {!hasActiveSessions && (
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
                 <span className="inline-block h-2 w-2 rounded-full bg-green-400" />
-                Change plans anytime
+                Fixed price per session
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-300">
                 Secure Stripe billing

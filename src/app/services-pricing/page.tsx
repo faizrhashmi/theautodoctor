@@ -7,10 +7,10 @@ export default function ServicesPricingPage() {
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="bg-gradient-to-br from-blue-900 via-slate-900 to-slate-950">
         <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8">
-          <p className="text-xs uppercase tracking-[0.3em] text-orange-200">Services & pricing</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-orange-200">One-time payment per session</p>
           <h1 className="mt-4 text-4xl font-bold">Professional help for every automotive scenario</h1>
           <p className="mt-3 max-w-2xl text-sm text-blue-100">
-            All packages include digital waivers, real-time collaboration, and secure file sharing. Extend sessions on demand with one-click payments.
+            Every session includes digital waivers, real-time collaboration, and secure file sharing. Extend sessions on demand with one-click payments. Pay only when you book - no subscriptions or monthly fees.
           </p>
         </div>
       </header>

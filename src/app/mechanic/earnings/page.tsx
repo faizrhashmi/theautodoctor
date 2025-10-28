@@ -57,13 +57,36 @@ interface EarningsData {
 export default function MechanicEarningsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
+  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year' | 'all'>('month')
   const [earningsData, setEarningsData] = useState<EarningsData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/mechanics/me')
+        if (!response.ok) {
+          router.replace('/mechanic/login')
+          return
+        }
+        setIsAuthenticated(true)
+        setAuthChecking(false)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        router.replace('/mechanic/login')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return  // ✅ Wait for auth check
     loadEarnings()
-  }, [period])
+  }, [period, isAuthenticated])
 
   const loadEarnings = async () => {
     setLoading(true)
@@ -166,7 +189,7 @@ export default function MechanicEarningsPage() {
               className={`px-4 py-2 rounded-md font-medium transition-colors capitalize ${
                 period === p
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-gray-100'
+                  : 'text-slate-400 hover:bg-slate-800/50'
               }`}
             >
               {p === 'all' ? 'All Time' : `This ${p.charAt(0).toUpperCase()}${p.slice(1)}`}
@@ -176,11 +199,11 @@ export default function MechanicEarningsPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-red-900">Error</p>
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm font-medium text-red-300">Error</p>
+              <p className="text-sm text-red-300">{error}</p>
             </div>
           </div>
         )}
@@ -344,9 +367,9 @@ export default function MechanicEarningsPage() {
                         <th className="px-4 py-3 text-right text-sm font-semibold text-white">Your Earnings</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-slate-700">
                       {earningsData.session_details.map(session => (
-                        <tr key={session.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+                        <tr key={session.id} className="hover:bg-slate-800/50">
                           <td className="px-4 py-3 text-sm text-white">
                             {new Date(session.date).toLocaleDateString()}
                           </td>
@@ -383,7 +406,7 @@ export default function MechanicEarningsPage() {
             {/* Empty State */}
             {earningsData.session_details.length === 0 && (
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-12 text-center">
-                <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <DollarSign className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
                   No Earnings Yet
                 </h3>
@@ -400,14 +423,14 @@ export default function MechanicEarningsPage() {
             )}
 
             {/* Tax Notice */}
-            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-blue-900 mb-2">
+                  <p className="text-sm font-semibold text-blue-300 mb-2">
                     Tax Reporting Information
                   </p>
-                  <p className="text-sm text-blue-800">
+                  <p className="text-sm text-blue-300">
                     Export your earnings history for tax reporting purposes. The platform fee (15%) is already
                     deducted from your earnings. Consult with a tax professional for guidance on reporting your
                     income as an independent contractor.

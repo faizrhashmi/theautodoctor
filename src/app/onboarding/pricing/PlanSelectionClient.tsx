@@ -4,6 +4,20 @@ import { useState } from 'react';
 
 const TIERS = [
   {
+    id: 'micro',
+    name: 'Quick Advice',
+    price: '$4.99',
+    duration: '2-10 minute micro-session',
+    description: 'Ultra-quick consultation for simple questions (advice-only).',
+    perks: [
+      'Text chat only',
+      '1 photo upload',
+      'Quick diagnosis & basic advice',
+      'Perfect for simple yes/no questions',
+    ],
+    recommendedFor: 'Best for quick questions that need fast answers.',
+  },
+  {
     id: 'quick',
     name: 'Quick Chat',
     price: '$9.99',
@@ -163,7 +177,7 @@ export default function PlanSelectionClient({ hasActiveSessions }: PlanSelection
                 ? 'border-slate-600/30 bg-slate-700/20 text-slate-500'
                 : 'border-orange-400/30 bg-orange-500/10 text-white group-hover:border-orange-400/50 group-hover:bg-orange-500/20'
             }`}>
-              <span>{hasActiveSessions ? 'Locked' : tier.id === 'free' ? 'Start free session' : 'Continue with this plan'}</span>
+              <span>{hasActiveSessions ? 'Locked' : tier.id === 'free' ? 'Start free session' : 'Book this session'}</span>
               <span className={hasActiveSessions ? 'text-slate-600' : 'text-orange-400 group-hover:text-orange-300'}>
                 {hasActiveSessions ? '🔒' : submitting === tier.id ? 'Saving...' : 'Select →'}
               </span>

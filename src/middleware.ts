@@ -7,10 +7,22 @@
  */
 import { NextResponse, NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { validateRedirect } from '@/lib/security/redirects'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// Create admin client for privileged operations (bypasses RLS)
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
 // CRITICAL: Customer-only routes - mechanics and admins are blocked
 // Note: /chat and /video are NOT included here because they're accessible by both customers AND mechanics
@@ -20,6 +32,9 @@ const CUSTOMER_PROTECTED_PREFIXES = [
   '/customer/schedule',
   '/dashboard',
   '/session',
+  '/intake',
+  '/waiver',
+  '/onboarding/pricing',
 ]
 
 // Public mechanic routes (login, signup, onboarding) - these DO NOT require authentication
@@ -196,7 +211,13 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify user is a workshop admin via organization membership
-    const { data: membership } = await supabase
+    // Use supabaseAdmin to bypass RLS policies that may cause recursion
+    if (!supabaseAdmin) {
+      console.error('[MIDDLEWARE] ❌ Supabase admin client not available')
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    const { data: membership, error: membershipError } = await supabaseAdmin
       .from('organization_members')
       .select(`
         id,
@@ -211,11 +232,18 @@ export async function middleware(request: NextRequest) {
       .eq('status', 'active')
       .maybeSingle()
 
+    console.log(`[MIDDLEWARE] Membership query result:`, {
+      found: !!membership,
+      error: membershipError?.message,
+      userId: user.id
+    })
+
     const org = membership?.organizations as any
 
     if (!membership || !org || org.organization_type !== 'workshop') {
       console.warn(
-        `[SECURITY] ❌ Non-workshop user ${user.email} (${user.id}) attempted to access ${pathname}`
+        `[SECURITY] ❌ Non-workshop user ${user.email} (${user.id}) attempted to access ${pathname}`,
+        { hasMembership: !!membership, hasOrg: !!org, orgType: org?.organization_type }
       )
       return NextResponse.redirect(new URL('/', request.url))
     }
@@ -281,5 +309,9 @@ export const config = {
     '/video/:path*',
     '/chat/:path*',
     '/diagnostic/:path*',
+    // Intake and waiver routes (authentication required)
+    '/intake/:path*',
+    '/waiver/:path*',
+    '/onboarding/pricing',
   ],
 }

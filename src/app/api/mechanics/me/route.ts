@@ -20,23 +20,32 @@ export async function GET(req: NextRequest) {
       .eq('token', token)
       .single()
 
+    console.log('[MECHANIC ME] Session lookup:', { found: !!session, error: sessionError?.message })
+
     if (sessionError || !session) {
+      console.log('[MECHANIC ME] Invalid session - token not found in database')
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
     // Check if session is expired
     if (new Date(session.expires_at) < new Date()) {
+      console.log('[MECHANIC ME] Session expired')
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
 
-    // Get mechanic data
+    console.log('[MECHANIC ME] Valid session, looking up mechanic:', session.mechanic_id)
+
+    // Get mechanic data (selecting only essential columns that exist)
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('id, name, email, stripe_account_id, stripe_payouts_enabled, sin_collected')
+      .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
       .eq('id', session.mechanic_id)
       .single()
 
+    console.log('[MECHANIC ME] Mechanic lookup:', { found: !!mechanic, error: mechanicError?.message })
+
     if (mechanicError || !mechanic) {
+      console.log('[MECHANIC ME] Mechanic not found in database')
       return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
     }
 
@@ -46,7 +55,7 @@ export async function GET(req: NextRequest) {
       email: mechanic.email,
       stripeConnected: !!mechanic.stripe_account_id,
       payoutsEnabled: !!mechanic.stripe_payouts_enabled,
-      sinCollected: !!mechanic.sin_collected,
+      sinCollected: false, // Default to false since column doesn't exist yet
     })
   } catch (error) {
     console.error('[MECHANIC ME API] Error:', error)

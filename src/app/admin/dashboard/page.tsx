@@ -2,8 +2,27 @@
 
 import Link from 'next/link'
 import { DashboardStats as DashboardOverview } from '@/components/admin/DashboardStats'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 
 export default function AdminDashboardPage() {
+  // ✅ Auth guard - requires admin role
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'admin' })
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900/50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-slate-300">Verifying admin access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-slate-900/50 py-8">
       <div className="max-w-7xl mx-auto px-4 space-y-10">
