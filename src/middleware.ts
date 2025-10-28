@@ -2,8 +2,8 @@
 /**
  * SECURITY: Route-level authentication and authorization
  *
- * This middleware enforces role-based access control for all protected routes.
- * It runs on EVERY matching request before the route handler.
+ * This middleware enforces role-based access control for protected routes.
+ * NOTE: Customer routes are protected by AuthGuard component, not middleware.
  */
 import { NextResponse, NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
@@ -23,19 +23,6 @@ const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
       }
     })
   : null
-
-// CRITICAL: Customer-only routes - mechanics and admins are blocked
-// Note: /chat and /video are NOT included here because they're accessible by both customers AND mechanics
-// These pages handle authentication for both roles based on session assignment
-// Note: /onboarding/pricing is NOT protected here - it handles its own auth to avoid circular redirects
-const CUSTOMER_PROTECTED_PREFIXES = [
-  '/customer/dashboard',
-  '/customer/schedule',
-  '/dashboard',
-  '/session',
-  '/intake',
-  '/waiver',
-]
 
 // Public mechanic routes (login, signup, onboarding) - these DO NOT require authentication
 const MECHANIC_PUBLIC_ROUTES = [
@@ -88,16 +75,40 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next()
+  
+  // CRITICAL FIX: Use consistent cookie configuration with client-side
+  const isProduction = process.env.NODE_ENV === 'production'
+  const cookieOptions = {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: isProduction,
+    maxAge: 604800, // 7 days - match client-side
+  }
+
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       get(name: string) {
-        return request.cookies.get(name)?.value
+        const value = request.cookies.get(name)?.value
+        console.log(`[MIDDLEWARE] Reading cookie: ${name}`, value ? 'PRESENT' : 'MISSING')
+        return value
       },
-      set(name: string, value: string, options: any) {
-        response.cookies.set({ name, value, ...options })
+      set(name: string, value: string) {
+        console.log(`[MIDDLEWARE] Setting cookie: ${name}`)
+        response.cookies.set({ 
+          name, 
+          value, 
+          ...cookieOptions 
+        })
       },
-      remove(name: string, options: any) {
-        response.cookies.set({ name, value: '', ...options, maxAge: 0 })
+      remove(name: string) {
+        console.log(`[MIDDLEWARE] Removing cookie: ${name}`)
+        response.cookies.set({ 
+          name, 
+          value: '', 
+          ...cookieOptions,
+          maxAge: 0 
+        })
       },
     },
   })
@@ -110,25 +121,10 @@ export async function middleware(request: NextRequest) {
     if (error) {
       console.log('[MIDDLEWARE] Auth error:', error.message)
 
-      // Clear ALL Supabase auth cookies on error
-      request.cookies.getAll().forEach((cookie) => {
-        if (cookie.name.startsWith('sb-')) {
-          console.log('[MIDDLEWARE] Clearing invalid cookie:', cookie.name)
-          response.cookies.set({
-            name: cookie.name,
-            value: '',
-            maxAge: 0,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-          })
-        }
-      })
-
-      // Also clear known cookie names
-      const knownCookies = ['sb-access-token', 'sb-refresh-token']
-      knownCookies.forEach((name) => {
+      // Clear ALL Supabase auth cookies on error with consistent settings
+      const authCookies = ['sb-access-token', 'sb-refresh-token']
+      authCookies.forEach((name) => {
+        console.log('[MIDDLEWARE] Clearing auth cookie:', name)
         response.cookies.set({
           name,
           value: '',
@@ -136,24 +132,42 @@ export async function middleware(request: NextRequest) {
           path: '/',
           httpOnly: true,
           sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production',
+          secure: isProduction,
         })
+      })
+
+      // Also clear any other Supabase cookies
+      request.cookies.getAll().forEach((cookie) => {
+        if (cookie.name.startsWith('sb-') && !authCookies.includes(cookie.name)) {
+          console.log('[MIDDLEWARE] Clearing additional cookie:', cookie.name)
+          response.cookies.set({
+            name: cookie.name,
+            value: '',
+            maxAge: 0,
+            path: '/',
+          })
+        }
       })
     } else {
       user = data.user
+      if (user) {
+        console.log(`[MIDDLEWARE] User authenticated: ${user.email}`)
+      }
     }
   } catch (error) {
     console.error('[MIDDLEWARE] Exception getting user:', error)
-    // Clear cookies on exception too
-    request.cookies.getAll().forEach((cookie) => {
-      if (cookie.name.startsWith('sb-')) {
-        response.cookies.set({
-          name: cookie.name,
-          value: '',
-          maxAge: 0,
-          path: '/',
-        })
-      }
+    // Clear cookies on exception too with consistent settings
+    const authCookies = ['sb-access-token', 'sb-refresh-token']
+    authCookies.forEach((name) => {
+      response.cookies.set({
+        name,
+        value: '',
+        maxAge: 0,
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction,
+      })
     })
   }
 
@@ -305,38 +319,23 @@ export async function middleware(request: NextRequest) {
   }
 
   // ==========================================================================
-  // CUSTOMER ROUTE PROTECTION
+  // CUSTOMER ROUTE PROTECTION - REMOVED
   // ==========================================================================
-  const requiresCustomerAuth = CUSTOMER_PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))
-
-  if (!requiresCustomerAuth) {
-    return response
-  }
-
-  if (!user) {
-    const loginUrl = new URL('/signup', request.url)
-    // SECURITY: Validate redirect to prevent open redirects
-    const safeRedirect = validateRedirect(pathname, '/customer/dashboard')
-    loginUrl.searchParams.set('redirect', safeRedirect)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  // Check email verification - only check user.email_confirmed_at
-  // The profile.email_verified is synced via the profile API
-  if (!user.email_confirmed_at) {
-    return NextResponse.redirect(new URL('/customer/verify-email', request.url))
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  // Only redirect if user has wrong role (e.g., admin trying to access customer pages)
-  if (profile?.role && profile.role !== 'customer') {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
+  // Customer routes are now protected by AuthGuard component, not middleware
+  // This prevents the infinite redirect loop between middleware and AuthGuard
+  // 
+  // Customer routes that are now handled by AuthGuard:
+  // - /customer/dashboard
+  // - /customer/schedule  
+  // - /dashboard
+  // - /session
+  // - /intake
+  // - /waiver
+  //
+  // The AuthGuard component provides better user experience with:
+  // - Loading states
+  // - Clear error messages
+  // - Client-side redirects without full page reloads
 
   return response
 }
@@ -350,19 +349,11 @@ export const config = {
     '/mechanic/:path*',
     // Workshop routes
     '/workshop/:path*',
-    // Customer routes
-    '/customer/dashboard',
-    '/customer/dashboard/:path*',
-    '/customer/schedule',
-    '/customer/schedule/:path*',
-    '/dashboard/:path*',
-    '/session/:path*',
+    // NOTE: Customer routes removed - protected by AuthGuard component
+    // Video and chat routes (accessible by both customers and mechanics)
     '/video/:path*',
     '/chat/:path*',
     '/diagnostic/:path*',
-    // Intake and waiver routes (authentication required)
-    '/intake/:path*',
-    '/waiver/:path*',
     // Note: /onboarding/pricing removed - handles its own auth
   ],
 }

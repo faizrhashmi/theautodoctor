@@ -82,10 +82,25 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   // Check if user is already logged in and redirect to dashboard
   useEffect(() => {
     const checkExistingSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('[SignupGate] User already logged in, redirecting to dashboard');
-        router.push(redirectTo || '/customer/dashboard');
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        // Only show error for specific session errors (not "no session found")
+        if (sessionError && sessionError.message && !sessionError.message.includes('no session')) {
+          console.log('[SignupGate] Session error:', sessionError.message);
+          await supabase.auth.signOut();
+          setError('Your session has expired. Please log in again.');
+          return;
+        }
+
+        if (session) {
+          console.log('[SignupGate] User already logged in, redirecting to dashboard');
+          router.push(redirectTo || '/customer/dashboard');
+        }
+      } catch (err) {
+        console.error('[SignupGate] Error checking session:', err);
+        // Clear any invalid session data silently
+        await supabase.auth.signOut();
       }
     };
     checkExistingSession();
@@ -699,9 +714,32 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-300">
-          {error}
-        </p>
+        <div className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="flex-1 text-sm text-rose-300">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="flex-shrink-0 text-rose-300 hover:text-rose-100 transition-colors"
+              aria-label="Dismiss error"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {error.includes('session') && (
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setError(null);
+                window.location.reload();
+              }}
+              className="mt-3 w-full rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors"
+            >
+              Clear Session & Refresh
+            </button>
+          )}
+        </div>
       )}
       {message && (
         <p className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">

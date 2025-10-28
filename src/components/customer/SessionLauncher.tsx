@@ -261,6 +261,17 @@ export default function SessionLauncher({
                   )
                 })}
               </div>
+
+              {/* Subtle link to full pricing page */}
+              <div className="mt-3 pt-3 border-t border-slate-700">
+                <Link
+                  href="/onboarding/pricing"
+                  className="text-xs text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-1"
+                >
+                  View detailed plan comparison
+                  <ChevronDown className="h-3 w-3" />
+                </Link>
+              </div>
             </div>
           )}
         </div>

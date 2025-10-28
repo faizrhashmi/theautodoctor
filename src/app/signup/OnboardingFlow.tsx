@@ -258,10 +258,10 @@ export default function OnboardingFlow({
                   Go to dashboard
                 </Link>
                 <Link
-                  href="/onboarding/pricing"
+                  href="/customer/dashboard"
                   className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:border-orange-300 hover:bg-orange-500/15"
                 >
-                  Change my plan
+                  Book a session
                 </Link>
               </div>
               {formattedSlot && (
@@ -284,7 +284,7 @@ export default function OnboardingFlow({
                 {planDetails.duration}
               </p>
               <Link
-                href="/onboarding/pricing"
+                href="/customer/dashboard"
                 className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-orange-200 transition hover:text-white"
               >
                 {planDetails.cta}

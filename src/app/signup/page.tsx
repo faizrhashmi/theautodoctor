@@ -175,25 +175,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     .eq('id', user.id)
     .maybeSingle();
 
-  // If user has no plan, send them to select one
-  if (!profile?.preferred_plan) {
-    redirect('/onboarding/pricing');
-  }
-
-  // If user has a paid plan (not free), send them to dashboard
-  if (profile.preferred_plan !== 'free') {
+  // All authenticated users go to dashboard
+  // Dashboard has SessionLauncher dropdown to choose plan when booking
+  if (redirectTo && !redirectTo.startsWith('/signup') && !redirectTo.startsWith('/onboarding')) {
+    redirect(redirectTo);
+  } else {
     redirect('/customer/dashboard');
-  }
-
-  // If the user is on the free tier, allow them to continue to onboarding/pricing
-  // or follow an explicit redirect query (for example when they click "Upgrade").
-  if (profile.preferred_plan === 'free') {
-    if (redirectTo && !redirectTo.startsWith('/signup') && !redirectTo.startsWith('/onboarding')) {
-      redirect(redirectTo);
-    } else {
-      // No explicit redirect, send free tier users to pricing to upgrade
-      redirect('/onboarding/pricing');
-    }
   }
 
   return (

@@ -19,10 +19,10 @@
     "test:e2e": "playwright test tests/e2e",
     "test:integration": "playwright test tests/e2e/database-integrity.spec.ts",
     "test:rls": "playwright test tests/e2e/rls-policies.spec.ts",
-    "audit:security": "npm audit --audit-level=high",
+    "audit:security": "pnpm audit --audit-level=high",
     "audit:deps": "depcheck --ignores=\"@types/*,eslint-config-next\"",
-    "audit:all": "npm run typecheck && npm run lint:strict && npm run audit:deps && npm run audit:security",
-    "validate": "npm run typecheck && npm run lint && npm run build",
+    "audit:all": "pnpm run typecheck && pnpm run lint:strict && pnpm run audit:deps && pnpm run audit:security",
+    "validate": "pnpm run typecheck && pnpm run lint && pnpm run build",
     "clean": "rm -rf .next node_modules/.cache",
     "config:dev": "cp next.config.dev.js next.config.js",
     "config:prod": "cp next.config.prod.js next.config.js"

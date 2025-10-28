@@ -71,7 +71,7 @@ interface ActiveSession {
 
 export default function CustomerDashboardPage() {
   // ✅ Auth guard - ensures user is authenticated as customer
-  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+  const { loading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
 
   const router = useRouter()
   const searchParams = useSearchParams()

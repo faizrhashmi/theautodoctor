@@ -21,7 +21,7 @@ export default async function LiveSupportPage() {
     .maybeSingle()
 
   if (user.email_confirmed_at && !profile?.preferred_plan) {
-    redirect('/onboarding/pricing')
+    redirect('/customer/dashboard')
   }
 
   return (
