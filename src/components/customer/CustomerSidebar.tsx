@@ -138,7 +138,7 @@ export default function CustomerSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
-            <Logo size="md" showText={true} href="/customer/dashboard" variant="customer" />
+            <Logo size="md" showText={true} href="/" variant="customer" />
             <p className="text-sm text-slate-300 mt-2 font-medium">
               {firstName ? `Hi ${firstName}` : 'Customer Portal'}
             </p>
