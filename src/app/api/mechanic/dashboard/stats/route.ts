@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
+// ✅ Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/mechanic/dashboard/stats
  *

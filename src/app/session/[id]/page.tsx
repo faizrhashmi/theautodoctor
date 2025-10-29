@@ -29,6 +29,7 @@ import { Track } from 'livekit-client'
 import SessionTimer from '@/components/session/SessionTimer'
 import FileSharePanel from '@/components/session/FileSharePanel'
 import SessionExtensionPanel from '@/components/session/SessionExtensionPanel'
+import MechanicProfileModal from '@/components/MechanicProfileModal'
 import type { SessionFile, SessionSummary } from '@/types/session'
 import { createClient } from '@/lib/supabase'
 
@@ -77,6 +78,7 @@ export default function SessionWorkspacePage() {
 
   const [endingSession, setEndingSession] = useState(false)
   const [endSessionError, setEndSessionError] = useState<string | null>(null)
+  const [showMechanicProfileModal, setShowMechanicProfileModal] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -351,7 +353,18 @@ export default function SessionWorkspacePage() {
           <div>
             <p className="text-xs uppercase tracking-widest text-orange-300">Session #{sessionId}</p>
             <h1 className="text-xl font-semibold">
-              Certified mechanic: {session?.mechanicName ?? 'Loading…'}
+              Certified mechanic:{' '}
+              {session?.mechanicName && session?.mechanicId ? (
+                <button
+                  onClick={() => setShowMechanicProfileModal(true)}
+                  className="hover:text-orange-300 hover:underline transition-colors"
+                  title="View mechanic profile"
+                >
+                  {session.mechanicName}
+                </button>
+              ) : (
+                session?.mechanicName ?? 'Loading…'
+              )}
             </h1>
           </div>
         </div>
@@ -469,6 +482,15 @@ export default function SessionWorkspacePage() {
           <SessionExtensionPanel />
         </aside>
       </main>
+
+      {/* Mechanic Profile Modal */}
+      {session?.mechanicId && (
+        <MechanicProfileModal
+          mechanicId={session.mechanicId}
+          isOpen={showMechanicProfileModal}
+          onClose={() => setShowMechanicProfileModal(false)}
+        />
+      )}
     </div>
   )
 }

@@ -85,13 +85,15 @@ export async function POST(req: NextRequest) {
 
     // If this is being set as primary, unset all other primary vehicles
     if (is_primary) {
-      await supabaseAdmin
+      await supabaseClient
         .from('vehicles')
         .update({ is_primary: false })
         .eq('user_id', user.id)
     }
 
-    const { data: vehicle, error: insertError } = await supabaseAdmin
+    // Use supabaseClient (with user auth context) instead of supabaseAdmin
+    // This ensures auth.uid() in RLS policies works correctly
+    const { data: vehicle, error: insertError } = await supabaseClient
       .from('vehicles')
       .insert({
         user_id: user.id,

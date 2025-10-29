@@ -54,8 +54,10 @@ const PLAN_DESCRIPTIONS: Record<string, string> = {
 export default function IntakePage() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan') || 'trial'
-  const isUrgent = searchParams.get('urgent') === 'true'
   const router = useRouter()
+
+  // Urgent is now controlled by checkbox, not URL parameter
+  const [isUrgent, setIsUrgent] = useState(searchParams.get('urgent') === 'true')
 
   const planLabel = isUrgent ? 'URGENT: Express Connection' : (PLAN_LABELS[plan] ?? 'AskAutoDoctor Session')
   const planDescription = isUrgent
@@ -76,6 +78,7 @@ export default function IntakePage() {
     concern: '',
   })
   const [concernCategory, setConcernCategory] = useState<string>('')
+  const [concernPlaceholder, setConcernPlaceholder] = useState<string>('Describe what\'s happening with your vehicle...')
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [decoding, setDecoding] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -92,23 +95,18 @@ export default function IntakePage() {
   const firstErrorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const supabase = createClient()
 
-  // Handle concern category selection
+  // Handle concern category selection - DON'T auto-fill, just show as placeholder
   const handleConcernCategorySelect = (
     category: ConcernCategory,
     subCategory?: SubCategory,
     template?: string
   ) => {
     setConcernCategory(category.slug)
+    // Show template as placeholder suggestion instead of auto-filling
     if (template) {
-      setForm(prev => ({ ...prev, concern: template }))
+      setConcernPlaceholder(template)
     }
   }
-
-  // REMOVED: Active session check on mount
-  // This was causing users to get blocked before even filling the form.
-  // The proper check happens server-side in /api/intake/start when they submit.
-  // The API will return a 409 conflict if there's an active session, and we'll
-  // show the modal then (see submit function line 371-378)
 
   // Load user profile and vehicle info
   useEffect(() => {
@@ -385,131 +383,143 @@ export default function IntakePage() {
     return Boolean(hasContact && hasVehicle && hasConcern && uploadsReady)
   })()
 
-  async function handleLogout() {
-    try {
-      await supabase.auth.signOut()
-      router.push('/')
-    } catch (err) {
-      console.error('Logout error:', err)
-    }
-  }
-
   return (
-    <main className="mx-auto max-w-5xl rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur lg:p-12">
-      <div className="flex flex-col gap-8">
-        {/* Urgent Mode Banner */}
-        {isUrgent && (
-          <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 shadow-xl animate-pulse-slow">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/30 border border-red-400/50">
-                <svg className="h-6 w-6 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+      <div className="rounded-3xl sm:rounded-[2.5rem] border border-white/10 bg-white/5 p-6 sm:p-8 lg:p-12 shadow-2xl backdrop-blur">
+        <div className="flex flex-col gap-6 sm:gap-8">
+          {/* Urgent Mode Banner */}
+          {isUrgent && (
+            <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/30 border border-red-400/50">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-400/50 text-xs font-bold uppercase tracking-wider text-red-200">
+                      EXPRESS MODE
+                    </span>
+                    Priority Connection Active
+                  </h3>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-200">
+                    Vehicle details are optional - you can provide them during your session. Just tell us your contact info and issue to connect immediately.
+                  </p>
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Header Section */}
+          <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-5 sm:p-6 lg:p-8 shadow-lg">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-400/50 text-xs font-bold uppercase tracking-wider text-red-200">
-                    EXPRESS MODE
-                  </span>
-                  Priority Connection Active
-                </h3>
-                <p className="mt-1 text-sm text-slate-200">
-                  Vehicle details are optional - you can provide them during your session. Just tell us your contact info and issue to connect immediately.
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Step 2 of 3</p>
+                <h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
+                <p className="mt-3 text-sm sm:text-base text-slate-300">
+                  Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
                 </p>
               </div>
+              <div className="w-full lg:w-auto lg:max-w-sm rounded-2xl border border-orange-400/30 bg-orange-500/10 p-5 sm:p-6 text-sm text-orange-100 shadow-xl">
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">Selected plan</p>
+                <p className="mt-2 text-base sm:text-lg font-semibold text-white">{planLabel}</p>
+                <p className="mt-2 text-xs leading-relaxed text-orange-100">{planDescription}</p>
+                <ul className="mt-4 space-y-2 text-xs text-orange-100">
+                  <li className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> Share your vehicle and concern
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> We route the right mechanic
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> Join the live session
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        )}
+          </header>
 
-        <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-6 shadow-lg sm:p-8">
-          <div className="flex items-center justify-end mb-4">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-sm font-semibold text-slate-400 hover:text-white transition"
-            >
-              Sign out
-            </button>
-          </div>
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Step 2 of 3</p>
-              <h1 className="mt-3 text-3xl font-semibold text-white md:text-4xl">Tell us about your vehicle</h1>
-              <p className="mt-3 text-sm text-slate-300">
-                Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
-              </p>
-            </div>
-            <div className="w-full max-w-sm rounded-2xl border border-orange-400/30 bg-orange-500/10 p-6 text-sm text-orange-100 shadow-xl">
-              <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">Selected plan</p>
-              <p className="mt-2 text-lg font-semibold text-white">{planLabel}</p>
-              <p className="mt-2 text-xs leading-relaxed text-orange-100">{planDescription}</p>
-              <ul className="mt-4 space-y-2 text-xs text-orange-100">
-                <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-300" /> Share your vehicle and concern
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-300" /> We route the right mechanic
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-300" /> Join the live session
-                </li>
-              </ul>
-            </div>
-          </div>
-        </header>
+          {/* Priority Checkbox */}
+          <Section title="Request Priority">
+            <label className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border border-white/10 bg-slate-900/40 hover:bg-slate-900/60 transition cursor-pointer touch-manipulation">
+              <input
+                type="checkbox"
+                checked={isUrgent}
+                onChange={(e) => setIsUrgent(e.target.checked)}
+                className="mt-1 h-5 w-5 sm:h-6 sm:w-6 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-2 focus:ring-red-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm sm:text-base font-semibold text-white">This is an urgent request</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500/20 border border-red-400/30 text-xs font-bold text-red-300">
+                    PRIORITY
+                  </span>
+                </div>
+                <p className="mt-1 text-xs sm:text-sm text-slate-400">
+                  Skip vehicle details and connect immediately with available mechanic. Perfect for emergency situations or quick questions.
+                </p>
+              </div>
+            </label>
+          </Section>
 
-        <div className="grid gap-6">
+          {/* Contact Details */}
           <Section title="Contact details">
             <Input
-              label="Full name *"
+              label="Full name"
               value={form.name}
               onChange={(value) => setForm((prev) => ({ ...prev, name: value }))}
               error={errors.name}
+              required
               inputRef={(el) => {
                 if (errors.name && !firstErrorRef.current) firstErrorRef.current = el
               }}
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="Email *"
+                label="Email"
                 type="email"
                 value={form.email}
                 onChange={(value) => setForm((prev) => ({ ...prev, email: value }))}
                 error={errors.email}
+                required
                 inputRef={(el) => {
                   if (errors.email && !firstErrorRef.current) firstErrorRef.current = el
                 }}
               />
               <Input
-                label="Phone *"
+                label="Phone"
                 value={form.phone}
                 onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))}
                 error={errors.phone}
+                required
                 inputRef={(el) => {
                   if (errors.phone && !firstErrorRef.current) firstErrorRef.current = el
                 }}
               />
             </div>
             <Input
-              label="City / Town *"
+              label="City / Town"
               value={form.city}
               onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
               error={errors.city}
+              required
               inputRef={(el) => {
                 if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
               }}
             />
           </Section>
 
-          <Section title={isUrgent ? "Vehicle information (optional - can be provided during session)" : "Vehicle information"}>
+          {/* Vehicle Information */}
+          <Section title={isUrgent ? "Vehicle information (optional)" : "Vehicle information"}>
             {userVehicles.length > 0 && !loadingProfile && (
-              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
                 <label className="block">
                   <span className="text-sm font-semibold text-orange-200">Select from your saved vehicles</span>
                   <select
                     value={selectedVehicleId}
                     onChange={(e) => setSelectedVehicleId(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-orange-400/30 bg-slate-900/60 px-3 py-2 text-sm text-white focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
+                    className="mt-2 block w-full rounded-lg border border-orange-400/30 bg-slate-900/60 px-3 sm:px-4 py-3 sm:py-3.5 text-sm sm:text-base text-white focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60 touch-manipulation"
                   >
                     <option value="">Choose a vehicle...</option>
                     {userVehicles.map((vehicle) => (
@@ -524,7 +534,7 @@ export default function IntakePage() {
                   <button
                     type="button"
                     onClick={loadSelectedVehicle}
-                    className="mt-3 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                    className="mt-3 w-full sm:w-auto rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 active:bg-orange-700 touch-manipulation"
                   >
                     Use this vehicle
                   </button>
@@ -532,14 +542,14 @@ export default function IntakePage() {
               </div>
             )}
             {savedVehicle && !loadingProfile && userVehicles.length === 0 && (
-              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
                 <p className="text-sm font-semibold text-orange-200">
                   Saved vehicle: {savedVehicle.year} {savedVehicle.make} {savedVehicle.model}
                 </p>
                 <button
                   type="button"
                   onClick={loadSavedVehicle}
-                  className="mt-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                  className="mt-2 w-full sm:w-auto rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 active:bg-orange-700 touch-manipulation"
                 >
                   Use this vehicle
                 </button>
@@ -559,26 +569,26 @@ export default function IntakePage() {
                 type="button"
                 onClick={decodeVin}
                 disabled={!form.vin || decoding}
-                className="h-full rounded-xl bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 disabled:opacity-60"
+                className="h-auto sm:h-full rounded-xl bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-5 py-3 sm:py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 disabled:opacity-60 active:scale-95 touch-manipulation"
               >
                 {decoding ? 'Decoding...' : 'Decode VIN'}
               </button>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <SmartYearSelector
-                label="Year * (if no VIN)"
+                label={`Year${!isUrgent ? ' *' : ''}`}
                 value={form.year}
                 onChange={(value) => setForm((prev) => ({ ...prev, year: value }))}
-                required={!form.vin.trim()}
+                required={!form.vin.trim() && !isUrgent}
               />
               <SmartBrandSelector
-                label="Make * (if no VIN)"
+                label={`Make${!isUrgent ? ' *' : ''}`}
                 value={form.make}
                 onChange={(value) => setForm((prev) => ({ ...prev, make: value }))}
-                required={!form.vin.trim()}
+                required={!form.vin.trim() && !isUrgent}
               />
               <Input
-                label="Model * (if no VIN)"
+                label={`Model${!isUrgent ? ' *' : ''}`}
                 value={form.model}
                 onChange={(value) => setForm((prev) => ({ ...prev, model: value }))}
                 error={errors.model}
@@ -587,12 +597,13 @@ export default function IntakePage() {
                 }}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Odometer (optional)" value={form.odometer} onChange={(value) => setForm((prev) => ({ ...prev, odometer: value }))} />
               <Input label="Plate (optional)" value={form.plate} onChange={(value) => setForm((prev) => ({ ...prev, plate: value }))} />
             </div>
           </Section>
 
+          {/* Concern Section */}
           <Section title="What's going on?">
             <ConcernCategorySelector
               onSelect={handleConcernCategorySelect}
@@ -600,27 +611,29 @@ export default function IntakePage() {
               className="mb-4"
             />
             <Textarea
-              label="Describe the issue *"
+              label="Describe the issue"
               value={form.concern}
               onChange={(value) => setForm((prev) => ({ ...prev, concern: value }))}
+              placeholder={concernPlaceholder}
               error={errors.concern}
+              required
               inputRef={(el) => {
                 if (errors.concern && !firstErrorRef.current) firstErrorRef.current = el
               }}
             />
-            <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 sm:p-5">
               <label className="text-sm font-semibold text-slate-200">Upload photos / videos (optional)</label>
               <input
                 multiple
                 type="file"
                 accept="image/*,video/*"
                 onChange={handleFileSelect}
-                className="mt-3 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white file:mr-3 file:rounded-lg file:border-none file:bg-orange-500/20 file:px-4 file:py-1.5 file:text-sm file:font-semibold file:text-orange-100 hover:file:bg-orange-500/30"
+                className="mt-3 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm sm:text-base text-white file:mr-3 file:rounded-lg file:border-none file:bg-orange-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-orange-100 hover:file:bg-orange-500/30 file:cursor-pointer touch-manipulation"
               />
               {uploads.length > 0 && (
                 <div className="mt-4 space-y-3">
                   {uploads.map((u, idx) => (
-                    <div key={idx} className={`rounded-xl border p-3 text-sm transition ${
+                    <div key={idx} className={`rounded-xl border p-3 sm:p-4 text-sm transition ${
                       u.status === 'done'
                         ? 'border-emerald-400/50 bg-emerald-500/10'
                         : u.status === 'error'
@@ -629,7 +642,7 @@ export default function IntakePage() {
                     }`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-white flex items-center gap-2">
+                          <div className="font-semibold text-white flex items-center gap-2 break-all">
                             {u.file.name}
                             {u.status === 'done' && (
                               <svg className="h-4 w-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -645,7 +658,7 @@ export default function IntakePage() {
                           <button
                             type="button"
                             onClick={() => setUploads(prev => prev.filter((_, i) => i !== idx))}
-                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+                            className="flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-400 transition hover:bg-slate-700 hover:text-white active:scale-95 touch-manipulation"
                             title="Remove file"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -669,14 +682,14 @@ export default function IntakePage() {
                       type="button"
                       onClick={uploadAll}
                       disabled={uploads.every((u) => u.status === 'done')}
-                      className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-lg transition hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation"
                     >
                       {uploads.some((u) => u.status === 'uploading') ? 'Uploading...' : uploads.every((u) => u.status === 'done') ? '✓ All files uploaded' : 'Upload selected files'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setUploads([])}
-                      className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5"
+                      className="rounded-full border border-white/20 px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-200 hover:border-white/40 hover:bg-white/5 active:scale-95 touch-manipulation"
                     >
                       Clear all
                     </button>
@@ -688,26 +701,31 @@ export default function IntakePage() {
           </Section>
         </div>
 
-        {error && <p className="text-sm text-rose-300">{error}</p>}
+        {error && (
+          <div className="mt-6 rounded-xl border border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-300">
+            {error}
+          </div>
+        )}
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 3 - Join session</div>
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
-            <span className="text-sm text-slate-300">
+        {/* Submit Section */}
+        <div className="mt-6 sm:mt-8 flex flex-col gap-4">
+          <div className="text-xs uppercase tracking-[0.3em] text-slate-400 text-center sm:text-left">Step 3 - Join session</div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs sm:text-sm text-slate-300 text-center sm:text-left">
               Selected plan: <span className="font-semibold text-white">{planLabel}</span>
             </span>
             <button
               type="button"
               onClick={submit}
               disabled={!canSubmit}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-xl transition disabled:opacity-60 ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 sm:py-3 text-sm sm:text-base font-semibold text-white shadow-xl transition disabled:opacity-60 active:scale-95 touch-manipulation ${
                 isUrgent
                   ? 'bg-gradient-to-r from-red-500 via-orange-600 to-red-700 hover:from-red-600 hover:via-orange-700 hover:to-red-800'
                   : 'bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400'
               }`}
             >
               {isUrgent && (
-                <svg className="h-4 w-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               )}
@@ -719,16 +737,16 @@ export default function IntakePage() {
 
       {/* Active Session Modal */}
       {activeSessionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-lg rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-6 sm:p-8 shadow-2xl">
             <div className="mb-6 flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-600">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-600">
                 <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-white">Active Session in Progress</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-white">Active Session in Progress</h3>
                 <p className="mt-2 text-sm text-slate-300">
                   You already have a session that&apos;s {activeSessionModal.sessionStatus}. You can only have one active session at a time.
                 </p>
@@ -747,14 +765,14 @@ export default function IntakePage() {
                   ? `/chat/${activeSessionModal.sessionId}`
                   : `/video/${activeSessionModal.sessionId}`
                 )}
-                className="w-full rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-orange-500 hover:to-orange-600"
+                className="w-full rounded-full bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-orange-500 hover:to-orange-600 active:scale-95 touch-manipulation"
               >
                 Return to Active Session
               </button>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => router.push('/customer/dashboard')}
-                  className="flex-1 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="flex-1 rounded-full border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-95 touch-manipulation"
                 >
                   Go to Dashboard
                 </button>
@@ -767,7 +785,6 @@ export default function IntakePage() {
                         })
                         if (response.ok) {
                           setActiveSessionModal(null)
-                          // Refresh the page or show success message
                         } else {
                           alert('Failed to end session. Please try again.')
                         }
@@ -776,7 +793,7 @@ export default function IntakePage() {
                       }
                     }
                   }}
-                  className="flex-1 rounded-full border border-red-400/50 bg-red-500/10 px-6 py-3 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                  className="flex-1 rounded-full border border-red-400/50 bg-red-500/10 px-6 py-3.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 active:scale-95 touch-manipulation"
                 >
                   End Session
                 </button>
@@ -791,8 +808,8 @@ export default function IntakePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-5 shadow-sm backdrop-blur">
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
+    <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-5 sm:p-6 shadow-sm backdrop-blur">
+      <h2 className="text-base sm:text-lg font-semibold text-white">{title}</h2>
       <div className="mt-4 grid gap-4">{children}</div>
     </section>
   )
@@ -804,6 +821,7 @@ function Input({
   onChange,
   type = 'text',
   error,
+  required = false,
   inputRef,
 }: {
   label: string
@@ -811,11 +829,15 @@ function Input({
   onChange: (value: string) => void
   type?: string
   error?: string
+  required?: boolean
   inputRef?: (el: HTMLInputElement | null) => void
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-slate-200">{label}</span>
+      <span className="text-sm font-semibold text-slate-200">
+        {label}
+        {required && <span className="text-red-400 ml-1">*</span>}
+      </span>
       <input
         ref={inputRef as any}
         aria-invalid={!!error}
@@ -823,7 +845,8 @@ function Input({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`mt-2 block w-full rounded-xl border px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 ${
+        required={required}
+        className={`mt-2 block w-full rounded-xl border px-3 sm:px-4 py-3 sm:py-3.5 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 touch-manipulation ${
           error
             ? 'border-rose-400/60 bg-rose-950/40 focus:border-rose-300 focus:ring-rose-400/60'
             : 'border-white/10 bg-slate-900/60 focus:border-orange-300 focus:ring-orange-400/60'
@@ -839,25 +862,34 @@ function Textarea({
   value,
   onChange,
   error,
+  required = false,
+  placeholder,
   inputRef,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   error?: string
+  required?: boolean
+  placeholder?: string
   inputRef?: (el: HTMLTextAreaElement | null) => void
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-slate-200">{label}</span>
+      <span className="text-sm font-semibold text-slate-200">
+        {label}
+        {required && <span className="text-red-400 ml-1">*</span>}
+      </span>
       <textarea
         ref={inputRef as any}
         aria-invalid={!!error}
         aria-describedby={error ? `${label}-error` : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        required={required}
         rows={6}
-        className={`mt-2 block w-full rounded-xl border px-3 sm:px-4 py-3 sm:py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 min-h-[120px] sm:min-h-[140px] ${
+        className={`mt-2 block w-full rounded-xl border px-4 py-3 sm:py-4 text-base sm:text-sm text-white placeholder:text-slate-400 placeholder:italic focus:outline-none focus:ring-2 min-h-[140px] sm:min-h-[160px] touch-manipulation ${
           error
             ? 'border-rose-400/60 bg-rose-950/40 focus:border-rose-300 focus:ring-rose-400/60'
             : 'border-white/10 bg-slate-900/60 focus:border-orange-300 focus:ring-orange-400/60'

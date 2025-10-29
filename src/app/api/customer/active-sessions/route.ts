@@ -5,6 +5,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
+// ✅ Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // Authenticate customer

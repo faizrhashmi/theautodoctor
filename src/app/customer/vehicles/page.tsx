@@ -8,6 +8,8 @@ import { Trash2, Star, Plus, Edit2 } from 'lucide-react'
 import type { Vehicle } from '@/types/supabase'
 import { AuthGuard } from '@/components/AuthGuard'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import SmartYearSelector from '@/components/intake/SmartYearSelector'
+import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 
 function VehiclesPageContent() {
   const router = useRouter()
@@ -241,19 +243,19 @@ function VehiclesPageContent() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-200">
-                    Make <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={vehicle.make}
-                    onChange={(e) => setVehicle({ ...vehicle, make: e.target.value })}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
-                    placeholder="Toyota, Honda, Ford..."
-                  />
-                </div>
+                <SmartYearSelector
+                  label="Year *"
+                  value={vehicle.year}
+                  onChange={(value) => setVehicle({ ...vehicle, year: value })}
+                  required
+                />
+
+                <SmartBrandSelector
+                  label="Make *"
+                  value={vehicle.make}
+                  onChange={(value) => setVehicle({ ...vehicle, make: value })}
+                  required
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-slate-200">
@@ -266,20 +268,6 @@ function VehiclesPageContent() {
                     onChange={(e) => setVehicle({ ...vehicle, model: e.target.value })}
                     className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
                     placeholder="Civic, Accord, F-150..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-200">
-                    Year <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={vehicle.year}
-                    onChange={(e) => setVehicle({ ...vehicle, year: e.target.value })}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
-                    placeholder="2020"
                   />
                 </div>
 

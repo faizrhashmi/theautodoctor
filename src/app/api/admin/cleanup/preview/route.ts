@@ -8,6 +8,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// ✅ Mark as dynamic route to prevent static generation errors
+export const dynamic = 'force-dynamic'
+
 export async function GET(_request: NextRequest) {
   try {
     const now = new Date()
@@ -26,7 +29,7 @@ export async function GET(_request: NextRequest) {
     // Find old waiting sessions (waiting for more than 1 hour)
     const { data: oldWaitingSessions, error: waitingError } = await supabase
       .from('sessions')
-      .select('id, customer_id, created_at')
+      .select('id, customer_user_id, created_at')
       .eq('status', 'waiting')
       .lt('created_at', oneHourAgo.toISOString())
 
@@ -61,7 +64,7 @@ export async function GET(_request: NextRequest) {
         count: oldWaitingSessions?.length || 0,
         items: oldWaitingSessions?.map(s => ({
           id: s.id,
-          customer_id: s.customer_id,
+          customer_user_id: s.customer_user_id,
           age_hours: Math.floor((now.getTime() - new Date(s.created_at).getTime()) / (1000 * 60 * 60)),
         })) || [],
       },

@@ -47,8 +47,8 @@ export default function IntakeWaiverPage() {
           const userData = await userRes.json()
           setIntakeData({
             intakeId,
-            name: userData.name || '',
-            email: userData.email || '',
+            name: userData.user?.name || '',
+            email: userData.user?.email || '',
             plan
           })
         } else {
