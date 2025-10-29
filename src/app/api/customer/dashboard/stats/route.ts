@@ -34,11 +34,16 @@ export async function GET(req: NextRequest) {
     const customerId = user.id
 
     // Get user profile with account type
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('account_type, organization_id, free_session_override')
       .eq('id', customerId)
       .single()
+
+    if (profileError) {
+      console.error('[CUSTOMER DASHBOARD] Profile error:', profileError)
+      return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+    }
 
     const accountType = profile?.account_type || 'individual'
     const isB2CCustomer = accountType === 'individual' || !profile?.account_type
@@ -63,91 +68,96 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Get total diagnostic sessions count
-    const { count: totalDiagnosticSessions } = await supabaseAdmin
-      .from('diagnostic_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_id', customerId)
-      .in('status', ['completed', 'accepted', 'pending'])
+    // Execute all queries in parallel for better performance
+    const [
+      diagnosticSessionsCount,
+      sessionsCount,
+      diagnosticSessionsData,
+      quotesData,
+      recentSessionsData
+    ] = await Promise.all([
+      // Count diagnostic sessions
+      supabaseAdmin
+        .from('diagnostic_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', customerId)
+        .in('status', ['completed', 'accepted', 'pending', 'live', 'waiting']),
 
-    // Get total bookings count (from sessions table)
-    const { count: totalBookings } = await supabaseAdmin
-      .from('sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_user_id', customerId)
+      // Count regular sessions
+      supabaseAdmin
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_user_id', customerId)
+        .in('status', ['completed', 'accepted', 'pending', 'live', 'waiting']),
 
-    // Total services is sum of both
-    const totalServices = (totalDiagnosticSessions || 0) + (totalBookings || 0)
+      // Get diagnostic sessions for pricing
+      supabaseAdmin
+        .from('diagnostic_sessions')
+        .select('total_price, price')
+        .eq('customer_id', customerId)
+        .eq('status', 'completed'),
 
+      // Get quotes data for warranties and pending counts
+      supabaseAdmin
+        .from('repair_quotes')
+        .select(`
+          id,
+          warranty_months,
+          status,
+          diagnostic_sessions!inner (
+            customer_id
+          )
+        `)
+        .eq('diagnostic_sessions.customer_id', customerId),
+
+      // Get recent sessions (combining both tables)
+      supabaseAdmin
+        .from('diagnostic_sessions')
+        .select(`
+          id,
+          session_type,
+          status,
+          total_price,
+          created_at,
+          mechanics (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    ])
+
+    // Calculate totals with error handling
+    const totalServices = (diagnosticSessionsCount.count || 0) + (sessionsCount.count || 0)
+    
     // Calculate total spent from diagnostic sessions
-    const { data: diagnosticSessions } = await supabaseAdmin
-      .from('diagnostic_sessions')
-      .select('total_price')
-      .eq('customer_id', customerId)
-      .eq('status', 'completed')
-
-    const diagnosticSpent = diagnosticSessions?.reduce((sum, s) => sum + (s.total_price || 0), 0) || 0
-
-    // Get quotes data for warranties
-    const { data: quotes } = await supabaseAdmin
-      .from('repair_quotes')
-      .select(`
-        id,
-        warranty_months,
-        status,
-        diagnostic_sessions!inner (
-          customer_id
-        )
-      `)
-      .eq('diagnostic_sessions.customer_id', customerId)
+    const diagnosticSpent = diagnosticSessionsData.data?.reduce((sum, session) => {
+      return sum + (session.total_price || session.price || 0)
+    }, 0) || 0
 
     // Count active warranties (approved quotes with warranty months > 0)
-    const activeWarranties = quotes?.filter(q =>
-      q.status === 'approved' &&
-      q.warranty_months &&
-      q.warranty_months > 0
+    const activeWarranties = quotesData.data?.filter(quote =>
+      quote.status === 'approved' &&
+      quote.warranty_months &&
+      quote.warranty_months > 0
     ).length || 0
 
     // Count pending quotes
-    const { count: pendingQuotes } = await supabaseAdmin
-      .from('repair_quotes')
-      .select(`
-        id,
-        diagnostic_sessions!inner (
-          customer_id
-        )
-      `, { count: 'exact', head: true })
-      .eq('diagnostic_sessions.customer_id', customerId)
-      .eq('status', 'pending')
+    const pendingQuotes = quotesData.data?.filter(quote => quote.status === 'pending').length || 0
 
-    // Get recent diagnostic sessions
-    const { data: recentSessions } = await supabaseAdmin
-      .from('diagnostic_sessions')
-      .select(`
-        id,
-        session_type,
-        status,
-        total_price,
-        created_at,
-        mechanics (
-          id,
-          first_name,
-          last_name
-        )
-      `)
-      .eq('customer_id', customerId)
-      .order('created_at', { ascending: false })
-      .limit(5)
-
-    const formattedRecentSessions = recentSessions?.map(s => ({
-      id: s.id,
-      mechanic_name: s.mechanics
-        ? `${s.mechanics.first_name} ${s.mechanics.last_name}`
+    // Format recent sessions for the dashboard
+    const formattedRecentSessions = recentSessionsData.data?.map(session => ({
+      id: session.id,
+      mechanic_name: session.mechanics
+        ? `${session.mechanics.first_name} ${session.mechanics.last_name}`
         : 'Pending Assignment',
-      session_type: s.session_type,
-      status: s.status,
-      price: s.total_price || 0,
-      created_at: s.created_at
+      session_type: session.session_type,
+      status: session.status,
+      price: session.total_price || 0,
+      created_at: session.created_at
     })) || []
 
     return NextResponse.json({
@@ -155,7 +165,7 @@ export async function GET(req: NextRequest) {
         total_services: totalServices,
         total_spent: diagnosticSpent,
         active_warranties: activeWarranties,
-        pending_quotes: pendingQuotes || 0,
+        pending_quotes: pendingQuotes,
         has_used_free_session: hasUsedFreeSession,
         account_type: accountType,
         is_b2c_customer: isB2CCustomer
@@ -165,6 +175,9 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('[CUSTOMER DASHBOARD STATS API] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
