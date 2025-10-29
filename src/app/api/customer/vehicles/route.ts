@@ -54,15 +54,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
+    // Create a properly configured supabase client with working cookies
+    const supabaseClient = createServerClient<Database>(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            const cookies: { name: string; value: string }[] = []
+            for (const [name, value] of req.cookies.entries()) {
+              cookies.push({ name, value })
+            }
+            return cookies
+          },
+          setAll(cookiesToSet) {
+            // Cookies will be set automatically by the framework
+            // This empty implementation is fine for Next.js App Router
+          },
         },
-        set() {},
-        remove() {},
-      },
-    })
+      }
+    )
 
     const {
       data: { user },
@@ -70,10 +81,6 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
     const body = await req.json()
@@ -85,14 +92,17 @@ export async function POST(req: NextRequest) {
 
     // If this is being set as primary, unset all other primary vehicles
     if (is_primary) {
-      await supabaseClient
+      const { error: updateError } = await supabaseClient
         .from('vehicles')
         .update({ is_primary: false })
         .eq('user_id', user.id)
+
+      if (updateError) {
+        console.error('Update primary vehicles error:', updateError)
+      }
     }
 
-    // Use supabaseClient (with user auth context) instead of supabaseAdmin
-    // This ensures auth.uid() in RLS policies works correctly
+    // Insert the new vehicle using the authenticated client
     const { data: vehicle, error: insertError } = await supabaseClient
       .from('vehicles')
       .insert({
@@ -112,7 +122,9 @@ export async function POST(req: NextRequest) {
 
     if (insertError) {
       console.error('Vehicle insert error:', insertError)
-      return NextResponse.json({ error: 'Failed to add vehicle' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to add vehicle: ' + insertError.message 
+      }, { status: 500 })
     }
 
     return NextResponse.json({ vehicle })

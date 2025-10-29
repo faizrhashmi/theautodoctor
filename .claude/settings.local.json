@@ -74,7 +74,8 @@
       "Bash(timeout 60 tail:*)",
       "Bash(cmd /c \"taskkill /F /IM node.exe\")",
       "Bash(cmd //c \"taskkill //F //IM node.exe\")",
-      "Bash(python -m json.tool:*)"
+      "Bash(python -m json.tool:*)",
+      "Bash(del \"c:\\Users\\Faiz Hashmi\\theautodoctor\\src\\app\\auth\\callback\\page.tsx\")"
     ],
     "deny": [],
     "ask": []

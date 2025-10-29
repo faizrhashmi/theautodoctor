@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import WaiverModal from "@/components/customer/WaiverModal";
+import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 
 type Mode = "signup" | "login";
 
@@ -356,27 +357,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     }
   }
 
-  async function handleOAuth(provider: "google" | "facebook" | "apple") {
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: redirectURL },
-    });
-
-    if (oauthError) {
-      setError(oauthError.message);
-      setLoading(false);
-    }
-  }
-
-  const oauthButtons: Array<{ id: "google" | "facebook" | "apple"; label: string; icon: string }> = [
-    { id: "google", label: "Continue with Google", icon: "https://www.google.com/favicon.ico" },
-    { id: "facebook", label: "Continue with Facebook", icon: "https://www.facebook.com/favicon.ico" },
-    { id: "apple", label: "Continue with Apple", icon: "https://www.apple.com/favicon.ico" },
-  ];
 
   async function handlePublicAvailability() {
     setCheckingAvailability(true);
@@ -398,66 +378,53 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   }
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white">
-          {mode === "login" ? "Welcome Back" : "Create Account"}
-        </h2>
-        <p className="mt-2 text-sm text-slate-400">
-          {mode === "login"
-            ? "Sign in to access your diagnostic sessions"
-            : (
-                <>
-                  Create your account to book a mechanic session.{" "}
-                  <span className="text-orange-400 font-semibold">
-                    Start with a FREE 5-minute trial!
-                  </span>
-                </>
-              )}
-        </p>
-        <p className="mt-4 text-center text-sm text-slate-400">
-          {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="font-semibold text-orange-400 transition hover:text-orange-300 hover:underline"
-          >
-            {mode === "login" ? "Create account" : "Sign in"}
-          </button>
-        </p>
+    <div className="w-full max-w-md mx-auto px-4 sm:px-0">
+      {/* Mode Toggle - At the top */}
+      <div className="mb-4 text-center">
+        <button
+          type="button"
+          onClick={() => setMode(mode === "login" ? "signup" : "login")}
+          className="text-sm text-slate-400 hover:text-orange-400 transition"
+        >
+          {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
+        </button>
       </div>
 
-      {/* OAuth Buttons - Only show in Login mode */}
-      {mode === "login" && (
-        <>
-          <div className="mb-6 space-y-3">
-            {oauthButtons.map((button) => (
-              <button
-                key={button.id}
-                onClick={() => handleOAuth(button.id)}
-                disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:border-white/20 disabled:opacity-60"
-              >
-                <Image src={button.icon} alt={button.id} width={20} height={20} className="h-5 w-5" />
-                <span>{button.label}</span>
-              </button>
-            ))}
-          </div>
+      {/* Header Section */}
+      <div className="mb-6 text-center">
+        <h1 className="bg-gradient-to-r from-white via-orange-100 to-white bg-clip-text text-3xl sm:text-4xl font-black text-transparent">
+          {mode === "login" ? "Welcome Back" : "Get Started"}
+        </h1>
+        {mode === "signup" && (
+          <p className="mt-2 text-sm text-orange-400 font-semibold">
+            FREE 5-minute trial
+          </p>
+        )}
+      </div>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-xs font-semibold text-slate-400">OR USE EMAIL</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-        </>
-      )}
+      {/* Main Card */}
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        {/* Social Auth Buttons - Show for both modes */}
+        <div className="mb-6">
+          <SocialAuthButtons
+            mode={mode}
+            redirectTo={redirectTo || undefined}
+            onError={(err) => setError(err)}
+          />
+        </div>
+
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <span className="text-xs font-bold tracking-wider text-slate-400">OR EMAIL</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        </div>
 
       <form onSubmit={mode === "signup" ? handleSignup : handleLogin} className="space-y-5">
         {mode === "signup" && (
           <>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   First name <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -468,15 +435,15 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                     setForm((prev) => ({ ...prev, firstName: e.target.value }));
                     validateField("firstName", e.target.value);
                   }}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                   placeholder="John"
                 />
                 {fieldErrors.firstName && (
-                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.firstName}</p>
+                  <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.firstName}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   Last name <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -487,18 +454,18 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                     setForm((prev) => ({ ...prev, lastName: e.target.value }));
                     validateField("lastName", e.target.value);
                   }}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                   placeholder="Doe"
                 />
                 {fieldErrors.lastName && (
-                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.lastName}</p>
+                  <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.lastName}</p>
                 )}
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   Phone number <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -506,12 +473,12 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                   required
                   value={form.phone}
                   onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="e.g. 416-555-0123"
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  placeholder="416-555-0123"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   Date of birth <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -522,16 +489,16 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                     setForm((prev) => ({ ...prev, dateOfBirth: e.target.value }));
                     validateField("dateOfBirth", e.target.value);
                   }}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                 />
                 {fieldErrors.dateOfBirth && (
-                  <p className="mt-1 text-xs text-rose-400">{fieldErrors.dateOfBirth}</p>
+                  <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.dateOfBirth}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200">
+              <label className="block text-sm font-semibold text-slate-200">
                 Address <span className="text-rose-400">*</span>
               </label>
               <input
@@ -540,13 +507,13 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                 value={form.address}
                 onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
                 placeholder="123 Main Street"
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   City <span className="text-rose-400">*</span>
                 </label>
                 <input
@@ -555,43 +522,43 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                   value={form.city}
                   onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
                   placeholder="Toronto"
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200">
+                <label className="block text-sm font-semibold text-slate-200">
                   Country <span className="text-rose-400">*</span>
                 </label>
                 <select
                   required
                   value={form.country}
                   onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                 >
-                  <option value="Canada">Canada</option>
-                  <option value="United States">United States</option>
-                  <option value="Other">Other</option>
+                  <option value="Canada" className="bg-slate-900 text-white">Canada</option>
+                  <option value="United States" className="bg-slate-900 text-white">United States</option>
+                  <option value="Other" className="bg-slate-900 text-white">Other</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-200">
-                Vehicle <span className="text-xs text-slate-400">(optional)</span>
+              <label className="block text-sm font-semibold text-slate-200">
+                Vehicle <span className="text-xs font-normal text-slate-400">(optional)</span>
               </label>
               <input
                 type="text"
                 value={form.vehicle}
                 onChange={(e) => setForm((prev) => ({ ...prev, vehicle: e.target.value }))}
                 placeholder="2020 Honda Civic"
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
               />
             </div>
           </>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-slate-200">
+          <label className="block text-sm font-semibold text-slate-200">
             Email {mode === "signup" && <span className="text-rose-400">*</span>}
           </label>
           <input
@@ -600,12 +567,12 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+            className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-200">
+          <label className="block text-sm font-semibold text-slate-200">
             Password {mode === "signup" && <span className="text-rose-400">*</span>}
           </label>
           <input
@@ -620,15 +587,15 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
             }}
             minLength={mode === "signup" ? 8 : 6}
             placeholder={mode === "signup" ? "Minimum 8 characters" : "Enter password"}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+            className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
           />
           {mode === "signup" && (
             <>
               {fieldErrors.password && (
-                <p className="mt-1 text-xs text-rose-400">{fieldErrors.password}</p>
+                <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.password}</p>
               )}
               {!fieldErrors.password && password && (
-                <p className="mt-1 text-xs text-emerald-400">✓ Password meets requirements</p>
+                <p className="mt-1.5 text-xs text-emerald-400">✓ Password meets requirements</p>
               )}
             </>
           )}
@@ -644,43 +611,56 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
         {mode === "signup" && (
           <div
-            className={`rounded-xl border p-5 transition ${
+            className={`rounded-2xl border p-6 transition-all duration-300 ${
               requiredFieldsFilled
-                ? "border-orange-400/30 bg-orange-500/10"
-                : "border-white/5 bg-white/5 opacity-50"
+                ? "border-orange-400/40 bg-gradient-to-br from-orange-500/15 to-red-500/10 shadow-lg shadow-orange-500/10"
+                : "border-white/10 bg-white/5 opacity-60"
             }`}
           >
-            <p className="text-sm font-medium text-slate-200">
-              {waiverAccepted ? (
-                <span className="text-emerald-400">✓ Terms of Service & Waiver accepted (18+)</span>
-              ) : (
-                <span className="text-slate-300">Review and accept our Terms of Service & Waiver (18+)</span>
-              )}
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowWaiver(true)}
-              disabled={!requiredFieldsFilled}
-              className={`mt-3 w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                requiredFieldsFilled
-                  ? "bg-orange-500 text-white hover:bg-orange-600"
-                  : "cursor-not-allowed bg-slate-700 text-slate-400"
-              }`}
-            >
-              {waiverAccepted ? "Review Terms Again" : "Review & Accept Terms (Required)"}
-            </button>
-            {!requiredFieldsFilled && (
-              <p className="mt-2 text-xs text-slate-400">
-                Fill in all required fields above to review the waiver
-              </p>
-            )}
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full ${
+                waiverAccepted ? "bg-emerald-500" : "border-2 border-white/20 bg-white/10"
+              }`}>
+                {waiverAccepted && (
+                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-200">
+                  {waiverAccepted ? (
+                    <span className="text-emerald-400">Terms accepted</span>
+                  ) : (
+                    <span>Accept Terms (18+)</span>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowWaiver(true)}
+                  disabled={!requiredFieldsFilled}
+                  className={`mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                    requiredFieldsFilled
+                      ? "bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30 hover:from-orange-600 hover:to-red-700"
+                      : "cursor-not-allowed bg-slate-700/50 text-slate-500"
+                  }`}
+                >
+                  {waiverAccepted ? "Review Terms" : "Accept Terms"}
+                </button>
+                {!requiredFieldsFilled && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Fill all fields first
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
         <button
           type="submit"
           disabled={loading || (mode === "signup" && !formIsValid)}
-          className="w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 px-4 py-4 text-base font-bold text-white shadow-2xl shadow-orange-500/50 transition-all hover:shadow-orange-500/60 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -702,21 +682,31 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         <button
           onClick={handlePublicAvailability}
           disabled={checkingAvailability}
-          className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:border-white/20 disabled:opacity-60"
+          className="mt-6 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-white/15 hover:border-white/30 disabled:opacity-60"
         >
-          {checkingAvailability ? "Checking availability..." : "See how many mechanics are online"}
+          {checkingAvailability ? "Checking..." : "See mechanics online"}
         </button>
       )}
 
       {publicAvailability && (
-        <p className="mt-4 rounded-xl border border-orange-400/20 bg-orange-500/10 p-3 text-xs text-orange-200">
-          {publicAvailability}
-        </p>
+        <div className="mt-4 rounded-2xl border border-orange-400/30 bg-gradient-to-br from-orange-500/20 to-red-500/10 p-4 shadow-lg shadow-orange-500/10">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="flex-1 text-sm text-orange-200">{publicAvailability}</p>
+          </div>
+        </div>
       )}
       {error && (
-        <div className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-4">
+        <div className="mt-4 rounded-2xl border border-rose-400/30 bg-gradient-to-br from-rose-500/20 to-red-500/10 p-4 shadow-lg shadow-rose-500/10">
           <div className="flex items-start justify-between gap-3">
-            <p className="flex-1 text-sm text-rose-300">{error}</p>
+            <div className="flex items-start gap-3">
+              <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="flex-1 text-sm text-rose-300">{error}</p>
+            </div>
             <button
               onClick={() => setError(null)}
               className="flex-shrink-0 text-rose-300 hover:text-rose-100 transition-colors"
@@ -734,7 +724,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                 setError(null);
                 window.location.reload();
               }}
-              className="mt-3 w-full rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors"
+              className="mt-3 w-full rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 transition-colors shadow-lg shadow-rose-500/30"
             >
               Clear Session & Refresh
             </button>
@@ -742,14 +732,19 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         </div>
       )}
       {message && (
-        <p className="mt-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
-          {message}
-        </p>
+        <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/20 to-green-500/10 p-4 shadow-lg shadow-emerald-500/10">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="flex-1 text-sm text-emerald-300">{message}</p>
+          </div>
+        </div>
       )}
 
       {mode === "signup" && (
-        <p className="mt-6 text-center text-xs text-slate-400">
-          We will email you a confirmation link. You must verify your email before selecting a session.
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Check your email to verify before booking
         </p>
       )}
 
@@ -764,6 +759,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           setShowWaiver(false);
         }}
       />
+      </div>
     </div>
   );
 }

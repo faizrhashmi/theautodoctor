@@ -6211,5 +6211,24 @@ export const Constants = {
     },
   },
 } as const
+
+// Convenience type exports for common table types
+// Note: After running migrations that add vehicle_id to session_requests and intakes,
+// regenerate this file with: npx supabase gen types typescript --local > src/types/supabase.ts
+export type Vehicle = Tables<'vehicles'>
+export type VehicleInsert = TablesInsert<'vehicles'>
+export type VehicleUpdate = TablesUpdate<'vehicles'>
+
+export type Intake = Tables<'intakes'>
+export type IntakeInsert = TablesInsert<'intakes'>
+export type IntakeUpdate = TablesUpdate<'intakes'>
+
+export type SessionRequestDB = Tables<'session_requests'>
+export type SessionRequestInsert = TablesInsert<'session_requests'>
+export type SessionRequestUpdate = TablesUpdate<'session_requests'>
+
+export type Profile = Tables<'profiles'>
+export type ProfileInsert = TablesInsert<'profiles'>
+export type ProfileUpdate = TablesUpdate<'profiles'>
 A new version of Supabase CLI is available: v2.54.10 (currently installed v2.53.6)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

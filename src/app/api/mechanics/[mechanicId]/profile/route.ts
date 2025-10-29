@@ -17,7 +17,7 @@ interface ProfileUpdateData {
   // Basic info
   name?: string
   phone?: string
-  bio?: string
+  about_me?: string  // Fixed: was 'bio'
 
   // Brand specialization
   is_brand_specialist?: boolean
@@ -33,8 +33,12 @@ interface ProfileUpdateData {
 
   // Credentials
   certifications?: string[]
-  years_experience?: number
-  is_red_seal?: boolean
+  years_of_experience?: number  // Fixed: was 'years_experience'
+  red_seal_certified?: boolean  // Fixed: was 'is_red_seal'
+  red_seal_number?: string
+  red_seal_province?: string
+  red_seal_expiry_date?: string
+  shop_affiliation?: string
 
   // Preferences
   hourly_rate?: number
@@ -66,7 +70,7 @@ export async function GET(
         name,
         email,
         phone,
-        bio,
+        about_me,
         is_brand_specialist,
         brand_specializations,
         service_keywords,
@@ -76,12 +80,18 @@ export async function GET(
         state_province,
         timezone,
         certifications,
-        years_experience,
-        is_red_seal,
+        years_of_experience,
+        red_seal_certified,
+        red_seal_number,
+        red_seal_province,
+        red_seal_expiry_date,
         hourly_rate,
         specializations,
+        shop_affiliation,
         profile_completion_score,
-        can_accept_sessions
+        can_accept_sessions,
+        rating,
+        completed_sessions
       `)
       .eq('id', mechanicId)
       .single()
@@ -158,7 +168,7 @@ export async function PATCH(
     const allowedFields = [
       'name',
       'phone',
-      'bio',
+      'about_me',  // Fixed: was 'bio'
       'is_brand_specialist',
       'brand_specializations',
       'service_keywords',
@@ -168,10 +178,14 @@ export async function PATCH(
       'state_province',
       'timezone',
       'certifications',
-      'years_experience',
-      'is_red_seal',
+      'years_of_experience',  // Fixed: was 'years_experience'
+      'red_seal_certified',  // Fixed: was 'is_red_seal'
+      'red_seal_number',
+      'red_seal_province',
+      'red_seal_expiry_date',
       'hourly_rate',
-      'specializations'
+      'specializations',
+      'shop_affiliation'
     ]
 
     for (const field of allowedFields) {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { Trash2, Star, Plus, Edit2 } from 'lucide-react'
+import { Trash2, Star, Plus, Edit2, History } from 'lucide-react'
 import type { Vehicle } from '@/types/supabase'
 import { AuthGuard } from '@/components/AuthGuard'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
@@ -412,6 +412,13 @@ function VehiclesPageContent() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/customer/vehicles/${v.id}/history`}
+                            className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                            title="View Service History"
+                          >
+                            <History className="h-4 w-4" />
+                          </Link>
                           <button
                             onClick={() => handleEdit(v)}
                             className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"

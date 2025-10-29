@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 import ConcernCategorySelector from '@/components/intake/ConcernCategorySelector'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
@@ -56,6 +57,12 @@ export default function IntakePage() {
   const plan = searchParams.get('plan') || 'trial'
   const router = useRouter()
 
+  // SIMPLE AUTH - Same as dashboard
+  const { user, loading: authLoading, isAuthenticated } = useAuthGuard({
+    redirectTo: `/signup?mode=login`,
+    requiredRole: 'customer'
+  })
+
   // Urgent is now controlled by checkbox, not URL parameter
   const [isUrgent, setIsUrgent] = useState(searchParams.get('urgent') === 'true')
 
@@ -108,12 +115,16 @@ export default function IntakePage() {
     }
   }
 
-  // Load user profile and vehicle info
+  // Load user profile and vehicle info - ONLY when authenticated
   useEffect(() => {
     async function loadProfile() {
+      if (!user || !isAuthenticated) {
+        setLoadingProfile(false)
+        return
+      }
+
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
+        console.log('[Intake] Loading profile for authenticated user:', user.id)
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name, phone, vehicle_info')
@@ -152,7 +163,6 @@ export default function IntakePage() {
               setSelectedVehicleId(primaryVehicle.id)
             }
           }
-        }
       } catch (err) {
         console.error('Error loading profile:', err)
       } finally {
@@ -160,7 +170,7 @@ export default function IntakePage() {
       }
     }
     loadProfile()
-  }, [supabase])
+  }, [user, isAuthenticated, supabase])
 
   function loadSavedVehicle() {
     if (savedVehicle) {
@@ -382,6 +392,23 @@ export default function IntakePage() {
 
     return Boolean(hasContact && hasVehicle && hasConcern && uploadsReady)
   })()
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <div className="text-center">
+            <svg className="mx-auto h-16 w-16 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="mt-6 text-xl font-bold text-white">Verifying authentication...</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">

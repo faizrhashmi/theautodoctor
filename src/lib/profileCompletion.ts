@@ -132,7 +132,9 @@ function checkFieldCompletion(fieldName: string, mechanic: any): boolean {
       return !!mechanic.profile_photo_url
 
     case 'years_experience':
-      return typeof mechanic.years_experience === 'number' && mechanic.years_experience > 0
+    case 'years_of_experience':  // Support both field names
+      const yearsExp = mechanic.years_of_experience || mechanic.years_experience
+      return typeof yearsExp === 'number' && yearsExp > 0
 
     case 'red_seal_certified':
       // For brand specialists, this is required

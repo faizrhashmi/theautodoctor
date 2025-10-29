@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     concern,
     files = [],
     urgent = false,
+    vehicle_id = null, // Vehicle ID from vehicles table (optional)
   } = body || {};
 
   // Strict server-side validation mirrors the client
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       vin, year, make, model, odometer, plate, concern,
       files, // array of storage paths
       urgent, // flag for priority handling
+      vehicle_id: vehicle_id || null, // Link to vehicles table
     };
     const { data, error } = await supabaseAdmin.from('intakes').insert(payload).select('id').single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -241,6 +243,7 @@ export async function POST(req: NextRequest) {
             routing_type: 'broadcast',
             request_type: requestType, // Use plan's routing preference
             prefer_local_mechanic: false,
+            vehicle_id: vehicle_id || null, // Link to vehicles table
           }
 
           // Add restricted brands metadata if this is a brand specialist request
