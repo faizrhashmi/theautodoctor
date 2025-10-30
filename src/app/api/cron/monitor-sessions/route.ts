@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
 
       const { data: longRunningSessions } = await supabaseAdmin
         .from('sessions')
-        .select('id, status, started_at, mechanic_id, customer_user_id')
+        .select('id, status, started_at, mechanic_id, customer_user_id, type')
         .in('status', ['live', 'reconnecting'])
         .lt('started_at', threeHoursAgo.toISOString())
 
@@ -159,7 +159,12 @@ export async function GET(req: NextRequest) {
             if (error) throw error
 
             // Broadcast session:ended event
-            await supabaseAdmin.channel(`session:${session.id}`).send({
+            // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
+            const channelName = session.type === 'chat'
+              ? `session-${session.id}`
+              : `session:${session.id}`
+
+            await supabaseAdmin.channel(channelName).send({
               type: 'broadcast',
               event: 'session:ended',
               payload: {
@@ -169,6 +174,7 @@ export async function GET(req: NextRequest) {
                 reason: 'auto_ended_max_duration',
               },
             })
+            console.log(`[cron:monitor] Broadcast sent to ${channelName}`)
 
             await logInfo(
               'session.auto_ended',

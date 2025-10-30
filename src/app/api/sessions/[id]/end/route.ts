@@ -169,16 +169,23 @@ export async function POST(
       })
 
       // Broadcast session ended event
+      // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
       try {
-        await supabaseAdmin.channel(`session:${sessionId}`).send({
+        const channelName = session.type === 'chat'
+          ? `session-${sessionId}`
+          : `session:${sessionId}`
+
+        await supabaseAdmin.channel(channelName).send({
           type: 'broadcast',
           event: 'session:ended',
           payload: {
             sessionId,
             status: 'cancelled',
             ended_at: now,
+            endedBy: isCustomer ? 'customer' : 'mechanic',
           },
         })
+        console.log(`[end session] Broadcast sent to ${channelName}`)
       } catch (broadcastError) {
         console.error('[end session] Failed to broadcast session:ended', broadcastError)
       }
@@ -297,8 +304,13 @@ export async function POST(
     }
 
     // Broadcast session ended event
+    // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
     try {
-      await supabaseAdmin.channel(`session:${sessionId}`).send({
+      const channelName = session.type === 'chat'
+        ? `session-${sessionId}`
+        : `session:${sessionId}`
+
+      await supabaseAdmin.channel(channelName).send({
         type: 'broadcast',
         event: 'session:ended',
         payload: {
@@ -306,8 +318,10 @@ export async function POST(
           status: 'completed',
           ended_at: now,
           no_show: true,
+          endedBy: isCustomer ? 'customer' : 'mechanic',
         },
       })
+      console.log(`[end session] Broadcast sent to ${channelName}`)
     } catch (broadcastError) {
       console.error('[end session] Failed to broadcast session:ended', broadcastError)
     }
@@ -583,8 +597,13 @@ export async function POST(
   }
 
   // Broadcast session ended event
+  // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
   try {
-    await supabaseAdmin.channel(`session:${sessionId}`).send({
+    const channelName = session.type === 'chat'
+      ? `session-${sessionId}`
+      : `session:${sessionId}`
+
+    await supabaseAdmin.channel(channelName).send({
       type: 'broadcast',
       event: 'session:ended',
       payload: {
@@ -592,8 +611,10 @@ export async function POST(
         status: 'completed',
         ended_at: now,
         duration_minutes: durationMinutes,
+        endedBy: isCustomer ? 'customer' : 'mechanic',
       },
     })
+    console.log(`[end session] Broadcast sent to ${channelName}`)
   } catch (broadcastError) {
     console.error('[end session] Failed to broadcast session:ended', broadcastError)
   }

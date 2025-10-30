@@ -650,23 +650,44 @@ export default function ChatRoom({
       })
       .on('broadcast', { event: 'session:ended' }, (payload) => {
         console.log('[ChatRoom] Session ended by other participant:', payload)
-        const { status } = payload.payload
+        const { status, endedBy } = payload.payload
         setSessionEnded(true)
         setCurrentStatus(status)
 
+        // Determine who ended the session for notification
+        const endedByText = endedBy === 'mechanic'
+          ? mechanicName || 'the mechanic'
+          : customerName || 'the customer'
+
         // Show notification to user
         toast.error(
-          `Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant`,
+          `Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by ${endedByText}`,
           {
             duration: 5000,
             position: 'top-center',
+            icon: status === 'cancelled' ? '❌' : '✓',
           }
         )
 
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = dashboardUrl
-        }, 2000)
+        // Redirect to dashboard after 3 seconds with countdown
+        let countdown = 3
+        const countdownToast = toast.loading(`Redirecting to dashboard in ${countdown}...`, {
+          position: 'top-center',
+        })
+
+        const countdownInterval = setInterval(() => {
+          countdown--
+          if (countdown > 0) {
+            toast.loading(`Redirecting to dashboard in ${countdown}...`, {
+              id: countdownToast,
+              position: 'top-center',
+            })
+          } else {
+            clearInterval(countdownInterval)
+            toast.dismiss(countdownToast)
+            window.location.href = dashboardUrl
+          }
+        }, 1000)
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[ChatRoom] Session extended:', payload)
@@ -713,11 +734,26 @@ export default function ChatRoom({
             setCurrentStartedAt(updated.started_at)
           }
 
-          // Show notification when session ends
+          // Show notification when session ends (FALLBACK - main notification via broadcast)
           if ((oldStatus === 'live' || oldStatus === 'waiting') &&
               (updated.status === 'completed' || updated.status === 'cancelled')) {
-            const endedBy = isMechanic ? 'mechanic' : 'customer'
-            console.log(`[ChatRoom] Session ended by ${endedBy}`)
+            console.log(`[ChatRoom] Session status changed to ${updated.status} (fallback notification)`)
+
+            setSessionEnded(true)
+
+            // Show notification to user
+            toast.error(
+              `Session has been ${updated.status === 'cancelled' ? 'cancelled' : 'ended'}`,
+              {
+                duration: 5000,
+                position: 'top-center',
+              }
+            )
+
+            // Redirect to dashboard after delay
+            setTimeout(() => {
+              window.location.href = dashboardUrl
+            }, 3000)
           }
 
           // If mechanic just joined, fetch their name and show notification
@@ -1055,10 +1091,19 @@ export default function ChatRoom({
         setSessionEnded(true)
         setCurrentStatus(data.session?.status || 'completed')
 
+        // Show success notification
+        toast.success('Session ended successfully', {
+          duration: 2000,
+          position: 'top-center',
+        })
+
         // Redirect immediately to dashboard based on role
         const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
         console.log('[ChatRoom] Redirecting to:', dashboardUrl)
-        window.location.href = dashboardUrl
+
+        setTimeout(() => {
+          window.location.href = dashboardUrl
+        }, 500)
       } else {
         console.error('[ChatRoom] Failed to end session:', data)
         throw new Error(data?.error || 'Failed to end session')
@@ -1133,24 +1178,36 @@ export default function ChatRoom({
                 </svg>
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <h1 className="text-sm sm:text-base font-semibold text-white truncate">
-                  {isMechanic ? (
-                    customerName || 'Customer'
-                  ) : mechanicName && mechanicId ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowMechanicProfileModal(true)
-                      }}
-                      className="hover:text-orange-300 hover:underline transition-colors text-left"
-                      title="View mechanic profile"
-                    >
-                      {mechanicName}
-                    </button>
-                  ) : (
-                    'Waiting for mechanic...'
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm sm:text-base font-semibold text-white truncate">
+                    {isMechanic ? (
+                      customerName || 'Customer'
+                    ) : mechanicName && mechanicId ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowMechanicProfileModal(true)
+                        }}
+                        className="hover:text-orange-300 hover:underline transition-colors text-left"
+                        title="View mechanic profile"
+                      >
+                        {mechanicName}
+                      </button>
+                    ) : (
+                      'Waiting for mechanic...'
+                    )}
+                  </h1>
+                  {/* Real-time Presence Indicator */}
+                  {bothParticipantsPresent && currentStatus?.toLowerCase() === 'live' && (
+                    <span className="flex items-center gap-1 text-[10px] text-green-400 font-medium" title="Both participants online">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </span>
+                      <span className="hidden sm:inline">Online</span>
+                    </span>
                   )}
-                </h1>
+                </div>
                 <div className="flex items-center gap-1.5 text-[10px] sm:text-xs">
                   {/* Timer on mobile, status on desktop */}
                   {isTyping ? (
@@ -2186,6 +2243,18 @@ export default function ChatRoom({
                     ? 'This session is waiting for a mechanic to join. Ending it now will cancel the session request.'
                     : 'This session has not started yet. Ending it now will cancel the session.'}
                 </p>
+
+                {/* Show presence indicator */}
+                {bothParticipantsPresent && currentStatus?.toLowerCase() === 'live' && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                    <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                    <p className="text-xs text-amber-200">
+                      {isMechanic
+                        ? `${customerName || 'Customer'} is currently in the session`
+                        : `${mechanicName || 'Mechanic'} is currently in the session`}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

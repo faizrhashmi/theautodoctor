@@ -150,7 +150,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     // Update session: add minutes to duration and expires_at
     const { data: session, error: fetchError } = await supabaseAdmin
       .from('sessions')
-      .select('duration_minutes, expires_at, started_at')
+      .select('duration_minutes, expires_at, started_at, type')
       .eq('id', sessionId)
       .maybeSingle()
 
@@ -195,8 +195,13 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     console.log(`[webhook:extension] ✓ Session extended: ${currentDuration}→${newDuration} mins`)
 
     // Broadcast session:extended event
+    // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
     try {
-      await supabaseAdmin.channel(`session:${sessionId}`).send({
+      const channelName = session.type === 'chat'
+        ? `session-${sessionId}`
+        : `session:${sessionId}`
+
+      await supabaseAdmin.channel(channelName).send({
         type: 'broadcast',
         event: 'session:extended',
         payload: {
@@ -206,7 +211,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
           newExpiresAt,
         },
       })
-      console.log('[webhook:extension] ✓ Broadcasted session:extended event')
+      console.log(`[webhook:extension] ✓ Broadcasted session:extended event to ${channelName}`)
     } catch (broadcastError) {
       console.error('[webhook:extension] Failed to broadcast session:extended:', broadcastError)
     }
