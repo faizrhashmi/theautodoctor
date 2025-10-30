@@ -24,22 +24,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-
     // Get mechanic details to verify they can handle virtual sessions
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+    const { data: mechanicDetails, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('id, service_tier, onboarding_completed, is_active')
+      .select('id, service_tier, can_accept_sessions')
       .eq('id', mechanic.id)
       .single()
 
-    if (mechanicError || !mechanic) {
-      return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
+    if (mechanicError || !mechanicDetails) {
+      console.error('[VIRTUAL SESSIONS API] Mechanic not found:', mechanicError)
+      return NextResponse.json({
+        error: 'Mechanic not found',
+        details: mechanicError?.message
+      }, { status: 404 })
     }
 
     // Check if mechanic is eligible to accept virtual sessions
-    if (!mechanic.onboarding_completed || !mechanic.is_active) {
+    if (!mechanicDetails.can_accept_sessions) {
       return NextResponse.json({
-        error: 'Please complete your onboarding first',
+        error: 'Your account is not yet approved to accept sessions',
         redirect_url: '/mechanic/onboarding/service-tier'
       }, { status: 403 })
     }
@@ -106,8 +109,8 @@ export async function GET(req: NextRequest) {
       sessions: transformedSessions,
       total: transformedSessions.length,
       mechanic: {
-        id: mechanic.id,
-        service_tier: mechanic.service_tier,
+        id: mechanicDetails.id,
+        service_tier: mechanicDetails.service_tier,
         can_accept_virtual: true
       }
     })
@@ -140,22 +143,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-
     // Get mechanic details
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+    const { data: mechanicDetails, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('id, service_tier, onboarding_completed, is_active, name, email')
+      .select('id, service_tier, can_accept_sessions, name, email')
       .eq('id', mechanic.id)
       .single()
 
-    if (mechanicError || !mechanic) {
-      return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
+    if (mechanicError || !mechanicDetails) {
+      console.error('[ACCEPT VIRTUAL SESSION] Mechanic not found:', mechanicError)
+      return NextResponse.json({
+        error: 'Mechanic not found',
+        details: mechanicError?.message
+      }, { status: 404 })
     }
 
     // Verify mechanic can accept sessions
-    if (!mechanic.onboarding_completed || !mechanic.is_active) {
+    if (!mechanicDetails.can_accept_sessions) {
       return NextResponse.json({
-        error: 'Please complete your onboarding first'
+        error: 'Your account is not yet approved to accept sessions'
       }, { status: 403 })
     }
 
@@ -166,13 +172,13 @@ export async function POST(req: NextRequest) {
       supabaseAdmin
         .from('sessions')
         .select('id, status')
-        .eq('mechanic_id', mechanic.id)
+        .eq('mechanic_id', mechanicDetails.id)
         .in('status', ['pending', 'waiting', 'live', 'scheduled'])
         .maybeSingle(),
       supabaseAdmin
         .from('diagnostic_sessions')
         .select('id, status')
-        .eq('mechanic_id', mechanic.id)
+        .eq('mechanic_id', mechanicDetails.id)
         .in('status', ['pending', 'accepted', 'in_progress'])
         .maybeSingle()
     ])
@@ -181,7 +187,7 @@ export async function POST(req: NextRequest) {
 
     if (existingActiveSession) {
       const tableType = regularSessionsCheck.data ? 'sessions' : 'diagnostic_sessions'
-      console.warn(`[ACCEPT VIRTUAL SESSION] Mechanic ${mechanic.id} already has active session ${existingActiveSession.id} in ${tableType}`)
+      console.warn(`[ACCEPT VIRTUAL SESSION] Mechanic ${mechanicDetails.id} already has active session ${existingActiveSession.id} in ${tableType}`)
       return NextResponse.json(
         {
           error: 'You already have an active session. Please complete or cancel it before accepting new requests.',
@@ -229,7 +235,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await supabaseAdmin
       .from('diagnostic_sessions')
       .update({
-        mechanic_id: mechanic.id,
+        mechanic_id: mechanicDetails.id,
         status: 'accepted',
         updated_at: new Date().toISOString()
       })
@@ -246,7 +252,7 @@ export async function POST(req: NextRequest) {
         .eq('id', session_id)
         .single()
 
-      if (checkSession?.mechanic_id && checkSession.mechanic_id !== mechanic.id) {
+      if (checkSession?.mechanic_id && checkSession.mechanic_id !== mechanicDetails.id) {
         return NextResponse.json({
           error: 'This session was just accepted by another mechanic'
         }, { status: 409 })

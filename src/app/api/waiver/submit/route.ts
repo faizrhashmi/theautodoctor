@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         // This prevents the "Start session now" button from redirecting to /signup
         const { data: existingSession } = await supabaseAdmin
           .from('sessions')
-          .select('id')
+          .select('id, type, customer_user_id')
           .eq('intake_id', intakeId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -141,6 +141,56 @@ export async function POST(req: NextRequest) {
         if (existingSession) {
           thankYouUrl.searchParams.set('session', existingSession.id)
           console.log('[waiver] Found session for intake:', existingSession.id)
+
+          // CRITICAL: Create session_request to notify mechanics (same as paid flow in fulfillment.ts)
+          if (existingSession.customer_user_id) {
+            try {
+              // Cancel any old pending requests
+              await supabaseAdmin
+                .from('session_requests')
+                .update({ status: 'cancelled' })
+                .eq('customer_id', existingSession.customer_user_id)
+                .eq('status', 'pending')
+                .is('mechanic_id', null)
+
+              // Get customer name
+              const { data: profile } = await supabaseAdmin
+                .from('profiles')
+                .select('full_name')
+                .eq('id', existingSession.customer_user_id)
+                .maybeSingle()
+
+              // Create session request (using only base columns - no optional fields)
+              const { data: newRequest, error: requestError } = await supabaseAdmin
+                .from('session_requests')
+                .insert({
+                  customer_id: existingSession.customer_user_id,
+                  session_type: existingSession.type,
+                  plan_code: plan,
+                  status: 'pending',
+                  customer_name: profile?.full_name || email || 'Customer',
+                  customer_email: email,
+                  routing_type: 'broadcast',
+                  parent_session_id: existingSession.id, // CRITICAL: Link request to existing session
+                })
+                .select()
+                .single()
+
+              if (requestError) {
+                console.error('[waiver] Failed to create session_request:', requestError)
+              } else {
+                console.log('[waiver] ✅ Created session_request:', newRequest.id)
+
+                // Broadcast to mechanics
+                const { broadcastSessionRequest } = await import('@/lib/sessionRequests')
+                await broadcastSessionRequest('new_request', { request: newRequest })
+                console.log('[waiver] ✅ Broadcasted to mechanics')
+              }
+            } catch (error) {
+              console.error('[waiver] Error creating session_request:', error)
+              // Don't fail waiver submission if this fails
+            }
+          }
         } else {
           console.warn('[waiver] No session found for intake:', intakeId)
         }

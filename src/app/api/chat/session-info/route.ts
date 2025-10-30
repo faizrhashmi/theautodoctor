@@ -21,17 +21,19 @@ export async function GET(req: NextRequest) {
     }
 
     let mechanicName: string | null = null
+    let mechanicUserId: string | null = null
     let customerName: string | null = null
 
-    // Fetch mechanic name if assigned
+    // Fetch mechanic name and user_id if assigned
     if (session.mechanic_id) {
       const { data: mechanic } = await supabaseAdmin
         .from('mechanics')
-        .select('name')
+        .select('name, user_id')
         .eq('id', session.mechanic_id)
         .maybeSingle()
 
       mechanicName = mechanic?.name || null
+      mechanicUserId = mechanic?.user_id || null
     }
 
     // Fetch customer name
@@ -58,7 +60,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: session.status,
-      mechanicId: session.mechanic_id,
+      mechanicId: mechanicUserId,  // Use user_id (auth ID) not mechanic_id (profile ID)
       customerId: session.customer_user_id,
       mechanicName,
       customerName,

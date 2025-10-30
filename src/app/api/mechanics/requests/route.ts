@@ -50,29 +50,10 @@ export async function GET(req: NextRequest) {
       workshop_id: mechanicProfile.workshop_id
     });
 
-    // Build base query for session requests with ALL necessary joins
+    // Build base query for session requests - simplified (foreign keys don't exist)
     let query = supabase
       .from('session_requests')
-      .select(`
-        *,
-        intake:session_intakes(*),
-        customer:customers!session_requests_customer_id_fkey(
-          id,
-          first_name,
-          last_name,
-          email,
-          phone
-        ),
-        files:session_request_files(*),
-        vehicle:vehicles!session_requests_vehicle_id_fkey(
-          id,
-          make,
-          model,
-          year,
-          vin,
-          plate
-        )
-      `)
+      .select('*')
       .eq('status', status)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -87,12 +68,13 @@ export async function GET(req: NextRequest) {
         // Virtual-only mechanics only see virtual/diagnostic/chat requests
         console.log('[MechanicsRequests] Filtering for virtual-only mechanic');
         query = query.in('session_type', ['virtual', 'diagnostic', 'chat']);
-      } else if (mechanicProfile.service_tier === 'workshop_affiliated' && mechanicProfile.workshop_id) {
-        // Workshop mechanics see requests assigned to their workshop OR general requests
+      } else if (mechanicProfile.workshop_id) {
+        // Workshop-affiliated mechanics (workshop_affiliated, workshop_partner, licensed_mobile with workshop)
+        // see requests assigned to their workshop OR general requests
         console.log('[MechanicsRequests] Filtering for workshop mechanic:', mechanicProfile.workshop_id);
         query = query.or(`workshop_id.is.null,workshop_id.eq.${mechanicProfile.workshop_id}`);
       } else {
-        // General mechanics (no workshop) see only non-workshop requests
+        // Independent mechanics (no workshop) see only non-workshop requests
         console.log('[MechanicsRequests] Filtering for independent mechanic (no workshop)');
         query = query.is('workshop_id', null);
       }
@@ -108,27 +90,20 @@ export async function GET(req: NextRequest) {
     console.log(`[MechanicsRequests] Found ${requests?.length || 0} ${status} requests`);
 
     // Format the response to match what the frontend expects
+    // Note: Removed joins due to missing foreign keys - using direct columns only
     const formattedRequests = requests?.map(request => ({
       id: request.id,
-      customer_name: request.customer ? 
-        `${request.customer.first_name} ${request.customer.last_name}`.trim() : 
-        request.customer_name || 'Customer',
-      customer_email: request.customer?.email || request.customer_email,
+      customer_name: request.customer_name || 'Customer',
+      customer_email: request.customer_email,
       session_type: request.session_type,
       status: request.status,
       plan: request.plan_code,
       created_at: request.created_at,
-      intake: request.intake?.[0] || null, // session_intakes is an array, take first
-      files: request.files || [],
-      urgent: request.urgent || false,
+      intake: null, // No longer fetched - requires separate query
+      files: [], // No longer fetched - requires separate query
+      urgent: request.is_urgent || false,
       workshop_id: request.workshop_id,
-      vehicle: request.vehicle ? {
-        make: request.vehicle.make,
-        model: request.vehicle.model,
-        year: request.vehicle.year,
-        vin: request.vehicle.vin,
-        plate: request.vehicle.plate
-      } : null
+      vehicle: null // No longer fetched - requires separate query
     })) || [];
 
     return NextResponse.json({ 

@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         .eq('customer_user_id', request.customer_id)
         .eq('type', request.session_type)
         .in('status', ['pending', 'waiting'])
-        .gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString()) // Within 10 mins
+        .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // Within 30 mins
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -283,6 +283,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // CRITICAL: Add participants to session_participants table
+    if (session) {
+      console.log(`[ACCEPT] Adding participants to session ${session.id}`)
+
+      // Add customer as participant
+      const { error: customerParticipantError } = await supabaseAdmin
+        .from('session_participants')
+        .upsert(
+          { session_id: session.id, user_id: request.customer_id, role: 'customer' },
+          { onConflict: 'session_id,user_id' }
+        )
+
+      if (customerParticipantError) {
+        console.error('[ACCEPT] Failed to add customer as participant:', customerParticipantError)
+      } else {
+        console.log('[ACCEPT] ✓ Added customer as participant')
+      }
+
+      // Add mechanic as participant
+      const { error: mechanicParticipantError } = await supabaseAdmin
+        .from('session_participants')
+        .upsert(
+          { session_id: session.id, user_id: mechanic.userId, role: 'mechanic' },
+          { onConflict: 'session_id,user_id' }
+        )
+
+      if (mechanicParticipantError) {
+        console.error('[ACCEPT] Failed to add mechanic as participant:', mechanicParticipantError)
+      } else {
+        console.log('[ACCEPT] ✓ Added mechanic as participant')
+      }
+    }
+
     if (!session) {
       // FALLBACK PATH: Create new session (for old requests or edge cases)
       console.warn(`[ACCEPT] No existing session found, creating new session for request ${requestId}`)
@@ -326,6 +359,37 @@ export async function POST(req: NextRequest) {
 
       session = newSession
       console.log(`[ACCEPT] ✓ Success: Created new session ${session.id} for request ${requestId}`)
+
+      // CRITICAL: Add participants for newly created session
+      console.log(`[ACCEPT] Adding participants to new session ${session.id}`)
+
+      // Add customer as participant
+      const { error: customerParticipantError } = await supabaseAdmin
+        .from('session_participants')
+        .upsert(
+          { session_id: session.id, user_id: request.customer_id, role: 'customer' },
+          { onConflict: 'session_id,user_id' }
+        )
+
+      if (customerParticipantError) {
+        console.error('[ACCEPT] Failed to add customer as participant:', customerParticipantError)
+      } else {
+        console.log('[ACCEPT] ✓ Added customer as participant')
+      }
+
+      // Add mechanic as participant
+      const { error: mechanicParticipantError } = await supabaseAdmin
+        .from('session_participants')
+        .upsert(
+          { session_id: session.id, user_id: mechanic.userId, role: 'mechanic' },
+          { onConflict: 'session_id,user_id' }
+        )
+
+      if (mechanicParticipantError) {
+        console.error('[ACCEPT] Failed to add mechanic as participant:', mechanicParticipantError)
+      } else {
+        console.log('[ACCEPT] ✓ Added mechanic as participant')
+      }
     }
 
     // 6. BROADCAST UPDATE - Notify other clients this request is taken

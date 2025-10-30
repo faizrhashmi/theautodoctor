@@ -210,20 +210,61 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Get mechanic status from view
-    const { data: status, error: statusError } = await supabaseAdmin
-      .from('mechanic_availability_status')
-      .select('*')
+    // Get mechanic status directly from mechanics table
+    const { data: mechanicData, error: statusError } = await supabaseAdmin
+      .from('mechanics')
+      .select(`
+        id,
+        currently_on_shift,
+        participation_mode,
+        daily_micro_minutes_cap,
+        daily_micro_minutes_used,
+        last_micro_reset_date,
+        last_clock_in,
+        last_clock_out,
+        workshop_id,
+        organizations:workshop_id (
+          name
+        )
+      `)
       .eq('id', mechanicId)
       .single()
 
-    if (statusError || !status) {
-      return NextResponse.json({ error: 'Failed to get status' }, { status: 500 })
+    if (statusError || !mechanicData) {
+      console.error('[CLOCK STATUS API] Error fetching mechanic:', statusError)
+      return NextResponse.json({
+        error: 'Failed to get status',
+        details: statusError?.message
+      }, { status: 500 })
+    }
+
+    // Reset daily micro minutes if it's a new day
+    const today = new Date().toISOString().split('T')[0]
+    const lastReset = mechanicData.last_micro_reset_date
+    let dailyMinutesUsed = mechanicData.daily_micro_minutes_used || 0
+
+    if (lastReset !== today) {
+      // Reset for new day
+      await supabaseAdmin
+        .from('mechanics')
+        .update({
+          daily_micro_minutes_used: 0,
+          last_micro_reset_date: today
+        })
+        .eq('id', mechanicId)
+
+      dailyMinutesUsed = 0
+    }
+
+    // Calculate availability status
+    let availabilityStatus = 'offline'
+    if (mechanicData.currently_on_shift) {
+      availabilityStatus = 'on_shift'
     }
 
     // Get current shift info if clocked in
     let currentShift = null
-    if (status.currently_on_shift) {
+    if (mechanicData.currently_on_shift) {
       const { data: shift } = await supabaseAdmin
         .from('mechanic_shift_logs')
         .select('*')
@@ -231,7 +272,7 @@ export async function GET(req: NextRequest) {
         .is('clock_out_at', null)
         .order('clock_in_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (shift) {
         const shiftDuration = Math.round((new Date().getTime() - new Date(shift.clock_in_at).getTime()) / (1000 * 60))
@@ -240,25 +281,28 @@ export async function GET(req: NextRequest) {
           clocked_in_at: shift.clock_in_at,
           duration_minutes: shiftDuration,
           location: shift.location,
-          micro_sessions_taken: shift.micro_sessions_taken,
-          micro_minutes_used: shift.micro_minutes_used,
-          full_sessions_taken: shift.full_sessions_taken
+          micro_sessions_taken: shift.micro_sessions_taken || 0,
+          micro_minutes_used: shift.micro_minutes_used || 0,
+          full_sessions_taken: shift.full_sessions_taken || 0
         }
       }
     }
 
+    const dailyCap = mechanicData.daily_micro_minutes_cap || 30
+    const microRemaining = Math.max(0, dailyCap - dailyMinutesUsed)
+
     return NextResponse.json({
       ok: true,
       status: {
-        currently_on_shift: status.currently_on_shift,
-        availability_status: status.availability_status,
-        participation_mode: status.participation_mode,
-        daily_micro_minutes_cap: status.daily_micro_minutes_cap,
-        daily_micro_minutes_used: status.daily_micro_minutes_used,
-        micro_minutes_remaining: status.micro_minutes_remaining,
-        last_clock_in: status.last_clock_in,
-        last_clock_out: status.last_clock_out,
-        workshop_name: status.workshop_name
+        currently_on_shift: mechanicData.currently_on_shift || false,
+        availability_status: availabilityStatus,
+        participation_mode: mechanicData.participation_mode || 'both',
+        daily_micro_minutes_cap: dailyCap,
+        daily_micro_minutes_used: dailyMinutesUsed,
+        micro_minutes_remaining: microRemaining,
+        last_clock_in: mechanicData.last_clock_in,
+        last_clock_out: mechanicData.last_clock_out,
+        workshop_name: mechanicData.organizations?.name || null
       },
       current_shift: currentShift
     })

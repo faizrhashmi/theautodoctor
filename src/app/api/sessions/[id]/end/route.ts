@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
 import { PRICING, type PlanKey } from '@/config/pricing'
@@ -45,24 +45,59 @@ export async function POST(
 ) {
   const sessionId = params.id
 
-  // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  // Validate session participant using RELAXED auth (handles cookie issues)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data
-  console.log(`[POST /sessions/${sessionId}/end] ${participant.role} ending session ${participant.sessionId}`)
+  console.log(`[POST /sessions/${sessionId}/end] ${participant.role} ending session ${participant.sessionId} (auth source: ${participant.source})`)
 
-  // Fetch full session details using admin client (bypasses RLS)
-  const { data: session, error: sessionError } = await supabaseAdmin
+  // CRITICAL FIX: Try both sessions and diagnostic_sessions tables
+  // First check sessions table
+  let session: any = null
+  let sessionTable: 'sessions' | 'diagnostic_sessions' | null = null
+
+  const { data: sessionsData, error: sessionsError } = await supabaseAdmin
     .from('sessions')
     .select('id, status, plan, type, started_at, ended_at, duration_minutes, mechanic_id, customer_user_id, metadata')
     .eq('id', sessionId)
-    .single()
+    .maybeSingle()
 
-  if (sessionError || !session) {
-    console.error('Failed to fetch session', sessionError)
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  if (sessionsData) {
+    session = sessionsData
+    sessionTable = 'sessions'
+  } else {
+    // Try diagnostic_sessions table
+    const { data: diagnosticData, error: diagnosticError } = await supabaseAdmin
+      .from('diagnostic_sessions')
+      .select('id, status, session_type as type, started_at, ended_at, duration_minutes, mechanic_id, customer_id as customer_user_id, metadata, base_price')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    if (diagnosticData) {
+      session = diagnosticData
+      sessionTable = 'diagnostic_sessions'
+      // Map diagnostic_sessions fields to sessions structure
+      if (!session.plan) {
+        session.plan = 'diagnostic' // Default plan for diagnostic sessions
+      }
+    }
   }
+
+  if (!session || !sessionTable) {
+    console.error(`[end session] Session ${sessionId} not found in either table`, {
+      sessionsError: sessionsError?.message,
+      checked: ['sessions', 'diagnostic_sessions']
+    })
+    return NextResponse.json({
+      error: 'Session not found',
+      details: 'Session does not exist in database',
+      sessionId
+    }, { status: 404 })
+  }
+
+  console.log(`[end session] Found session in ${sessionTable} table`)
+
 
   // Determine role from participant data
   const isCustomer = participant.role === 'customer'
@@ -94,22 +129,32 @@ export async function POST(
     if (canTransition(currentStatus, 'cancelled')) {
       console.log(`[end session] Cannot transition ${currentStatus} -> completed, using cancelled instead`)
 
-      const { error: cancelError } = await supabaseAdmin
-        .from('sessions')
-        .update({
-          status: 'cancelled',
-          ended_at: now,
-          updated_at: now,
-          metadata: {
-            ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
-            cancelled_via_end: {
-              original_status: currentStatus,
+      // Update correct table for cancellation
+      const { error: cancelError } = sessionTable === 'sessions'
+        ? await supabaseAdmin
+            .from('sessions')
+            .update({
+              status: 'cancelled',
               ended_at: now,
-              ended_by: isCustomer ? 'customer' : 'mechanic',
-            },
-          },
-        })
-        .eq('id', sessionId)
+              updated_at: now,
+              metadata: {
+                ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
+                cancelled_via_end: {
+                  original_status: currentStatus,
+                  ended_at: now,
+                  ended_by: isCustomer ? 'customer' : 'mechanic',
+                },
+              },
+            })
+            .eq('id', sessionId)
+        : await supabaseAdmin
+            .from('diagnostic_sessions')
+            .update({
+              status: 'cancelled',
+              ended_at: now,
+              updated_at: now,
+            })
+            .eq('id', sessionId)
 
       if (cancelError) {
         console.error('Failed to cancel session', cancelError)
@@ -138,17 +183,13 @@ export async function POST(
         console.error('[end session] Failed to broadcast session:ended', broadcastError)
       }
 
-      const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
-
-      if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
-        return NextResponse.json({
-          success: true,
-          message: 'Session cancelled successfully',
-          session: { id: sessionId, status: 'cancelled', ended_at: now },
-        })
-      }
-
-      return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
+      // Always return JSON for API calls (fetch from frontend)
+      // Only redirect if coming from a form submission
+      return NextResponse.json({
+        success: true,
+        message: 'Session cancelled successfully',
+        session: { id: sessionId, status: 'cancelled', ended_at: now },
+      })
     }
 
     return NextResponse.json(
@@ -173,23 +214,30 @@ export async function POST(
     console.log(`[end session] Session ${sessionId} never started - marking as completed (no-show)`)
 
     // Mark session as completed (not cancelled) so it shows in mechanic history
-    const { error: updateError } = await supabaseAdmin
-      .from('sessions')
-      .update({
-        status: 'completed',
-        ended_at: now,
-        updated_at: now,
-        duration_minutes: 0,
-        metadata: {
-          ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
-          no_show: {
-            ended_at: now,
-            reason: 'Session ended before starting (customer/mechanic no-show)',
-            ended_by: isCustomer ? 'customer' : 'mechanic',
-          },
+    const noShowUpdate = {
+      status: 'completed',
+      ended_at: now,
+      updated_at: now,
+      duration_minutes: 0,
+      metadata: {
+        ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
+        no_show: {
+          ended_at: now,
+          reason: 'Session ended before starting (customer/mechanic no-show)',
+          ended_by: isCustomer ? 'customer' : 'mechanic',
         },
-      })
-      .eq('id', sessionId)
+      },
+    }
+
+    const { error: updateError } = sessionTable === 'sessions'
+      ? await supabaseAdmin.from('sessions').update(noShowUpdate).eq('id', sessionId)
+      : await supabaseAdmin.from('diagnostic_sessions').update({
+          status: 'completed',
+          ended_at: now,
+          updated_at: now,
+          duration_minutes: 0,
+          metadata: noShowUpdate.metadata,
+        }).eq('id', sessionId)
 
     if (updateError) {
       console.error('Failed to end no-show session', updateError)
@@ -287,13 +335,8 @@ export async function POST(
       },
     }
 
-    if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
-      return NextResponse.json(responseData)
-    }
-
-    // Redirect based on role
-    const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
-    return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
+    // Always return JSON for API calls
+    return NextResponse.json(responseData)
   }
 
   // Calculate mechanic earnings (only for sessions that actually happened)
@@ -428,26 +471,43 @@ export async function POST(
   }
   // =====================================================
 
-  // Update session with completion data
+  // Update session with completion data (use correct table)
   const existingMetadata = (session.metadata || {}) as Record<string, any>
-  const { error: updateError } = await supabaseAdmin
-    .from('sessions')
-    .update({
-      status: 'completed',
-      ended_at: now,
-      duration_minutes: durationMinutes,
-      updated_at: now,
-      metadata: {
-        ...existingMetadata,
-        payout: payoutMetadata,
-      },
-    })
-    .eq('id', sessionId)
+  const updateData: any = {
+    status: 'completed',
+    ended_at: now,
+    duration_minutes: durationMinutes,
+    updated_at: now,
+    metadata: {
+      ...existingMetadata,
+      payout: payoutMetadata,
+    },
+  }
+
+  // Update the correct table
+  const { error: updateError } = sessionTable === 'sessions'
+    ? await supabaseAdmin
+        .from('sessions')
+        .update(updateData)
+        .eq('id', sessionId)
+    : await supabaseAdmin
+        .from('diagnostic_sessions')
+        .update({
+          status: 'completed',
+          ended_at: now,
+          duration_minutes: durationMinutes,
+          updated_at: now,
+          // diagnostic_sessions stores metadata differently
+          ...existingMetadata,
+        })
+        .eq('id', sessionId)
 
   if (updateError) {
-    console.error('Failed to update session', updateError)
+    console.error(`Failed to update ${sessionTable}`, updateError)
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
+
+  console.log(`[end session] Updated ${sessionTable} with completion data`)
 
   // Log session completion
   await logInfo('session.completed', `Session ${sessionId} completed`, {
@@ -623,14 +683,7 @@ export async function POST(
     payout: payoutMetadata,
   }
 
-  // If the request accepts JSON or has no specific accept header, return JSON
-  // Otherwise redirect (for form submissions)
-  if (acceptHeader?.includes('application/json') || contentType?.includes('application/json')) {
-    return NextResponse.json(responseData)
-  }
-
-  // Redirect based on role
-  const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
-  return NextResponse.redirect(new URL(dashboardUrl, req.nextUrl.origin))
+  // Always return JSON for API calls
+  return NextResponse.json(responseData)
 }
 

@@ -68,15 +68,36 @@ export async function requireSessionParticipant(
     }
   }
 
-  // Step 2: Fetch session data
-  const { data: session, error: sessionError } = await supabaseAdmin
+  // Step 2: Fetch session data - CHECK BOTH TABLES
+  // First try sessions table
+  const { data: sessionsData, error: sessionsError } = await supabaseAdmin
     .from('sessions')
-    .select('id, customer_id, mechanic_id')
+    .select('id, customer_user_id as customer_id, mechanic_id')
     .eq('id', sessionId)
     .maybeSingle()
 
-  if (sessionError || !session) {
-    console.error(`[Session Guard] Failed to fetch session ${sessionId}:`, sessionError)
+  let session: any = null
+
+  if (sessionsData) {
+    session = sessionsData
+  } else {
+    // Try diagnostic_sessions table
+    const { data: diagnosticData, error: diagnosticError } = await supabaseAdmin
+      .from('diagnostic_sessions')
+      .select('id, customer_id, mechanic_id')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    if (diagnosticData) {
+      session = diagnosticData
+    }
+  }
+
+  if (!session) {
+    console.error(`[Session Guard] Session ${sessionId} not found in sessions or diagnostic_sessions`, {
+      sessionsError: sessionsError?.message,
+      checked: ['sessions', 'diagnostic_sessions']
+    })
     return {
       data: null,
       error: NextResponse.json(
@@ -87,8 +108,14 @@ export async function requireSessionParticipant(
   }
 
   // Step 3: Check if user is customer participant
+  console.log(`[Session Guard] Checking customer auth:`, {
+    sessionCustomerId: session.customer_id,
+    currentUserId: user.id,
+    matches: session.customer_id === user.id
+  })
+
   if (session.customer_id === user.id) {
-    console.log(`[Session Guard] Customer ${user.id} authorized for session ${sessionId}`)
+    console.log(`[Session Guard] ✅ Customer ${user.id} authorized for session ${sessionId}`)
     return {
       data: {
         userId: user.id,
@@ -100,16 +127,29 @@ export async function requireSessionParticipant(
   }
 
   // Step 4: Check if user is mechanic participant
+  console.log(`[Session Guard] Checking mechanic auth:`, {
+    sessionMechanicId: session.mechanic_id,
+    currentUserId: user.id
+  })
+
   if (session.mechanic_id) {
     // Get mechanic record linked to this Supabase Auth user
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('id')
+      .select('id, user_id')
       .eq('user_id', user.id)
       .maybeSingle()
 
+    console.log(`[Session Guard] Mechanic lookup result:`, {
+      found: !!mechanic,
+      mechanicId: mechanic?.id,
+      mechanicUserId: mechanic?.user_id,
+      sessionMechanicId: session.mechanic_id,
+      matches: mechanic?.id === session.mechanic_id
+    })
+
     if (mechanic && mechanic.id === session.mechanic_id) {
-      console.log(`[Session Guard] Mechanic ${mechanic.id} authorized for session ${sessionId}`)
+      console.log(`[Session Guard] ✅ Mechanic ${mechanic.id} authorized for session ${sessionId}`)
       return {
         data: {
           userId: user.id,
@@ -123,7 +163,11 @@ export async function requireSessionParticipant(
   }
 
   // Step 5: User is authenticated but not a participant
-  console.warn(`[Session Guard] User ${user.id} attempted to access session ${sessionId} without authorization`)
+  console.error(`[Session Guard] ❌ AUTHORIZATION FAILED for user ${user.id} on session ${sessionId}`, {
+    userEmail: user.email,
+    sessionCustomerId: session.customer_id,
+    sessionMechanicId: session.mechanic_id,
+  })
   return {
     data: null,
     error: NextResponse.json(

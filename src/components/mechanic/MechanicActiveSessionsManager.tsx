@@ -100,6 +100,30 @@ export default function MechanicActiveSessionsManager({ sessions: initialSession
     }
   }
 
+  const handleForceEnd = async (sessionId: string) => {
+    if (!confirm('⚠️ FORCE END SESSION?\n\nThis will immediately end the session for both you and the customer without processing payouts.\n\nUse this only if normal end session is failing.\n\nContinue?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/force-end`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(`✅ ${data.message}\n\n${data.warning}`)
+        window.location.reload()
+      } else {
+        const error = await response.json()
+        alert(`❌ Force end failed: ${error.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error force-ending session:', error)
+      alert('❌ An error occurred while force-ending. Please try again.')
+    }
+  }
+
   return (
     <div className="rounded-2xl border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 p-6 shadow-2xl backdrop-blur">
       <div className="mb-5 flex items-center justify-between">
@@ -192,6 +216,15 @@ export default function MechanicActiveSessionsManager({ sessions: initialSession
                 >
                   <X className="h-4 w-4" />
                   End Session
+                </button>
+
+                <button
+                  onClick={() => handleForceEnd(session.id)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-orange-400/50 bg-orange-500/10 px-5 py-3 text-sm font-semibold text-orange-200 transition hover:bg-orange-500/20"
+                  title="Emergency force-end (bypasses auth checks)"
+                >
+                  <X className="h-4 w-4" />
+                  Force End
                 </button>
               </div>
             </div>

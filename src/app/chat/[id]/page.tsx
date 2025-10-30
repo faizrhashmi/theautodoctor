@@ -12,26 +12,29 @@ type PageProps = {
   params: { id: string }
 }
 
-// Helper to check mechanic auth
-async function getMechanicFromCookie() {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+// Helper to check mechanic auth using unified Supabase auth
+async function getMechanicFromAuth() {
+  const supabase = getSupabaseServer()
 
-  if (!token) return null
+  // Get current authenticated user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
+  if (authError || !user) return null
+
+  // Check if user has mechanic role
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
     .maybeSingle()
 
-  if (!session) return null
+  if (!profile || profile.role !== 'mechanic') return null
 
+  // Load mechanic profile
   const { data: mechanic } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
+    .select('id, name, email, user_id')
+    .eq('user_id', user.id)
     .maybeSingle()
 
   return mechanic
@@ -46,8 +49,8 @@ export default async function ChatSessionPage({ params }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Check for mechanic auth (custom)
-  const mechanic = await getMechanicFromCookie()
+  // Check for mechanic auth (unified Supabase auth)
+  const mechanic = await getMechanicFromAuth()
 
   // Must be authenticated as either customer or mechanic
   if (!user && !mechanic) {
@@ -96,7 +99,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
   // The "Return to Dashboard" button uses the isMechanic variable which will be correct
   if (isMechanicForThisSession && mechanic) {
     // They are the assigned mechanic
-    currentUserId = mechanic.id
+    currentUserId = mechanic.user_id  // Use user_id (auth ID) not mechanic.id (profile ID)
     userRole = 'mechanic'
     console.log('[CHAT PAGE SECURITY] Role assigned: MECHANIC', { currentUserId })
   } else if (isCustomerForThisSession && user) {
@@ -133,15 +136,17 @@ export default async function ChatSessionPage({ params }: PageProps) {
   const planName = PRICING[planKey]?.name ?? 'Quick Chat'
   const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
 
-  // Fetch mechanic name if assigned
+  // Fetch mechanic name and user_id if assigned
   let mechanicName: string | null = null
+  let mechanicUserId: string | null = null
   if (session.mechanic_id) {
     const { data: mechanicData } = await supabaseAdmin
       .from('mechanics')
-      .select('name')
+      .select('name, user_id')
       .eq('id', session.mechanic_id)
       .maybeSingle()
     mechanicName = mechanicData?.name || null
+    mechanicUserId = mechanicData?.user_id || null
   }
 
   // Fetch customer name
@@ -179,7 +184,7 @@ export default async function ChatSessionPage({ params }: PageProps) {
       initialMessages={(messages ?? []).map(mapMessage)}
       mechanicName={mechanicName}
       customerName={customerName}
-      mechanicId={session.mechanic_id}
+      mechanicId={mechanicUserId}
       customerId={session.customer_user_id}
       dashboardUrl={dashboardUrl}
     />

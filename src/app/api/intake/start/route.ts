@@ -117,8 +117,8 @@ export async function POST(req: NextRequest) {
           .from('sessions')
           .select('id, status, type, created_at')
           .eq('customer_user_id', user.id)
-          .in('status', ['pending', 'waiting', 'live', 'scheduled']) // Block ALL non-completed sessions
-          .gte('created_at', twentyFourHoursAgo) // Check last 24 hours
+          .in('status', ['pending', 'waiting', 'live', 'scheduled'])
+          .gte('created_at', twentyFourHoursAgo)
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -137,54 +137,23 @@ export async function POST(req: NextRequest) {
         intake_id: intakeId,
         source: 'intake',
         plan,
-        urgent, // Priority flag for mechanics
+        urgent,
       };
 
-      const freeSessionKey = `free_${intakeId}_${randomUUID()}`
+      const freeSessionKey = `free_${intakeId}_${randomUUID()}`;
 
-      // Fetch the service plan from database to get routing preferences
-      const { data: servicePlan, error: planError } = await supabaseAdmin
-        .from('service_plans')
-        .select('*')
-        .eq('slug', plan)
-        .eq('is_active', true)
-        .single();
-
-      // Fallback to old pricing config if plan not found in database
-      let sessionType: 'chat' | 'video' | 'diagnostic' = 'diagnostic' // Default type
-      let requestType: 'general' | 'brand_specialist' = 'general'
-      let restrictedBrands: string[] = []
-
-      if (servicePlan && !planError) {
-        // Determine session type from plan's features or category
-        if (servicePlan.features?.video_sessions) {
-          sessionType = 'video'
-        } else if (servicePlan.features?.chat) {
-          sessionType = 'chat'
-        }
-
-        // Set request type based on routing preference
-        if (servicePlan.routing_preference === 'brand_specialist') {
-          requestType = 'brand_specialist'
-          restrictedBrands = servicePlan.restricted_brands || []
-        } else if (servicePlan.routing_preference === 'general') {
-          requestType = 'general'
-        }
-        // 'any' routing allows both general and specialists to accept
-      } else {
-        // Fallback to old pricing config
-        const planConfig = PRICING[plan as PlanKey]
-        const fulfillment = planConfig?.fulfillment || 'diagnostic'
-        // Type guard to ensure it's one of the valid session types
-        if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
-          sessionType = fulfillment
-        }
+      // Determine session type from plan
+      let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat';
+      const planConfig = PRICING[plan as PlanKey];
+      const fulfillment = planConfig?.fulfillment || 'chat';
+      if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
+        sessionType = fulfillment;
       }
 
       const { data: sessionInsert, error: sessionError } = await supabaseAdmin
         .from('sessions')
         .insert({
-          type: sessionType, // Use plan's fulfillment type instead of hardcoded 'chat'
+          type: sessionType,
           status: 'pending',
           plan,
           intake_id: intakeId,
@@ -200,7 +169,6 @@ export async function POST(req: NextRequest) {
       }
 
       sessionId = sessionInsert.id;
-
       console.log(`[INTAKE] Created session ${sessionId} for intake ${intakeId}`);
 
       if (user?.id) {
@@ -214,95 +182,10 @@ export async function POST(req: NextRequest) {
         if (participantError) {
           return NextResponse.json({ error: participantError.message }, { status: 500 });
         }
-
-        // Create session_request to notify mechanics
-        try {
-          // Get customer name from profile
-          const { data: profile } = await supabaseAdmin
-            .from('profiles')
-            .select('full_name')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          const customerName = profile?.full_name || email || 'Customer';
-
-          // Cancel any old pending requests for this customer
-          await supabaseAdmin
-            .from('session_requests')
-            .update({ status: 'cancelled' })
-            .eq('customer_id', user.id)
-            .eq('status', 'pending')
-            .is('mechanic_id', null);
-
-          // Create the session request and link to the session
-          const requestPayload: any = {
-            parent_session_id: sessionId, // <-- CRITICAL: link request to session
-            customer_id: user.id,
-            session_type: sessionType, // Use same type as session (from plan's fulfillment)
-            plan_code: plan,
-            status: 'pending',
-            customer_name: customerName,
-            customer_email: email || null,
-            routing_type: 'broadcast',
-            request_type: requestType, // Use plan's routing preference
-            prefer_local_mechanic: false,
-            vehicle_id: vehicle_id || null, // Link to vehicles table
-            // CRITICAL FIX: Add intake metadata for RequestPreviewModal
-            metadata: {
-              intake_id: intakeId,
-              session_id: sessionId, // Keep for legacy consumers
-              concern: concern || '',
-              city: city || '',
-              phone: phone || '',
-              urgent,
-              // Vehicle details for preview
-              make: make || '',
-              model: model || '',
-              year: year || '',
-              vin: vin || '',
-              odometer: odometer || '',
-              plate: plate || '',
-            } as Json,
-          }
-
-          // Add restricted brands metadata if this is a brand specialist request
-          if (requestType === 'brand_specialist' && restrictedBrands.length > 0) {
-            requestPayload.requested_brand = restrictedBrands[0] // Use first brand as primary
-            requestPayload.routing_type = 'targeted' // Override to targeted for brand specialists
-          }
-
-          const { data: newRequest, error: requestInsertError } = await supabaseAdmin
-            .from('session_requests')
-            .insert(requestPayload)
-            .select()
-            .single();
-
-          if (requestInsertError) {
-            console.error('[INTAKE] ❌ CRITICAL: Failed to create session_request:', requestInsertError);
-            console.error('[INTAKE] Request payload:', JSON.stringify(requestPayload, null, 2));
-            console.error('[INTAKE] This means mechanics WILL NOT see this request!');
-            throw requestInsertError; // Let outer catch handle it
-          }
-
-          console.log(`[INTAKE] ✅ Created session_request ${newRequest.id} for session ${sessionId}`);
-
-          // Broadcast to notify mechanics in real-time
-          if (newRequest) {
-            const { broadcastSessionRequest } = await import('@/lib/sessionRequests');
-            await broadcastSessionRequest('new_request', { request: newRequest });
-            console.log('[INTAKE] ✅ Broadcasted new_request event to mechanics');
-          }
-        } catch (error) {
-          console.error('[INTAKE] ❌❌❌ CRITICAL ERROR creating session request:', error);
-          console.error('[INTAKE] Session was created but NO REQUEST was created!');
-          console.error('[INTAKE] Session ID:', sessionId);
-          console.error('[INTAKE] Customer will enter session but mechanics cannot see it!');
-          // Don't fail the whole flow if this fails - but log extensively
-        }
       }
     }
 
-    // Redirect to waiver signing page instead of thank-you
+    // Redirect to waiver signing page
     const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
     waiverUrl.searchParams.set('plan', plan);
     if (intakeId) waiverUrl.searchParams.set('intake_id', intakeId);

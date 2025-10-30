@@ -3,26 +3,29 @@ import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-// Helper to check mechanic auth
-async function getMechanicFromCookie() {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+// Helper to check mechanic auth using unified Supabase auth
+async function getMechanicFromAuth() {
+  const supabase = getSupabaseServer()
 
-  if (!token) return null
+  // Get current authenticated user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
+  if (authError || !user) return null
+
+  // Check if user has mechanic role
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
     .maybeSingle()
 
-  if (!session) return null
+  if (!profile || profile.role !== 'mechanic') return null
 
+  // Load mechanic profile
   const { data: mechanic } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
+    .select('id, name, email, user_id')
+    .eq('user_id', user.id)
     .maybeSingle()
 
   return mechanic
@@ -36,10 +39,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Check auth - either customer (Supabase) or mechanic (cookie)
+    // Check auth - either customer (Supabase) or mechanic (unified Supabase auth)
     const supabase = getSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
-    const mechanic = await getMechanicFromCookie()
+    const mechanic = await getMechanicFromAuth()
 
     // Verify user has access to this session FIRST to determine correct role
     const { data: session } = await supabaseAdmin
@@ -57,8 +60,8 @@ export async function POST(req: NextRequest) {
     let senderId: string | null = null
 
     if (mechanic && session.mechanic_id === mechanic.id) {
-      senderId = mechanic.id
-      console.log('[send-message] Sender identified as MECHANIC:', senderId)
+      senderId = mechanic.user_id  // Use user_id for messages (auth.users ID)
+      console.log('[send-message] Sender identified as MECHANIC:', senderId, '(mechanic.id:', mechanic.id, ')')
     } else if (user && session.customer_user_id === user.id) {
       senderId = user.id
       console.log('[send-message] Sender identified as CUSTOMER:', senderId)

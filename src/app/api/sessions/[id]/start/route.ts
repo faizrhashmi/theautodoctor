@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { assertTransition, getTransitionMessage } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
@@ -22,12 +22,12 @@ export async function POST(
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 })
   }
 
-  // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  // Validate session participant FIRST (using relaxed auth for cookie propagation)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data
-  console.log(`[POST /sessions/${sessionId}/start] ${participant.role} starting session ${participant.sessionId}`)
+  console.log(`[POST /sessions/${sessionId}/start] ${participant.role} starting session ${participant.sessionId} (auth source: ${participant.source})`)
 
   try {
     // Fetch current session

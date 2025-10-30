@@ -1,103 +1,102 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { withDebugAuth } from '@/lib/debugAuth'
 
-async function getHandler(req: NextRequest) {
+/**
+ * DEBUG ENDPOINT: Check if a session exists in different tables
+ *
+ * GET /api/debug/check-session?id=7634b27b-9d36-4c64-9e97-419c9fa153fd
+ */
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('id')
 
   if (!sessionId) {
-    // If no ID provided, show active sessions first
-    const { data: activeSessions } = await supabaseAdmin
+    return NextResponse.json({ error: 'Missing session ID' }, { status: 400 })
+  }
+
+  const results: any = {
+    sessionId,
+    timestamp: new Date().toISOString(),
+    checks: {}
+  }
+
+  try {
+    // Check sessions table
+    const { data: session, error: sessionError } = await supabaseAdmin
       .from('sessions')
       .select('*')
-      .in('status', ['waiting', 'live'])
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    const { data: recentSessions } = await supabaseAdmin
-      .from('sessions')
-      .select('*')
-      .eq('type', 'video')
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    return NextResponse.json({
-      activeSessions: activeSessions,
-      activeCount: activeSessions?.length || 0,
-      recentVideoSessions: recentSessions,
-      count: recentSessions?.length || 0
-    })
-  }
-
-  // Check specific session
-  const { data: session, error: sessionError } = await supabaseAdmin
-    .from('sessions')
-    .select('*')
-    .eq('id', sessionId)
-    .maybeSingle()
-
-  if (sessionError) {
-    return NextResponse.json({ error: 'Error fetching session', details: sessionError }, { status: 500 })
-  }
-
-  if (!session) {
-    return NextResponse.json({
-      found: false,
-      message: '❌ SESSION NOT FOUND',
-    })
-  }
-
-  // Check if there's a corresponding request
-  let requestData = null
-  if (session.customer_user_id) {
-    const { data: request } = await supabaseAdmin
-      .from('session_requests')
-      .select('*')
-      .eq('customer_id', session.customer_user_id)
-      .eq('session_type', session.type)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .eq('id', sessionId)
       .maybeSingle()
 
-    requestData = request
+    results.checks.sessions_table = {
+      found: !!session,
+      data: session,
+      error: sessionError?.message
+    }
+
+    // Check diagnostic_sessions table
+    const { data: diagnosticSession, error: diagnosticError } = await supabaseAdmin
+      .from('diagnostic_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .maybeSingle()
+
+    results.checks.diagnostic_sessions_table = {
+      found: !!diagnosticSession,
+      data: diagnosticSession,
+      error: diagnosticError?.message
+    }
+
+    // Check session_requests table
+    const { data: sessionRequests, error: requestsError } = await supabaseAdmin
+      .from('session_requests')
+      .select('*')
+      .eq('parent_session_id', sessionId)
+
+    results.checks.session_requests = {
+      found: (sessionRequests?.length || 0) > 0,
+      count: sessionRequests?.length || 0,
+      data: sessionRequests,
+      error: requestsError?.message
+    }
+
+    // Check session_participants
+    if (session || diagnosticSession) {
+      const { data: participants, error: participantsError } = await supabaseAdmin
+        .from('session_participants')
+        .select('*')
+        .eq('session_id', sessionId)
+
+      results.checks.session_participants = {
+        found: (participants?.length || 0) > 0,
+        count: participants?.length || 0,
+        data: participants,
+        error: participantsError?.message
+      }
+    }
+
+    // Analysis
+    results.analysis = {
+      existsInSessions: !!session,
+      existsInDiagnosticSessions: !!diagnosticSession,
+      tableConfusion: !!session && !!diagnosticSession,
+      missing: !session && !diagnosticSession,
+      canBeEnded: !!session,
+      recommendation: !session && !!diagnosticSession
+        ? 'Session is in diagnostic_sessions table but end endpoint looks in sessions table!'
+        : !session && !diagnosticSession
+        ? 'Session does not exist in any table - orphaned reference'
+        : session && diagnosticSession
+        ? 'Session exists in BOTH tables - data inconsistency!'
+        : 'Session exists in sessions table and can be ended normally'
+    }
+
+    return NextResponse.json(results)
+
+  } catch (error: any) {
+    return NextResponse.json({
+      error: error.message,
+      sessionId
+    }, { status: 500 })
   }
-
-  // Customer info available via profiles table if needed
-  // Omitted from debug endpoint for simplicity
-  const customerData = null
-
-  return NextResponse.json({
-    found: true,
-    session: {
-      id: session.id,
-      status: session.status,
-      type: session.type,
-      customer_user_id: session.customer_user_id,
-      mechanic_id: session.mechanic_id || null,
-      intake_id: session.intake_id || null,
-      plan: session.plan,
-      created_at: session.created_at,
-      started_at: session.started_at || null,
-      ended_at: session.ended_at || null,
-    },
-    customer: customerData,
-    correspondingRequest: requestData ? {
-      id: requestData.id,
-      status: requestData.status,
-      mechanic_id: requestData.mechanic_id || null,
-      created_at: requestData.created_at,
-      accepted_at: requestData.accepted_at || null,
-    } : null,
-    diagnosis: !requestData
-      ? '❌ Session exists but NO corresponding request found. Mechanics cannot see this session.'
-      : requestData.status !== 'pending'
-        ? `⚠️ Request exists but status is "${requestData.status}" (not "pending")`
-        : requestData.mechanic_id !== null
-          ? `⚠️ Request assigned to mechanic ${requestData.mechanic_id}`
-          : '✓ Request exists and should be visible to mechanics',
-  })
 }
-
-// Apply debug authentication wrapper
-export const GET = withDebugAuth(getHandler)
