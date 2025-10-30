@@ -42,8 +42,6 @@ interface Client {
 export default function MechanicCRMPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [clients, setClients] = useState<Client[]>([])
   const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -66,30 +64,9 @@ export default function MechanicCRMPage() {
     preferred_contact_method: 'phone'
   })
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     loadClients()
-  }, [sortBy, isAuthenticated])
+  }, [sortBy])
 
   useEffect(() => {
     filterClients()

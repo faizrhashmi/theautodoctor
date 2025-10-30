@@ -17,7 +17,7 @@ interface ProfileUpdateData {
   // Basic info
   name?: string
   phone?: string
-  about_me?: string  // Fixed: was 'bio'
+  // NOTE: about_me does NOT exist in mechanics table schema
 
   // Brand specialization
   is_brand_specialist?: boolean
@@ -32,16 +32,16 @@ interface ProfileUpdateData {
   timezone?: string
 
   // Credentials
-  certifications?: string[]
-  years_of_experience?: number  // Fixed: was 'years_experience'
-  red_seal_certified?: boolean  // Fixed: was 'is_red_seal'
+  certification_documents?: string[]  // Actual field name in schema
+  years_of_experience?: number
+  red_seal_certified?: boolean
   red_seal_number?: string
   red_seal_province?: string
   red_seal_expiry_date?: string
   shop_affiliation?: string
 
   // Preferences
-  hourly_rate?: number
+  // NOTE: hourly_rate does NOT exist in mechanics table schema
   specializations?: string[]
 }
 
@@ -62,7 +62,7 @@ export async function GET(
       )
     }
 
-    // Fetch mechanic profile
+    // Fetch mechanic profile - only query columns that exist in schema
     const { data: mechanic, error } = await supabase
       .from('mechanics')
       .select(`
@@ -70,7 +70,6 @@ export async function GET(
         name,
         email,
         phone,
-        about_me,
         is_brand_specialist,
         brand_specializations,
         service_keywords,
@@ -79,13 +78,12 @@ export async function GET(
         city,
         state_province,
         timezone,
-        certifications,
+        certification_documents,
         years_of_experience,
         red_seal_certified,
         red_seal_number,
         red_seal_province,
         red_seal_expiry_date,
-        hourly_rate,
         specializations,
         shop_affiliation,
         profile_completion_score,
@@ -164,11 +162,12 @@ export async function PATCH(
     }
 
     // Build update object (only include provided fields)
+    // Only include fields that actually exist in mechanics table schema
     const updateData: Record<string, any> = {}
     const allowedFields = [
       'name',
       'phone',
-      'about_me',  // Fixed: was 'bio'
+      // 'about_me' does NOT exist in schema - removed
       'is_brand_specialist',
       'brand_specializations',
       'service_keywords',
@@ -177,13 +176,13 @@ export async function PATCH(
       'city',
       'state_province',
       'timezone',
-      'certifications',
-      'years_of_experience',  // Fixed: was 'years_experience'
-      'red_seal_certified',  // Fixed: was 'is_red_seal'
+      'certification_documents',  // Actual field name, not 'certifications'
+      'years_of_experience',
+      'red_seal_certified',
       'red_seal_number',
       'red_seal_province',
       'red_seal_expiry_date',
-      'hourly_rate',
+      // 'hourly_rate' does NOT exist in schema - removed
       'specializations',
       'shop_affiliation'
     ]

@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { Database } from '@/types/supabase'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
 export async function GET(req: NextRequest) {
   try {
-    const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    })
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} fetching vehicles`)
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -34,7 +20,7 @@ export async function GET(req: NextRequest) {
     const { data: vehicles, error: vehiclesError } = await supabaseAdmin
       .from('vehicles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', customer.id)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: false })
 
@@ -54,34 +40,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Create a properly configured supabase client with working cookies
-    const supabaseClient = createServerClient<Database>(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            const cookies: { name: string; value: string }[] = []
-            for (const [name, value] of req.cookies.entries()) {
-              cookies.push({ name, value })
-            }
-            return cookies
-          },
-          setAll(cookiesToSet) {
-            // Cookies will be set automatically by the framework
-            // This empty implementation is fine for Next.js App Router
-          },
-        },
-      }
-    )
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} adding vehicle`)
 
     const body = await req.json()
     const { make, model, year, vin, color, mileage, plate, nickname, is_primary } = body
@@ -92,21 +56,21 @@ export async function POST(req: NextRequest) {
 
     // If this is being set as primary, unset all other primary vehicles
     if (is_primary) {
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await supabaseAdmin
         .from('vehicles')
         .update({ is_primary: false })
-        .eq('user_id', user.id)
+        .eq('user_id', customer.id)
 
       if (updateError) {
         console.error('Update primary vehicles error:', updateError)
       }
     }
 
-    // Insert the new vehicle using the authenticated client
-    const { data: vehicle, error: insertError } = await supabaseClient
+    // Insert the new vehicle
+    const { data: vehicle, error: insertError } = await supabaseAdmin
       .from('vehicles')
       .insert({
-        user_id: user.id,
+        user_id: customer.id,
         make,
         model,
         year,
@@ -136,23 +100,12 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    })
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} deleting vehicle`)
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -172,7 +125,7 @@ export async function DELETE(req: NextRequest) {
       .eq('id', vehicleId)
       .single()
 
-    if (!vehicle || vehicle.user_id !== user.id) {
+    if (!vehicle || vehicle.user_id !== customer.id) {
       return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
     }
 

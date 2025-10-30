@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/mechanic/sessions/[sessionId]
@@ -10,32 +11,17 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { sessionId: string } }
 ) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate mechanic session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
     const { sessionId } = params
 
     // Get diagnostic session
@@ -83,7 +69,7 @@ export async function GET(
     }
 
     // Verify mechanic owns this session
-    if (diagSession.mechanic_id !== session.mechanic_id) {
+    if (diagSession.mechanic_id !== mechanic.id) {
       return NextResponse.json({
         error: 'Not authorized to view this session'
       }, { status: 403 })

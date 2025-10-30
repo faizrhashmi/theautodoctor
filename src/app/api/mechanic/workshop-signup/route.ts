@@ -1,12 +1,14 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { hashPassword, makeSessionToken } from '@/lib/auth'
 import { trackInvitationEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
 }
+
+// CLEANED UP: Removed old auth imports (hashPassword, makeSessionToken)
+// Now using Supabase Auth for unified authentication system
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured on server', 500)
@@ -87,10 +89,35 @@ export async function POST(req: NextRequest) {
       return bad('Email does not match invitation', 403)
     }
 
-    // Hash password
-    const password_hash = hashPassword(password)
+    // CLEANED UP: Create Supabase Auth user first (unified auth system)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm workshop mechanics
+      user_metadata: {
+        full_name: name,
+        phone,
+        role: 'mechanic',
+        account_type: 'workshop',
+        workshop_id: invite.organization_id,
+      },
+    })
 
-    // Create mechanic record
+    if (authError) {
+      console.error('[WORKSHOP MECHANIC SIGNUP] Auth error:', authError)
+      if (authError.message?.includes('already registered')) {
+        return bad('Email already registered', 409)
+      }
+      return bad(authError.message || 'Failed to create account', 500)
+    }
+
+    if (!authData.user) {
+      return bad('Failed to create user', 500)
+    }
+
+    console.log('[WORKSHOP MECHANIC SIGNUP] Created auth user:', authData.user.id)
+
+    // Create mechanic record (linked to Supabase Auth user)
     const { data: mech, error: mechError } = await supabaseAdmin
       .from('mechanics')
       .insert({
@@ -98,7 +125,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         phone,
-        password_hash,
+        user_id: authData.user.id, // Link to Supabase Auth
         date_of_birth: dateOfBirth,
 
         // Account type tracking (for B2B2C)
@@ -145,6 +172,8 @@ export async function POST(req: NextRequest) {
 
     if (mechError) {
       console.error('[WORKSHOP MECHANIC SIGNUP] Database error:', mechError)
+      // Cleanup: delete the auth user we just created
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       if (mechError.code === '23505') {
         return bad('Email already registered', 409)
       }
@@ -152,6 +181,25 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[WORKSHOP MECHANIC SIGNUP] Created mechanic:', mech.id)
+
+    // Create profile record
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        full_name: name,
+        phone,
+        role: 'mechanic',
+        email,
+        account_type: 'workshop',
+        organization_id: invite.organization_id,
+        source: 'workshop_invitation',
+      })
+
+    if (profileError) {
+      console.error('[WORKSHOP MECHANIC SIGNUP] Profile creation error:', profileError)
+      // Don't fail - profile might be created by trigger
+    }
 
     // Track invitation accepted event
     await trackInvitationEvent('mechanic_invite_accepted', {
@@ -173,7 +221,7 @@ export async function POST(req: NextRequest) {
       .update({
         status: 'active',
         joined_at: new Date().toISOString(),
-        user_id: null, // We'll set this when we create auth user (not done yet in this flow)
+        user_id: authData.user.id, // Link to Supabase Auth user
       })
       .eq('id', invite.id)
 
@@ -197,41 +245,21 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Create session for the mechanic
-    const token = makeSessionToken()
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) // 30 days
-    const { error: sErr } = await supabaseAdmin.from('mechanic_sessions').insert({
-      mechanic_id: mech.id,
-      token,
-      expires_at: expires.toISOString(),
-    })
-
-    if (sErr) {
-      console.error('[WORKSHOP MECHANIC SIGNUP] Session creation error:', sErr)
-      return bad(sErr.message, 500)
-    }
-
-    const res = NextResponse.json({
-      ok: true,
-      message: `Welcome to ${invite.organizations.name}! Your account has been approved and is ready to use.`,
-      mechanicId: mech.id,
-      workshopName: invite.organizations.name,
-    })
-
-    res.cookies.set('aad_mech', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    })
+    // CLEANED UP: Removed old session creation (mechanic_sessions table and aad_mech cookie)
+    // Supabase Auth handles sessions automatically via HTTP-only cookies
 
     console.log('[WORKSHOP MECHANIC SIGNUP] Success! Workshop mechanic created:', mech.id)
 
     // TODO: Send welcome email to mechanic
     // TODO: Notify workshop admin that mechanic joined
 
-    return res
+    return NextResponse.json({
+      ok: true,
+      message: `Welcome to ${invite.organizations.name}! Your account has been approved and is ready to use.`,
+      mechanicId: mech.id,
+      userId: authData.user.id,
+      workshopName: invite.organizations.name,
+    })
   } catch (e: any) {
     console.error('[WORKSHOP MECHANIC SIGNUP] Error:', e)
     return bad(e.message || 'Signup failed', 500)

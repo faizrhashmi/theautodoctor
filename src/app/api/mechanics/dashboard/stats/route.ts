@@ -1,41 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/mechanics/dashboard/stats
  *
  * Get dashboard statistics for mechanic
+ * UPDATED: Uses unified Supabase Auth via requireMechanicAPI
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  // ✅ Use unified auth guard
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) {
+    return authResult.error
   }
+
+  const mechanic = authResult.data
+  const mechanicId = mechanic.id
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const mechanicId = session.mechanic_id
-
     // Get pending sessions count (for virtual-only mechanics)
     const { count: pendingSessions } = await supabaseAdmin
       .from('diagnostic_sessions')

@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
-import ConcernCategorySelector from '@/components/intake/ConcernCategorySelector'
+import { ConcernSelect } from '@/components/intake/ConcernSelect'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 import type { ConcernCategory, SubCategory } from '@/lib/concernCategories'
@@ -85,6 +85,7 @@ export default function IntakePage() {
     concern: '',
   })
   const [concernCategory, setConcernCategory] = useState<string>('')
+  const [primaryConcern, setPrimaryConcern] = useState<string>('')
   const [concernPlaceholder, setConcernPlaceholder] = useState<string>('Describe what\'s happening with your vehicle...')
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const [decoding, setDecoding] = useState(false)
@@ -102,16 +103,14 @@ export default function IntakePage() {
   const firstErrorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const supabase = createClient()
 
-  // Handle concern category selection - DON'T auto-fill, just show as placeholder
-  const handleConcernCategorySelect = (
-    category: ConcernCategory,
-    subCategory?: SubCategory,
-    template?: string
-  ) => {
-    setConcernCategory(category.slug)
-    // Show template as placeholder suggestion instead of auto-filling
-    if (template) {
-      setConcernPlaceholder(template)
+  // Handle concern selection and seed the concern text
+  const handleConcernSelect = (value: string, label: string) => {
+    setPrimaryConcern(value)
+
+    // Seed the concern text if it's empty
+    if (!form.concern || form.concern.trim() === '') {
+      const seedText = `Concern: ${label}\n\nPlease describe what's happening:`
+      setForm((prev) => ({ ...prev, concern: seedText }))
     }
   }
 
@@ -396,14 +395,14 @@ export default function IntakePage() {
   // Show loading while checking auth
   if (authLoading) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
+      <main className="w-full max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8">
         <div className="flex min-h-[70vh] items-center justify-center">
           <div className="text-center">
             <svg className="mx-auto h-16 w-16 animate-spin text-orange-400" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p className="mt-6 text-xl font-bold text-white">Verifying authentication...</p>
+            <p className="mt-6 text-lg font-bold text-white">Verifying authentication...</p>
           </div>
         </div>
       </main>
@@ -411,9 +410,9 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
-      <div className="rounded-3xl sm:rounded-[2.5rem] border border-white/10 bg-white/5 p-6 sm:p-8 lg:p-12 shadow-2xl backdrop-blur">
-        <div className="flex flex-col gap-6 sm:gap-8">
+    <main className="w-full max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6 shadow-2xl backdrop-blur">
+        <div className="flex flex-col space-y-6">
           {/* Urgent Mode Banner */}
           {isUrgent && (
             <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
@@ -492,17 +491,17 @@ export default function IntakePage() {
 
           {/* Contact Details */}
           <Section title="Contact details">
-            <Input
-              label="Full name"
-              value={form.name}
-              onChange={(value) => setForm((prev) => ({ ...prev, name: value }))}
-              error={errors.name}
-              required
-              inputRef={(el) => {
-                if (errors.name && !firstErrorRef.current) firstErrorRef.current = el
-              }}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Input
+                label="Full name"
+                value={form.name}
+                onChange={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                error={errors.name}
+                required
+                inputRef={(el) => {
+                  if (errors.name && !firstErrorRef.current) firstErrorRef.current = el
+                }}
+              />
               <Input
                 label="Email"
                 type="email"
@@ -524,17 +523,17 @@ export default function IntakePage() {
                   if (errors.phone && !firstErrorRef.current) firstErrorRef.current = el
                 }}
               />
+              <Input
+                label="City / Town"
+                value={form.city}
+                onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
+                error={errors.city}
+                required
+                inputRef={(el) => {
+                  if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
+                }}
+              />
             </div>
-            <Input
-              label="City / Town"
-              value={form.city}
-              onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
-              error={errors.city}
-              required
-              inputRef={(el) => {
-                if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
-              }}
-            />
           </Section>
 
           {/* Vehicle Information */}
@@ -596,7 +595,7 @@ export default function IntakePage() {
                 type="button"
                 onClick={decodeVin}
                 disabled={!form.vin || decoding}
-                className="h-auto sm:h-full rounded-xl bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 px-5 py-3 sm:py-2 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400 disabled:opacity-60 active:scale-95 touch-manipulation"
+                className="h-auto sm:h-full rounded-2xl bg-indigo-600 px-6 py-3 sm:py-2 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation"
               >
                 {decoding ? 'Decoding...' : 'Decode VIN'}
               </button>
@@ -613,6 +612,7 @@ export default function IntakePage() {
                 value={form.make}
                 onChange={(value) => setForm((prev) => ({ ...prev, make: value }))}
                 required={!form.vin.trim() && !isUrgent}
+                error={errors.make}
               />
               <Input
                 label={`Model${!isUrgent ? ' *' : ''}`}
@@ -632,22 +632,28 @@ export default function IntakePage() {
 
           {/* Concern Section */}
           <Section title="What's going on?">
-            <ConcernCategorySelector
-              onSelect={handleConcernCategorySelect}
-              selectedCategory={concernCategory}
-              className="mb-4"
-            />
-            <Textarea
-              label="Describe the issue"
-              value={form.concern}
-              onChange={(value) => setForm((prev) => ({ ...prev, concern: value }))}
-              placeholder={concernPlaceholder}
-              error={errors.concern}
-              required
-              inputRef={(el) => {
-                if (errors.concern && !firstErrorRef.current) firstErrorRef.current = el
-              }}
-            />
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="primary-concern" className="block text-sm font-semibold text-slate-200 mb-2">
+                  Primary concern <span className="text-red-400">*</span>
+                </label>
+                <ConcernSelect
+                  value={primaryConcern}
+                  onChange={handleConcernSelect}
+                  error={errors.concern}
+                />
+              </div>
+              <Textarea
+                label="Describe the issue"
+                value={form.concern}
+                onChange={(value) => setForm((prev) => ({ ...prev, concern: value }))}
+                placeholder={concernPlaceholder}
+                error={errors.concern}
+                required
+                inputRef={(el) => {
+                  if (errors.concern && !firstErrorRef.current) firstErrorRef.current = el
+                }}
+              />
             <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 sm:p-5">
               <label className="text-sm font-semibold text-slate-200">Upload photos / videos (optional)</label>
               <input
@@ -725,6 +731,7 @@ export default function IntakePage() {
               )}
               <p className="mt-3 text-xs text-slate-400">Up to ~10 files. Common uploads: leak photos, warning lights, scan tool screenshots, sound clips.</p>
             </div>
+            </div>
           </Section>
         </div>
 
@@ -734,21 +741,28 @@ export default function IntakePage() {
           </div>
         )}
 
-        {/* Submit Section */}
-        <div className="mt-6 sm:mt-8 flex flex-col gap-4">
-          <div className="text-xs uppercase tracking-[0.3em] text-slate-400 text-center sm:text-left">Step 3 - Join session</div>
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs sm:text-sm text-slate-300 text-center sm:text-left">
-              Selected plan: <span className="font-semibold text-white">{planLabel}</span>
-            </span>
+        {/* Submit Section - Hidden on mobile (shown in sticky bar) */}
+        <div className="hidden md:block mt-6">
+          <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-700 bg-slate-900/50">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isUrgent}
+                  onChange={(e) => setIsUrgent(e.target.checked)}
+                  className="h-5 w-5 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-2 focus:ring-red-500"
+                />
+                <span className="text-sm font-semibold text-slate-200">Mark as Urgent</span>
+              </label>
+            </div>
             <button
               type="button"
               onClick={submit}
               disabled={!canSubmit}
-              className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 sm:py-3 text-sm sm:text-base font-semibold text-white shadow-xl transition disabled:opacity-60 active:scale-95 touch-manipulation ${
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-8 min-h-[44px] text-base font-semibold text-white shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
                 isUrgent
-                  ? 'bg-gradient-to-r from-red-500 via-orange-600 to-red-700 hover:from-red-600 hover:via-orange-700 hover:to-red-800'
-                  : 'bg-gradient-to-r from-orange-500 via-indigo-500 to-purple-500 hover:from-orange-400 hover:via-indigo-400 hover:to-purple-400'
+                  ? 'bg-red-600 hover:bg-red-500'
+                  : 'bg-green-600 hover:bg-green-500'
               }`}
             >
               {isUrgent && (
@@ -756,7 +770,44 @@ export default function IntakePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               )}
-              {isUrgent ? 'Connect Now (Express)' : 'Continue to session'}
+              {isUrgent ? 'Connect Now' : 'Submit Request'}
+            </button>
+          </div>
+        </div>
+
+        {/* Spacer for sticky bar on mobile */}
+        <div className="h-20 md:hidden" />
+      </div>
+
+      {/* Sticky Submit Bar - Mobile Only */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-700 bg-slate-900/95 backdrop-blur-lg shadow-2xl">
+        <div className="w-full max-w-[720px] mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 cursor-pointer touch-manipulation">
+              <input
+                type="checkbox"
+                checked={isUrgent}
+                onChange={(e) => setIsUrgent(e.target.checked)}
+                className="h-5 w-5 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-2 focus:ring-red-500"
+              />
+              <span className="text-sm font-semibold text-slate-200">Urgent</span>
+            </label>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSubmit}
+              className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl px-6 min-h-[44px] text-base font-semibold text-white shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation ${
+                isUrgent
+                  ? 'bg-red-600'
+                  : 'bg-green-600'
+              }`}
+            >
+              {isUrgent && (
+                <svg className="h-5 w-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              {isUrgent ? 'Connect Now' : 'Submit Request'}
             </button>
           </div>
         </div>
@@ -835,9 +886,9 @@ export default function IntakePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/40 p-5 sm:p-6 shadow-sm backdrop-blur">
-      <h2 className="text-base sm:text-lg font-semibold text-white">{title}</h2>
-      <div className="mt-4 grid gap-4">{children}</div>
+    <section className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4 md:p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-white mb-4">{title}</h2>
+      <div className="space-y-4">{children}</div>
     </section>
   )
 }
@@ -873,10 +924,10 @@ function Input({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className={`mt-2 block w-full rounded-xl border px-3 sm:px-4 py-3 sm:py-3.5 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 touch-manipulation ${
+        className={`mt-2 block w-full min-h-[44px] rounded-2xl border px-4 py-3 text-base text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
           error
-            ? 'border-rose-400/60 bg-rose-950/40 focus:border-rose-300 focus:ring-rose-400/60'
-            : 'border-white/10 bg-slate-900/60 focus:border-orange-300 focus:ring-orange-400/60'
+            ? 'border-red-500 bg-slate-900/50 focus:ring-red-500'
+            : 'border-slate-700 bg-slate-900/50 focus:ring-indigo-500'
         }`}
       />
       {error && <span id={`${label}-error`} className="mt-1 block text-xs text-rose-300">{error}</span>}
@@ -916,10 +967,10 @@ function Textarea({
         placeholder={placeholder}
         required={required}
         rows={6}
-        className={`mt-2 block w-full rounded-xl border px-4 py-3 sm:py-4 text-base sm:text-sm text-white placeholder:text-slate-400 placeholder:italic focus:outline-none focus:ring-2 min-h-[140px] sm:min-h-[160px] touch-manipulation ${
+        className={`mt-2 block w-full rounded-2xl border px-4 py-3 text-base text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 min-h-[140px] transition-all ${
           error
-            ? 'border-rose-400/60 bg-rose-950/40 focus:border-rose-300 focus:ring-rose-400/60'
-            : 'border-white/10 bg-slate-900/60 focus:border-orange-300 focus:ring-orange-400/60'
+            ? 'border-red-500 bg-slate-900/50 focus:ring-red-500'
+            : 'border-slate-700 bg-slate-900/50 focus:ring-indigo-500'
         }`}
       />
       {error && <span id={`${label}-error`} className="mt-1 block text-xs text-rose-300">{error}</span>}

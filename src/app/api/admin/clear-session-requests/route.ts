@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 /**
  * ⚠️ ADMIN ONLY: Clear all session requests
@@ -12,14 +12,14 @@ import { requireAdmin } from '@/lib/auth/requireAdmin'
  */
 export async function DELETE(req: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.warn(
-      `[SECURITY] Admin ${auth.profile?.full_name} clearing ALL session requests`
+      `[SECURITY] Admin ${admin.email} clearing ALL session requests`
     )
 
     if (!supabaseAdmin) {
@@ -73,11 +73,11 @@ export async function DELETE(req: NextRequest) {
 // Also support GET to see how many requests exist
 export async function GET(req: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })

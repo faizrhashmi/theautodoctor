@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
@@ -11,8 +11,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await requireAdmin(req);
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req);
   if (!auth.authorized) {
     return auth.response!;
   }
@@ -24,7 +24,7 @@ export async function POST(
     const mechanicId = params.id;
 
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} approving mechanic ${mechanicId}`
+      `[ADMIN ACTION] ${admin.email} approving mechanic ${mechanicId}`
     );
 
     // Update mechanic status
@@ -35,7 +35,7 @@ export async function POST(
         background_check_status: 'approved',
         approved_at: new Date().toISOString(),
         approval_notes: notes || 'Application approved',
-        reviewed_by: auth.user!.id,
+        reviewed_by: admin.id,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', mechanicId);
@@ -48,12 +48,12 @@ export async function POST(
     // Log admin action
     await supabaseAdmin.from('mechanic_admin_actions').insert({
       mechanic_id: mechanicId,
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       action_type: 'approved',
       notes: notes || 'Application approved',
       metadata: {
         approved_at: new Date().toISOString(),
-        admin_name: auth.profile?.full_name || auth.profile?.email
+        admin_name: admin.email || admin.email
       },
     });
 

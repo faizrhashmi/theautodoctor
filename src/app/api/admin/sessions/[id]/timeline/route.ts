@@ -11,9 +11,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   const sessionId = params.id
 
   try {

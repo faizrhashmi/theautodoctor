@@ -1,34 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // ✅ Force dynamic rendering - this route uses cookies for authentication
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate customer
-    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    })
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(request)
+    if (authResult.error) return authResult.error
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} fetching active sessions`)
 
     // Fetch active sessions (pending, live, waiting, or scheduled)
     const { data: sessions, error: sessionsError } = await supabaseAdmin
@@ -42,7 +26,7 @@ export async function GET(request: NextRequest) {
         started_at,
         mechanic_id
       `)
-      .eq('customer_user_id', user.id)
+      .eq('customer_user_id', customer.id)
       .in('status', ['pending', 'live', 'waiting', 'scheduled'])
       .order('created_at', { ascending: false })
 

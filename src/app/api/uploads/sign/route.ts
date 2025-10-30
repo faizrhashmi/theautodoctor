@@ -13,11 +13,7 @@ function bad(msg: string, status = 400) {
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured on server', 500);
 
-  // SECURITY: Verify user is authenticated (customer or mechanic)
-  let userId: string | null = null;
-  let userType: 'customer' | 'mechanic' | null = null;
-
-  // Try Supabase auth first (customers/admins)
+  // ✅ SECURITY: Verify user is authenticated using Supabase Auth (unified)
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       get(name: string) {
@@ -30,34 +26,14 @@ export async function POST(req: NextRequest) {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (user && !authError) {
-    userId = user.id;
-    userType = 'customer';
-    console.log('[Upload Sign] Customer authenticated:', userId);
-  } else {
-    // Try mechanic auth
-    const mechanicToken = req.cookies.get('aad_mech')?.value;
-
-    if (mechanicToken) {
-      const { data: mechanicSession } = await supabaseAdmin
-        .from('mechanic_sessions')
-        .select('mechanic_id, expires_at')
-        .eq('token', mechanicToken)
-        .maybeSingle();
-
-      if (mechanicSession && new Date(mechanicSession.expires_at) > new Date()) {
-        userId = mechanicSession.mechanic_id;
-        userType = 'mechanic';
-        console.log('[Upload Sign] Mechanic authenticated:', userId);
-      }
-    }
-  }
-
   // Reject if not authenticated
-  if (!userId) {
-    console.warn('[Upload Sign] Unauthorized upload attempt');
+  if (!user || authError) {
+    console.warn('[Upload Sign] Unauthorized upload attempt:', authError?.message);
     return bad('Unauthorized: You must be authenticated to upload files', 401);
   }
+
+  const userId = user.id;
+  console.log('[Upload Sign] User authenticated:', userId);
 
   const { filename, contentType } = await req.json().catch(() => ({}));
   if (!filename) return bad('filename required');

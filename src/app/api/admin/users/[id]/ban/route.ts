@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,12 +10,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req);
-    if (!auth.authorized) {
-      return auth.response!;
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
+    if (authResult.error) return authResult.error;
 
+    const admin = authResult.data;
     const userId = params.id;
     const body = await req.json();
     const { reason } = body;
@@ -26,7 +25,7 @@ export async function POST(
 
     // Log the ban action
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name || auth.profile?.email} banning user ${userId} - Reason: ${reason}`
+      `[ADMIN ACTION] ${admin.email} banning user ${userId} - Reason: ${reason}`
     );
 
     // Update user profile
@@ -54,12 +53,12 @@ export async function POST(
 
     // Log admin action
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       target_user_id: userId,
       action_type: 'ban',
       reason,
       metadata: {
-        admin_name: auth.profile?.full_name || auth.profile?.email,
+        admin_name: admin.email,
         timestamp: new Date().toISOString(),
       },
     });

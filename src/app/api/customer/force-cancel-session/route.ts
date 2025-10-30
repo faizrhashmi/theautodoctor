@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 /**
@@ -13,15 +13,12 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(request)
+    if (authResult.error) return authResult.error
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} force cancelling session`)
 
     const body = await request.json()
     const { sessionId } = body
@@ -38,7 +35,7 @@ export async function POST(request: NextRequest) {
       .from('sessions')
       .select('id, status, customer_user_id')
       .eq('id', sessionId)
-      .eq('customer_user_id', user.id)
+      .eq('customer_user_id', customer.id)
       .single()
 
     if (sessionError || !session) {

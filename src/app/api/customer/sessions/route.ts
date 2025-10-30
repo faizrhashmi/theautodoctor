@@ -1,30 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import type { Database } from '@/types/supabase'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function GET(req: NextRequest) {
   try {
-    const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    })
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} fetching sessions`)
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -42,7 +27,7 @@ export async function GET(req: NextRequest) {
         ended_at,
         metadata
       `)
-      .eq('customer_user_id', user.id)
+      .eq('customer_user_id', customer.id)
       .order('created_at', { ascending: false })
 
     if (sessionsError) {

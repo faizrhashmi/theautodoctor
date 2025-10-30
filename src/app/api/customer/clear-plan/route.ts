@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(req: NextRequest) {
-  const supabase = getSupabaseServer()
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(req)
+  if (authResult.error) return authResult.error
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.redirect(new URL('/customer/login', req.url))
-  }
+  const customer = authResult.data
+  console.log(`[CUSTOMER] ${customer.email} clearing plan`)
 
   // Clear the preferred_plan using admin client for proper permissions
   const { error } = await supabaseAdmin
     .from('profiles')
     .update({ preferred_plan: null })
-    .eq('id', user.id)
+    .eq('id', customer.id)
 
   if (error) {
     console.error('Failed to clear plan:', error)

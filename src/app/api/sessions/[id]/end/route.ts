@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
 import { PRICING, type PlanKey } from '@/config/pricing'
-import type { Database } from '@/types/supabase'
 import { canTransition } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
 import { logInfo } from '@/lib/log'
 import { sendSessionEndedEmail } from '@/lib/email/templates'
 import { trackInteraction, generateUpsellsForSession } from '@/lib/crm'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const MECHANIC_SHARE = 0.7 // 70% to mechanic, 30% to platform
 
 /**
@@ -48,38 +45,12 @@ export async function POST(
 ) {
   const sessionId = params.id
 
-  const supabaseClient = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return req.cookies.get(name)?.value
-      },
-      set() {},
-      remove() {},
-    },
-  })
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
 
-  // Check for customer auth (Supabase)
-  const {
-    data: { user },
-  } = await supabaseClient.auth.getUser()
-
-  // Check for mechanic auth (custom cookie-based)
-  let mechanicId: string | null = null
-  const token = req.cookies.get('aad_mech')?.value
-  if (token) {
-    const { data: session } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle()
-    mechanicId = session?.mechanic_id || null
-  }
-
-  // Must be authenticated as either customer or mechanic
-  if (!user && !mechanicId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const participant = authResult.data
+  console.log(`[POST /sessions/${sessionId}/end] ${participant.role} ending session ${participant.sessionId}`)
 
   // Fetch full session details using admin client (bypasses RLS)
   const { data: session, error: sessionError } = await supabaseAdmin
@@ -93,19 +64,9 @@ export async function POST(
     return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   }
 
-  // Verify authorization: must be the customer who created the session OR the assigned mechanic
-  const isCustomer = user && session.customer_user_id === user.id
-  const isMechanic = mechanicId && session.mechanic_id === mechanicId
-
-  if (!isCustomer && !isMechanic) {
-    console.log('[end session] Authorization failed:', {
-      hasUser: !!user,
-      hasMechanic: !!mechanicId,
-      sessionCustomerId: session.customer_user_id,
-      sessionMechanicId: session.mechanic_id,
-    })
-    return NextResponse.json({ error: 'Not authorized to end this session' }, { status: 403 })
-  }
+  // Determine role from participant data
+  const isCustomer = participant.role === 'customer'
+  const isMechanic = participant.role === 'mechanic'
 
   const now = new Date().toISOString()
   const acceptHeader = req.headers.get('accept')
@@ -245,6 +206,47 @@ export async function POST(
         ended_by: isCustomer ? 'customer' : 'mechanic',
       },
     })
+
+    // CRITICAL FIX: Create notifications for no-show scenario
+    const noShowNotifications = []
+
+    if (session.customer_user_id) {
+      noShowNotifications.push({
+        user_id: session.customer_user_id,
+        type: 'session_cancelled',
+        payload: {
+          session_id: sessionId,
+          session_type: session.type,
+          reason: 'Session ended before starting (no-show)',
+          ended_by: isCustomer ? 'customer' : 'mechanic'
+        }
+      })
+    }
+
+    if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
+      noShowNotifications.push({
+        user_id: session.mechanic_id,
+        type: 'session_cancelled',
+        payload: {
+          session_id: sessionId,
+          session_type: session.type,
+          reason: 'Session ended before starting (no-show)',
+          ended_by: isMechanic ? 'mechanic' : 'customer'
+        }
+      })
+    }
+
+    if (noShowNotifications.length > 0) {
+      const { error: notificationError } = await supabaseAdmin
+        .from('notifications')
+        .insert(noShowNotifications)
+
+      if (notificationError) {
+        console.error('[end session] Failed to create no-show notifications:', notificationError)
+      } else {
+        console.log(`[end session] ✓ Created ${noShowNotifications.length} notification(s) for no-show`)
+      }
+    }
 
     // Broadcast session ended event
     try {
@@ -476,6 +478,48 @@ export async function POST(
 
     // Generate upsell recommendations for this completed session
     void generateUpsellsForSession(session.id)
+  }
+
+  // CRITICAL FIX: Create notifications for both participants
+  const notifications = []
+
+  if (session.customer_user_id) {
+    notifications.push({
+      user_id: session.customer_user_id,
+      type: 'session_completed',
+      payload: {
+        session_id: sessionId,
+        session_type: session.type,
+        ended_by: isCustomer ? 'customer' : 'mechanic',
+        duration_minutes: durationMinutes
+      }
+    })
+  }
+
+  if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
+    notifications.push({
+      user_id: session.mechanic_id,
+      type: 'session_completed',
+      payload: {
+        session_id: sessionId,
+        session_type: session.type,
+        ended_by: isMechanic ? 'mechanic' : 'customer',
+        duration_minutes: durationMinutes
+      }
+    })
+  }
+
+  if (notifications.length > 0) {
+    const { error: notificationError } = await supabaseAdmin
+      .from('notifications')
+      .insert(notifications)
+
+    if (notificationError) {
+      console.error('[end session] Failed to create notifications:', notificationError)
+      // Don't fail the request - log and continue
+    } else {
+      console.log(`[end session] ✓ Created ${notifications.length} notification(s) for session completion`)
+    }
   }
 
   // Broadcast session ended event

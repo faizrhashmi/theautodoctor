@@ -97,7 +97,7 @@ export default function QuickNav() {
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/30 transition-all whitespace-nowrap"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>Logout</span>
           </button>
         </div>
 
@@ -119,7 +119,7 @@ export default function QuickNav() {
           <button
             onClick={handleSignOut}
             className="flex items-center justify-center p-2 rounded-lg text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/30 transition-all"
-            title="Sign Out"
+            title="Logout"
           >
             <LogOut className="w-5 h-5" />
           </button>

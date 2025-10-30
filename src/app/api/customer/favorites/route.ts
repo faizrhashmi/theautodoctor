@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 /**
@@ -8,17 +9,12 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  */
 export async function GET(req: NextRequest) {
   try {
-    // TODO: Get customer ID from authenticated session
-    // For now, using query parameter
-    const searchParams = req.nextUrl.searchParams
-    const customerId = searchParams.get('customer_id')
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'Customer ID is required' },
-        { status: 400 }
-      )
-    }
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} fetching favorites`)
 
     // Get favorites with provider details
     const { data: favorites, error } = await supabaseAdmin
@@ -42,7 +38,7 @@ export async function GET(req: NextRequest) {
           email
         )
       `)
-      .eq('customer_id', customerId)
+      .eq('customer_id', customer.id)
       .order('last_service_at', { ascending: false, nullsFirst: false })
 
     if (error) {
@@ -88,25 +84,30 @@ export async function GET(req: NextRequest) {
  *
  * Body:
  * {
- *   customer_id: string,
  *   provider_id: string,
  *   provider_type: 'workshop' | 'independent'
  * }
  */
 export async function POST(req: NextRequest) {
   try {
+    // ✅ SECURITY: Require customer authentication
+    const authResult = await requireCustomerAPI(req)
+    if (authResult.error) return authResult.error
+
+    const customer = authResult.data
+    console.log(`[CUSTOMER] ${customer.email} adding favorite`)
+
     const body = await req.json()
 
     const {
-      customer_id,
       provider_id,
       provider_type
     } = body
 
     // Validate required fields
-    if (!customer_id || !provider_id || !provider_type) {
+    if (!provider_id || !provider_type) {
       return NextResponse.json(
-        { error: 'customer_id, provider_id, and provider_type are required' },
+        { error: 'provider_id and provider_type are required' },
         { status: 400 }
       )
     }
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabaseAdmin
       .from('customer_favorites')
       .select('id')
-      .eq('customer_id', customer_id)
+      .eq('customer_id', customer.id)
       .eq(provider_type === 'workshop' ? 'workshop_id' : 'mechanic_id', provider_id)
       .single()
 
@@ -137,7 +138,7 @@ export async function POST(req: NextRequest) {
     const { data: favorite, error: insertError } = await supabaseAdmin
       .from('customer_favorites')
       .insert({
-        customer_id: customer_id,
+        customer_id: customer.id,
         mechanic_id: provider_type === 'independent' ? provider_id : null,
         workshop_id: provider_type === 'workshop' ? provider_id : null,
         total_services: 0,

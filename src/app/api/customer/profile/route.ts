@@ -1,48 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { Database } from '@/types/supabase'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
 export async function GET(request: NextRequest) {
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set() {},
-      remove() {},
-    },
-  })
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(request)
+  if (authResult.error) return authResult.error
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const customer = authResult.data
+  console.log(`[CUSTOMER] ${customer.email} fetching profile`)
 
   // Fetch profile from database
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('id, full_name, phone, city, email, preferred_plan')
-    .eq('id', user.id)
+    .eq('id', customer.id)
     .single()
 
   if (profileError) {
     console.error('Profile fetch error:', profileError)
-    // Return user data even if profile doesn't exist yet
+    // Return customer data even if profile doesn't exist yet
     return NextResponse.json({
       profile: {
-        full_name: user.user_metadata?.full_name || '',
-        email: user.email || '',
-        phone: user.user_metadata?.phone || '',
+        full_name: '',
+        email: customer.email,
+        phone: '',
         city: '',
       }
     })
@@ -51,7 +36,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     profile: {
       full_name: profile.full_name || '',
-      email: profile.email || user.email || '',
+      email: profile.email || customer.email,
       phone: profile.phone || '',
       city: profile.city || '',
     }
@@ -59,32 +44,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set() {},
-      remove() {},
-    },
-  })
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(request)
+  if (authResult.error) return authResult.error
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const customer = authResult.data
+  console.log(`[CUSTOMER] ${customer.email} updating profile`)
 
   const body = await request.json().catch(() => ({} as Record<string, unknown>))
 
   const update: ProfileInsert = {
-    id: user.id,
+    id: customer.id,
     role: 'customer',
-    // Set email_verified to true if user's email is confirmed
-    email_verified: !!user.email_confirmed_at,
+    // Set email_verified to true if customer's email is confirmed
+    email_verified: customer.emailConfirmed,
   }
 
   if (typeof body.plan === 'string') {
@@ -109,14 +82,10 @@ export async function POST(request: NextRequest) {
 
   if (fullNameInput) {
     update.full_name = fullNameInput
-  } else if (user.user_metadata?.full_name) {
-    update.full_name = String(user.user_metadata.full_name)
   }
 
   if (phoneInput) {
     update.phone = phoneInput
-  } else if (user.user_metadata?.phone) {
-    update.phone = String(user.user_metadata.phone)
   }
 
   if (cityInput) {
@@ -125,14 +94,10 @@ export async function POST(request: NextRequest) {
 
   if (vehicleInput) {
     update.vehicle_hint = vehicleInput
-  } else if (user.user_metadata?.vehicle_hint) {
-    update.vehicle_hint = String(user.user_metadata.vehicle_hint)
   }
 
   if (dobInput) {
     update.date_of_birth = dobInput
-  } else if (user.user_metadata?.date_of_birth) {
-    update.date_of_birth = String(user.user_metadata.date_of_birth)
   }
 
   console.log('Upserting profile with data:', update)

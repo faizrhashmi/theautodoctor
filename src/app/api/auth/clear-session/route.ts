@@ -27,19 +27,8 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  // Also clear mechanic cookies
-  const otherCookies = ['aad_mech']
-  otherCookies.forEach((name) => {
-    response.cookies.set({
-      name,
-      value: '',
-      maxAge: 0,
-      path: '/',
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-    })
-  })
+  // CLEANED UP: Removed aad_mech cookie clearing (deprecated old mechanic auth)
+  // All auth now handled by Supabase cookies (cleared above)
 
   console.log('[clear-session] All cookies cleared')
 

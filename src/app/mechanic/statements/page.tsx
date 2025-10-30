@@ -44,8 +44,6 @@ interface StatementData {
 export default function MechanicStatementsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [statement, setStatement] = useState<StatementData | null>(null)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState<number | null>(new Date().getMonth() + 1)
@@ -58,30 +56,9 @@ export default function MechanicStatementsPage() {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     fetchStatement()
-  }, [selectedYear, selectedMonth, isAuthenticated])
+  }, [selectedYear, selectedMonth])
 
   const fetchStatement = async () => {
     try {

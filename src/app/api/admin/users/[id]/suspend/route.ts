@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,12 +11,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req);
-    if (!auth.authorized) {
-      return auth.response!;
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
+    if (authResult.error) return authResult.error;
 
+    const admin = authResult.data;
     const userId = params.id;
     const body = await req.json();
     const { reason, duration_days } = body;
@@ -30,7 +29,7 @@ export async function POST(
 
     // Log the suspension action
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name || auth.profile?.email} suspending user ${userId} for ${duration_days} days - Reason: ${reason}`
+      `[ADMIN ACTION] ${admin.email} suspending user ${userId} for ${duration_days} days - Reason: ${reason}`
     );
 
     // Calculate suspension end date
@@ -62,7 +61,7 @@ export async function POST(
 
     // Log admin action
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: adminUser.id,
+      admin_id: admin.id,
       target_user_id: userId,
       action_type: 'suspend',
       reason,

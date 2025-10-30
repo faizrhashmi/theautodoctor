@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 /**
  * PATCH /api/admin/fees/rules/[ruleId]
@@ -12,13 +12,13 @@ export async function PATCH(
   { params }: { params: { ruleId: string } }
 ) {
   try {
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/fees] update rule', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       ruleId,
     })
 
@@ -95,13 +95,13 @@ export async function DELETE(
   { params }: { params: { ruleId: string } }
 ) {
   try {
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/fees] delete rule', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       ruleId,
     })
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,8 +11,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req);
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
     if (!auth.authorized) {
       return auth.response!;
     }
@@ -26,7 +26,7 @@ export async function POST(
     }
 
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} sending notification to user ${userId}`
+      `[ADMIN ACTION] ${admin.email} sending notification to user ${userId}`
     );
 
     // Get user email
@@ -38,12 +38,12 @@ export async function POST(
 
     // Log admin action
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       target_user_id: userId,
       action_type: 'send_notification',
       metadata: {
         message,
-        admin_name: auth.profile?.full_name || auth.profile?.email
+        admin_name: admin.email || admin.email
       },
     });
 

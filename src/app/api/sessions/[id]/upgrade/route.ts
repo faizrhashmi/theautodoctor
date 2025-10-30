@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 /**
@@ -15,8 +16,16 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionId = params.id
+
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[PATCH /sessions/${sessionId}/upgrade] ${participant.role} upgrading session ${participant.sessionId}`)
+
   try {
-    const sessionId = params.id
     const body = await req.json()
 
     const {

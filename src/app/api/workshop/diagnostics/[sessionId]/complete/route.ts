@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { canDiagnose } from '@/lib/auth/permissions'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/workshop/diagnostics/[sessionId]/complete
@@ -23,6 +24,13 @@ export async function POST(
   { params }: { params: { sessionId: string } }
 ) {
   try {
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) completing diagnosis`)
+
     const sessionId = params.sessionId
     const body = await req.json()
 
@@ -73,20 +81,16 @@ export async function POST(
       )
     }
 
-    // TODO: Get mechanic ID from authenticated session
-    // For now, using the mechanic_id from the session
-    const mechanicId = session.mechanic_id
-
-    // Check if mechanic has permission to diagnose
-    if (session.workshop_id) {
-      const hasPermission = await canDiagnose(session.workshop_id, mechanicId)
-      if (!hasPermission) {
-        return NextResponse.json(
-          { error: 'You do not have permission to complete diagnoses' },
-          { status: 403 }
-        )
-      }
+    // Verify session belongs to this workshop
+    if (session.workshop_id !== workshop.organizationId) {
+      return NextResponse.json(
+        { error: 'This diagnostic session does not belong to your workshop' },
+        { status: 403 }
+      )
     }
+
+    // Use the authenticated workshop user for tracking
+    const mechanicId = workshop.userId
 
     // Update the diagnostic session with findings
     const { error: updateError } = await supabaseAdmin
@@ -141,6 +145,13 @@ export async function GET(
   { params }: { params: { sessionId: string } }
 ) {
   try {
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) checking diagnosis completion status`)
+
     const sessionId = params.sessionId
 
     // Load the diagnostic session
@@ -154,6 +165,14 @@ export async function GET(
       return NextResponse.json(
         { error: 'Diagnostic session not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify session belongs to this workshop
+    if (session.workshop_id !== workshop.organizationId) {
+      return NextResponse.json(
+        { error: 'This diagnostic session does not belong to your workshop' },
+        { status: 403 }
       )
     }
 

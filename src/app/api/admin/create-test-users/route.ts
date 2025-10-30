@@ -1,11 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards';
 import { createClient } from '@supabase/supabase-js';
-import { hashPassword } from '@/lib/auth';
+
+// CLEANED UP: Removed hashPassword import (deprecated old auth function)
+// Mechanic records no longer store password_hash - they use Supabase Auth
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export async function POST(req: NextRequest) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -129,9 +138,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Hash password for mechanics table (using scrypt)
-      const password_hash = hashPassword(password);
-
+      // CLEANED UP: Removed password_hash - mechanics now use Supabase Auth
       // Check if mechanic record exists
       const { data: existingMech } = await supabase
         .from('mechanics')
@@ -141,13 +148,13 @@ export async function POST(req: NextRequest) {
 
       console.log('[CREATE MECHANIC] Existing mechanic:', existingMech);
 
-      // Create or update mechanic record (don't set account_type, let it default)
+      // Create or update mechanic record (linked to Supabase Auth)
       const insertData: any = {
         id: existingMech?.id,  // Preserve existing ID if found
         email: email,
         name: `Mechanic ${i + 1}`,
         phone: `416-555-020${i}`,
-        password_hash: password_hash,
+        user_id: authData.data.user.id, // Link to Supabase Auth
         application_status: 'approved',
         is_available: true,
         can_accept_sessions: true,
@@ -158,6 +165,28 @@ export async function POST(req: NextRequest) {
       // Only set account_type if updating existing record
       if (existingMech) {
         insertData.account_type = 'independent';
+      }
+
+      // Create or update profile for the mechanic
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.data.user.id,
+          email: email,
+          full_name: `Mechanic ${i + 1}`,
+          phone: `416-555-020${i}`,
+          role: 'mechanic',
+          account_type: 'individual_customer',
+          email_verified: true,
+          is_18_plus: true,
+          profile_completed: true,
+          onboarding_completed: true
+        }, {
+          onConflict: 'id'
+        });
+
+      if (profileError) {
+        console.error(`Failed to create mechanic profile: ${email}`, profileError);
       }
 
       const { data: mechData, error: mechError } = await supabase

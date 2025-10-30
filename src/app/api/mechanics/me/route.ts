@@ -1,64 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
+/**
+ * GET /api/mechanics/me
+ * Get current authenticated mechanic's profile
+ * UPDATED: Now uses Supabase Auth (unified system)
+ */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  console.log('[MECHANIC ME API] Checking mechanic authentication...')
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  // Use unified auth guard
+  const result = await requireMechanicAPI(req)
+  if (result.error) {
+    console.log('[MECHANIC ME API] Auth failed')
+    return result.error
   }
 
-  if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
+  const mechanic = result.data
+  console.log('[MECHANIC ME API] Mechanic authenticated:', mechanic.id)
 
-  try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    console.log('[MECHANIC ME] Session lookup:', { found: !!session, error: sessionError?.message })
-
-    if (sessionError || !session) {
-      console.log('[MECHANIC ME] Invalid session - token not found in database')
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      console.log('[MECHANIC ME] Session expired')
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    console.log('[MECHANIC ME] Valid session, looking up mechanic:', session.mechanic_id)
-
-    // Get mechanic data (selecting only essential columns that exist)
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
-      .from('mechanics')
-      .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-      .eq('id', session.mechanic_id)
-      .single()
-
-    console.log('[MECHANIC ME] Mechanic lookup:', { found: !!mechanic, error: mechanicError?.message })
-
-    if (mechanicError || !mechanic) {
-      console.log('[MECHANIC ME] Mechanic not found in database')
-      return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({
-      id: mechanic.id,
-      name: mechanic.name,
-      email: mechanic.email,
-      stripeConnected: !!mechanic.stripe_account_id,
-      payoutsEnabled: !!mechanic.stripe_payouts_enabled,
-      sinCollected: false, // Default to false since column doesn't exist yet
-    })
-  } catch (error) {
-    console.error('[MECHANIC ME API] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  return NextResponse.json({
+    id: mechanic.id,
+    user_id: mechanic.userId,
+    name: mechanic.name,
+    email: mechanic.email,
+    stripeConnected: !!mechanic.stripeAccountId,
+    payoutsEnabled: !!mechanic.stripePayoutsEnabled,
+    service_tier: mechanic.serviceTier || 'virtual_only',
+    sinCollected: false, // Default to false
+  })
 }

@@ -1,37 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-async function getMechanicFromCookie(_req: NextRequest) {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
-
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 export async function GET(req: NextRequest) {
-  const mechanic = await getMechanicFromCookie(req)
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!mechanic) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   // Fetch request history (accepted and cancelled requests)
   const { data: history, error } = await supabaseAdmin

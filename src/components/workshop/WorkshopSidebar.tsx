@@ -69,11 +69,11 @@ export default function WorkshopSidebar() {
       })
 
       // Force hard redirect to clear any cached state
-      window.location.href = '/'
+      window.location.href = '/workshop/login'
     } catch (error) {
       console.error('Sign out error:', error)
       // Still redirect even if error
-      window.location.href = '/'
+      window.location.href = '/workshop/login'
     }
   }
 
@@ -135,13 +135,13 @@ export default function WorkshopSidebar() {
 
           {/* Bottom Actions - Compact */}
           <div className="p-3 border-t border-slate-800 space-y-2">
-            {/* Sign Out Button */}
+            {/* Logout Button */}
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all"
             >
               <LogOut className="h-4 w-4" />
-              <span className="flex-1 text-left">Sign Out</span>
+              <span className="flex-1 text-left">Logout</span>
             </button>
           </div>
         </div>

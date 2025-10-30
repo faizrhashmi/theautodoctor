@@ -2,7 +2,7 @@
 // app/api/admin/intakes/query/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import type { IntakeStatus } from '@/types/supabase'
 
 // --- Runtime & caching (important for admin APIs) ---
@@ -46,13 +46,13 @@ function toISODateBounds(from?: string | null, to?: string | null) {
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/intakes] query', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       url: req.url,
     })
 

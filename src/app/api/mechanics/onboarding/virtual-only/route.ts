@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanics/onboarding/virtual-only
@@ -21,32 +22,17 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * }
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Parse request body
     const body = await req.json()
@@ -80,7 +66,7 @@ export async function POST(req: NextRequest) {
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .select('id, service_tier, onboarding_completed')
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
       .single()
 
     if (mechanicError || !mechanic) {
@@ -114,7 +100,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await supabaseAdmin
       .from('mechanics')
       .update(updates)
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
 
     if (updateError) {
       console.error('[VIRTUAL ONLY ONBOARDING API] Update error:', updateError)
@@ -126,7 +112,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Onboarding completed! You can now start accepting virtual consultation requests.',
       redirect_url: '/mechanics/dashboard',
-      mechanic_id: session.mechanic_id,
+      mechanic_id: mechanic.id,
       service_tier: 'virtual_only',
       can_accept_sessions: true
     })
@@ -143,32 +129,17 @@ export async function POST(req: NextRequest) {
  * Get current onboarding progress for virtual-only mechanics
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Get mechanic profile
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
@@ -189,7 +160,7 @@ export async function GET(req: NextRequest) {
         onboarding_completed,
         is_active
       `)
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
       .single()
 
     if (mechanicError || !mechanic) {

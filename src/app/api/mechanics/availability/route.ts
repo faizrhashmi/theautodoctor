@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanics/availability
@@ -12,32 +13,17 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * }
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Parse request body
     const body = await req.json()
@@ -56,7 +42,7 @@ export async function POST(req: NextRequest) {
         is_active: is_active,
         updated_at: new Date().toISOString()
       })
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
 
     if (updateError) {
       console.error('[AVAILABILITY API] Update error:', updateError)
@@ -83,38 +69,23 @@ export async function POST(req: NextRequest) {
  * Get current availability status
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Get mechanic availability
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .select('is_active')
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
       .single()
 
     if (mechanicError || !mechanic) {

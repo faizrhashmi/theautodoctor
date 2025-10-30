@@ -4,6 +4,8 @@
  * SECURITY: These functions enforce role-based access control across the application.
  * All protected routes and API endpoints MUST use these guards.
  *
+ * UPDATED: Unified authentication - mechanics now use Supabase Auth
+ *
  * @module auth/guards
  */
 
@@ -12,6 +14,10 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getSupabaseServer } from '@/lib/supabaseServer'
+import { createServerClient } from '@supabase/ssr'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -25,6 +31,8 @@ export interface AuthenticatedMechanic {
   email: string
   stripeAccountId: string | null
   stripePayoutsEnabled: boolean
+  serviceTier?: string | null
+  userId?: string | null
 }
 
 export interface AuthenticatedCustomer {
@@ -40,12 +48,21 @@ export interface AuthenticatedAdmin {
   role: string
 }
 
+export interface AuthenticatedWorkshop {
+  userId: string
+  organizationId: string
+  organizationName: string
+  role: string
+  email: string
+}
+
 // ============================================================================
 // SERVER COMPONENT GUARDS (for pages using Next.js server components)
 // ============================================================================
 
 /**
  * Require mechanic authentication in server component
+ * UPDATED: Now uses Supabase Auth (unified system)
  *
  * @throws Redirects to login if not authenticated
  * @returns Authenticated mechanic data
@@ -59,32 +76,34 @@ export interface AuthenticatedAdmin {
 export async function requireMechanic(
   redirectTo?: string
 ): Promise<AuthenticatedMechanic> {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+  const supabase = getSupabaseServer()
 
-  if (!token) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
     const loginUrl = `/mechanic/login${redirectTo ? `?redirect=${redirectTo}` : ''}`
     redirect(loginUrl)
   }
 
-  // Verify session is valid and not expired
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
+  // Check if user is a mechanic by checking profile role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
     .maybeSingle()
 
-  if (!session) {
-    const loginUrl = `/mechanic/login${redirectTo ? `?redirect=${redirectTo}` : ''}`
-    redirect(loginUrl)
+  if (!profile || profile.role !== 'mechanic') {
+    console.log('[requireMechanic] User is not a mechanic, redirecting...')
+    redirect('/mechanic/login')
   }
 
-  // Load full mechanic profile
+  // Load full mechanic profile using user_id
   const { data: mechanic, error } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-    .eq('id', session.mechanic_id)
+    .select('id, name, email, stripe_account_id, stripe_payouts_enabled, service_tier, user_id')
+    .eq('user_id', user.id)
     .single()
 
   if (error || !mechanic) {
@@ -98,6 +117,8 @@ export async function requireMechanic(
     email: mechanic.email,
     stripeAccountId: mechanic.stripe_account_id,
     stripePayoutsEnabled: mechanic.stripe_payouts_enabled ?? false,
+    serviceTier: mechanic.service_tier,
+    userId: mechanic.user_id,
   }
 }
 
@@ -197,6 +218,7 @@ export async function requireAdmin(
 
 /**
  * Require mechanic authentication in API route
+ * UPDATED: Now uses Supabase Auth (unified system)
  *
  * @returns Authenticated mechanic data or error response
  *
@@ -210,47 +232,57 @@ export async function requireAdmin(
  * }
  */
 export async function requireMechanicAPI(
-  _req: NextRequest
+  req: NextRequest
 ): Promise<
   | { data: AuthenticatedMechanic; error: null }
   | { data: null; error: NextResponse }
 > {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+  const supabaseClient = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return req.cookies.get(name)?.value
+      },
+      set() {},
+      remove() {},
+    },
+  })
 
-  if (!token) {
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser()
+
+  if (!user) {
     return {
       data: null,
       error: NextResponse.json(
-        { error: 'Unauthorized - No mechanic token' },
+        { error: 'Unauthorized - Not authenticated' },
         { status: 401 }
       ),
     }
   }
 
-  // Verify session
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
+  // Check if user is a mechanic
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
     .maybeSingle()
 
-  if (!session) {
+  if (!profile || profile.role !== 'mechanic') {
     return {
       data: null,
       error: NextResponse.json(
-        { error: 'Unauthorized - Invalid or expired token' },
-        { status: 401 }
+        { error: 'Forbidden - Mechanic access required' },
+        { status: 403 }
       ),
     }
   }
 
-  // Load mechanic profile
+  // Load mechanic profile using user_id
   const { data: mechanic, error } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-    .eq('id', session.mechanic_id)
+    .select('id, name, email, stripe_account_id, stripe_payouts_enabled, service_tier, user_id')
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (error || !mechanic) {
@@ -271,6 +303,8 @@ export async function requireMechanicAPI(
       email: mechanic.email,
       stripeAccountId: mechanic.stripe_account_id,
       stripePayoutsEnabled: mechanic.stripe_payouts_enabled ?? false,
+      serviceTier: mechanic.service_tier,
+      userId: mechanic.user_id,
     },
     error: null,
   }
@@ -396,33 +430,133 @@ export async function requireAdminAPI(
   }
 }
 
+/**
+ * Require workshop authentication in API route
+ *
+ * @returns Authenticated workshop data or error response
+ *
+ * @example
+ * export async function GET(req: NextRequest) {
+ *   const result = await requireWorkshopAPI(req)
+ *   if (result.error) return result.error
+ *
+ *   const workshop = result.data
+ *   // ...
+ * }
+ */
+export async function requireWorkshopAPI(
+  req: NextRequest
+): Promise<
+  | { data: AuthenticatedWorkshop; error: null }
+  | { data: null; error: NextResponse }
+> {
+  const supabaseClient = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return req.cookies.get(name)?.value
+      },
+      set() {},
+      remove() {},
+    },
+  })
+
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser()
+
+  if (!user) {
+    return {
+      data: null,
+      error: NextResponse.json(
+        { error: 'Unauthorized - Not authenticated' },
+        { status: 401 }
+      ),
+    }
+  }
+
+  // Check if user is a workshop member via organization_members table
+  const { data: membership, error: membershipError } = await supabaseAdmin
+    .from('organization_members')
+    .select(`
+      user_id,
+      organization_id,
+      role,
+      organizations!inner (
+        id,
+        name,
+        type
+      )
+    `)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (membershipError || !membership) {
+    return {
+      data: null,
+      error: NextResponse.json(
+        { error: 'Forbidden - Workshop membership required' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  // Verify the organization is a workshop
+  const organization = membership.organizations as any
+  if (!organization || organization.type !== 'workshop') {
+    return {
+      data: null,
+      error: NextResponse.json(
+        { error: 'Forbidden - Workshop access required' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  return {
+    data: {
+      userId: user.id,
+      organizationId: membership.organization_id,
+      organizationName: organization.name,
+      role: membership.role,
+      email: user.email ?? '',
+    },
+    error: null,
+  }
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
 /**
  * Get current mechanic without requiring authentication (returns null if not authenticated)
+ * UPDATED: Now uses Supabase Auth (unified system)
  * Useful for optional authentication scenarios
  */
 export async function getCurrentMechanic(): Promise<AuthenticatedMechanic | null> {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
+  const supabase = getSupabaseServer()
 
-  if (!token) return null
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
+  if (!user) return null
+
+  // Check if user is a mechanic
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
     .maybeSingle()
 
-  if (!session) return null
+  if (!profile || profile.role !== 'mechanic') return null
 
+  // Load mechanic profile
   const { data: mechanic } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email, stripe_account_id, stripe_payouts_enabled')
-    .eq('id', session.mechanic_id)
+    .select('id, name, email, stripe_account_id, stripe_payouts_enabled, service_tier, user_id')
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (!mechanic) return null
@@ -433,6 +567,8 @@ export async function getCurrentMechanic(): Promise<AuthenticatedMechanic | null
     email: mechanic.email,
     stripeAccountId: mechanic.stripe_account_id,
     stripePayoutsEnabled: mechanic.stripe_payouts_enabled ?? false,
+    serviceTier: mechanic.service_tier,
+    userId: mechanic.user_id,
   }
 }
 

@@ -56,48 +56,48 @@ async function getHandler(req: NextRequest) {
       isCustomerForThisSession: user?.id === session.customer_user_id,
     }
 
-    // Check mechanic auth (cookie)
+    // CLEANED UP: Check mechanic auth (Supabase Auth - unified system)
+    // Check if user is a mechanic
+    results.mechanicAuth = {
+      authenticated: false,
+      mechanicId: null,
+      isMechanicForThisSession: false,
+    }
+
+    if (user) {
+      // Check if user is a mechanic by checking profile role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (profile?.role === 'mechanic') {
+        // Get mechanic record
+        const { data: mechanic } = await supabaseAdmin
+          .from('mechanics')
+          .select('id, name, email')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (mechanic) {
+          results.mechanicAuth = {
+            authenticated: true,
+            mechanicId: mechanic.id,
+            mechanicDetails: mechanic,
+            isMechanicForThisSession: mechanic.id === session.mechanic_id,
+          }
+        }
+      }
+    }
+
+    // DEBUG: Also check old auth system (for debugging migration issues)
     const cookieStore = cookies()
     const mechanicToken = cookieStore.get('aad_mech')?.value
 
-    results.mechanicAuth = {
-      hasCookie: !!mechanicToken,
-      tokenPreview: mechanicToken ? mechanicToken.substring(0, 15) + '...' : null,
-    }
-
     if (mechanicToken) {
-      // Check if token is valid
-      const { data: mechanicSession, error: tokenError } = await supabaseAdmin
-        .from('mechanic_sessions')
-        .select('mechanic_id, expires_at')
-        .eq('token', mechanicToken)
-        .maybeSingle()
-
-      if (tokenError || !mechanicSession) {
-        results.mechanicAuth.tokenValid = false
-        results.mechanicAuth.tokenError = tokenError?.message || 'Token not found in database'
-      } else {
-        const isExpired = new Date(mechanicSession.expires_at) < new Date()
-        results.mechanicAuth.tokenValid = !isExpired
-        results.mechanicAuth.mechanicId = mechanicSession.mechanic_id
-        results.mechanicAuth.expiresAt = mechanicSession.expires_at
-        results.mechanicAuth.isExpired = isExpired
-        results.mechanicAuth.isMechanicForThisSession = mechanicSession.mechanic_id === session.mechanic_id
-
-        // Get mechanic details
-        if (!isExpired) {
-          const { data: mechanic } = await supabaseAdmin
-            .from('mechanics')
-            .select('id, name, email')
-            .eq('id', mechanicSession.mechanic_id)
-            .maybeSingle()
-
-          results.mechanicAuth.mechanicDetails = mechanic
-        }
-      }
-    } else {
-      results.mechanicAuth.tokenValid = false
-      results.mechanicAuth.reason = 'No mechanic cookie found'
+      results.mechanicAuth.oldAuthWarning = 'DEPRECATED: aad_mech cookie found - should be migrated to Supabase Auth'
+      results.mechanicAuth.oldCookiePresent = true
     }
 
     // Determine expected role
@@ -112,15 +112,15 @@ async function getHandler(req: NextRequest) {
     // Recommendations
     const recommendations: string[] = []
 
-    if (!results.customerAuth.authenticated && !results.mechanicAuth.hasCookie) {
+    if (!results.customerAuth.authenticated && !results.mechanicAuth.authenticated) {
       recommendations.push('Not authenticated as either customer or mechanic')
     }
 
-    if (results.mechanicAuth.hasCookie && !results.mechanicAuth.tokenValid) {
-      recommendations.push('Mechanic cookie exists but is invalid/expired - re-login at /mechanic/login')
+    if (results.mechanicAuth.oldCookiePresent) {
+      recommendations.push('MIGRATION NEEDED: Old aad_mech cookie detected - user should re-login to migrate to Supabase Auth')
     }
 
-    if (results.mechanicAuth.tokenValid && !results.mechanicAuth.isMechanicForThisSession) {
+    if (results.mechanicAuth.authenticated && !results.mechanicAuth.isMechanicForThisSession) {
       recommendations.push('Authenticated as a mechanic, but not the mechanic assigned to this session')
     }
 

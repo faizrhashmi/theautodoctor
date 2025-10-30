@@ -1,10 +1,10 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendEmail } from '@/lib/email/emailService'
 import { mechanicInviteEmail } from '@/lib/email/workshopTemplates'
 import { trackInvitationEvent, trackEmailEvent, EventTimer } from '@/lib/analytics/workshopEvents'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -16,29 +16,34 @@ export async function POST(req: NextRequest) {
   const timer = new EventTimer()
 
   try {
-    // Get authenticated user
-    const supabase = getSupabaseServer()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (authError || !user) {
-      console.log('[WORKSHOP INVITE] Unauthorized access attempt')
-      return bad('Unauthorized', 401)
-    }
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) inviting mechanic`)
 
     const body = await req.json()
     const { organizationId, inviteEmail, role = 'member' } = body
 
-    console.log('[WORKSHOP INVITE] Generating invite for:', inviteEmail, 'to org:', organizationId, 'by user:', user.id)
+    console.log('[WORKSHOP INVITE] Generating invite for:', inviteEmail, 'to org:', organizationId, 'by user:', workshop.userId)
 
     // Validate required fields
     if (!organizationId || !inviteEmail) {
       return bad('Organization ID and email are required')
     }
 
-    // Verify organization exists and is a workshop
+    // Verify the organization ID matches the authenticated workshop
+    if (organizationId !== workshop.organizationId) {
+      return bad('You can only invite mechanics to your own workshop', 403)
+    }
+
+    // Only owners and admins can invite
+    if (!['owner', 'admin'].includes(workshop.role)) {
+      return bad('Only workshop owners and admins can invite mechanics', 403)
+    }
+
+    // Get organization details
     const { data: org, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('id, organization_type, name, status')
@@ -49,25 +54,8 @@ export async function POST(req: NextRequest) {
       return bad('Organization not found', 404)
     }
 
-    if (org.organization_type !== 'workshop') {
-      return bad('Only workshops can invite mechanics', 403)
-    }
-
     if (org.status !== 'active') {
       return bad('Workshop must be active to invite mechanics', 403)
-    }
-
-    // Verify inviter is owner or admin of the organization
-    const { data: membership } = await supabaseAdmin
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', organizationId)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
-
-    if (!membership || !['owner', 'admin'].includes(membership.role)) {
-      return bad('Only workshop owners and admins can invite mechanics', 403)
     }
 
     // Check if email already has a pending invite
@@ -97,7 +85,7 @@ export async function POST(req: NextRequest) {
         invite_email: inviteEmail,
         role: role,
         status: 'pending',
-        invited_by: user.id,
+        invited_by: workshop.userId,
         invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       })
       .select('invite_code')
@@ -115,7 +103,7 @@ export async function POST(req: NextRequest) {
     // Track invitation created event
     await trackInvitationEvent('mechanic_invited', {
       workshopId: organizationId,
-      userId: user.id,
+      userId: workshop.userId,
       metadata: {
         inviteEmail,
         inviteCode: invite.invite_code,

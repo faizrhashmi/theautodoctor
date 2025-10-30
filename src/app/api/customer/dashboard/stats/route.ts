@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // ✅ Force dynamic rendering - this route uses cookies for authentication
 export const dynamic = 'force-dynamic'
@@ -14,27 +11,15 @@ export const dynamic = 'force-dynamic'
  * Get dashboard statistics for authenticated customer
  */
 export async function GET(req: NextRequest) {
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return req.cookies.get(name)?.value
-      },
-      set() {},
-      remove() {},
-    },
-  })
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(req)
+  if (authResult.error) return authResult.error
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const customer = authResult.data
+  console.log(`[CUSTOMER] ${customer.email} fetching dashboard stats`)
 
   try {
-    const customerId = user.id
+    const customerId = customer.id
 
     // Get user profile with account type
     const { data: profile, error: profileError } = await supabaseAdmin

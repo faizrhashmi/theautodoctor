@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       // Fallback to old pricing config if plan not found in database
-      let sessionType = 'diagnostic' // Default type
+      let sessionType: 'chat' | 'video' | 'diagnostic' = 'diagnostic' // Default type
       let requestType: 'general' | 'brand_specialist' = 'general'
       let restrictedBrands: string[] = []
 
@@ -174,7 +174,11 @@ export async function POST(req: NextRequest) {
       } else {
         // Fallback to old pricing config
         const planConfig = PRICING[plan as PlanKey]
-        sessionType = planConfig?.fulfillment || 'diagnostic'
+        const fulfillment = planConfig?.fulfillment || 'diagnostic'
+        // Type guard to ensure it's one of the valid session types
+        if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
+          sessionType = fulfillment
+        }
       }
 
       const { data: sessionInsert, error: sessionError } = await supabaseAdmin
@@ -230,20 +234,35 @@ export async function POST(req: NextRequest) {
             .eq('status', 'pending')
             .is('mechanic_id', null);
 
-          // Create the session request and link it to the session
+          // Create the session request and link to the session
           const requestPayload: any = {
+            parent_session_id: sessionId, // <-- CRITICAL: link request to session
             customer_id: user.id,
             session_type: sessionType, // Use same type as session (from plan's fulfillment)
             plan_code: plan,
             status: 'pending',
             customer_name: customerName,
             customer_email: email || null,
-            // Note: Using parent_session_id to link to session (no metadata column in actual schema)
-            parent_session_id: sessionId,
             routing_type: 'broadcast',
             request_type: requestType, // Use plan's routing preference
             prefer_local_mechanic: false,
             vehicle_id: vehicle_id || null, // Link to vehicles table
+            // CRITICAL FIX: Add intake metadata for RequestPreviewModal
+            metadata: {
+              intake_id: intakeId,
+              session_id: sessionId, // Keep for legacy consumers
+              concern: concern || '',
+              city: city || '',
+              phone: phone || '',
+              urgent,
+              // Vehicle details for preview
+              make: make || '',
+              model: model || '',
+              year: year || '',
+              vin: vin || '',
+              odometer: odometer || '',
+              plate: plate || '',
+            } as Json,
           }
 
           // Add restricted brands metadata if this is a brand specialist request
@@ -259,20 +278,26 @@ export async function POST(req: NextRequest) {
             .single();
 
           if (requestInsertError) {
-            console.error('[INTAKE] Failed to create session_request:', requestInsertError);
+            console.error('[INTAKE] ❌ CRITICAL: Failed to create session_request:', requestInsertError);
+            console.error('[INTAKE] Request payload:', JSON.stringify(requestPayload, null, 2));
+            console.error('[INTAKE] This means mechanics WILL NOT see this request!');
             throw requestInsertError; // Let outer catch handle it
           }
 
-          console.log(`[INTAKE] Created session_request for session ${sessionId}`);
+          console.log(`[INTAKE] ✅ Created session_request ${newRequest.id} for session ${sessionId}`);
 
           // Broadcast to notify mechanics in real-time
           if (newRequest) {
             const { broadcastSessionRequest } = await import('@/lib/sessionRequests');
-            void broadcastSessionRequest('new_request', { request: newRequest });
+            await broadcastSessionRequest('new_request', { request: newRequest });
+            console.log('[INTAKE] ✅ Broadcasted new_request event to mechanics');
           }
         } catch (error) {
-          console.error('[intake] Error creating session request:', error);
-          // Don't fail the whole flow if this fails
+          console.error('[INTAKE] ❌❌❌ CRITICAL ERROR creating session request:', error);
+          console.error('[INTAKE] Session was created but NO REQUEST was created!');
+          console.error('[INTAKE] Session ID:', sessionId);
+          console.error('[INTAKE] Customer will enter session but mechanics cannot see it!');
+          // Don't fail the whole flow if this fails - but log extensively
         }
       }
     }

@@ -1,6 +1,6 @@
 // src/lib/supabaseServer.ts
 import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
 
 export function getSupabaseServer() {
@@ -9,7 +9,7 @@ export function getSupabaseServer() {
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
   // createServerClient integrates with Next cookies
-  const client = createServerClient<Database>(url, anon, {
+  const client = createSupabaseServerClient<Database>(url, anon, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
@@ -25,3 +25,6 @@ export function getSupabaseServer() {
 
   return client
 }
+
+// Alias for consistency with naming conventions
+export const createServerClient = getSupabaseServer

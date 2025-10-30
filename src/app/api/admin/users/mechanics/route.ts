@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,12 @@ function parsePositiveInt(value: string | null, fallback: number) {
 
 export async function GET(req: NextRequest) {
   try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
+    if (authResult.error) return authResult.error;
+
+    const admin = authResult.data;
+
     const url = new URL(req.url);
 
     // Pagination

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { requireCustomerAPI } from '@/lib/auth/guards'
 import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { Database } from '@/types/supabase'
 import { PRICING, type PlanKey } from '@/config/pricing'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const SCHEDULABLE_PLANS: PlanKey[] = ['video15', 'diagnostic']
 
@@ -21,24 +18,12 @@ function isPlanKey(value: string | null | undefined): value is PlanKey {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set() {},
-      remove() {},
-    },
-  })
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(request)
+  if (authResult.error) return authResult.error
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const customer = authResult.data
+  console.log(`[CUSTOMER] ${customer.email} creating booking`)
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') {
@@ -86,7 +71,7 @@ export async function POST(request: NextRequest) {
     type: sessionType,
     status: 'scheduled',
     stripe_session_id: `manual-${randomUUID()}`,
-    customer_user_id: user.id,
+    customer_user_id: customer.id,
     metadata: {
       booked_via: 'calendar',
       timezone,

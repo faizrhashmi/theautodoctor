@@ -1,31 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
-
-/**
- * Get mechanic from custom auth system (aad_mech cookie)
- */
-async function getMechanicFromCookie(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, email, name, stripe_account_id')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanics/stripe/onboard
@@ -39,14 +15,20 @@ async function getMechanicFromCookie(req: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate mechanic using custom auth system
-    const mechanic = await getMechanicFromCookie(request)
+    // ✅ SECURITY: Require mechanic authentication
+    const authResult = await requireMechanicAPI(request)
+    if (authResult.error) return authResult.error
 
-    if (!mechanic) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in as a mechanic' }, { status: 401 })
-    }
+    const mechanic = authResult.data
 
-    let stripeAccountId = mechanic.stripe_account_id
+    // Get full mechanic profile for stripe_account_id
+    const { data: mechanicProfile } = await supabaseAdmin
+      .from('mechanics')
+      .select('stripe_account_id')
+      .eq('id', mechanic.id)
+      .single()
+
+    let stripeAccountId = mechanicProfile?.stripe_account_id
 
     // 2. Create Stripe Connect Express account if not exists
     if (!stripeAccountId) {
@@ -108,13 +90,20 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const mechanic = await getMechanicFromCookie(request)
+    // ✅ SECURITY: Require mechanic authentication
+    const authResult = await requireMechanicAPI(request)
+    if (authResult.error) return authResult.error
 
-    if (!mechanic) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in as a mechanic' }, { status: 401 })
-    }
+    const mechanic = authResult.data
 
-    if (!mechanic.stripe_account_id) {
+    // Get full mechanic profile
+    const { data: mechanicProfile } = await supabaseAdmin
+      .from('mechanics')
+      .select('stripe_account_id')
+      .eq('id', mechanic.id)
+      .single()
+
+    if (!mechanicProfile?.stripe_account_id) {
       return NextResponse.json({
         connected: false,
         onboarding_completed: false,
@@ -123,7 +112,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch latest status from Stripe
-    const account = await stripe.accounts.retrieve(mechanic.stripe_account_id)
+    const account = await stripe.accounts.retrieve(mechanicProfile.stripe_account_id)
 
     const onboardingCompleted = account.details_submitted || false
     const chargesEnabled = account.charges_enabled || false
@@ -145,7 +134,7 @@ export async function GET(request: NextRequest) {
       onboarding_completed: onboardingCompleted,
       charges_enabled: chargesEnabled,
       payouts_enabled: payoutsEnabled,
-      account_id: mechanic.stripe_account_id,
+      account_id: mechanicProfile.stripe_account_id,
     })
   } catch (error) {
     console.error('Failed to check Stripe status', error)

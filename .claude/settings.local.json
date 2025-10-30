@@ -75,7 +75,20 @@
       "Bash(cmd /c \"taskkill /F /IM node.exe\")",
       "Bash(cmd //c \"taskkill //F //IM node.exe\")",
       "Bash(python -m json.tool:*)",
-      "Bash(del \"c:\\Users\\Faiz Hashmi\\theautodoctor\\src\\app\\auth\\callback\\page.tsx\")"
+      "Bash(del \"c:\\Users\\Faiz Hashmi\\theautodoctor\\src\\app\\auth\\callback\\page.tsx\")",
+      "Bash(del \"supabase\\migrations\\20251029000003_add_parent_session_id_to_session_requests.sql\")",
+      "Bash(timeout 5 bash:*)",
+      "Bash(python migrate_auth.py:*)",
+      "Bash(for file in src/app/api/mechanics/analytics/route.ts src/app/api/mechanics/bay-bookings/route.ts src/app/api/mechanics/clients/[clientId]/route.ts src/app/api/mechanics/jobs/route.ts src/app/api/mechanics/partnerships/applications/route.ts src/app/api/mechanics/partnerships/programs/route.ts src/app/api/mechanics/requests/history/route.ts src/app/api/mechanics/requests/[id]/cancel/route.ts src/app/api/mechanics/statements/route.ts src/app/api/mechanics/stripe/onboard/route.ts)",
+      "Bash(do:*)",
+      "Bash(for file in src/app/api/mechanics/analytics/route.ts src/app/api/mechanics/availability/route.ts src/app/api/mechanics/bay-bookings/route.ts src/app/api/mechanics/jobs/route.ts)",
+      "Bash(git restore:*)",
+      "Bash(then echo \"  - $file\")",
+      "Bash(if grep -q \"aad_mech\" \"$file\")",
+      "Bash(then)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"c:\\Users\\Faiz Hashmi\\theautodoctor\\migrate-admin-routes.ps1\")",
+      "Bash(python:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

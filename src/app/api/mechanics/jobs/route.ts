@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanics/jobs
@@ -20,31 +21,17 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * }
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Parse request body
     const body = await req.json()
@@ -96,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify mechanic owns this agreement
-    if (agreement.mechanic_id !== session.mechanic_id) {
+    if (agreement.mechanic_id !== mechanic.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -136,7 +123,7 @@ export async function POST(req: NextRequest) {
     const revenueSplitData = {
       agreement_id,
       bay_booking_id: bay_booking_id || null,
-      mechanic_id: session.mechanic_id,
+      mechanic_id: mechanic.id,
       workshop_id: agreement.workshop_id,
       program_id: agreement.program_id,
       total_revenue,
@@ -169,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     // Create earnings breakdown record
     const earningsData = {
-      mechanic_id: session.mechanic_id,
+      mechanic_id: mechanic.id,
       revenue_split_id: revenueSplit.id,
       period_start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
       period_end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString(),
@@ -233,31 +220,17 @@ export async function POST(req: NextRequest) {
  *   - limit: number (default: 50)
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Query params
     const { searchParams } = new URL(req.url)
@@ -282,7 +255,7 @@ export async function GET(req: NextRequest) {
           program_type
         )
       `)
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     if (fromDate) {
       query = query.gte('completed_at', fromDate)

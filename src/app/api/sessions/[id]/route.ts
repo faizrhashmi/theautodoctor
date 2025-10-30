@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import type { SessionSummary } from '@/types/session'
 
 const MOCK_SESSION: SessionSummary = {
@@ -14,12 +15,26 @@ const MOCK_SESSION: SessionSummary = {
   extensionBalance: 0
 }
 
-export async function GET() {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, params.id)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[GET /sessions/${params.id}] ${participant.role} accessing session ${participant.sessionId}`)
+
   return NextResponse.json({ session: MOCK_SESSION })
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const updates = await request.json()
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, params.id)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[PATCH /sessions/${params.id}] ${participant.role} updating session ${participant.sessionId}`)
+
+  const updates = await req.json()
   const updated: SessionSummary = {
     ...MOCK_SESSION,
     ...updates,
@@ -28,6 +43,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json({ session: updated })
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, params.id)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[DELETE /sessions/${params.id}] ${participant.role} deleting session ${participant.sessionId}`)
+
   return NextResponse.json({ success: true, deletedId: params.id })
 }

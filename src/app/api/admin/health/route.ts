@@ -1,6 +1,7 @@
 // @ts-nocheck
 // src/app/api/admin/health/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/lib/adminLogger'
 
@@ -177,6 +178,12 @@ async function checkStorage(): Promise<ServiceHealth> {
 }
 
 export async function GET(_request: NextRequest) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     // Run all health checks in parallel
     const [supabaseHealth, livekitHealth, stripeHealth, emailHealth, storageHealth] = await Promise.all([

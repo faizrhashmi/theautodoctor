@@ -1,16 +1,16 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin(req)
-  if (!auth.authorized) {
-    return auth.response!
-  }
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
   console.info('[admin/requests] fetch queue', {
-    admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+    admin: admin.email ?? auth.user?.id ?? 'unknown',
     url: req.url,
   })
 

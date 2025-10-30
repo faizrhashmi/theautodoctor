@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export async function POST(
   _request: NextRequest,
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     // ✅ SECURITY FIX: Use requireAdmin helper
-    const auth = await requireAdmin(_request);
+    const authResult = await requireAdminAPI(_request);
     if (!auth.authorized) {
       return auth.response!;
     }
@@ -17,7 +17,7 @@ export async function POST(
     const corporateId = params.id;
 
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} approving corporate account ${corporateId}`
+      `[ADMIN ACTION] ${admin.email} approving corporate account ${corporateId}`
     );
 
     // Update corporate business to approved
@@ -27,7 +27,7 @@ export async function POST(
         approval_status: 'approved',
         is_active: true,
         approved_at: new Date().toISOString(),
-        approved_by: auth.user!.id,
+        approved_by: admin.id,
       })
       .eq('id', corporateId)
       .select()

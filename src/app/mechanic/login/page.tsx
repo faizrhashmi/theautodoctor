@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Wrench, Mail, Lock } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
 export default function MechanicLogin() {
   const [email, setEmail] = useState('');
@@ -11,16 +12,65 @@ export default function MechanicLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const sp = useSearchParams();
-  const next = sp.get('next') || '/mechanic/dashboard';
+  const supabase = createClient();
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const next = sp.get('next') || sp.get('redirect') || '/mechanic/dashboard';
+
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError && sessionError.message && !sessionError.message.includes('no session')) {
+          console.log('[MechanicLogin] Session error:', sessionError.message);
+          await supabase.auth.signOut();
+          setError('Your session has expired. Please log in again.');
+          return;
+        }
+
+        if (session) {
+          console.log('[MechanicLogin] Session found, verifying with API...');
+
+          // Verify the session actually works by making an API call
+          try {
+            const response = await fetch('/api/mechanics/me');
+
+            if (response.ok) {
+              const data = await response.json();
+
+              // Verify this is a mechanic account
+              if (data && data.user_id) {
+                console.log('[MechanicLogin] ✅ Valid mechanic session, redirecting to dashboard');
+                router.push(next);
+                return;
+              }
+            }
+
+            // Session exists but API call failed - clear it
+            console.log('[MechanicLogin] Session invalid, clearing and staying on login');
+            await supabase.auth.signOut();
+          } catch (apiError) {
+            console.error('[MechanicLogin] API verification failed:', apiError);
+            await supabase.auth.signOut();
+          }
+        }
+      } catch (err) {
+        console.error('[MechanicLogin] Error checking session:', err);
+        await supabase.auth.signOut();
+      }
+    };
+    checkExistingSession();
+  }, [supabase, router, next]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Client-side validation
+    console.log('[MechanicLogin] Starting login attempt for:', email);
+
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Valid email is required');
+      setError('Please enter a valid email address');
       setLoading(false);
       return;
     }
@@ -31,16 +81,49 @@ export default function MechanicLogin() {
     }
 
     try {
-      const res = await fetch('/api/mechanics/login', {
+      console.log('[MechanicLogin] Calling server-side login API...');
+
+      const loginRes = await fetch('/api/mechanic/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Login failed');
-      router.push(next);
-    } catch (e:any) {
-      setError(e.message);
+
+      const loginData = await loginRes.json();
+
+      if (!loginRes.ok) {
+        console.error('[MechanicLogin] Login API error:', loginData.error);
+        throw new Error(loginData.error || 'Login failed. Please try again.');
+      }
+
+      if (!loginData.access_token || !loginData.refresh_token) {
+        throw new Error('Failed to receive authentication tokens.');
+      }
+
+      console.log('[MechanicLogin] Login API successful, setting session...');
+
+      const setRes = await fetch('/api/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: loginData.access_token,
+          refresh_token: loginData.refresh_token
+        }),
+      });
+
+      if (!setRes.ok) {
+        const text = await setRes.text();
+        console.error('[MechanicLogin] Failed to set server session:', text);
+        throw new Error('Failed to establish session. Please try again.');
+      }
+
+      console.log('[MechanicLogin] ✅ Login successful, redirecting to:', next);
+
+      window.location.href = next;
+
+    } catch (e: any) {
+      console.error('[MechanicLogin] ❌ Login failed:', e);
+      setError(e.message || 'An unexpected error occurred');
       setLoading(false);
     }
   }
@@ -57,7 +140,7 @@ export default function MechanicLogin() {
             <p className="mt-2 text-sm text-slate-300">Sign in to your mechanic account</p>
           </div>
 
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Field
               label="Email"
               type="email"
@@ -65,6 +148,7 @@ export default function MechanicLogin() {
               onChange={setEmail}
               icon={Mail}
               placeholder="your@email.com"
+              disabled={loading}
             />
             <Field
               label="Password"
@@ -73,6 +157,7 @@ export default function MechanicLogin() {
               onChange={setPassword}
               icon={Lock}
               placeholder="Your password"
+              disabled={loading}
             />
 
             {error && (
@@ -116,7 +201,8 @@ function Field({
   onChange,
   type='text',
   icon: Icon,
-  placeholder
+  placeholder,
+  disabled
 }:{
   label:string;
   value:string;
@@ -124,6 +210,7 @@ function Field({
   type?:string;
   icon?: React.ComponentType<{ className?: string }>;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -139,7 +226,8 @@ function Field({
           value={value}
           onChange={e=>onChange(e.target.value)}
           placeholder={placeholder}
-          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60 ${Icon ? 'pl-10' : ''}`}
+          disabled={disabled}
+          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-50 disabled:cursor-not-allowed ${Icon ? 'pl-10' : ''}`}
         />
       </div>
     </label>

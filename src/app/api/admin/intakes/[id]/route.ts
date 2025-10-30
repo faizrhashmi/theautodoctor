@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin'
 import { ensureAdmin } from '@/lib/auth'
 import type { IntakeStatus } from '@/types/supabase'
@@ -49,10 +50,12 @@ async function signStoragePaths(paths: string[]) {
   return results.filter((item): item is { path: string; url: string } => item !== null)
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await ensureAdmin()
-  if (!auth.ok) return auth.res
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
 
   if (!supabase) return respondError('Supabase not configured on server', 500)
   const { data, error } = await supabase
@@ -79,9 +82,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await ensureAdmin()
-  if (!auth.ok) return auth.res
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
 
   if (!supabase) return respondError('Supabase not configured on server', 500)
   const payload = await req.json().catch(() => ({}))
@@ -109,12 +114,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
+
   if (!supabase) return respondError('Supabase not configured on server', 500)
 
-  const guard = await ensureAdmin()
-  if (!guard.ok) return guard.res
-
-  const admin = guard.user
   const { reason = null } = await req.json().catch(() => ({}))
 
   const { data: intake, error: fetchError } = await supabase

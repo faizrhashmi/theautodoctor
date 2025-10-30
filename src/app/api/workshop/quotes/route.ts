@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/workshop/quotes
@@ -11,28 +12,15 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  */
 export async function GET(req: NextRequest) {
   try {
-    // TODO: Get workshop_id from authenticated session
-    // For now, we'll get it from the query params or find the first workshop
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) listing quotes`)
+
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
-    const workshopId = searchParams.get('workshop_id')
-
-    // If no workshop_id provided, return error
-    if (!workshopId) {
-      // Try to get the first workshop for development
-      const { data: workshops } = await supabaseAdmin
-        .from('organizations')
-        .select('id')
-        .eq('type', 'workshop')
-        .limit(1)
-
-      if (!workshops || workshops.length === 0) {
-        return NextResponse.json(
-          { error: 'No workshop found' },
-          { status: 404 }
-        )
-      }
-    }
 
     // Build the query
     let query = supabaseAdmin
@@ -52,7 +40,7 @@ export async function GET(req: NextRequest) {
           status
         )
       `)
-      .eq('workshop_id', workshopId || workshops![0].id)
+      .eq('workshop_id', workshop.organizationId)
       .order('created_at', { ascending: false })
 
     // Apply status filter if provided

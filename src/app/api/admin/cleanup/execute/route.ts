@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/lib/adminLogger'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,14 +12,14 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.warn(
-      `[SECURITY] Admin ${auth.profile?.full_name} executing cleanup`
+      `[SECURITY] Admin ${admin.email} executing cleanup`
     )
 
     const body = await request.json()

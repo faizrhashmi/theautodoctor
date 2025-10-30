@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 function bad(msg: string, status = 400) {
@@ -10,9 +11,15 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  if (!supabaseAdmin) return bad('Supabase not configured', 500);
-
   try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
+    if (!supabaseAdmin) return bad('Supabase not configured', 500);
+
     const { notes } = await req.json();
     const mechanicId = params.id;
 
@@ -28,7 +35,7 @@ export async function POST(
       .update({
         application_status: 'additional_info_required',
         approval_notes: notes,
-        reviewed_by: 'admin', // TODO: Get actual admin ID from session
+        reviewed_by: admin.id,
         reviewed_at: new Date().toISOString(),
       })
       .eq('id', mechanicId);
@@ -41,7 +48,7 @@ export async function POST(
     // Log admin action
     await supabaseAdmin.from('mechanic_admin_actions').insert({
       mechanic_id: mechanicId,
-      admin_id: 'admin', // TODO: Get actual admin ID
+      admin_id: admin.id,
       action_type: 'info_requested',
       notes,
       metadata: {

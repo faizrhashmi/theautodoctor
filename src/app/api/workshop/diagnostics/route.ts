@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -11,7 +12,14 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  */
 export async function GET(req: NextRequest) {
   try {
-    // Create Supabase client with cookie handling
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) listing diagnostics`)
+
+    // Create Supabase client with cookie handling for querying
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       cookies: {
         get(name: string) {
@@ -21,46 +29,6 @@ export async function GET(req: NextRequest) {
         remove() {},
       },
     })
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get workshop organization for this user
-    const { data: membership, error: membershipError } = await supabase
-      .from('organization_members')
-      .select(
-        `
-        organization_id,
-        role,
-        organizations (
-          id,
-          name,
-          organization_type
-        )
-      `
-      )
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle()
-
-    if (membershipError || !membership) {
-      console.error('[WORKSHOP DIAGNOSTICS] No organization membership:', membershipError)
-      return NextResponse.json({ error: 'No workshop found for this user' }, { status: 403 })
-    }
-
-    const organization = membership.organizations as any
-    if (organization.organization_type !== 'workshop') {
-      return NextResponse.json({ error: 'User is not a workshop' }, { status: 403 })
-    }
-
-    const workshopId = membership.organization_id
 
     // Get query params
     const searchParams = req.nextUrl.searchParams
@@ -100,7 +68,7 @@ export async function GET(req: NextRequest) {
         )
       `
       )
-      .eq('workshop_id', workshopId)
+      .eq('workshop_id', workshop.organizationId)
       .order('created_at', { ascending: false })
       .limit(limit)
 
@@ -146,8 +114,8 @@ export async function GET(req: NextRequest) {
       ok: true,
       sessions: formattedSessions,
       workshop: {
-        id: workshopId,
-        name: organization.name,
+        id: workshop.organizationId,
+        name: workshop.organizationName,
       },
     })
   } catch (error: any) {

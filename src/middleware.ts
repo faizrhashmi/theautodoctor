@@ -31,8 +31,9 @@ const MECHANIC_PUBLIC_ROUTES = [
   '/mechanic/onboarding',
 ]
 
+// CLEANED UP: All mechanic routes now use Supabase Auth (unified system)
 // CRITICAL: All other /mechanic/* routes require authentication
-// This is checked by verifying the presence of the aad_mech cookie
+// This is checked by verifying Supabase Auth session and mechanic role in profiles table
 
 // Public workshop routes (login, signup) - these DO NOT require authentication
 const WORKSHOP_PUBLIC_ROUTES = [
@@ -42,6 +43,16 @@ const WORKSHOP_PUBLIC_ROUTES = [
 
 // CRITICAL: All other /workshop/* routes require authentication
 // This is checked via Supabase auth and organization membership
+
+// Public customer routes - these DO NOT require authentication
+const CUSTOMER_PUBLIC_ROUTES = [
+  '/customer/signup',
+  '/customer/forgot-password',
+  '/customer/verify-email',
+]
+
+// CRITICAL: All other /customer/* routes require authentication
+// This is checked via Supabase auth and profile existence
 
 function matchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -53,6 +64,10 @@ function isPublicMechanicRoute(pathname: string): boolean {
 
 function isPublicWorkshopRoute(pathname: string): boolean {
   return WORKSHOP_PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
+}
+
+function isPublicCustomerRoute(pathname: string): boolean {
+  return CUSTOMER_PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
 }
 
 export async function middleware(request: NextRequest) {
@@ -236,10 +251,12 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    // Check for mechanic auth cookie
-    const mechanicToken = request.cookies.get('aad_mech')?.value
+    console.log(`[MIDDLEWARE] 🔍 Mechanic route check for: ${pathname}`)
+    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
 
-    if (!mechanicToken) {
+    // UPDATED: Check Supabase Auth instead of custom cookie
+    if (!user) {
+      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
       const loginUrl = new URL('/mechanic/login', request.url)
       // SECURITY: Validate redirect to prevent open redirects
       const safeRedirect = validateRedirect(pathname, '/mechanic/dashboard')
@@ -247,8 +264,32 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // Note: Full mechanic session validation happens in the page/API route
-    // Middleware only checks for presence of token to avoid database calls
+    // Verify user is a mechanic
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+    console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+
+    if (profileError) {
+      console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
+    }
+
+    if (!profile || profile.role !== 'mechanic') {
+      console.warn(
+        `[SECURITY] ❌ Non-mechanic user ${user.email} (${user.id}) attempted to access ${pathname}`,
+        { hasProfile: !!profile, role: profile?.role }
+      )
+      // Redirect non-mechanics to homepage
+      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    console.log(`[MECHANIC] ✅ ${user.email} accessing ${pathname}`)
+
     return response
   }
 
@@ -319,23 +360,59 @@ export async function middleware(request: NextRequest) {
   }
 
   // ==========================================================================
-  // CUSTOMER ROUTE PROTECTION - REMOVED
+  // CUSTOMER ROUTE PROTECTION
   // ==========================================================================
-  // Customer routes are now protected by AuthGuard component, not middleware
-  // This prevents the infinite redirect loop between middleware and AuthGuard
-  // 
-  // Customer routes that are now handled by AuthGuard:
-  // - /customer/dashboard
-  // - /customer/schedule  
-  // - /dashboard
-  // - /session
-  // - /intake
-  // - /waiver
-  //
-  // The AuthGuard component provides better user experience with:
-  // - Loading states
-  // - Clear error messages
-  // - Client-side redirects without full page reloads
+  // All /customer/* routes require authentication EXCEPT public routes
+  const isCustomerRoute = pathname.startsWith('/customer/')
+
+  if (isCustomerRoute) {
+    // Skip public routes like signup/forgot-password
+    if (isPublicCustomerRoute(pathname)) {
+      return response
+    }
+
+    console.log(`[MIDDLEWARE] 🔍 Customer route check for: ${pathname}`)
+    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+
+    if (!user) {
+      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to homepage`)
+      const homeUrl = new URL('/', request.url)
+      return NextResponse.redirect(homeUrl)
+    }
+
+    // Verify user has a customer profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, role, full_name, email')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+
+    if (profileError) {
+      console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
+    }
+
+    if (!profile) {
+      console.warn(
+        `[SECURITY] ❌ User without profile ${user.email} (${user.id}) attempted to access ${pathname}`,
+        { hasProfile: !!profile }
+      )
+      // Redirect users without profiles to homepage
+      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    // Log customer access for monitoring
+    console.log(`[CUSTOMER] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+
+    // Add cache control headers to prevent browser caching after logout
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+
+    return response
+  }
 
   return response
 }
@@ -349,7 +426,8 @@ export const config = {
     '/mechanic/:path*',
     // Workshop routes
     '/workshop/:path*',
-    // NOTE: Customer routes removed - protected by AuthGuard component
+    // Customer routes - now protected by middleware for proper session handling
+    '/customer/:path*',
     // Video and chat routes (accessible by both customers and mechanics)
     '/video/:path*',
     '/chat/:path*',

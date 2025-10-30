@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { ensureAdmin } from '@/lib/auth'
 
@@ -12,6 +13,12 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     // Verify admin authentication
     const adminCheck = await ensureAdmin()

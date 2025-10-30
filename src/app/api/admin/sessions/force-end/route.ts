@@ -1,15 +1,15 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     const body = await request.json()
     const { sessionId } = body
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           ...(session.metadata as any || {}),
           force_ended_by_admin: true,
-          force_ended_by: user.id,
+          force_ended_by: admin.id,
           force_ended_at: new Date().toISOString(),
         },
       })
@@ -68,17 +68,17 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} force-ended session ${sessionId}`
+      `[ADMIN ACTION] ${admin.email} force-ended session ${sessionId}`
     )
 
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       action: 'force_end_session',
       target_type: 'session',
       target_id: sessionId,
       details: {
         duration_minutes: durationMinutes,
-        admin_name: auth.profile?.full_name || auth.profile?.email
+        admin_name: admin.email
       },
     })
 

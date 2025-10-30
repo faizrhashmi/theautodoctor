@@ -8,19 +8,19 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await requireAdmin(req)
-  if (!auth.authorized) {
-    return auth.response!
-  }
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
   const claimId = params.id
 
   console.warn(
-    `[ADMIN ACTION] ${auth.profile?.full_name} rejecting claim ${claimId}`
+    `[ADMIN ACTION] ${admin.email} rejecting claim ${claimId}`
   )
 
   try {
@@ -50,10 +50,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: 'rejected',
         resolution,
         reviewed_at: new Date().toISOString(),
-        reviewed_by_admin_id: auth.user!.id,
+        reviewed_by_admin_id: admin.id,
         updated_at: new Date().toISOString(),
         metadata: {
-          admin_name: auth.profile?.full_name || auth.profile?.email
+          admin_name: admin.email || admin.email
         }
       })
       .eq('id', claimId)

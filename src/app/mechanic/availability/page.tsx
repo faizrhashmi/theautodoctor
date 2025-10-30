@@ -32,8 +32,6 @@ export default function MechanicAvailabilityPage() {
   const [availability, setAvailability] = useState<AvailabilityBlock[]>([])
   const [timeOff, setTimeOff] = useState<TimeOff[]>([])
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -45,31 +43,10 @@ export default function MechanicAvailabilityPage() {
   const [timeOffReason, setTimeOffReason] = useState('')
   const [savingTimeOff, setSavingTimeOff] = useState(false)
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     fetchAvailability()
     fetchTimeOff()
-  }, [isAuthenticated])
+  }, [])
 
   async function fetchAvailability() {
     try {

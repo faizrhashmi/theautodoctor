@@ -10,19 +10,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await requireAdmin(req)
-  if (!auth.authorized) {
-    return auth.response!
-  }
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
   const claimId = params.id
 
   console.warn(
-    `[SECURITY] CRITICAL: Admin ${auth.profile?.full_name} approving refund for claim ${claimId}`
+    `[SECURITY] CRITICAL: Admin ${admin.email} approving refund for claim ${claimId}`
   )
 
   try {
@@ -85,8 +85,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       metadata: {
         satisfaction_claim_id: claimId,
         session_id: claim.session_id,
-        approved_by: auth.user!.id,
-        approved_by_name: auth.profile?.full_name || auth.profile?.email,
+        approved_by: admin.id,
+        approved_by_name: admin.email || admin.email,
       },
     })
 

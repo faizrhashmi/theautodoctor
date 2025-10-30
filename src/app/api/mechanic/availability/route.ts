@@ -1,39 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
     // Fetch availability blocks
     const { data: availability, error: availabilityError } = await supabaseAdmin
       .from('mechanic_availability')
       .select('*')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true })
 
@@ -62,33 +47,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
     const body = await req.json()
     const { availability } = body
 
@@ -100,7 +69,7 @@ export async function PUT(req: NextRequest) {
     const { error: deleteError } = await supabaseAdmin
       .from('mechanic_availability')
       .delete()
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     if (deleteError) {
       console.error('[MECHANIC AVAILABILITY API] Delete error:', deleteError)
@@ -111,7 +80,7 @@ export async function PUT(req: NextRequest) {
     if (availability.length > 0) {
       // Map frontend column names to database column names
       const blocksToInsert = availability.map(block => ({
-        mechanic_id: session.mechanic_id,
+        mechanic_id: mechanic.id,
         day_of_week: block.weekday,
         start_time: block.start_time,
         end_time: block.end_time,

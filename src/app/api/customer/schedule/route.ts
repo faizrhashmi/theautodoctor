@@ -1,29 +1,14 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { requireCustomerAPI } from '@/lib/auth/guards';
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
 export async function POST(request: NextRequest) {
-  const supabaseClient = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value;
-      },
-      set() {},
-      remove() {},
-    },
-  });
+  // ✅ SECURITY: Require customer authentication
+  const authResult = await requireCustomerAPI(request);
+  if (authResult.error) return authResult.error;
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabaseClient.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const customer = authResult.data;
+  console.log(`[CUSTOMER] ${customer.email} scheduling session`);
 
   const body = await request.json().catch(() => ({}));
   const slot = typeof body?.slot === "string" && body.slot.trim().length ? body.slot : null;
@@ -43,8 +28,8 @@ export async function POST(request: NextRequest) {
     .from("profiles")
     .upsert(
       {
-        id: user.id,
-        email: user.email ?? null,
+        id: customer.id,
+        email: customer.email,
         role: "customer",
         preferred_plan: plan,
         last_selected_slot: lastSlot,

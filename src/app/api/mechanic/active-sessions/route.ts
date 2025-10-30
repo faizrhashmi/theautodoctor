@@ -1,36 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
+/**
+ * GET /api/mechanic/active-sessions
+ *
+ * Get active sessions for the authenticated mechanic
+ * UPDATED: Uses unified Supabase Auth via requireMechanicAPI
+ */
 export async function GET(request: NextRequest) {
   try {
-    // Use cookie-based auth (standard for this application)
-    const token = request.cookies.get('aad_mech')?.value
-
-    if (!token) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    // ✅ Use unified auth guard
+    const authResult = await requireMechanicAPI(request)
+    if (authResult.error) {
+      return authResult.error
     }
+
+    const mechanic = authResult.data
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
-
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const mechanic = { id: session.mechanic_id }
 
     // Fetch active sessions (pending, live, waiting, or scheduled) for this mechanic
     const { data: sessions, error: sessionsError } = await supabaseAdmin

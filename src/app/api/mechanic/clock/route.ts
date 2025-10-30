@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanic/clock
  *
  * Clock in or clock out mechanic
+ * UPDATED: Uses unified Supabase Auth via requireMechanicAPI
  *
  * Body:
  * - action: 'clock_in' | 'clock_out'
@@ -12,43 +14,28 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * - notes: string (optional)
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  // ✅ Use unified auth guard
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) {
+    return authResult.error
   }
+
+  const mechanic = authResult.data
+  const mechanicId = mechanic.id
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const mechanicId = session.mechanic_id
-
     // Get mechanic details
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+    const { data: mechanicData, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .select('id, name, currently_on_shift, workshop_id, last_clock_in, last_clock_out')
       .eq('id', mechanicId)
       .single()
 
-    if (mechanicError || !mechanic) {
+    if (mechanicError || !mechanicData) {
       return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
     }
 
@@ -62,10 +49,10 @@ export async function POST(req: NextRequest) {
 
     // CLOCK IN
     if (action === 'clock_in') {
-      if (mechanic.currently_on_shift) {
+      if (mechanicData.currently_on_shift) {
         return NextResponse.json({
           error: 'Already clocked in',
-          clocked_in_at: mechanic.last_clock_in
+          clocked_in_at: mechanicData.last_clock_in
         }, { status: 400 })
       }
 
@@ -90,7 +77,7 @@ export async function POST(req: NextRequest) {
         .from('mechanic_shift_logs')
         .insert({
           mechanic_id: mechanicId,
-          workshop_id: mechanic.workshop_id,
+          workshop_id: mechanicData.workshop_id,
           clock_in_at: clockInTime,
           location: location || null,
           notes: notes || null
@@ -112,10 +99,10 @@ export async function POST(req: NextRequest) {
 
     // CLOCK OUT
     if (action === 'clock_out') {
-      if (!mechanic.currently_on_shift) {
+      if (!mechanicData.currently_on_shift) {
         return NextResponse.json({
           error: 'Not currently clocked in',
-          last_clock_out: mechanic.last_clock_out
+          last_clock_out: mechanicData.last_clock_out
         }, { status: 400 })
       }
 
@@ -206,36 +193,23 @@ export async function POST(req: NextRequest) {
  * GET /api/mechanic/clock
  *
  * Get current clock status
+ * UPDATED: Uses unified Supabase Auth via requireMechanicAPI
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  // ✅ Use unified auth guard
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) {
+    return authResult.error
   }
+
+  const mechanic = authResult.data
+  const mechanicId = mechanic.id
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const mechanicId = session.mechanic_id
-
     // Get mechanic status from view
     const { data: status, error: statusError } = await supabaseAdmin
       .from('mechanic_availability_status')

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { encryptPII } from '@/lib/encryption'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -12,29 +12,12 @@ export async function POST(req: NextRequest) {
   if (!supabaseAdmin) return bad('Supabase not configured', 500)
 
   try {
-    // Get mechanic session from cookie
-    const cookieStore = cookies()
-    const token = cookieStore.get('aad_mech')?.value
+    // ✅ SECURITY: Require mechanic authentication
+    const authResult = await requireMechanicAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (!token) {
-      console.log('[SIN COLLECTION] No session token found')
-      return bad('Unauthorized', 401)
-    }
-
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .single()
-
-    if (sessionError || !session) {
-      console.log('[SIN COLLECTION] Invalid or expired session')
-      return bad('Invalid session', 401)
-    }
-
-    const mechanicId = session.mechanic_id
+    const mechanic = authResult.data
+    const mechanicId = mechanic.id
 
     // Get request body
     const body = await req.json()
@@ -83,23 +66,23 @@ export async function POST(req: NextRequest) {
     }
 
     // Get current mechanic data
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+    const { data: mechanicData, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .select('id, account_type, requires_sin_collection, sin_encrypted')
       .eq('id', mechanicId)
       .single()
 
-    if (mechanicError || !mechanic) {
+    if (mechanicError || !mechanicData) {
       console.error('[SIN COLLECTION] Mechanic not found:', mechanicError)
       return bad('Mechanic not found', 404)
     }
 
     // Verify this is an independent mechanic who requires SIN
-    if (mechanic.account_type !== 'individual_mechanic') {
+    if (mechanicData.account_type !== 'individual_mechanic') {
       return bad('SIN collection is only required for independent mechanics', 400)
     }
 
-    if (!mechanic.requires_sin_collection) {
+    if (!mechanicData.requires_sin_collection) {
       return bad('SIN has already been collected', 400)
     }
 

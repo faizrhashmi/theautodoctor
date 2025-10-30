@@ -1,15 +1,15 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     const body = await request.json()
     const { sessionIds, reason } = body
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         ...(session.metadata as any || {}),
         cancellation_reason: reason,
         cancelled_by_admin: true,
-        cancelled_by: user.id,
+        cancelled_by: admin.id,
         cancelled_at: timestamp,
         bulk_cancellation: true,
       },
@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Log the action
+    console.warn(`[ADMIN ACTION] ${admin.email} bulk-cancelled ${cancellableSessions.length} sessions`)
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: user.id,
+      admin_id: admin.id,
       action: 'bulk_cancel_sessions',
       target_type: 'session',
       target_id: null,

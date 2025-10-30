@@ -1,15 +1,15 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     const body = await request.json()
     const { sessionId, reason } = body
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           ...(session.metadata as any || {}),
           cancellation_reason: reason,
           cancelled_by_admin: true,
-          cancelled_by: user.id,
+          cancelled_by: admin.id,
           cancelled_at: new Date().toISOString(),
         },
       })
@@ -63,17 +63,17 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} force-cancelled session ${sessionId} - Reason: ${reason}`
+      `[ADMIN ACTION] ${admin.email} force-cancelled session ${sessionId} - Reason: ${reason}`
     )
 
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       action: 'force_cancel_session',
       target_type: 'session',
       target_id: sessionId,
       details: {
         reason,
-        admin_name: auth.profile?.full_name || auth.profile?.email
+        admin_name: admin.email || admin.email
       },
     })
 

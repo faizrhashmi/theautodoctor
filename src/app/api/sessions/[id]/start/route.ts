@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { assertTransition, getTransitionMessage } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
@@ -12,7 +13,7 @@ import { trackInteraction } from '@/lib/crm'
  * FSM Enforced: Only valid transitions to 'live' are allowed (waiting → live, scheduled → live)
  */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const sessionId = params.id
@@ -20,6 +21,13 @@ export async function POST(
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 })
   }
+
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[POST /sessions/${sessionId}/start] ${participant.role} starting session ${participant.sessionId}`)
 
   try {
     // Fetch current session

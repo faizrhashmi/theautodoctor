@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { getSupabaseServer } from '@/lib/supabase/server'
 
 type RouteContext = {
@@ -16,6 +17,12 @@ export async function POST(
   request: NextRequest,
   context: RouteContext
 ) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     const { id } = await context.params
     const supabase = getSupabaseServer()

@@ -1,18 +1,18 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(req: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.warn(
-      `[ADMIN ACTION] Admin ${auth.profile?.full_name} joining session`
+      `[ADMIN ACTION] Admin ${admin.email} joining session`
     )
 
     const body = await req.json()
@@ -57,11 +57,11 @@ export async function POST(req: NextRequest) {
       .from('session_participants')
       .insert({
         session_id: sessionId,
-        user_id: auth.user!.id,
+        user_id: admin.id,
         role: 'mechanic', // Admin joins as mechanic role
         metadata: {
           is_admin: true,
-          admin_name: auth.profile?.full_name || auth.profile?.email
+          admin_name: admin.email || admin.email
         }
       })
 

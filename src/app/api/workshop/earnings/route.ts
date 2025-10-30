@@ -1,59 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-/**
- * Get workshop organization from session cookie
- */
-async function getWorkshopFromSession(req: NextRequest) {
-  const cookieName = process.env.NEXT_PUBLIC_SUPABASE_AUTH_COOKIE_NAME || 'sb-auth-token'
-  const authToken = req.cookies.get(cookieName)?.value
-
-  if (!authToken) {
-    return null
-  }
-
-  try {
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authToken)
-
-    if (userError || !user) {
-      return null
-    }
-
-    // Get workshop organization for this user
-    const { data: member, error: memberError } = await supabaseAdmin
-      .from('organization_members')
-      .select(`
-        id,
-        organization_id,
-        role,
-        organizations (
-          id,
-          name,
-          organization_type
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
-
-    if (memberError || !member || !member.organizations) {
-      return null
-    }
-
-    if (member.organizations.organization_type !== 'workshop') {
-      return null
-    }
-
-    return {
-      organization_id: member.organizations.id,
-      name: member.organizations.name,
-      role: member.role,
-    }
-  } catch (error) {
-    console.error('[workshop-earnings] Error getting workshop:', error)
-    return null
-  }
-}
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -73,11 +20,12 @@ function bad(msg: string, status = 400) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const workshop = await getWorkshopFromSession(req)
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (!workshop) {
-      return bad('Unauthorized - Please log in as a workshop member', 401)
-    }
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) accessing earnings`)
 
     const url = new URL(req.url)
     const status = url.searchParams.get('status') || undefined
@@ -86,7 +34,7 @@ export async function GET(req: NextRequest) {
     const fromDate = url.searchParams.get('from_date') || undefined
     const toDate = url.searchParams.get('to_date') || undefined
 
-    console.log('[workshop-earnings] Fetching earnings for workshop:', workshop.organization_id, {
+    console.log('[workshop-earnings] Fetching earnings for workshop:', workshop.organizationId, {
       status,
       limit,
       offset,
@@ -128,7 +76,7 @@ export async function GET(req: NextRequest) {
           duration_minutes
         )
       `)
-      .eq('workshop_id', workshop.organization_id)
+      .eq('workshop_id', workshop.organizationId)
       .order('created_at', { ascending: false })
 
     // Apply filters
@@ -158,7 +106,7 @@ export async function GET(req: NextRequest) {
     const { data: summary } = await supabaseAdmin
       .from('workshop_earnings_summary')
       .select('*')
-      .eq('workshop_id', workshop.organization_id)
+      .eq('workshop_id', workshop.organizationId)
       .single()
 
     console.log('[workshop-earnings] Found', earnings?.length || 0, 'earnings')

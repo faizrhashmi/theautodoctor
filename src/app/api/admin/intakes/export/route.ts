@@ -18,8 +18,11 @@ function toISOEnd(d: string) {
 const PAGE = 1000 // chunk size for streaming
 
 export async function GET(req: NextRequest) {
-  const guard = await ensureAdmin()
-  if (!guard.ok) return guard.res
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
 
   const url = new URL(req.url)
   const plan = url.searchParams.get('plan') || ''

@@ -1,9 +1,17 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { ensureAdmin } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(req: NextRequest) {
+  try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   // Check admin auth
   const adminCheck = await ensureAdmin()
   if (!adminCheck.ok) return adminCheck.res

@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 function bad(msg: string, status = 400) {
@@ -7,6 +8,13 @@ function bad(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   if (!supabaseAdmin) return bad('Supabase not configured', 500);
 
   try {

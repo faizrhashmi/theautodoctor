@@ -1,20 +1,20 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  // ✅ SECURITY FIX: Require admin authentication
-  const auth = await requireAdmin(req);
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req);
   if (!auth.authorized) {
     return auth.response!;
   }
 
   console.warn(
-    `[ADMIN ACTION] ${auth.profile?.full_name} exporting user data`
+    `[ADMIN ACTION] ${admin.email} exporting user data`
   );
 
   try {

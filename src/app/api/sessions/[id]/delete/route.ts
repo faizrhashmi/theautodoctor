@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { createServerClient } from '@supabase/ssr'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function DELETE(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const sessionId = params.id
+
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[DELETE /sessions/${sessionId}/delete] ${participant.role} attempting to delete session ${participant.sessionId}`)
+
+  // Only customers can delete sessions (business rule)
+  if (participant.role !== 'customer') {
+    return NextResponse.json({ error: 'Only session owners can delete sessions' }, { status: 403 })
+  }
+
   try {
     const supabase = createServerClient(
       SUPABASE_URL,
@@ -15,7 +30,7 @@ export async function DELETE(
       {
         cookies: {
           getAll() {
-            return request.cookies.getAll()
+            return req.cookies.getAll()
           },
           setAll() {
             // Not needed for DELETE request
@@ -24,19 +39,7 @@ export async function DELETE(
       }
     )
 
-    // Get the current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const sessionId = params.id
-
-    // First, verify the session belongs to this user and check its status
+    // Verify the session status before deletion
     const { data: session, error: fetchError } = await supabase
       .from('sessions')
       .select('id, status, customer_user_id')
@@ -45,11 +48,6 @@ export async function DELETE(
 
     if (fetchError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-    }
-
-    // Verify ownership
-    if (session.customer_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden: You do not own this session' }, { status: 403 })
     }
 
     // Only allow deletion of completed or canceled sessions

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/workshop/diagnostics/[sessionId]
@@ -11,6 +12,13 @@ export async function GET(
   { params }: { params: { sessionId: string } }
 ) {
   try {
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) viewing diagnostic session`)
+
     const sessionId = params.sessionId
 
     // Load the diagnostic session with customer info
@@ -32,6 +40,14 @@ export async function GET(
       return NextResponse.json(
         { error: 'Diagnostic session not found' },
         { status: 404 }
+      )
+    }
+
+    // Verify session belongs to this workshop
+    if (session.workshop_id !== workshop.organizationId) {
+      return NextResponse.json(
+        { error: 'This diagnostic session does not belong to your workshop' },
+        { status: 403 }
       )
     }
 

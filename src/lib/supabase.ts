@@ -1,117 +1,61 @@
-import { createClient as createBrowserClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-let browserClient: SupabaseClient<Database> | null = null
+let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null
 
 export function createClient() {
   if (!url || !key) {
-    console.warn('[supabase] Missing NEXT_PUBLIC_SUPABASE_* environment variables')
-    throw new Error('Supabase client cannot be instantiated without URL and anon key')
+    console.warn('[supabase] Missing environment variables')
+    throw new Error('Supabase client requires URL and key')
   }
 
   if (!browserClient) {
     browserClient = createBrowserClient<Database>(url, key, {
+      cookies: {
+        get(name: string) {
+          if (typeof document === 'undefined') return null
+          const cookie = document.cookie.split('; ').find(row => row.startsWith(`${name}=`))
+          return cookie ? decodeURIComponent(cookie.split('=')[1]) : null
+        },
+        set(name: string, value: string, options: any) {
+          if (typeof document === 'undefined') return
+          const opts = Object.entries(options)
+            .filter(([_, v]) => v !== null && v !== undefined)
+            .map(([k, v]) => {
+              const key = k.replace(/([A-Z])/g, '-$1').toLowerCase()
+              return typeof v === 'boolean' ? (v ? key : '') : `${key}=${v}`
+            })
+            .filter(Boolean)
+            .join('; ')
+          document.cookie = `${name}=${value}; ${opts}`
+        },
+        remove(name: string, options: any) {
+          if (typeof document === 'undefined') return
+          const opts = Object.entries(options)
+            .filter(([_, v]) => v !== null && v !== undefined)
+            .map(([k, v]) => {
+              const key = k.replace(/([A-Z])/g, '-$1').toLowerCase()
+              return typeof v === 'boolean' ? (v ? key : '') : `${key}=${v}`
+            })
+            .filter(Boolean)
+            .join('; ')
+          document.cookie = `${name}=; ${opts}; max-age=0`
+        },
+      },
       auth: {
-        // CRITICAL: Match middleware configuration
         flowType: 'pkce',
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
-        // Use same storage key as middleware cookies
-        storageKey: 'sb-access-token',
-        
-        // Custom storage that syncs with middleware cookies
-        storage: {
-          getItem: (key: string) => {
-            if (typeof document === 'undefined') return null
-            
-            // First try to get from cookies (matches middleware)
-            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-              const [name, value] = cookie.trim().split('=')
-              acc[name] = decodeURIComponent(value)
-              return acc
-            }, {} as Record<string, string>)
-            
-            if (cookies[key]) {
-              console.log(`[Supabase Client] Reading ${key} from cookies`)
-              return cookies[key]
-            }
-            
-            // Fallback to localStorage for backward compatibility
-            try {
-              const item = localStorage.getItem(key)
-              if (item) {
-                console.log(`[Supabase Client] Reading ${key} from localStorage`)
-              }
-              return item
-            } catch {
-              return null
-            }
-          },
-          
-          setItem: (key: string, value: string) => {
-            if (typeof document === 'undefined') return
-            
-            // Set cookie with same settings as middleware
-            const isProduction = process.env.NODE_ENV === 'production'
-            const cookieSettings = [
-              `path=/`,
-              `max-age=604800`, // 7 days - match middleware
-              `samesite=lax`,
-              ...(isProduction ? ['secure'] : [])
-            ].join('; ')
-            
-            document.cookie = `${key}=${encodeURIComponent(value)}; ${cookieSettings}`
-            console.log(`[Supabase Client] Set ${key} cookie`)
-            
-            // Also store in localStorage for compatibility
-            try {
-              localStorage.setItem(key, value)
-            } catch (error) {
-              console.warn('LocalStorage not available:', error)
-            }
-          },
-          
-          removeItem: (key: string) => {
-            if (typeof document === 'undefined') return
-            
-            // Clear cookie (match middleware removal)
-            document.cookie = `${key}=; path=/; max-age=0`
-            
-            // Also clear from localStorage
-            try {
-              localStorage.removeItem(key)
-            } catch (error) {
-              console.warn('LocalStorage not available:', error)
-            }
-          }
-        }
+        detectSessionInUrl: true,
       },
-      global: {
-        headers: {
-          'X-Client': 'browser'
-        }
-      }
     })
 
-    // Add debug logging in development
     if (process.env.NODE_ENV === 'development') {
       browserClient.auth.onAuthStateChange((event, session) => {
-        console.log('[Supabase Client] Auth state changed:', event, session?.user?.email)
-        
-        // Log cookie state for debugging
-        if (typeof document !== 'undefined') {
-          const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-            const [name, value] = cookie.trim().split('=')
-            acc[name] = value ? 'PRESENT' : 'MISSING'
-            return acc
-          }, {} as Record<string, string>)
-          
-          console.log('[Supabase Client] Current cookies:', cookies)
-        }
+        console.log('[Supabase Client] Auth state:', event, session?.user?.email)
       })
     }
   }
@@ -119,30 +63,21 @@ export function createClient() {
   return browserClient
 }
 
-/**
- * Clear all auth storage (cookies + localStorage)
- */
 export function clearAuthStorage() {
-  if (typeof document === 'undefined') return
-  
-  // Clear all Supabase-related cookies (match middleware)
-  const cookieNames = [
-    'sb-access-token',
-    'sb-refresh-token',
-    'autodoctor.auth.token'
-  ]
-  
-  cookieNames.forEach(name => {
-    document.cookie = `${name}=; path=/; max-age=0`
-    console.log(`[Supabase] Cleared cookie: ${name}`)
-  })
-  
-  // Clear localStorage
+  if (typeof window === 'undefined') return
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return
+  const projectId = new URL(url).hostname.split('.')[0]
+  const cookies = [`sb-${projectId}-auth-token`, 'sb-access-token', 'sb-refresh-token']
+  cookies.forEach(name => { document.cookie = `${name}=; path=/; max-age=0` })
   try {
     localStorage.removeItem('sb-access-token')
-    localStorage.removeItem('sb-refresh-token') 
-    localStorage.removeItem('autodoctor.auth.token')
-  } catch (error) {
-    console.warn('LocalStorage clear failed:', error)
-  }
+    localStorage.removeItem('sb-refresh-token')
+  } catch(e) {}
+}
+
+export async function checkAuthStatus() {
+  const supabase = createClient()
+  const { data: { session }, error } = await supabase.auth.getSession()
+  return { session, error, isAuthenticated: !!session }
 }

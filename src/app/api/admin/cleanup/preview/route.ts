@@ -1,6 +1,7 @@
 // @ts-nocheck
 // src/app/api/admin/cleanup/preview/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -12,6 +13,12 @@ const supabase = createClient(
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request: NextRequest) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     const now = new Date()
     const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000)

@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { logInfo } from '@/lib/log'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-function createClient() {
-  const cookieStore = cookies()
-  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value
-      },
-    },
-  })
-}
 
 export async function POST(
   req: NextRequest,
@@ -24,18 +9,23 @@ export async function POST(
 ) {
   const sessionId = params.id
 
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[POST /sessions/${sessionId}/summary] ${participant.role} submitting summary for session ${participant.sessionId}`)
+
+  // Only mechanics can submit summaries
+  if (participant.role !== 'mechanic') {
+    return NextResponse.json(
+      { error: 'Only the assigned mechanic can submit summary' },
+      { status: 403 }
+    )
+  }
+
   try {
-    // Auth check: only mechanic can submit summary
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Verify this user is the mechanic for this session
+    // Fetch session details for email notification
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('sessions')
       .select('*, mechanic:mechanic_id(*), customer:customer_user_id(*)')
@@ -44,13 +34,6 @@ export async function POST(
 
     if (sessionError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
-    }
-
-    if ((session as any).mechanic_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Only the assigned mechanic can submit summary' },
-        { status: 403 }
-      )
     }
 
     // Check if summary already submitted
@@ -102,7 +85,7 @@ export async function POST(
               .from('session_files')
               .insert({
                 session_id: sessionId,
-                uploaded_by: user.id,
+                uploaded_by: participant.userId,
                 file_name: photo.name,
                 file_type: photo.type,
                 file_size: photo.size,
@@ -157,7 +140,7 @@ export async function POST(
     // Log summary submission
     await logInfo(('session.summary_submitted' as any), `Summary submitted for session ${sessionId}`, {
       sessionId,
-      mechanicId: user.id,
+      mechanicId: participant.userId,
       customerId: (session as any).customer_user_id,
       hasPhotos: photoUrls.length > 0,
     } as any)
@@ -192,22 +175,19 @@ export async function POST(
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const sessionId = params.id
 
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[GET /sessions/${sessionId}/summary] ${participant.role} accessing summary for session ${participant.sessionId}`)
+
   try {
-    // Auth check
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Get session with summary
     const { data: session, error } = await supabaseAdmin
       .from('sessions')
@@ -219,10 +199,6 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    // Verify user is participant
-    if ((session as any).mechanic_id !== user.id && (session as any).customer_user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     if (!(session as any).summary_submitted_at) {
       return NextResponse.json({ error: 'Summary not yet submitted' }, { status: 404 })
     }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,12 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     // TODO: Add admin authentication check here
 

@@ -23,6 +23,7 @@ import {
   FolderOpen
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
+import { createClient } from '@/lib/supabase'
 
 const NAV_ITEMS = [
   {
@@ -102,16 +103,24 @@ export default function MechanicSidebar() {
 
   async function handleSignOut() {
     try {
-      // Call mechanic logout API to clear aad_mech cookie
-      await fetch('/api/mechanics/logout', {
-        method: 'POST',
-        credentials: 'include'
-      })
+      console.log('[MechanicSidebar] Starting logout...')
+
+      const supabase = createClient()
+
+      // Sign out from Supabase - this will clear all auth cookies
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error('[MechanicSidebar] Logout error:', error)
+        // Continue with redirect even if error
+      } else {
+        console.log('[MechanicSidebar] ✅ Logout successful')
+      }
 
       // Force hard redirect to clear any cached state
       window.location.href = '/mechanic/login'
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('[MechanicSidebar] Sign out error:', error)
       // Still redirect even if error
       window.location.href = '/mechanic/login'
     }
@@ -177,13 +186,13 @@ export default function MechanicSidebar() {
 
           {/* Bottom Actions - Compact */}
           <div className="p-3 border-t border-slate-800 space-y-2">
-            {/* Sign Out Button */}
+            {/* Logout Button */}
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-all"
             >
               <LogOut className="h-4 w-4" />
-              <span className="flex-1 text-left">Sign Out</span>
+              <span className="flex-1 text-left">Logout</span>
             </button>
           </div>
         </div>

@@ -24,8 +24,6 @@ interface VirtualSession {
 export default function VirtualSessionsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [refreshing, setRefreshing] = useState(false)
   const [sessions, setSessions] = useState<VirtualSession[]>([])
   const [filter, setFilter] = useState<'pending' | 'accepted' | 'scheduled' | 'completed'>('pending')
@@ -59,30 +57,9 @@ export default function VirtualSessionsPage() {
     }
   }
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     loadSessions()
-  }, [filter, isAuthenticated])
+  }, [filter])
 
   const handleAcceptSession = async (sessionId: string) => {
     try {

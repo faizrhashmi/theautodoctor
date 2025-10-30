@@ -1,35 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const token = req.cookies.get('admin_session_token')?.value
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
-
   try {
-    // Validate admin session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('admin_sessions')
-      .select('admin_id, expires_at')
-      .eq('token', token)
-      .single()
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const admin = authResult.data
 
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
     const documentId = params.id
@@ -47,7 +32,7 @@ export async function POST(
     // Update the document
     const updateData: any = {
       status,
-      reviewed_by: session.admin_id,
+      reviewed_by: admin.id,
       reviewed_at: new Date().toISOString(),
     }
 

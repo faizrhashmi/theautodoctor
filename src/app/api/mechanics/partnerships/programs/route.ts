@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/mechanics/partnerships/programs
@@ -12,31 +13,17 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  *   - limit: number (default: 20)
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Query params
     const { searchParams } = new URL(req.url)
@@ -103,7 +90,7 @@ export async function GET(req: NextRequest) {
           .from('partnership_applications')
           .select('id, status, created_at')
           .eq('program_id', program.id)
-          .eq('mechanic_id', session.mechanic_id)
+          .eq('mechanic_id', mechanic.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single()

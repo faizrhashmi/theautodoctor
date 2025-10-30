@@ -22,37 +22,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
-
-// ============================================================================
-// HELPER: Get authenticated mechanic
-// ============================================================================
-
-async function getMechanicFromCookie(_req: NextRequest) {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
-
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 // ============================================================================
 // MAIN ENDPOINT
@@ -60,15 +32,11 @@ async function getMechanicFromCookie(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. AUTHENTICATE MECHANIC
-    const mechanic = await getMechanicFromCookie(req)
+    // ✅ SECURITY: Require mechanic authentication
+    const authResult = await requireMechanicAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (!mechanic) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please log in as a mechanic' },
-        { status: 401 }
-      )
-    }
+    const mechanic = authResult.data
 
     const body = await req.json()
     const { requestId } = body as { requestId: string }

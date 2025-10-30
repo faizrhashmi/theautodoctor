@@ -51,8 +51,6 @@ interface PartnershipProgram {
 export default function BrowsePartnershipProgramsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [programs, setPrograms] = useState<PartnershipProgram[]>([])
   const [filteredPrograms, setFilteredPrograms] = useState<PartnershipProgram[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -62,30 +60,9 @@ export default function BrowsePartnershipProgramsPage() {
   const [cityFilter, setCityFilter] = useState<string>('')
   const [provinceFilter, setProvinceFilter] = useState<string>('')
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     loadPrograms()
-  }, [isAuthenticated])
+  }, [])
 
   useEffect(() => {
     applyFilters()

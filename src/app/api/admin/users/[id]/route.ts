@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,12 +11,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req);
-    if (!auth.authorized) {
-      return auth.response!;
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
+    if (authResult.error) return authResult.error;
 
+    const admin = authResult.data;
     const userId = params.id;
 
     // Get user profile

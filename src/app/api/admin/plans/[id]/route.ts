@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,13 +10,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/plans] update plan', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       planId,
     })
 
@@ -101,13 +101,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/plans] delete plan', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       planId,
     })
 

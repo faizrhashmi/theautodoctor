@@ -30,13 +30,29 @@ export async function ensureAdmin() {
 
 const KEY_LENGTH = 64
 
+/**
+ * @deprecated This function is part of the old custom authentication system.
+ * DO NOT USE in new code. All authentication now uses Supabase Auth.
+ * This function is kept only for data migration purposes.
+ *
+ * Use: supabaseAdmin.auth.admin.createUser() instead
+ */
 export function hashPassword(password: string) {
+  console.warn('[DEPRECATED] hashPassword() is deprecated. Use Supabase Auth instead.')
   const salt = randomBytes(16).toString('hex')
   const derived = scryptSync(password, salt, KEY_LENGTH).toString('hex')
   return `${salt}:${derived}`
 }
 
+/**
+ * @deprecated This function is part of the old custom authentication system.
+ * DO NOT USE in new code. All authentication now uses Supabase Auth.
+ * This function is kept only for data migration purposes.
+ *
+ * Use: Supabase Auth handles password verification automatically
+ */
 export function verifyPassword(password: string, encoded: string) {
+  console.warn('[DEPRECATED] verifyPassword() is deprecated. Use Supabase Auth instead.')
   if (!encoded) return false
   const [salt, storedHash] = encoded.split(':')
   if (!salt || !storedHash) return false
@@ -48,6 +64,14 @@ export function verifyPassword(password: string, encoded: string) {
   return timingSafeEqual(expected, derived)
 }
 
+/**
+ * @deprecated This function is part of the old custom authentication system.
+ * DO NOT USE in new code. All authentication now uses Supabase Auth.
+ * This function is kept only for data migration purposes.
+ *
+ * Use: Supabase Auth handles session tokens automatically via HTTP-only cookies
+ */
 export function makeSessionToken(bytes = 32) {
+  console.warn('[DEPRECATED] makeSessionToken() is deprecated. Use Supabase Auth instead.')
   return randomBytes(bytes).toString('hex')
 }

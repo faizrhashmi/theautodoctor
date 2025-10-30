@@ -1,6 +1,7 @@
 // @ts-nocheck
 // src/app/api/admin/errors/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -12,6 +13,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     const body = await request.json()
     const { status, resolution_notes } = body
@@ -43,6 +50,12 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
+
   try {
     const { error } = await supabase
       .from('admin_errors')

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { canSendQuotes } from '@/lib/auth/permissions'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/workshop/quotes/create
@@ -28,6 +29,13 @@ import { canSendQuotes } from '@/lib/auth/permissions'
  */
 export async function POST(req: NextRequest) {
   try {
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
+
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) creating quote`)
+
     const body = await req.json()
 
     const {
@@ -77,6 +85,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Verify session belongs to this workshop
+    if (session.workshop_id !== workshop.organizationId) {
+      return NextResponse.json(
+        { error: 'This diagnostic session does not belong to your workshop' },
+        { status: 403 }
+      )
+    }
+
     // Check if quote was already sent for this session
     if (session.quote_sent) {
       return NextResponse.json(
@@ -85,20 +101,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // TODO: Get mechanic/service advisor ID from authenticated session
-    // For now, using the mechanic_id from the session
-    const quotingUserId = session.mechanic_id
-
-    // Check if user has permission to send quotes
-    if (session.workshop_id) {
-      const hasPermission = await canSendQuotes(session.workshop_id, quotingUserId)
-      if (!hasPermission) {
-        return NextResponse.json(
-          { error: 'You do not have permission to send quotes' },
-          { status: 403 }
-        )
-      }
-    }
+    // Use the authenticated workshop user for tracking
+    const quotingUserId = workshop.userId
 
     // Calculate warranty expiration date
     const warrantyExpiresAt = new Date()

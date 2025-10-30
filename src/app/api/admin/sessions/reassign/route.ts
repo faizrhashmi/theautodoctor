@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 import {
   validateMechanicExists,
   validateSessionParticipantReferences,
@@ -10,11 +10,11 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     const body = await request.json()
     const { sessionId, mechanicId } = body
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       role: 'mechanic',
       metadata: {
         assigned_by_admin: true,
-        assigned_by: auth.user!.id,
+        assigned_by: admin.id,
         assigned_at: new Date().toISOString(),
       },
     })
@@ -121,18 +121,18 @@ export async function POST(request: NextRequest) {
 
     // Log the action
     console.warn(
-      `[ADMIN ACTION] ${auth.profile?.full_name} reassigned session ${sessionId} from ${oldMechanicId} to ${mechanicId}`
+      `[ADMIN ACTION] ${admin.email} reassigned session ${sessionId} from ${oldMechanicId} to ${mechanicId}`
     )
 
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: auth.user!.id,
+      admin_id: admin.id,
       action: 'reassign_session',
       target_type: 'session',
       target_id: sessionId,
       details: {
         old_mechanic_id: oldMechanicId,
         new_mechanic_id: mechanicId,
-        admin_name: auth.profile?.full_name || auth.profile?.email
+        admin_name: admin.email || admin.email
       },
     })
 

@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/plans - Get ALL plans (active + inactive)
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     console.info('[admin/plans] list plans', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
     })
 
     const { data: plans, error } = await supabaseAdmin
@@ -36,15 +36,15 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/plans - Create new plan
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     const body = await request.json()
 
     console.info('[admin/plans] create plan', {
-      admin: auth.profile?.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? auth.user?.id ?? 'unknown',
       slug: body.slug,
     })
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/mechanics/analytics
@@ -9,31 +10,17 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  *   - period: 'week' | 'month' | 'quarter' | 'year' (default: 'month')
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Query params
     const { searchParams } = new URL(req.url)
@@ -63,7 +50,7 @@ export async function GET(req: NextRequest) {
     const { data: virtualSessions } = await supabaseAdmin
       .from('diagnostic_sessions')
       .select('total_price, session_type, updated_at')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .eq('status', 'completed')
       .gte('updated_at', startDate.toISOString())
 
@@ -75,7 +62,7 @@ export async function GET(req: NextRequest) {
     const { data: physicalJobs } = await supabaseAdmin
       .from('partnership_revenue_splits')
       .select('*')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .gte('completed_at', startDate.toISOString())
 
     const physicalRevenue = physicalJobs?.reduce((sum, j) => sum + j.total_revenue, 0) || 0
@@ -123,20 +110,20 @@ export async function GET(req: NextRequest) {
     const { count: totalClients } = await supabaseAdmin
       .from('mechanic_clients')
       .select('*', { count: 'exact', head: true })
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     // Get clients with recent activity
     const { data: activeClients } = await supabaseAdmin
       .from('mechanic_clients')
       .select('customer_name, last_service_date, total_revenue')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .gte('last_service_date', startDate.toISOString())
 
     // Top clients by revenue
     const { data: topClients } = await supabaseAdmin
       .from('mechanic_clients')
       .select('customer_name, total_revenue, total_jobs')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .order('total_revenue', { ascending: false })
       .limit(5)
 
@@ -146,7 +133,7 @@ export async function GET(req: NextRequest) {
     const { data: previousVirtualSessions } = await supabaseAdmin
       .from('diagnostic_sessions')
       .select('total_price')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .eq('status', 'completed')
       .gte('updated_at', previousPeriodStart.toISOString())
       .lt('updated_at', startDate.toISOString())
@@ -154,7 +141,7 @@ export async function GET(req: NextRequest) {
     const { data: previousPhysicalJobs } = await supabaseAdmin
       .from('partnership_revenue_splits')
       .select('total_revenue, mechanic_share')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .gte('completed_at', previousPeriodStart.toISOString())
       .lt('completed_at', startDate.toISOString())
 

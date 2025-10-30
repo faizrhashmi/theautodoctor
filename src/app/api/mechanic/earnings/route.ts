@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-/**
- * Get mechanic from custom auth system (aad_mech cookie)
- */
-async function getMechanicFromCookie(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email, workshop_id')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -44,11 +20,11 @@ function bad(msg: string, status = 400) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const mechanic = await getMechanicFromCookie(req)
+    // ✅ SECURITY: Require mechanic authentication
+    const authResult = await requireMechanicAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (!mechanic) {
-      return bad('Unauthorized - Please log in as a mechanic', 401)
-    }
+    const mechanic = authResult.data
 
     const url = new URL(req.url)
     const status = url.searchParams.get('status') || undefined

@@ -1,0 +1,218 @@
+import { createClient as createBrowserClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Extract project ID from URL for cookie names
+const PROJECT_ID = url ? new URL(url).hostname.split('.')[0] : 'default'
+
+let browserClient: SupabaseClient<Database> | null = null
+
+export function createClient() {
+  if (!url || !key) {
+    console.warn('[supabase] Missing NEXT_PUBLIC_SUPABASE_* environment variables')
+    throw new Error('Supabase client cannot be instantiated without URL and anon key')
+  }
+
+  if (!browserClient) {
+    browserClient = createBrowserClient<Database>(url, key, {
+      auth: {
+        // Use PKCE flow for better security
+        flowType: 'pkce',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true, // Changed to true to handle callbacks
+        
+        // Use localStorage for client-side, let middleware handle cookies
+        storage: {
+          getItem: (key: string) => {
+            if (typeof window === 'undefined') return null
+            
+            try {
+              // Only use localStorage on client side
+              const item = localStorage.getItem(key)
+              console.log(`[Supabase Client] Reading ${key} from localStorage:`, item ? 'PRESENT' : 'MISSING')
+              return item
+            } catch (error) {
+              console.warn(`[Supabase Client] Error reading ${key} from localStorage:`, error)
+              return null
+            }
+          },
+          
+          setItem: (key: string, value: string) => {
+            if (typeof window === 'undefined') return
+            
+            try {
+              // Store in localStorage
+              localStorage.setItem(key, value)
+              console.log(`[Supabase Client] Set ${key} in localStorage`)
+              
+              // Also set the specific cookies that middleware expects
+              const cookieNames = [
+                `sb-${PROJECT_ID}-auth-token.1`,
+                `sb-${PROJECT_ID}-auth-token.2`, 
+                `sb-${PROJECT_ID}-auth-token.3`,
+                `sb-${PROJECT_ID}-auth-token.4`
+              ]
+              
+              const isProduction = process.env.NODE_ENV === 'production'
+              const cookieSettings = [
+                `path=/`,
+                `max-age=604800`, // 7 days
+                `samesite=lax`,
+                ...(isProduction ? ['secure'] : [])
+              ].join('; ')
+              
+              // Set all the expected cookie names
+              cookieNames.forEach(cookieName => {
+                document.cookie = `${cookieName}=${encodeURIComponent(value)}; ${cookieSettings}`
+              })
+              
+              console.log(`[Supabase Client] Set ${cookieNames.length} auth cookies for middleware`)
+              
+            } catch (error) {
+              console.warn(`[Supabase Client] Error setting ${key}:`, error)
+            }
+          },
+          
+          removeItem: (key: string) => {
+            if (typeof window === 'undefined') return
+            
+            try {
+              // Remove from localStorage
+              localStorage.removeItem(key)
+              
+              // Remove all auth cookies
+              const cookieNames = [
+                `sb-${PROJECT_ID}-auth-token.1`,
+                `sb-${PROJECT_ID}-auth-token.2`,
+                `sb-${PROJECT_ID}-auth-token.3`,
+                `sb-${PROJECT_ID}-auth-token.4`,
+                'sb-access-token',
+                'sb-refresh-token'
+              ]
+              
+              cookieNames.forEach(cookieName => {
+                document.cookie = `${cookieName}=; path=/; max-age=0`
+              })
+              
+              console.log(`[Supabase Client] Removed ${key} from storage and cleared cookies`)
+            } catch (error) {
+              console.warn(`[Supabase Client] Error removing ${key}:`, error)
+            }
+          }
+        }
+      },
+      global: {
+        headers: {
+          'X-Client': 'browser'
+        }
+      }
+    })
+
+    // Add enhanced debug logging
+    if (process.env.NODE_ENV === 'development') {
+      browserClient.auth.onAuthStateChange((event, session) => {
+        console.log('[Supabase Client] Auth state changed:', event, session?.user?.email)
+        
+        // Log storage status
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            try {
+              // Check localStorage
+              const storageKeys = ['sb-access-token', 'sb-refresh-token']
+              const storageStatus = storageKeys.reduce((acc, key) => {
+                acc[key] = localStorage.getItem(key) ? 'PRESENT' : 'MISSING'
+                return acc
+              }, {} as Record<string, string>)
+              
+              console.log('[Supabase Client] LocalStorage status:', storageStatus)
+              
+              // Check cookies
+              const expectedCookies = [
+                `sb-${PROJECT_ID}-auth-token.1`,
+                `sb-${PROJECT_ID}-auth-token.2`,
+                `sb-${PROJECT_ID}-auth-token.3`,
+                `sb-${PROJECT_ID}-auth-token.4`
+              ]
+              
+              const cookieStatus = expectedCookies.reduce((acc, cookieName) => {
+                const exists = document.cookie.split(';').some(cookie => 
+                  cookie.trim().startsWith(`${cookieName}=`)
+                )
+                acc[cookieName] = exists ? 'PRESENT' : 'MISSING'
+                return acc
+              }, {} as Record<string, string>)
+              
+              console.log('[Supabase Client] Cookie status:', cookieStatus)
+              
+            } catch (error) {
+              console.warn('[Supabase Client] Error checking storage:', error)
+            }
+          }, 500)
+        }
+      })
+    }
+  }
+
+  return browserClient
+}
+
+/**
+ * Clear all auth storage
+ */
+export function clearAuthStorage() {
+  if (typeof window === 'undefined') return
+  
+  const PROJECT_ID = process.env.NEXT_PUBLIC_SUPABASE_URL ? 
+    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0] : 'default'
+  
+  // Clear all Supabase-related cookies
+  const cookieNames = [
+    `sb-${PROJECT_ID}-auth-token.1`,
+    `sb-${PROJECT_ID}-auth-token.2`,
+    `sb-${PROJECT_ID}-auth-token.3`,
+    `sb-${PROJECT_ID}-auth-token.4`,
+    'sb-access-token',
+    'sb-refresh-token',
+    'sb-auth-token',
+    'autodoctor.auth.token'
+  ]
+  
+  cookieNames.forEach(name => {
+    document.cookie = `${name}=; path=/; max-age=0`
+  })
+  
+  // Clear localStorage
+  try {
+    const storageKeys = [
+      'sb-access-token',
+      'sb-refresh-token',
+      'sb-auth-token',
+      'autodoctor.auth.token'
+    ]
+    
+    storageKeys.forEach(key => {
+      localStorage.removeItem(key)
+    })
+    
+    console.log('[Supabase] Cleared all auth storage')
+  } catch (error) {
+    console.warn('LocalStorage clear failed:', error)
+  }
+}
+
+/**
+ * Helper to check if user is authenticated
+ */
+export async function checkAuthStatus() {
+  const supabase = createClient()
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  return {
+    session,
+    error,
+    isAuthenticated: !!session
+  }
+}

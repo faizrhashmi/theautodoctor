@@ -9,6 +9,7 @@ interface SmartBrandSelectorProps {
   label?: string
   className?: string
   required?: boolean
+  error?: string
 }
 
 export default function SmartBrandSelector({
@@ -16,7 +17,8 @@ export default function SmartBrandSelector({
   onChange,
   label = 'Make',
   className = '',
-  required = false
+  required = false,
+  error
 }: SmartBrandSelectorProps) {
   const groupedOptions = getGroupedBrands()
 
@@ -29,26 +31,36 @@ export default function SmartBrandSelector({
   const customStyles: StylesConfig<VehicleBrand, false, GroupBase<VehicleBrand>> = {
     control: (base, state) => ({
       ...base,
-      backgroundColor: 'rgba(30, 41, 59, 0.5)', // slate-800/50
-      borderColor: state.isFocused ? '#3b82f6' : '#475569', // blue-500 : slate-600
+      backgroundColor: 'rgba(15, 23, 42, 0.5)', // slate-900/50
+      borderColor: error
+        ? '#ef4444' // red-500 for error
+        : state.isFocused
+          ? '#6366f1' // indigo-500 when focused
+          : '#475569', // slate-600 normal
       borderWidth: '1px',
-      borderRadius: '0.5rem',
-      minHeight: '48px', // Mobile-friendly height
-      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+      borderRadius: '1rem', // rounded-2xl
+      minHeight: '44px', // Minimum tap target size for mobile
+      padding: '0 8px',
+      boxShadow: error
+        ? '0 0 0 2px rgba(239, 68, 68, 0.2)' // red ring for error
+        : state.isFocused
+          ? '0 0 0 2px rgba(99, 102, 241, 0.5)' // indigo ring when focused
+          : 'none',
       '&:hover': {
-        borderColor: '#64748b' // slate-500
+        borderColor: error ? '#dc2626' : '#6366f1' // red-600 : indigo-500
       },
       cursor: 'pointer',
-      fontSize: '16px' // Prevent iOS zoom on focus
+      fontSize: '16px', // Prevent iOS zoom on focus
+      transition: 'all 0.2s ease'
     }),
     menu: (base) => ({
       ...base,
-      backgroundColor: '#1e293b', // slate-800
-      border: '1px solid #475569', // slate-600
-      borderRadius: '0.5rem',
-      marginTop: '4px',
+      backgroundColor: '#0f172a', // slate-900
+      border: '1px solid #475569', // slate-700
+      borderRadius: '1rem', // rounded-2xl
+      marginTop: '8px',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-      zIndex: 100
+      zIndex: 9999
     }),
     menuList: (base) => ({
       ...base,
@@ -68,7 +80,7 @@ export default function SmartBrandSelector({
     option: (base, state) => ({
       ...base,
       backgroundColor: state.isSelected
-        ? '#3b82f6' // blue-500
+        ? '#6366f1' // indigo-500
         : state.isFocused
         ? '#334155' // slate-700
         : 'transparent',
@@ -77,7 +89,7 @@ export default function SmartBrandSelector({
       padding: '12px 16px', // Larger tap target for mobile
       fontSize: '15px',
       '&:active': {
-        backgroundColor: '#1e40af' // blue-800
+        backgroundColor: '#4f46e5' // indigo-600
       }
     }),
     groupHeading: (base) => ({
@@ -91,16 +103,25 @@ export default function SmartBrandSelector({
     }),
     singleValue: (base) => ({
       ...base,
-      color: '#fff'
+      color: '#f1f5f9', // slate-100
+      fontSize: '16px'
+    }),
+    valueContainer: (base) => ({
+      ...base,
+      padding: '8px 12px',
+      fontSize: '16px'
     }),
     input: (base) => ({
       ...base,
       color: '#fff',
-      fontSize: '16px' // Prevent iOS zoom
+      fontSize: '16px', // Prevent iOS zoom
+      margin: 0,
+      padding: 0
     }),
     placeholder: (base) => ({
       ...base,
-      color: '#94a3b8' // slate-400
+      color: '#94a3b8', // slate-400
+      fontSize: '16px'
     }),
     dropdownIndicator: (base) => ({
       ...base,
@@ -160,10 +181,19 @@ export default function SmartBrandSelector({
         }}
       />
 
+      {/* Error message */}
+      {error && (
+        <p className="mt-1 text-xs text-red-300">
+          {error}
+        </p>
+      )}
+
       {/* Helper text */}
-      <p className="mt-2 text-xs text-slate-400">
-        Start typing to search or scroll to browse
-      </p>
+      {!error && (
+        <p className="mt-2 text-xs text-slate-400">
+          Start typing to search or scroll to browse
+        </p>
+      )}
     </div>
   )
 }

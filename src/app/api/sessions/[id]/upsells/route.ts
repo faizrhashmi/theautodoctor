@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCustomerAPI } from '@/lib/auth/guards'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { getSessionUpsells, trackInteraction } from '@/lib/crm'
 
 /**
@@ -10,14 +10,22 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const result = await requireCustomerAPI(req)
-  if (result.error) return result.error
-
-  const customer = result.data
   const sessionId = params.id
 
   if (!sessionId) {
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 })
+  }
+
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[GET /sessions/${sessionId}/upsells] ${participant.role} fetching upsells for session ${participant.sessionId}`)
+
+  // Only customers can view upsells (business rule)
+  if (participant.role !== 'customer') {
+    return NextResponse.json({ error: 'Only customers can view upsells' }, { status: 403 })
   }
 
   try {
@@ -37,7 +45,7 @@ export async function GET(
     const newUpsells = upsells.filter((u) => !u.shown_at)
     if (newUpsells.length > 0) {
       void trackInteraction({
-        customerId: customer.id,
+        customerId: participant.userId,
         interactionType: 'upsell_shown',
         sessionId,
         metadata: {

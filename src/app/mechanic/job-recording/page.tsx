@@ -52,10 +52,8 @@ interface Agreement {
 }
 
 export default function JobRecordingPage() {
-  const router = useRouter()  // ✅ Add router
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [submitting, setSubmitting] = useState(false)
   const [jobs, setJobs] = useState<Job[]>([])
   const [agreements, setAgreements] = useState<Agreement[]>([])
@@ -74,30 +72,9 @@ export default function JobRecordingPage() {
     total_revenue: ''
   })
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     fetchData()
-  }, [isAuthenticated])
+  }, [])
 
   const fetchData = async () => {
     try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 const PLAN_PRICING: Record<string, number> = {
   chat10: 999,
@@ -10,33 +11,17 @@ const PLAN_PRICING: Record<string, number> = {
 const MECHANIC_SHARE = 0.7
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
     // Get query parameters
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
@@ -50,7 +35,7 @@ export async function GET(req: NextRequest) {
     let query = supabaseAdmin
       .from('sessions')
       .select('*')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     // Apply filters
     if (status && status !== 'all') {
@@ -88,7 +73,7 @@ export async function GET(req: NextRequest) {
     let statsQuery = supabaseAdmin
       .from('sessions')
       .select('status, duration_minutes, plan')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     if (status && status !== 'all') {
       statsQuery = statsQuery.eq('status', status)

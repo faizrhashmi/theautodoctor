@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * GET /api/workshop/escalation-queue
@@ -11,44 +12,18 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * - priority: Filter by priority (low, normal, high, urgent)
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require workshop authentication
+  const authResult = await requireWorkshopAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const workshop = authResult.data
+  console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) accessing escalation queue`)
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate mechanic session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    // Get mechanic's workshop
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
-      .from('mechanics')
-      .select('id, workshop_id')
-      .eq('id', session.mechanic_id)
-      .single()
-
-    if (mechanicError || !mechanic || !mechanic.workshop_id) {
-      return NextResponse.json({
-        error: 'Not associated with a workshop'
-      }, { status: 403 })
-    }
 
     // Get query parameters
     const status = req.nextUrl.searchParams.get('status')
@@ -103,7 +78,7 @@ export async function GET(req: NextRequest) {
           status
         )
       `)
-      .eq('assigned_workshop_id', mechanic.workshop_id)
+      .eq('assigned_workshop_id', workshop.organizationId)
       .order('created_at', { ascending: false })
 
     // Apply filters
@@ -128,7 +103,7 @@ export async function GET(req: NextRequest) {
     const { data: statusCounts } = await supabaseAdmin
       .from('workshop_escalation_queue')
       .select('status')
-      .eq('assigned_workshop_id', mechanic.workshop_id)
+      .eq('assigned_workshop_id', workshop.organizationId)
 
     const counts = {
       pending: 0,
@@ -148,7 +123,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       escalations: escalations || [],
       counts: counts,
-      workshop_id: mechanic.workshop_id
+      workshop_id: workshop.organizationId
     })
 
   } catch (error) {
@@ -173,44 +148,18 @@ export async function GET(req: NextRequest) {
  * }
  */
 export async function PATCH(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require workshop authentication
+  const authResult = await requireWorkshopAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const workshop = authResult.data
+  console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) updating escalation`)
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate mechanic session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    // Get mechanic's workshop
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
-      .from('mechanics')
-      .select('id, workshop_id')
-      .eq('id', session.mechanic_id)
-      .single()
-
-    if (mechanicError || !mechanic || !mechanic.workshop_id) {
-      return NextResponse.json({
-        error: 'Not associated with a workshop'
-      }, { status: 403 })
-    }
 
     // Parse request body
     const body = await req.json()
@@ -236,7 +185,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Verify escalation belongs to this workshop
-    if (escalation.assigned_workshop_id !== mechanic.workshop_id) {
+    if (escalation.assigned_workshop_id !== workshop.organizationId) {
       return NextResponse.json({
         error: 'Not authorized to modify this escalation'
       }, { status: 403 })

@@ -1,11 +1,18 @@
 // Debug endpoint to check authentication configuration
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function GET(request: NextRequest) {
+  // ✅ SECURITY: Require admin authentication for debug tools
+  const authResult = await requireAdminAPI(request)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
+  console.log(`[ADMIN DEBUG] ${admin.email} accessing auth debug tool`)
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
     (request.headers.get('x-forwarded-proto') || 'https') + '://' +
     request.headers.get('host')

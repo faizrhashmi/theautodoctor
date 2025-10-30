@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
     // Sign out from Supabase (this clears auth cookies)
     await supabase.auth.signOut()
 
+    // CLEANED UP: Removed aad_mech cookie (deprecated old mechanic auth)
     // Also manually clear any Supabase cookies
     const cookiesToClear = [
       'sb-access-token',
       'sb-refresh-token',
-      'aad_mech', // Mechanic auth cookie
     ]
 
     cookiesToClear.forEach(cookieName => {

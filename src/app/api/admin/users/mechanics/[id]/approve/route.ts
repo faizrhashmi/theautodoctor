@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { getSupabaseServer } from '@/lib/supabaseServer';
+import { requireAdminAPI } from '@/lib/auth/guards';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,15 +11,13 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req);
+    if (authResult.error) return authResult.error;
+
+    const admin = authResult.data;
     const mechanicId = params.id;
-
-    // Get current admin user
-    const supabase = getSupabaseServer();
-    const { data: { user: adminUser } } = await supabase.auth.getUser();
-
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    console.log(`[ADMIN] ${admin.email} approving mechanic ${mechanicId}`);
 
     // Update mechanic approval status
     const { error: updateError } = await supabaseAdmin
@@ -34,7 +32,7 @@ export async function POST(
 
     // Log admin action
     await supabaseAdmin.from('admin_actions' as any).insert({
-      admin_id: adminUser.id,
+      admin_id: admin.id,
       target_user_id: mechanicId,
       action_type: 'approve_mechanic',
     });

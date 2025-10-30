@@ -1,12 +1,14 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { hashPassword } from '@/lib/auth'
 import { trackSignupEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
 }
+
+// CLEANED UP: Removed old auth import (hashPassword)
+// Now using Supabase Auth for unified authentication system
 
 // Helper function to generate URL-safe slug
 function generateSlug(name: string): string {
@@ -89,9 +91,6 @@ export async function POST(req: NextRequest) {
       })
       return bad('At least one coverage postal code is required')
     }
-
-    // Hash password for the admin user
-    const password_hash = hashPassword(password)
 
     // Generate unique slug from workshop name
     let baseSlug = generateSlug(workshopName)

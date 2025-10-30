@@ -52,8 +52,6 @@ interface ActiveSession {
 export default function VirtualMechanicDashboard() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [mechanicInfo, setMechanicInfo] = useState<any>(null)
@@ -61,30 +59,9 @@ export default function VirtualMechanicDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
 
-  // ✅ Auth guard - Check mechanic authentication first
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
-          router.replace('/mechanic/login')
-          return
-        }
-        setIsAuthenticated(true)
-        setAuthChecking(false)
-      } catch (err) {
-        console.error('Auth check failed:', err)
-        router.replace('/mechanic/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
     loadDashboardData()
-  }, [isAuthenticated])
+  }, [])
 
   const loadDashboardData = async () => {
     setLoading(true)

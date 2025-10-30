@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
 import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -19,8 +20,15 @@ export async function GET(
 ) {
   const sessionId = params.id
 
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[GET /sessions/${sessionId}/files] ${participant.role} accessing files for session ${participant.sessionId}`)
+
   try {
-    // Auth check
+    // Create supabase client for storage operations
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       cookies: {
         get(name) {
@@ -30,25 +38,6 @@ export async function GET(
         remove() {},
       },
     })
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Verify user is participant
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('customer_user_id, mechanic_id')
-      .eq('id', sessionId)
-      .single()
-
-    if (!session || (session.customer_user_id !== user.id && session.mechanic_id !== user.id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // Fetch files from DB
     const { data: files, error } = await supabase
@@ -96,36 +85,14 @@ export async function POST(
 ) {
   const sessionId = params.id
 
+  // Validate session participant FIRST
+  const authResult = await requireSessionParticipant(req, sessionId)
+  if (authResult.error) return authResult.error
+
+  const participant = authResult.data
+  console.log(`[POST /sessions/${sessionId}/files] ${participant.role} uploading file to session ${participant.sessionId}`)
+
   try {
-    // Auth check
-    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        get(name) {
-          return req.cookies.get(name)?.value
-        },
-        set() {},
-        remove() {},
-      },
-    })
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Verify user is participant
-    const { data: session } = await supabase
-      .from('sessions')
-      .select('customer_user_id, mechanic_id')
-      .eq('id', sessionId)
-      .single()
-
-    if (!session || (session.customer_user_id !== user.id && session.mechanic_id !== user.id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // Parse form data
     const formData = await req.formData()
@@ -167,7 +134,7 @@ export async function POST(
       .from('session_files')
       .insert({
         session_id: sessionId,
-        uploaded_by: user.id,
+        uploaded_by: participant.userId,
         file_name: file.name,
         file_type: file.type,
         file_size: file.size,

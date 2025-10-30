@@ -10,6 +10,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
 import { createClient } from '@/lib/supabase'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { RequestPreviewModal } from '@/components/mechanic/RequestPreviewModal'
 
 interface ActiveSession {
   id: string
@@ -41,85 +43,171 @@ interface RecentSession {
   ended_at: string | null
 }
 
+interface PendingRequest {
+  id: string
+  customer_name: string
+  session_type: string
+  status: string
+  created_at: string
+  intake: any
+  files: any[]
+  urgent: boolean
+  workshop_id: string | null
+}
+
 export default function MechanicDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const notification = searchParams.get('notification')
+  
   const [loading, setLoading] = useState(true)
   const [checkingTier, setCheckingTier] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)  // ✅ Auth guard
-  const [isAuthenticated, setIsAuthenticated] = useState(false)  // ✅ Auth guard
+  const [authChecking, setAuthChecking] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
-  const [pendingRequests, setPendingRequests] = useState<any[]>([])
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingRecentSessions, setLoadingRecentSessions] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [acceptingRequest, setAcceptingRequest] = useState<string | null>(null)
+  const [previewRequestId, setPreviewRequestId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  
   const supabase = useMemo(() => createClient(), [])
+
+  // Real-time refresh for lobby requests
+  useEffect(() => {
+    const chLobby = supabase
+      .channel('mechanic:lobby')
+      .on('broadcast', { event: 'new_request' }, () => {
+        console.log('[MechanicDashboard] New request broadcast received, refreshing...')
+        router.refresh()
+      })
+      .on('broadcast', { event: 'request_cancelled' }, () => {
+        console.log('[MechanicDashboard] Request cancelled broadcast received, refreshing...')
+        router.refresh()
+      })
+      .on('broadcast', { event: 'request_accepted' }, () => {
+        console.log('[MechanicDashboard] Request accepted broadcast received, refreshing...')
+        router.refresh()
+      })
+      .subscribe()
+
+    const chRows = supabase
+      .channel('sr-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_requests' }, () => {
+        console.log('[MechanicDashboard] Session request inserted, refreshing...')
+        router.refresh()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'session_requests' }, () => {
+        console.log('[MechanicDashboard] Session request updated, refreshing...')
+        router.refresh()
+      })
+      .subscribe()
+
+    const onFocus = () => {
+      console.log('[MechanicDashboard] Window focused, refreshing data...')
+      router.refresh()
+    }
+    window.addEventListener('focus', onFocus)
+
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      supabase.removeChannel(chLobby)
+      supabase.removeChannel(chRows)
+    }
+  }, [supabase, router])
 
   // Manual retry handler
   const handleRetry = () => {
     setRetryCount(0)
     setError(null)
+    // Trigger refetch by incrementing retry count
     setRetryCount(prev => prev + 1)
   }
 
-  // ✅ Auth guard - Check mechanic authentication first
+  // Auth guard - Check Supabase authentication first
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/mechanics/me')
-        if (!response.ok) {
+        console.log('[MechanicDashboard] Checking Supabase authentication...')
+        
+        // Get the current session from Supabase
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('[MechanicDashboard] Session error:', sessionError)
+          throw sessionError
+        }
+
+        if (!session) {
+          console.log('[MechanicDashboard] No session found, redirecting to login...')
           router.replace('/mechanic/login')
           return
         }
+
+        console.log('[MechanicDashboard] Session found, verifying mechanic role...')
+
+        // Verify this user is a mechanic
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profileError || !profile || profile.role !== 'mechanic') {
+          console.log('[MechanicDashboard] User is not a mechanic, redirecting...')
+          await supabase.auth.signOut()
+          router.replace('/mechanic/login')
+          return
+        }
+
+        // Get mechanic details
+        const { data: mechanic, error: mechanicError } = await supabase
+          .from('mechanics')
+          .select('id, service_tier')
+          .eq('user_id', session.user.id)
+          .single()
+
+        if (mechanicError || !mechanic) {
+          console.log('[MechanicDashboard] No mechanic profile found, redirecting...')
+          await supabase.auth.signOut()
+          router.replace('/mechanic/login')
+          return
+        }
+
+        setMechanicUserId(mechanic.id)
         setIsAuthenticated(true)
         setAuthChecking(false)
+        
+        console.log('[MechanicDashboard] Mechanic authenticated:', {
+          userId: session.user.id,
+          mechanicId: mechanic.id,
+          serviceTier: mechanic.service_tier
+        })
+
+        // Route virtual-only mechanics to their specific dashboard
+        if (mechanic.service_tier === 'virtual_only') {
+          console.log('[MechanicDashboard] Virtual-only mechanic, redirecting...')
+          router.replace('/mechanic/dashboard/virtual')
+          return
+        }
+
+        setCheckingTier(false)
+        setLoading(false)
+
       } catch (err) {
-        console.error('Auth check failed:', err)
+        console.error('[MechanicDashboard] Auth check failed:', err)
         router.replace('/mechanic/login')
       }
     }
 
     checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    if (!isAuthenticated) return  // ✅ Wait for auth check
-
-    // Check mechanic's service tier and route appropriately
-    const checkServiceTier = async () => {
-      try {
-        const response = await fetch('/api/mechanics/me')
-        const data = await response.json()
-
-        if (response.ok && data) {
-          // Route virtual-only mechanics to their specific dashboard
-          if (data.service_tier === 'virtual_only') {
-            router.replace('/mechanic/dashboard/virtual')
-            return
-          }
-
-          // Workshop-affiliated mechanics stay on this dashboard
-          setCheckingTier(false)
-          setLoading(false)
-        } else {
-          setCheckingTier(false)
-          setLoading(false)
-        }
-      } catch (err) {
-        console.error('Failed to check service tier:', err)
-        setCheckingTier(false)
-        setLoading(false)
-      }
-    }
-
-    checkServiceTier()
-  }, [router, isAuthenticated])
+  }, [router, supabase])
 
   // Fetch active sessions - mechanics can only have ONE active session at a time
   useEffect(() => {
@@ -144,34 +232,46 @@ export default function MechanicDashboardPage() {
       }
     }
 
-    fetchActiveSessions()
-  }, [])
+    if (isAuthenticated && !checkingTier) {
+      fetchActiveSessions()
+    }
+  }, [isAuthenticated, checkingTier])
 
   // Fetch pending requests - CRITICAL: Show available requests mechanics can accept
   useEffect(() => {
     const fetchPendingRequests = async () => {
       setLoadingRequests(true)
       try {
+        console.log('[MechanicDashboard] Fetching pending requests...')
         const response = await fetch('/api/mechanics/requests?status=pending')
+        
         if (response.ok) {
           const data = await response.json()
           const requests = data.requests || []
           setPendingRequests(requests)
           console.log('[MechanicDashboard] Fetched pending requests:', requests.length)
+          console.log('[MechanicDashboard] Request details:', requests)
         } else {
           console.error('[MechanicDashboard] Failed to fetch requests:', response.status, response.statusText)
+          // Try to get error details
+          try {
+            const errorData = await response.json()
+            console.error('[MechanicDashboard] Request error details:', errorData)
+          } catch (e) {
+            console.error('[MechanicDashboard] Could not parse error response')
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch pending requests:', err)
+        console.error('[MechanicDashboard] Failed to fetch pending requests:', err)
       } finally {
         setLoadingRequests(false)
       }
     }
 
-    if (!checkingTier) {
+    if (isAuthenticated && !checkingTier) {
       fetchPendingRequests()
     }
-  }, [checkingTier])
+  }, [isAuthenticated, checkingTier])
 
   // Handler to accept a request
   const handleAcceptRequest = async (requestId: string) => {
@@ -182,6 +282,7 @@ export default function MechanicDashboardPage() {
 
     setAcceptingRequest(requestId)
     try {
+      console.log('[MechanicDashboard] Accepting request:', requestId)
       const response = await fetch('/api/mechanic/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -193,6 +294,7 @@ export default function MechanicDashboardPage() {
       if (response.ok) {
         // Success - remove from pending and redirect to session
         setPendingRequests(prev => prev.filter(r => r.id !== requestId))
+        console.log('[MechanicDashboard] Request accepted successfully:', data)
         alert('Request accepted! Redirecting to session...')
 
         // Route based on session type
@@ -205,10 +307,11 @@ export default function MechanicDashboardPage() {
         const route = routes[sessionType] || '/diagnostic'
         window.location.href = `${route}/${data.sessionId}`
       } else {
+        console.error('[MechanicDashboard] Failed to accept request:', data)
         alert(data.error || 'Failed to accept request')
       }
     } catch (err) {
-      console.error('Failed to accept request:', err)
+      console.error('[MechanicDashboard] Failed to accept request:', err)
       alert('Failed to accept request. Please try again.')
     } finally {
       setAcceptingRequest(null)
@@ -223,6 +326,7 @@ export default function MechanicDashboardPage() {
       setError(null)
 
       try {
+        console.log('[MechanicDashboard] Fetching dashboard stats...')
         const response = await fetch('/api/mechanic/dashboard/stats')
 
         if (!response.ok) {
@@ -233,6 +337,7 @@ export default function MechanicDashboardPage() {
         setStats(data.stats)
         setRecentSessions(data.recent_sessions || [])
         setError(null)
+        console.log('[MechanicDashboard] Stats loaded successfully')
       } catch (err) {
         console.error('[MechanicDashboard] Failed to fetch dashboard stats:', err)
         setError('Unable to load dashboard data. Please check your connection.')
@@ -251,17 +356,19 @@ export default function MechanicDashboardPage() {
       }
     }
 
-    fetchStats()
-  }, [retryCount])
+    if (isAuthenticated && !checkingTier) {
+      fetchStats()
+    }
+  }, [retryCount, isAuthenticated, checkingTier])
 
   // Real-time subscription for session updates
   useEffect(() => {
-    if (checkingTier || !supabase) return
+    if (checkingTier || !supabase || !isAuthenticated) return
 
     console.log('[MechanicDashboard] Setting up real-time subscriptions')
 
     const refetchData = async () => {
-      console.log('[MechanicDashboard] Session updated, refetching data...')
+      console.log('[MechanicDashboard] Real-time update detected, refetching data...')
 
       // Refetch pending requests
       try {
@@ -271,7 +378,7 @@ export default function MechanicDashboardPage() {
           setPendingRequests(requestsData.requests || [])
         }
       } catch (err) {
-        console.error('Failed to refetch pending requests:', err)
+        console.error('[MechanicDashboard] Failed to refetch pending requests:', err)
       }
 
       // Refetch active sessions
@@ -282,7 +389,7 @@ export default function MechanicDashboardPage() {
           setActiveSessions(activeData.sessions || [])
         }
       } catch (err) {
-        console.error('Failed to refetch active sessions:', err)
+        console.error('[MechanicDashboard] Failed to refetch active sessions:', err)
       }
 
       // Refetch stats and recent sessions
@@ -294,7 +401,7 @@ export default function MechanicDashboardPage() {
           setRecentSessions(statsData.recent_sessions || [])
         }
       } catch (err) {
-        console.error('Failed to refetch stats:', err)
+        console.error('[MechanicDashboard] Failed to refetch stats:', err)
       }
     }
 
@@ -341,13 +448,46 @@ export default function MechanicDashboardPage() {
         console.log('[MechanicDashboard] Subscription status:', status)
       })
 
+    // Subscribe to broadcast channel for instant real-time session request updates
+    const broadcastChannel = supabase
+      .channel('session_requests_feed')
+      .on(
+        'broadcast',
+        { event: 'new_request' },
+        (payload) => {
+          console.log('[MechanicDashboard] 🔔 NEW REQUEST broadcast received:', payload)
+          // Immediately refetch pending requests to show new request
+          refetchData()
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'request_accepted' },
+        (payload) => {
+          console.log('[MechanicDashboard] Request accepted broadcast:', payload)
+          refetchData()
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'request_cancelled' },
+        (payload) => {
+          console.log('[MechanicDashboard] Request cancelled broadcast:', payload)
+          refetchData()
+        }
+      )
+      .subscribe((status) => {
+        console.log('[MechanicDashboard] Broadcast channel status:', status)
+      })
+
     return () => {
       console.log('[MechanicDashboard] Cleaning up subscriptions')
       supabase.removeChannel(channel)
+      supabase.removeChannel(broadcastChannel)
     }
-  }, [checkingTier, supabase])
+  }, [checkingTier, supabase, isAuthenticated])
 
-  if (checkingTier) {
+  if (authChecking || checkingTier) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -368,6 +508,7 @@ export default function MechanicDashboardPage() {
               <p className="text-sm sm:text-base text-slate-400 mt-1">Manage your sessions and quotes</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              {mechanicUserId && <NotificationBell userId={mechanicUserId} />}
               <ConnectionQuality quality="excellent" showLabel={true} />
             </div>
           </div>
@@ -465,23 +606,35 @@ export default function MechanicDashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleAcceptRequest(request.id)}
-                      disabled={acceptingRequest === request.id || activeSessions.length > 0}
-                      className="mt-3 sm:mt-0 flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {acceptingRequest === request.id ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Accepting...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCheck className="h-4 w-4" />
-                          Accept Request
-                        </>
-                      )}
-                    </button>
+                    <div className="mt-3 sm:mt-0 flex items-center gap-2">
+                      <button
+                        onClick={() => setPreviewRequestId(request.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors whitespace-nowrap border border-slate-600"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleAcceptRequest(request.id)}
+                        disabled={acceptingRequest === request.id || activeSessions.length > 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      >
+                        {acceptingRequest === request.id ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Accepting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCheck className="h-4 w-4" />
+                            Accept Request
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Vehicle & Concern Details Section */}
@@ -575,7 +728,15 @@ export default function MechanicDashboardPage() {
               ))}
             </div>
           </div>
-        ) : null}
+        ) : !loadingRequests && (
+          <div className="mb-6 sm:mb-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
+            <div className="text-center py-8">
+              <Bell className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-300 mb-2">No Pending Requests</h3>
+              <p className="text-slate-500">New service requests will appear here when customers need help.</p>
+            </div>
+          </div>
+        )}
 
         {/* Active Sessions Manager - Shows active session and enforces one-session-at-a-time */}
         {activeSessions.length > 0 && (
@@ -726,6 +887,13 @@ export default function MechanicDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Request Preview Modal */}
+      <RequestPreviewModal
+        requestId={previewRequestId}
+        isOpen={!!previewRequestId}
+        onClose={() => setPreviewRequestId(null)}
+      />
     </div>
   )
 }

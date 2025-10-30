@@ -1,11 +1,18 @@
 // Test route to verify admin login functionality
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
+  // ✅ SECURITY: Require admin authentication for test tools
+  const authResult = await requireAdminAPI(request)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
+  console.log(`[ADMIN TEST] ${admin.email} using test login tool`)
   try {
     const { email, password } = await request.json()
 
@@ -97,6 +104,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // ✅ SECURITY: Require admin authentication for test tools
+  const authResult = await requireAdminAPI(request)
+  if (authResult.error) return authResult.error
+
+  const admin = authResult.data
+  console.log(`[ADMIN TEST] ${admin.email} viewing test login form`)
+
   // Simple test form
   const html = `
     <!DOCTYPE html>

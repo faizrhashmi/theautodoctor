@@ -1,76 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { stripe } from '@/lib/stripe'
-
-/**
- * Get workshop organization from session cookie
- * Workshops use Supabase Auth (unlike mechanics who use custom auth)
- */
-async function getWorkshopFromSession(req: NextRequest) {
-  const cookieName = process.env.NEXT_PUBLIC_SUPABASE_AUTH_COOKIE_NAME || 'sb-auth-token'
-  const authToken = req.cookies.get(cookieName)?.value
-
-  if (!authToken) {
-    console.log('[workshop-stripe] No auth token found in cookies')
-    return null
-  }
-
-  try {
-    // Parse the auth token to get the user
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authToken)
-
-    if (userError || !user) {
-      console.log('[workshop-stripe] Failed to get user from token:', userError)
-      return null
-    }
-
-    // Get workshop organization for this user
-    const { data: member, error: memberError } = await supabaseAdmin
-      .from('organization_members')
-      .select(`
-        id,
-        organization_id,
-        role,
-        organizations (
-          id,
-          name,
-          email,
-          organization_type,
-          status,
-          stripe_connect_account_id,
-          stripe_onboarding_completed,
-          stripe_charges_enabled,
-          stripe_payouts_enabled
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
-
-    if (memberError || !member || !member.organizations) {
-      console.log('[workshop-stripe] No active workshop membership found')
-      return null
-    }
-
-    // Ensure this is a workshop organization
-    if (member.organizations.organization_type !== 'workshop') {
-      console.log('[workshop-stripe] Organization is not a workshop')
-      return null
-    }
-
-    return {
-      organization_id: member.organizations.id,
-      name: member.organizations.name,
-      email: member.organizations.email,
-      stripe_connect_account_id: member.organizations.stripe_connect_account_id,
-      stripe_onboarding_completed: member.organizations.stripe_onboarding_completed,
-      role: member.role,
-    }
-  } catch (error) {
-    console.error('[workshop-stripe] Error getting workshop:', error)
-    return null
-  }
-}
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/workshop/stripe/onboard
@@ -84,19 +15,31 @@ async function getWorkshopFromSession(req: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authenticate workshop
-    const workshop = await getWorkshopFromSession(request)
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(request)
+    if (authResult.error) return authResult.error
 
-    if (!workshop) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in as a workshop owner/admin' }, { status: 401 })
-    }
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) setting up Stripe onboarding`)
 
     // Only owners and admins can set up payments
     if (workshop.role !== 'owner' && workshop.role !== 'admin') {
       return NextResponse.json({ error: 'Only workshop owners/admins can set up payments' }, { status: 403 })
     }
 
-    let stripeAccountId = workshop.stripe_connect_account_id
+    // Get current Stripe account ID from database
+    const { data: org, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select('stripe_connect_account_id')
+      .eq('id', workshop.organizationId)
+      .single()
+
+    if (orgError) {
+      console.error('[workshop-stripe] Failed to get organization:', orgError)
+      return NextResponse.json({ error: 'Failed to get workshop details' }, { status: 500 })
+    }
+
+    let stripeAccountId = org?.stripe_connect_account_id
 
     // 2. Create Stripe Connect Express account if not exists
     if (!stripeAccountId) {
@@ -111,10 +54,10 @@ export async function POST(request: NextRequest) {
         business_profile: {
           product_description: 'Automotive repair and diagnostic services',
           mcc: '7538', // Automotive service shops
-          name: workshop.name,
+          name: workshop.organizationName,
         },
         metadata: {
-          workshop_id: workshop.organization_id,
+          workshop_id: workshop.organizationId,
           platform: 'askautodoctor',
           organization_type: 'workshop',
         },
@@ -126,7 +69,7 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabaseAdmin
         .from('organizations')
         .update({ stripe_connect_account_id: stripeAccountId })
-        .eq('id', workshop.organization_id)
+        .eq('id', workshop.organizationId)
 
       if (updateError) {
         console.error('[workshop-stripe] Failed to save Stripe account ID:', updateError)
@@ -145,7 +88,7 @@ export async function POST(request: NextRequest) {
       type: 'account_onboarding',
     })
 
-    console.log('[workshop-stripe] Created account link for workshop:', workshop.organization_id)
+    console.log('[workshop-stripe] Created account link for workshop:', workshop.organizationId)
 
     return NextResponse.json({
       url: accountLink.url,
@@ -164,13 +107,26 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const workshop = await getWorkshopFromSession(request)
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(request)
+    if (authResult.error) return authResult.error
 
-    if (!workshop) {
-      return NextResponse.json({ error: 'Unauthorized - Please log in as a workshop owner/admin' }, { status: 401 })
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) checking Stripe status`)
+
+    // Get current Stripe account ID from database
+    const { data: org, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select('stripe_connect_account_id')
+      .eq('id', workshop.organizationId)
+      .single()
+
+    if (orgError) {
+      console.error('[workshop-stripe] Failed to get organization:', orgError)
+      return NextResponse.json({ error: 'Failed to get workshop details' }, { status: 500 })
     }
 
-    if (!workshop.stripe_connect_account_id) {
+    if (!org?.stripe_connect_account_id) {
       return NextResponse.json({
         connected: false,
         onboarding_completed: false,
@@ -179,7 +135,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch latest status from Stripe
-    const account = await stripe.accounts.retrieve(workshop.stripe_connect_account_id)
+    const account = await stripe.accounts.retrieve(org.stripe_connect_account_id)
 
     const onboardingCompleted = account.details_submitted || false
     const chargesEnabled = account.charges_enabled || false
@@ -194,9 +150,9 @@ export async function GET(request: NextRequest) {
         stripe_payouts_enabled: payoutsEnabled,
         stripe_details_submitted: account.details_submitted || false,
       })
-      .eq('id', workshop.organization_id)
+      .eq('id', workshop.organizationId)
 
-    console.log('[workshop-stripe] Retrieved status for workshop:', workshop.organization_id, {
+    console.log('[workshop-stripe] Retrieved status for workshop:', workshop.organizationId, {
       onboarding_completed: onboardingCompleted,
       payouts_enabled: payoutsEnabled,
     })
@@ -206,7 +162,7 @@ export async function GET(request: NextRequest) {
       onboarding_completed: onboardingCompleted,
       charges_enabled: chargesEnabled,
       payouts_enabled: payoutsEnabled,
-      account_id: workshop.stripe_connect_account_id,
+      account_id: org.stripe_connect_account_id,
     })
   } catch (error) {
     console.error('[workshop-stripe] Failed to check Stripe status:', error)

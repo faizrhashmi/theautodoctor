@@ -1,22 +1,22 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   // ✅ SECURITY FIX: Replace insecure cookie check with requireAdmin
-  const auth = await requireAdmin(req)
-  if (!auth.authorized) {
-    return auth.response!
-  }
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
   const { id: requestId } = await context.params
 
   console.warn(
-    `[ADMIN ACTION] ${auth.profile?.full_name} manually assigning request ${requestId}`
+    `[ADMIN ACTION] ${admin.email} manually assigning request ${requestId}`
   )
   const body = await req.json().catch(() => null)
 

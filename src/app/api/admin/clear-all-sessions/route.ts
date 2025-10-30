@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 /**
  * ⚠️ ADMIN ONLY: Nuclear option - Clear ALL sessions and requests
@@ -16,15 +16,15 @@ import { requireAdmin } from '@/lib/auth/requireAdmin'
  */
 export async function DELETE(req: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     // Log who initiated this dangerous operation
     console.warn(
-      `[SECURITY] NUCLEAR CLEANUP initiated by admin: ${auth.profile?.full_name || auth.profile?.email} (${auth.user?.id})`
+      `[SECURITY] NUCLEAR CLEANUP initiated by admin: ${admin.email || admin.email} (${auth.user?.id})`
     )
 
     if (!supabaseAdmin) {
@@ -127,11 +127,11 @@ export async function DELETE(req: NextRequest) {
 // GET to see counts without deleting
 export async function GET(req: NextRequest) {
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(req)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(req)
+    if (authResult.error) return authResult.error
+
+    const admin = authResult.data
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })

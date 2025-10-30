@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { trackActivityEvent, EventTimer } from '@/lib/analytics/workshopEvents'
+import { requireWorkshopAPI } from '@/lib/auth/guards'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -14,70 +14,52 @@ export async function GET(req: NextRequest) {
   const timer = new EventTimer()
 
   try {
-    // Get authenticated user
-    const supabase = getSupabaseServer()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // ✅ SECURITY: Require workshop authentication
+    const authResult = await requireWorkshopAPI(req)
+    if (authResult.error) return authResult.error
 
-    if (authError || !user) {
-      console.log('[WORKSHOP DASHBOARD] Unauthorized access attempt')
-      return bad('Unauthorized', 401)
-    }
+    const workshop = authResult.data
+    console.log(`[WORKSHOP] ${workshop.organizationName} (${workshop.email}) accessing dashboard`)
 
-    console.log('[WORKSHOP DASHBOARD] User authenticated:', user.id)
-
-    // Get user's organization membership
-    const { data: membership, error: membershipError } = await supabaseAdmin
-      .from('organization_members')
-      .select(`
-        id,
-        role,
-        status,
-        organization_id,
-        organizations (
-          id,
-          organization_type,
-          name,
-          slug,
-          email,
-          phone,
-          address,
-          city,
-          province,
-          postal_code,
-          coverage_postal_codes,
-          service_radius_km,
-          mechanic_capacity,
-          commission_rate,
-          status,
-          verification_status,
-          stripe_account_id,
-          stripe_account_status,
-          logo_url,
-          website,
-          industry
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .single()
-
-    if (membershipError || !membership) {
-      console.log('[WORKSHOP DASHBOARD] No organization membership found for user:', user.id)
-      return bad('No workshop found for this account', 404)
-    }
-
-    if (!membership.organizations || membership.organizations.organization_type !== 'workshop') {
-      return bad('This account is not associated with a workshop', 403)
-    }
-
-    if (!['owner', 'admin'].includes(membership.role)) {
+    // Only owners and admins can access dashboard
+    if (!['owner', 'admin'].includes(workshop.role)) {
       return bad('Insufficient permissions to access dashboard', 403)
     }
 
-    const organization = membership.organizations
+    // Get full organization details
+    const { data: organization, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select(`
+        id,
+        organization_type,
+        name,
+        slug,
+        email,
+        phone,
+        address,
+        city,
+        province,
+        postal_code,
+        coverage_postal_codes,
+        service_radius_km,
+        mechanic_capacity,
+        commission_rate,
+        status,
+        verification_status,
+        stripe_account_id,
+        stripe_account_status,
+        logo_url,
+        website,
+        industry
+      `)
+      .eq('id', workshop.organizationId)
+      .single()
+
+    if (orgError || !organization) {
+      console.error('[WORKSHOP DASHBOARD] Failed to get organization details:', orgError)
+      return bad('Failed to load workshop details', 500)
+    }
+
     console.log('[WORKSHOP DASHBOARD] Fetching data for organization:', organization.id)
 
     // Fetch mechanics belonging to this workshop
@@ -183,7 +165,7 @@ export async function GET(req: NextRequest) {
         totalRevenue,
         workshopRevenue,
       },
-      userRole: membership.role,
+      userRole: workshop.role,
     }
 
     console.log('[WORKSHOP DASHBOARD] Successfully fetched dashboard data')
@@ -191,10 +173,10 @@ export async function GET(req: NextRequest) {
     // Track dashboard access
     await trackActivityEvent('workshop_dashboard_accessed', {
       workshopId: organization.id,
-      userId: user.id,
+      userId: workshop.userId,
       metadata: {
         workshopName: organization.name,
-        userRole: membership.role,
+        userRole: workshop.role,
         totalMechanics,
         activeMechanics,
         pendingInvites: pendingInvitesCount,
@@ -207,7 +189,7 @@ export async function GET(req: NextRequest) {
       // First mechanic joined milestone
       await trackActivityEvent('workshop_first_mechanic', {
         workshopId: organization.id,
-        userId: user.id,
+        userId: workshop.userId,
         metadata: {
           workshopName: organization.name,
           mechanicName: mechanics[0].name,
@@ -219,7 +201,7 @@ export async function GET(req: NextRequest) {
       // Capacity reached milestone
       await trackActivityEvent('workshop_capacity_reached', {
         workshopId: organization.id,
-        userId: user.id,
+        userId: workshop.userId,
         metadata: {
           workshopName: organization.name,
           capacity: organization.mechanic_capacity,

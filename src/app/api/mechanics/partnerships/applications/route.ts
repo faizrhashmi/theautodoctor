@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * POST /api/mechanics/partnerships/applications
@@ -15,45 +16,31 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * }
  */
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Get mechanic profile
-    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+    const { data: mechanicProfile, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .select('*')
-      .eq('id', session.mechanic_id)
+      .eq('id', mechanic.id)
       .single()
 
-    if (mechanicError || !mechanic) {
+    if (mechanicError || !mechanicProfile) {
       return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 })
     }
 
     // Check if mechanic has completed onboarding
-    if (!mechanic.onboarding_completed) {
+    if (!mechanicProfile.onboarding_completed) {
       return NextResponse.json({
         error: 'Please complete your profile before applying to partnership programs'
       }, { status: 400 })
@@ -91,7 +78,7 @@ export async function POST(req: NextRequest) {
       .from('partnership_applications')
       .select('id, status')
       .eq('program_id', program_id)
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .single()
 
     if (existingApplication) {
@@ -124,20 +111,20 @@ export async function POST(req: NextRequest) {
     // Create application
     const applicationData = {
       program_id,
-      mechanic_id: session.mechanic_id,
+      mechanic_id: mechanic.id,
       workshop_id: program.workshop_id,
       status: 'pending',
       cover_letter: cover_letter || null,
       availability_notes: availability_notes || null,
       references: references || [],
       mechanic_profile_snapshot: {
-        full_name: mechanic.full_name,
-        email: mechanic.email,
-        phone: mechanic.phone,
-        certifications: mechanic.certifications,
-        years_experience: mechanic.years_experience,
-        specializations: mechanic.specializations,
-        red_seal_certified: mechanic.red_seal_certified
+        full_name: mechanicProfile.full_name,
+        email: mechanicProfile.email,
+        phone: mechanicProfile.phone,
+        certifications: mechanicProfile.certifications,
+        years_experience: mechanicProfile.years_experience,
+        specializations: mechanicProfile.specializations,
+        red_seal_certified: mechanicProfile.red_seal_certified
       },
       submitted_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
@@ -175,31 +162,17 @@ export async function POST(req: NextRequest) {
  *   - status: 'pending' | 'under_review' | 'approved' | 'rejected'
  */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // ✅ SECURITY: Require mechanic authentication
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Query params
     const { searchParams } = new URL(req.url)
@@ -229,7 +202,7 @@ export async function GET(req: NextRequest) {
           email
         )
       `)
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     if (status) {
       query = query.eq('status', status)

@@ -66,7 +66,7 @@ export default function SmartYearSelector({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="w-full px-4 py-3 sm:py-3.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all touch-manipulation text-base"
+        className="w-full min-h-[44px] px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-2xl text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all touch-manipulation text-base"
       >
         <option value="" disabled>
           Select year
@@ -82,11 +82,6 @@ export default function SmartYearSelector({
           </optgroup>
         ))}
       </select>
-
-      {/* Helper text */}
-      <p className="mt-2 text-xs text-slate-400">
-        Select the model year of your vehicle
-      </p>
     </div>
   )
 }

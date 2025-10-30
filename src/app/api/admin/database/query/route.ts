@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/lib/adminLogger'
-import { requireAdmin } from '@/lib/auth/requireAdmin'
+import { requireAdminAPI } from '@/lib/auth/guards'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,14 +62,14 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    // ✅ SECURITY FIX: Require admin authentication
-    const auth = await requireAdmin(request)
-    if (!auth.authorized) {
-      return auth.response!
-    }
+    // ✅ SECURITY: Require admin authentication
+    const authResult = await requireAdminAPI(request)
+    if (authResult.error) return authResult.error
 
+    const admin = authResult.data
+    console.log(`[ADMIN] ${admin.email} accessing SQL query execution`)
     console.warn(
-      `[SECURITY] DANGEROUS: Admin ${auth.profile?.full_name} executing SQL query`
+      `[SECURITY] DANGEROUS: Admin ${admin.email} executing SQL query`
     )
 
     const body = await request.json()

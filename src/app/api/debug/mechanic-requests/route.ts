@@ -1,177 +1,131 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { withDebugAuth } from '@/lib/debugAuth'
 
-export const dynamic = 'force-dynamic'
-
-async function getMechanicFromCookie(_req: NextRequest) {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
-
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
-
-async function getHandler(req: NextRequest) {
-  const mechanic = await getMechanicFromCookie(req)
-
-  if (!mechanic) {
-    return NextResponse.json({ error: 'Unauthorized - No mechanic found' }, { status: 401 })
-  }
-
-  console.log('[DEBUG] Mechanic ID:', mechanic.id, 'Email:', mechanic.email)
-
+/**
+ * Debug endpoint to check session requests visibility
+ * GET /api/debug/mechanic-requests?email=mechanic.workshop@test.com
+ */
+export async function GET(req: NextRequest) {
   try {
-    // 1. Get ALL session requests (no filters)
-    const { data: allRequests, error: allError } = await supabaseAdmin
-      .from('session_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const { searchParams } = new URL(req.url)
+    const mechanicEmail = searchParams.get('email') || 'mechanic.workshop@test.com'
 
-    if (allError) throw allError
+    console.log('[DEBUG] Checking mechanic requests for:', mechanicEmail)
 
-    console.log('[DEBUG] Total requests in database:', allRequests?.length || 0)
+    // 1. Find the mechanic
+    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+      .from('mechanics')
+      .select('id, name, email, service_tier, workshop_id, user_id')
+      .eq('email', mechanicEmail)
+      .single()
 
-    // 2. Get pending requests (should show on dashboard)
-    const { data: pendingRequests, error: pendingError } = await supabaseAdmin
-      .from('session_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .is('mechanic_id', null)
-      .order('created_at', { ascending: false })
-
-    if (pendingError) throw pendingError
-
-    console.log('[DEBUG] Pending requests (should show):', pendingRequests?.length || 0)
-
-    // 3. Get this mechanic's accepted requests
-    const { data: acceptedRequests, error: acceptedError } = await supabaseAdmin
-      .from('session_requests')
-      .select('*')
-      .eq('status', 'accepted')
-      .eq('mechanic_id', mechanic.id)
-      .order('created_at', { ascending: false })
-
-    if (acceptedError) throw acceptedError
-
-    console.log('[DEBUG] Accepted requests for this mechanic:', acceptedRequests?.length || 0)
-
-    // 4. Get all sessions
-    const { data: allSessions, error: sessionsError } = await supabaseAdmin
-      .from('sessions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (sessionsError) throw sessionsError
-
-    // 5. Analyze request states
-    const requestsByStatus = {
-      pending: allRequests?.filter(r => r.status === 'pending') || [],
-      accepted: allRequests?.filter(r => r.status === 'accepted') || [],
-      cancelled: allRequests?.filter(r => r.status === 'cancelled') || [],
-      other: allRequests?.filter(r => !['pending', 'accepted', 'cancelled'].includes(r.status)) || [],
+    if (mechanicError || !mechanic) {
+      return NextResponse.json({
+        error: 'Mechanic not found',
+        email: mechanicEmail,
+        details: mechanicError?.message
+      }, { status: 404 })
     }
 
-    // 7. Check for requests with mechanic_id but status pending (bad state)
-    const badStateRequests = allRequests?.filter(r => r.status === 'pending' && r.mechanic_id !== null) || []
+    console.log('[DEBUG] Found mechanic:', mechanic)
 
-    // 8. Check for old pending requests (might be stuck)
-    const now = new Date()
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-    const oldPendingRequests = pendingRequests?.filter(r => new Date(r.created_at) < oneDayAgo) || []
+    // 2. Get all pending session requests (no filters)
+    const { data: allRequests, error: allRequestsError } = await supabaseAdmin
+      .from('session_requests')
+      .select(`
+        id,
+        status,
+        session_type,
+        workshop_id,
+        customer_id,
+        customer_name,
+        created_at,
+        plan_code
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (allRequestsError) {
+      return NextResponse.json({
+        error: 'Failed to fetch requests',
+        details: allRequestsError.message
+      }, { status: 500 })
+    }
+
+    console.log('[DEBUG] All pending requests:', allRequests?.length || 0)
+
+    // 3. Apply filtering logic
+    let filteredRequests = allRequests || []
+
+    if (mechanic.service_tier === 'virtual_only') {
+      filteredRequests = filteredRequests.filter(r =>
+        ['virtual', 'diagnostic', 'chat'].includes(r.session_type)
+      )
+    } else if (mechanic.service_tier === 'workshop_affiliated' && mechanic.workshop_id) {
+      filteredRequests = filteredRequests.filter(r =>
+        !r.workshop_id || r.workshop_id === mechanic.workshop_id
+      )
+    } else {
+      filteredRequests = filteredRequests.filter(r => !r.workshop_id)
+    }
+
+    // 4. Get customer details for the last request
+    let lastRequestCustomer = null
+    if (filteredRequests.length > 0) {
+      const lastRequest = filteredRequests[0]
+      const { data: customer } = await supabaseAdmin
+        .from('customers')
+        .select('id, first_name, last_name, email')
+        .eq('id', lastRequest.customer_id)
+        .single()
+
+      lastRequestCustomer = customer
+    }
 
     return NextResponse.json({
-      debug: true,
-      timestamp: now.toISOString(),
       mechanic: {
         id: mechanic.id,
-        email: mechanic.email,
         name: mechanic.name,
+        email: mechanic.email,
+        service_tier: mechanic.service_tier,
+        workshop_id: mechanic.workshop_id,
+        user_id: mechanic.user_id
       },
-      summary: {
-        totalRequests: allRequests?.length || 0,
-        pendingRequests: pendingRequests?.length || 0,
-        acceptedByThisMechanic: acceptedRequests?.length || 0,
-        totalSessions: allSessions?.length || 0,
-        badStateRequests: badStateRequests.length,
-        oldPendingRequests: oldPendingRequests.length,
-      },
-      breakdown: {
-        byStatus: {
-          pending: requestsByStatus.pending.length,
-          accepted: requestsByStatus.accepted.length,
-          cancelled: requestsByStatus.cancelled.length,
-          other: requestsByStatus.other.length,
-        },
-      },
-      issues: {
-        badStateRequests: badStateRequests.map(r => ({
+      requests: {
+        total_pending: allRequests?.length || 0,
+        visible_to_mechanic: filteredRequests.length,
+        all_requests: allRequests?.map(r => ({
           id: r.id,
-          status: r.status,
-          mechanic_id: r.mechanic_id,
-          created_at: r.created_at,
-          issue: 'Status is pending but has mechanic_id assigned',
-        })),
-        oldPendingRequests: oldPendingRequests.map(r => ({
-          id: r.id,
+          session_type: r.session_type,
+          workshop_id: r.workshop_id,
           customer_name: r.customer_name,
-          created_at: r.created_at,
-          age_hours: Math.floor((now.getTime() - new Date(r.created_at).getTime()) / (1000 * 60 * 60)),
-          issue: 'Pending for more than 24 hours - might be stuck',
-        })),
+          created_at: r.created_at
+        })) || [],
+        filtered_requests: filteredRequests.map(r => ({
+          id: r.id,
+          session_type: r.session_type,
+          workshop_id: r.workshop_id,
+          customer_name: r.customer_name,
+          created_at: r.created_at
+        }))
       },
-      data: {
-        allRequests: allRequests?.slice(0, 10), // First 10 only
-        pendingRequests: pendingRequests?.slice(0, 10),
-        acceptedRequests: acceptedRequests?.slice(0, 10),
-        recentSessions: allSessions?.slice(0, 10),
-      },
-      queryInfo: {
-        pendingQuery: {
-          description: 'Query used for dashboard incoming requests',
-          conditions: [
-            'status = pending',
-            'mechanic_id IS NULL',
-            'ORDER BY created_at ASC',
-          ],
-        },
-        acceptedQuery: {
-          description: 'Query used for accepted requests section',
-          conditions: [
-            'status = accepted',
-            `mechanic_id = ${mechanic.id}`,
-            'ORDER BY created_at ASC',
-          ],
-        },
-      },
+      last_request_customer: lastRequestCustomer,
+      filtering_applied: {
+        service_tier: mechanic.service_tier,
+        workshop_id: mechanic.workshop_id,
+        rule: mechanic.service_tier === 'virtual_only'
+          ? 'Virtual-only: showing virtual/diagnostic/chat only'
+          : mechanic.service_tier === 'workshop_affiliated' && mechanic.workshop_id
+          ? `Workshop-affiliated: showing workshop ${mechanic.workshop_id} and general requests`
+          : 'Independent: showing general requests only'
+      }
     })
+
   } catch (error: any) {
-    console.error('[DEBUG] Error fetching debug data:', error)
+    console.error('[DEBUG] Error:', error)
     return NextResponse.json({
-      error: 'Debug fetch failed',
-      message: error.message,
-      stack: error.stack,
+      error: 'Internal server error',
+      details: error.message
     }, { status: 500 })
   }
 }
-
-// Apply debug authentication wrapper
-export const GET = withDebugAuth(getHandler)

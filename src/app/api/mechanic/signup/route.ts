@@ -1,7 +1,17 @@
-// @ts-nocheck
+/**
+ * MECHANIC SIGNUP API - Unified Supabase Auth
+ *
+ * This endpoint creates a new mechanic account using Supabase Authentication.
+ * It creates:
+ * 1. User in auth.users table (Supabase Auth)
+ * 2. Profile in profiles table (role='mechanic')
+ * 3. Mechanic record in mechanics table (linked via user_id)
+ *
+ * SECURITY: Uses Supabase Auth - NO custom password hashing or session tables
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { hashPassword, makeSessionToken } from '@/lib/auth';
 import { encryptPII } from '@/lib/encryption';
 
 function bad(msg: string, status = 400) {
@@ -67,36 +77,93 @@ export async function POST(req: NextRequest) {
       return bad('Insurance and background check are required');
     }
 
-    // Hash password
-    const password_hash = hashPassword(password);
+    // ========================================================================
+    // STEP 1: Create Supabase Auth User
+    // ========================================================================
+    console.log('[MECHANIC SIGNUP] Creating auth user...');
 
-    // Encrypt sensitive data (SIN/Business Number)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: false, // Require email verification
+      user_metadata: {
+        full_name: name,
+        role: 'mechanic',
+        phone,
+      },
+    });
+
+    if (authError || !authData.user) {
+      console.error('[MECHANIC SIGNUP] Auth error:', authError);
+      return bad(authError?.message || 'Failed to create account', 400);
+    }
+
+    const userId = authData.user.id;
+    console.log('[MECHANIC SIGNUP] Auth user created:', userId);
+
+    // ========================================================================
+    // STEP 2: Wait for trigger to create profile, then upsert
+    // ========================================================================
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: userId,
+        full_name: name,
+        phone,
+        role: 'mechanic',
+        account_type: 'independent_mechanic',
+        source: 'direct',
+        email_verified: false,
+        account_status: 'active',
+      }, {
+        onConflict: 'id'
+      });
+
+    if (profileError) {
+      console.error('[MECHANIC SIGNUP] Profile error:', profileError);
+      // Don't fail - profile might be created by trigger
+    }
+
+    // ========================================================================
+    // STEP 3: Encrypt sensitive data
+    // ========================================================================
     const encryptedSIN = sinOrBusinessNumber ? encryptPII(sinOrBusinessNumber) : null;
 
     // Build full address
-    const full_address = `${address}, ${city}, ${province} ${postalCode}, ${country}`;
+    const full_address = address ? `${address}, ${city}, ${province} ${postalCode}, ${country}` : null;
 
     // Prepare other certifications JSONB
     const other_certifications_jsonb = {
       certifications: otherCertifications || [],
     };
 
-    // Create mechanic record
-    const { data: mech, error } = await supabaseAdmin
+    // ========================================================================
+    // STEP 4: Create mechanic record linked to Supabase Auth
+    // ========================================================================
+    console.log('[MECHANIC SIGNUP] Creating mechanic profile...');
+
+    const { data: mech, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
       .insert({
+        // CRITICAL: Link to Supabase Auth user
+        user_id: userId,
+
         // Basic info
         name,
         email,
         phone,
-        password_hash,
+
+        // NOTE: password_hash is now NULLABLE - we use Supabase Auth
+        password_hash: null,
 
         // Account type tracking (for B2C → B2B2C transition)
-        account_type: 'independent', // Use 'independent' to match migration
+        account_type: 'independent',
         source: 'direct',
         workshop_id: null, // Independent mechanics have no workshop
-        invited_by: null, // Not invited
-        invite_accepted_at: null, // Not applicable
+        invited_by: null,
+        invite_accepted_at: null,
         requires_sin_collection: process.env.NEXT_PUBLIC_ENABLE_SIN_COLLECTION === 'true',
         sin_collection_completed_at: encryptedSIN ? new Date().toISOString() : null,
 
@@ -107,7 +174,7 @@ export async function POST(req: NextRequest) {
         postal_code: postalCode,
         country,
         date_of_birth: dateOfBirth,
-        sin_encrypted: encryptedSIN, // Using encrypted column instead of sin_or_business_number
+        sin_encrypted: encryptedSIN,
 
         // Credentials
         red_seal_certified: redSealCertified || false,
@@ -130,7 +197,7 @@ export async function POST(req: NextRequest) {
         insurance_expiry: insuranceExpiry || null,
         criminal_record_check: criminalRecordCheck || false,
 
-        // Document URLs (stored in separate fields for quick access)
+        // Document URLs
         certification_documents: uploadedDocuments?.redSeal
           ? [uploadedDocuments.redSeal]
           : [],
@@ -143,21 +210,28 @@ export async function POST(req: NextRequest) {
         background_check_status: 'pending',
         application_submitted_at: new Date().toISOString(),
         current_step: 6, // Completed all steps
+        service_tier: 'virtual_only', // Default to virtual-only until approved
       })
       .select('id')
       .single();
 
-    if (error) {
-      console.error('[MECHANIC SIGNUP] Database error:', error);
-      if (error.code === '23505') {
+    if (mechanicError) {
+      console.error('[MECHANIC SIGNUP] Mechanic insert error:', mechanicError);
+
+      // Cleanup: Delete auth user if mechanic creation fails
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      if (mechanicError.code === '23505') {
         return bad('Email already registered', 409);
       }
-      return bad(error.message, 500);
+      return bad(mechanicError.message, 500);
     }
 
-    console.log('[MECHANIC SIGNUP] Created mechanic:', mech.id);
+    console.log('[MECHANIC SIGNUP] Mechanic profile created:', mech.id);
 
-    // Create document records in mechanic_documents table
+    // ========================================================================
+    // STEP 5: Create document records
+    // ========================================================================
     if (uploadedDocuments) {
       const documentInserts = [];
 
@@ -166,7 +240,7 @@ export async function POST(req: NextRequest) {
           mechanic_id: mech.id,
           document_type: 'red_seal_certificate',
           file_name: 'Red Seal Certificate',
-          file_size: 0, // We don't have size here
+          file_size: 0,
           file_type: 'application/pdf',
           storage_path: uploadedDocuments.redSeal,
           storage_url: uploadedDocuments.redSeal,
@@ -215,64 +289,52 @@ export async function POST(req: NextRequest) {
           .insert(documentInserts);
 
         if (docError) {
-          console.error(
-            '[MECHANIC SIGNUP] Failed to insert documents:',
-            docError
-          );
-          // Don't fail the signup if document insert fails
+          console.error('[MECHANIC SIGNUP] Document insert error:', docError);
+          // Don't fail signup if document insert fails
         }
       }
     }
 
-    // Create admin action record
+    // ========================================================================
+    // STEP 6: Create admin action record
+    // ========================================================================
     await supabaseAdmin.from('mechanic_admin_actions').insert({
       mechanic_id: mech.id,
       admin_id: 'system',
       action_type: 'application_submitted',
-      notes: 'Application submitted by mechanic',
+      notes: 'Application submitted by mechanic via Supabase Auth',
       metadata: {
         email,
+        user_id: userId,
         submitted_at: new Date().toISOString(),
       },
     });
 
-    // Create session for the mechanic
-    const token = makeSessionToken();
-    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
-    const { error: sErr } = await supabaseAdmin.from('mechanic_sessions').insert({
-      mechanic_id: mech.id,
-      token,
-      expires_at: expires.toISOString(),
-    });
+    // ========================================================================
+    // STEP 7: Return success (NO SESSION CREATION)
+    // ========================================================================
+    // NOTE: We do NOT create a session here - user must verify email and log in
+    // This is more secure and follows Supabase Auth best practices
 
-    if (sErr) {
-      console.error('[MECHANIC SIGNUP] Session creation error:', sErr);
-      return bad(sErr.message, 500);
-    }
-
-    const res = NextResponse.json({
-      ok: true,
-      message:
-        'Application submitted successfully! You will receive an email once your application is reviewed.',
+    console.log('[MECHANIC SIGNUP] ✅ Success! Application submitted:', {
       mechanicId: mech.id,
+      userId: userId,
+      email: email,
     });
 
-    res.cookies.set('aad_mech', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
+    return NextResponse.json({
+      ok: true,
+      message: 'Application submitted successfully! Please check your email to verify your account before logging in.',
+      mechanicId: mech.id,
+      userId: userId,
+      requiresEmailVerification: true,
     });
-
-    console.log('[MECHANIC SIGNUP] Success! Application submitted:', mech.id);
 
     // TODO: Send email notification to admin
-    // TODO: Send confirmation email to mechanic
+    // TODO: Send confirmation email to mechanic (Supabase handles verification email)
 
-    return res;
   } catch (e: any) {
-    console.error('[MECHANIC SIGNUP] Error:', e);
+    console.error('[MECHANIC SIGNUP] Unexpected error:', e);
     return bad(e.message || 'Signup failed', 500);
   }
 }

@@ -1,33 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
+// CLEANED UP: Migrated from old auth (aad_mech cookie) to Supabase Auth
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('aad_mech')?.value
+  // Use unified auth guard
+  const result = await requireMechanicAPI(req)
+  if (result.error) return result.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
+  const mechanic = result.data
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
   }
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    // Check if session is expired
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
 
     // Get query parameters
     const { searchParams } = new URL(req.url)
@@ -51,7 +38,7 @@ export async function GET(req: NextRequest) {
           full_name
         )
       `)
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     // Apply rating filter
     if (rating && rating !== 'all') {
@@ -105,7 +92,7 @@ export async function GET(req: NextRequest) {
     const { data: allReviews } = await supabaseAdmin
       .from('session_reviews')
       .select('rating, created_at')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
 
     const stats = {
       average_rating: 0,

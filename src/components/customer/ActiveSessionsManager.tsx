@@ -53,6 +53,31 @@ export default function ActiveSessionsManager({ sessions: initialSessions }: Act
           }
         }
       )
+      .on(
+        'broadcast',
+        { event: 'session_completed' },
+        (payload) => {
+          console.log('[ActiveSessionsManager] Broadcast: Session completed:', payload)
+          const { session_id } = payload.payload || {}
+
+          // Remove completed session from display
+          if (session_id) {
+            console.log('[ActiveSessionsManager] Removing completed session from display:', session_id)
+            setSessions(prev => prev.filter(s => s.id !== session_id))
+
+            // Show notification to user
+            if (typeof window !== 'undefined') {
+              // Optionally show browser notification if permission granted
+              if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Session Ended', {
+                  body: 'Your session has been completed.',
+                  icon: '/favicon.ico'
+                })
+              }
+            }
+          }
+        }
+      )
       .subscribe((status) => {
         console.log('[ActiveSessionsManager] Subscription status:', status)
       })
