@@ -4,6 +4,8 @@ import { requireAdminAPI } from '@/lib/auth/guards';
 import { getSupabaseServer } from '@/lib/supabaseServer';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(_request: NextRequest) {
     // ✅ SECURITY: Require admin authentication
     const authResult = await requireAdminAPI(req)

@@ -177,6 +177,8 @@ async function checkStorage(): Promise<ServiceHealth> {
   }
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(_request: NextRequest) {
     // ✅ SECURITY: Require admin authentication
     const authResult = await requireAdminAPI(req)
