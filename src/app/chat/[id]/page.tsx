@@ -167,9 +167,9 @@ export default async function ChatSessionPage({ params }: PageProps) {
     }
   }
 
-  // Determine correct dashboard URL based on who they actually are in this session
-  // Use user existence (not role) to prevent redirect leaks in testing scenarios
-  const dashboardUrl = user ? '/customer/dashboard' : '/mechanic/dashboard'
+  // Determine correct dashboard URL based on their role in this session
+  // Use userRole determined above (mechanic vs customer) for correct redirect
+  const dashboardUrl = userRole === 'mechanic' ? '/mechanic/dashboard' : '/customer/dashboard'
 
   return (
     <ChatRoom
