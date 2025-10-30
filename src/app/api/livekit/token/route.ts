@@ -57,47 +57,38 @@ async function verifyRoomAccess(req: NextRequest, room: string): Promise<{ userI
       .eq('id', room)
       .maybeSingle()
 
+    // Check if user is customer for this session
     if (session && session.customer_user_id === user.id) {
       console.log('[LiveKit Token] Customer authorized for room:', room)
       return { userId: user.id, userType: 'customer' }
     }
 
-    // Check if admin (admins can join any room for monitoring)
+    // Check if user is mechanic for this session (Supabase Auth)
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .maybeSingle()
 
+    if (profile?.role === 'mechanic') {
+      // Get mechanic profile
+      const { data: mechanic } = await supabaseAdmin
+        .from('mechanics')
+        .select('id, user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      // Verify mechanic is assigned to this session
+      if (mechanic && session && session.mechanic_id === mechanic.id) {
+        console.log('[LiveKit Token] Mechanic authorized for room:', room, '(user_id:', user.id, ')')
+        return { userId: user.id, userType: 'mechanic' }
+      }
+    }
+
+    // Check if admin (admins can join any room for monitoring)
     if (profile?.role === 'admin') {
       console.log('[LiveKit Token] Admin authorized for room:', room)
       return { userId: user.id, userType: 'customer' } // Treat admin as customer for LiveKit
-    }
-  }
-
-  // Try mechanic auth
-  const mechanicToken = req.cookies.get('aad_mech')?.value
-
-  if (mechanicToken && supabaseAdmin) {
-    const { data: mechanicSession } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', mechanicToken)
-      .maybeSingle()
-
-    if (mechanicSession && new Date(mechanicSession.expires_at) > new Date()) {
-      // Verify mechanic is assigned to this session
-      const { data: session } = await supabaseAdmin
-        .from('sessions')
-        .select('id, mechanic_id')
-        .eq('id', room)
-        .eq('mechanic_id', mechanicSession.mechanic_id)
-        .maybeSingle()
-
-      if (session) {
-        console.log('[LiveKit Token] Mechanic authorized for room:', room)
-        return { userId: mechanicSession.mechanic_id, userType: 'mechanic' }
-      }
     }
   }
 

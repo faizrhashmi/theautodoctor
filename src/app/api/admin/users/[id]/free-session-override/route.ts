@@ -53,8 +53,6 @@ export async function POST(
   if (profile?.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
-
-  try {
     const { enabled } = await req.json()
     const userId = params.id
 

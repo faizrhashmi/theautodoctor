@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 import type { SessionStatus } from '@/types/session'
@@ -34,7 +34,7 @@ export async function PATCH(
   const sessionId = params.id
 
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { createServerClient } from '@supabase/ssr'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -12,7 +12,7 @@ export async function DELETE(
   const sessionId = params.id
 
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data

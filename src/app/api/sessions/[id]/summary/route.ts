@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { logInfo } from '@/lib/log'
 
@@ -10,7 +10,7 @@ export async function POST(
   const sessionId = params.id
 
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data
@@ -181,7 +181,7 @@ export async function GET(
   const sessionId = params.id
 
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, sessionId)
+  const authResult = await requireSessionParticipantRelaxed(req, sessionId)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * PATCH /api/mechanics/clients/[clientId]
@@ -10,34 +11,14 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { clientId: string } }
 ) {
-  const token = req.cookies.get('aad_mech')?.value
+  // Require mechanic authentication (Supabase Auth)
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
+  const mechanic = authResult.data
+  const clientId = params.clientId
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const clientId = params.clientId
-
     // Get client to verify ownership
     const { data: existingClient, error: fetchError } = await supabaseAdmin
       .from('mechanic_clients')
@@ -49,7 +30,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    if (existingClient.mechanic_id !== session.mechanic_id) {
+    if (existingClient.mechanic_id !== mechanic.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -109,34 +90,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { clientId: string } }
 ) {
-  const token = req.cookies.get('aad_mech')?.value
+  // Require mechanic authentication (Supabase Auth)
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
+  const mechanic = authResult.data
+  const clientId = params.clientId
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const clientId = params.clientId
-
     // Get client to verify ownership
     const { data: existingClient, error: fetchError } = await supabaseAdmin
       .from('mechanic_clients')
@@ -148,7 +109,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    if (existingClient.mechanic_id !== session.mechanic_id) {
+    if (existingClient.mechanic_id !== mechanic.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -183,34 +144,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { clientId: string } }
 ) {
-  const token = req.cookies.get('aad_mech')?.value
+  // Require mechanic authentication (Supabase Auth)
+  const authResult = await requireMechanicAPI(req)
+  if (authResult.error) return authResult.error
 
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-
-  if (!supabaseAdmin) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
+  const mechanic = authResult.data
+  const clientId = params.clientId
 
   try {
-    // Validate session
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('mechanic_sessions')
-      .select('mechanic_id, expires_at')
-      .eq('token', token)
-      .single()
-
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
-
-    if (new Date(session.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const clientId = params.clientId
-
     // Get client
     const { data: client, error: clientError } = await supabaseAdmin
       .from('mechanic_clients')
@@ -222,7 +163,7 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    if (client.mechanic_id !== session.mechanic_id) {
+    if (client.mechanic_id !== mechanic.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -230,7 +171,7 @@ export async function GET(
     const { data: jobs } = await supabaseAdmin
       .from('partnership_revenue_splits')
       .select('*')
-      .eq('mechanic_id', session.mechanic_id)
+      .eq('mechanic_id', mechanic.id)
       .contains('job_details', { customer_name: client.customer_name })
       .order('completed_at', { ascending: false })
 

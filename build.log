@@ -1,0 +1,46 @@
+npm warn Unknown project config "shamefully-hoist". This will stop working in the next major version of npm.
+npm warn Unknown project config "strict-peer-dependencies". This will stop working in the next major version of npm.
+npm warn Unknown project config "prefer-frozen-lockfile". This will stop working in the next major version of npm.
+npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm.
+npm warn Unknown project config "dedupe-peer-dependents". This will stop working in the next major version of npm.
+npm warn Unknown project config "public-hoist-pattern". This will stop working in the next major version of npm.
+
+> theautodoctor@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local, .env.production
+  - Experiments (use with caution):
+    · turbo
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./src/app/api/admin/mechanics/applications/route.ts
+Error: 
+  [31mx[0m Expected a semicolon
+    ,-[[36;1;4mc:\Users\Faiz Hashmi\theautodoctor\src\app\api\admin\mechanics\applications\route.ts[0m:41:1]
+ [2m41[0m |     console.error('[ADMIN] Error:', e);
+ [2m42[0m |     return bad(e.message || 'Failed to fetch applications', 500);
+ [2m43[0m |   }
+ [2m44[0m | }
+    : [31;1m ^[0m
+    `----
+
+  [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4mc:\Users\Faiz Hashmi\theautodoctor\src\app\api\admin\mechanics\applications\route.ts[0m:41:1]
+ [2m41[0m |     console.error('[ADMIN] Error:', e);
+ [2m42[0m |     return bad(e.message || 'Failed to fetch applications', 500);
+ [2m43[0m |   }
+ [2m44[0m | }
+    : [31;1m^[0m
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/api/admin/mechanics/applications/route.ts
+
+
+> Build failed because of webpack errors

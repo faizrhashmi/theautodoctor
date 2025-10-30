@@ -8,12 +8,11 @@ function bad(msg: string, status = 400) {
 }
 
 export async function GET(req: NextRequest) {
-  try {
-    // ✅ SECURITY: Require admin authentication
-    const authResult = await requireAdminAPI(req)
-    if (authResult.error) return authResult.error
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
 
-    const admin = authResult.data
+  const admin = authResult.data
 
   if (!supabaseAdmin) return bad('Supabase not configured', 500);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSessionParticipant } from '@/lib/auth/sessionGuards'
+import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import type { SessionSummary } from '@/types/session'
 
 const MOCK_SESSION: SessionSummary = {
@@ -17,7 +17,7 @@ const MOCK_SESSION: SessionSummary = {
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, params.id)
+  const authResult = await requireSessionParticipantRelaxed(req, params.id)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, params.id)
+  const authResult = await requireSessionParticipantRelaxed(req, params.id)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   // Validate session participant FIRST
-  const authResult = await requireSessionParticipant(req, params.id)
+  const authResult = await requireSessionParticipantRelaxed(req, params.id)
   if (authResult.error) return authResult.error
 
   const participant = authResult.data

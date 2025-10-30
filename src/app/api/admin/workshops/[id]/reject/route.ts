@@ -11,12 +11,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    // ✅ SECURITY: Require admin authentication
-    const authResult = await requireAdminAPI(req)
-    if (authResult.error) return authResult.error
+  // ✅ SECURITY: Require admin authentication
+  const authResult = await requireAdminAPI(req)
+  if (authResult.error) return authResult.error
 
-    const admin = authResult.data
+  const admin = authResult.data
 
   // Check admin auth
   const adminCheck = await ensureAdmin()

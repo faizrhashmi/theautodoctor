@@ -23,8 +23,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const admin = authResult.data
 
   const sessionId = params.id
-
-  try {
     // 1. Fetch session details
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('sessions')

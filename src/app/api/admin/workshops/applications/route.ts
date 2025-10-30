@@ -18,8 +18,6 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status') || 'pending'
-
-  try {
     let query = supabaseAdmin
       .from('organizations')
       .select(`

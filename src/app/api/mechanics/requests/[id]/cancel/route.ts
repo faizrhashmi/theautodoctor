@@ -1,33 +1,7 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { broadcastSessionRequest } from '@/lib/sessionRequests'
-
-// Helper to get mechanic from custom auth cookie
-async function getMechanicFromCookie(_req: NextRequest) {
-  const cookieStore = cookies()
-  const token = cookieStore.get('aad_mech')?.value
-
-  if (!token) return null
-
-  const { data: session } = await supabaseAdmin
-    .from('mechanic_sessions')
-    .select('mechanic_id')
-    .eq('token', token)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!session) return null
-
-  const { data: mechanic } = await supabaseAdmin
-    .from('mechanics')
-    .select('id, name, email')
-    .eq('id', session.mechanic_id)
-    .maybeSingle()
-
-  return mechanic
-}
+import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**
  * Undo/Cancel a request acceptance
@@ -42,12 +16,11 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid request id' }, { status: 400 })
   }
 
-  // Use custom mechanic auth
-  const mechanic = await getMechanicFromCookie(request)
+  // Require mechanic authentication (Supabase Auth)
+  const authResult = await requireMechanicAPI(request)
+  if (authResult.error) return authResult.error
 
-  if (!mechanic) {
-    return NextResponse.json({ error: 'Unauthorized - Please log in as a mechanic' }, { status: 401 })
-  }
+  const mechanic = authResult.data
 
   // Get the request to verify it's assigned to this mechanic
   const { data: existingRequest, error: fetchError } = await supabaseAdmin
