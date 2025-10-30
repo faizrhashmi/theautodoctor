@@ -105,19 +105,15 @@ export default function MechanicSidebar() {
     try {
       console.log('[MechanicSidebar] Starting logout...')
 
-      const supabase = createClient()
+      // Call mechanic logout API to properly clear auth cookies and session
+      await fetch('/api/mechanic/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
 
-      // Sign out from Supabase - this will clear all auth cookies
-      const { error } = await supabase.auth.signOut()
+      console.log('[MechanicSidebar] ✅ Logout successful')
 
-      if (error) {
-        console.error('[MechanicSidebar] Logout error:', error)
-        // Continue with redirect even if error
-      } else {
-        console.log('[MechanicSidebar] ✅ Logout successful')
-      }
-
-      // Force hard redirect to clear any cached state
+      // Force hard redirect to mechanic login page to clear any cached state
       window.location.href = '/mechanic/login'
     } catch (error) {
       console.error('[MechanicSidebar] Sign out error:', error)

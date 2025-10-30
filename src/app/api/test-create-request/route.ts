@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { broadcastSessionRequest } from '@/lib/sessionRequests'
+import { broadcastSessionRequest } from '@/lib/realtimeChannels'
 
 // Prevent this from being called during build/static generation
 export const dynamic = 'force-dynamic'

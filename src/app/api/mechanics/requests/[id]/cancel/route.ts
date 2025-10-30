@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { broadcastSessionRequest } from '@/lib/sessionRequests'
+import { broadcastSessionRequest } from '@/lib/realtimeChannels'
 import { requireMechanicAPI } from '@/lib/auth/guards'
 
 /**

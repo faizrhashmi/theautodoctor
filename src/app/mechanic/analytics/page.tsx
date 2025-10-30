@@ -93,33 +93,33 @@ export default function MechanicAnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Link
             href="/mechanic/dashboard"
-            className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4 text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                <BarChart3 className="w-8 h-8 text-orange-500" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+                <BarChart3 className="w-6 sm:w-8 h-6 sm:h-8 text-orange-500" />
                 Analytics & Insights
               </h1>
-              <p className="text-slate-400 mt-1">Track your performance and earnings</p>
+              <p className="text-sm sm:text-base text-slate-400 mt-1">Track your performance and earnings</p>
             </div>
 
             {/* Period Selector */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(['week', 'month', 'quarter', 'year'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
                     period === p
                       ? 'bg-orange-500 text-white'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -133,7 +133,7 @@ export default function MechanicAnalyticsPage() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
             <div className="flex items-center gap-3 mb-2">
               <Wrench className="w-5 h-5 text-blue-500" />
@@ -180,7 +180,7 @@ export default function MechanicAnalyticsPage() {
         </div>
 
         {/* Job Type Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Virtual Jobs */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">

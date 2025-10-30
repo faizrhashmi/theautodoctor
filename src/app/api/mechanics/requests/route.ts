@@ -80,14 +80,25 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const queryStartTime = Date.now();
     const { data: requests, error } = await query;
+    const queryDuration = Date.now() - queryStartTime;
 
     if (error) {
       console.error('[MechanicsRequests] Database error:', error);
       return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 });
     }
 
-    console.log(`[MechanicsRequests] Found ${requests?.length || 0} ${status} requests`);
+    console.log(`[MechanicsRequests] Query completed in ${queryDuration}ms - Found ${requests?.length || 0} ${status} requests`);
+
+    // Log request ages to detect delays
+    if (requests && requests.length > 0) {
+      requests.forEach(req => {
+        const ageMs = Date.now() - new Date(req.created_at).getTime();
+        const ageMinutes = Math.floor(ageMs / 60000);
+        console.log(`[MechanicsRequests] Request ${req.id}: created ${ageMinutes}m ago (status: ${req.status})`);
+      });
+    }
 
     // Format the response to match what the frontend expects
     // Note: Removed joins due to missing foreign keys - using direct columns only

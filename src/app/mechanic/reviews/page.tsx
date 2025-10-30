@@ -119,7 +119,7 @@ export default function MechanicReviewsPage() {
 
   if (loading && page === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
@@ -130,17 +130,17 @@ export default function MechanicReviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Reviews & Ratings</h1>
-            <p className="mt-1 text-sm text-slate-400">See what customers are saying about your service</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Reviews & Ratings</h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">See what customers are saying about your service</p>
           </div>
           <button
             onClick={() => router.push('/mechanic/dashboard')}
-            className="text-sm text-slate-400 hover:text-slate-300 transition"
+            className="text-sm text-slate-400 hover:text-slate-300 transition self-start sm:self-auto"
           >
             ← Back to Dashboard
           </button>
@@ -157,7 +157,7 @@ export default function MechanicReviewsPage() {
 
         {/* Stats Overview */}
         {stats && (
-          <div className="mb-8 grid gap-6 lg:grid-cols-2">
+          <div className="mb-6 sm:mb-8 grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Overall Rating */}
             <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
               <h2 className="text-lg font-bold text-white mb-4">Overall Rating</h2>
@@ -196,7 +196,7 @@ export default function MechanicReviewsPage() {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2">
               <div className="rounded-2xl border border-green-700/50 bg-green-900/20 p-6 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   <div>

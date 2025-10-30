@@ -127,21 +127,21 @@ export default function MechanicEarningsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-slate-400 hover:text-white mb-4"
+            className="flex items-center gap-2 text-slate-400 hover:text-white mb-4 text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
           </button>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white">Earnings & Reports</h1>
-              <p className="text-slate-400 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Earnings & Reports</h1>
+              <p className="text-sm sm:text-base text-slate-400 mt-1">
                 Track your income and download reports for tax purposes
               </p>
             </div>
@@ -149,7 +149,7 @@ export default function MechanicEarningsPage() {
             <button
               onClick={handleExport}
               disabled={!earningsData || earningsData.session_details.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
               <span>Export CSV</span>
@@ -158,12 +158,12 @@ export default function MechanicEarningsPage() {
         </div>
 
         {/* Period Filter */}
-        <div className="mb-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow-sm p-2 inline-flex gap-2">
+        <div className="mb-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow-sm p-2 flex flex-wrap gap-2">
           {(['day', 'week', 'month', 'year', 'all'] as const).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-md font-medium transition-colors capitalize ${
+              className={`px-3 sm:px-4 py-2 rounded-md font-medium transition-colors capitalize text-sm sm:text-base ${
                 period === p
                   ? 'bg-blue-600 text-white'
                   : 'text-slate-400 hover:bg-slate-800/50'
@@ -188,7 +188,7 @@ export default function MechanicEarningsPage() {
         {earningsData && (
           <>
             {/* Summary Cards */}
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-green-100">Your Earnings</p>
@@ -245,7 +245,7 @@ export default function MechanicEarningsPage() {
             </div>
 
             {/* By Session Type */}
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <MessageCircle className="w-8 h-8 text-blue-600" />

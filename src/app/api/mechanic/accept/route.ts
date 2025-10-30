@@ -23,7 +23,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
+import { toSessionRequest } from '@/lib/sessionRequests'
+import { broadcastSessionRequest } from '@/lib/realtimeChannels'
 import { requireMechanicAPI } from '@/lib/auth/guards'
 
 // ============================================================================

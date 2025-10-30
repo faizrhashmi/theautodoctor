@@ -327,16 +327,36 @@ export async function POST(
     }
 
     // Mark any associated session request as cancelled (no-show)
-    // CRITICAL FIX: Match by customer_id since session_requests has no session_id column
+    // CRITICAL FIX: Match by parent_session_id first, then fallback to customer_id + mechanic_id
     if (session.customer_user_id) {
-      await supabaseAdmin
+      // First try: Match by parent_session_id
+      const { data: cancelledBySessionId } = await supabaseAdmin
         .from('session_requests')
         .update({
           status: 'cancelled',
-          updated_at: now,
         })
-        .eq('customer_id', session.customer_user_id)
-        .in('status', ['pending', 'accepted', 'unattended']) // Update all active statuses
+        .eq('parent_session_id', sessionId)
+        .in('status', ['pending', 'accepted', 'unattended'])
+        .select()
+
+      if (cancelledBySessionId && cancelledBySessionId.length > 0) {
+        console.log(`[end session] Cancelled session_request ${cancelledBySessionId[0].id} (no-show, via parent_session_id)`)
+      } else {
+        // FALLBACK: Match by customer_id and mechanic_id
+        const { data: cancelledByMatch } = await supabaseAdmin
+          .from('session_requests')
+          .update({
+            status: 'cancelled',
+          })
+          .eq('customer_id', session.customer_user_id)
+          .eq('mechanic_id', session.mechanic_id)
+          .in('status', ['pending', 'accepted', 'unattended'])
+          .select()
+
+        if (cancelledByMatch && cancelledByMatch.length > 0) {
+          console.log(`[end session] Cancelled ${cancelledByMatch.length} session_request(s) (no-show, via customer + mechanic match)`)
+        }
+      }
     }
 
     const responseData = {
@@ -680,6 +700,7 @@ export async function POST(
   // This removes it from the mechanic's "new requests" list and tracks successful completion
   // Use parent_session_id for precise matching (avoids marking multiple requests)
   if (session.mechanic_id && session.customer_user_id) {
+    // First try: Match by parent_session_id (most precise)
     const { data: updatedRequest, error: updateError } = await supabaseAdmin
       .from('session_requests')
       .update({
@@ -692,9 +713,30 @@ export async function POST(
     if (updateError) {
       console.error(`[end session] Failed to update session_request:`, updateError)
     } else if (updatedRequest && updatedRequest.length > 0) {
-      console.log(`[end session] Marked session_request ${updatedRequest[0].id} as completed`)
+      console.log(`[end session] Marked session_request ${updatedRequest[0].id} as completed (via parent_session_id)`)
     } else {
-      console.warn(`[end session] No session_request found for session ${sessionId}`)
+      // FALLBACK: If parent_session_id didn't match (null or not set), try matching by customer + mechanic + status
+      console.warn(`[end session] No session_request found with parent_session_id ${sessionId}, trying fallback...`)
+
+      const { data: fallbackRequest, error: fallbackError } = await supabaseAdmin
+        .from('session_requests')
+        .update({
+          status: 'completed',
+        })
+        .eq('customer_id', session.customer_user_id)
+        .eq('mechanic_id', session.mechanic_id)
+        .in('status', ['pending', 'accepted']) // Only update active requests
+        .order('created_at', { ascending: false }) // Get most recent
+        .limit(1)
+        .select()
+
+      if (fallbackError) {
+        console.error(`[end session] Fallback update failed:`, fallbackError)
+      } else if (fallbackRequest && fallbackRequest.length > 0) {
+        console.log(`[end session] ✓ Marked session_request ${fallbackRequest[0].id} as completed (via fallback)`)
+      } else {
+        console.warn(`[end session] No matching session_request found for customer ${session.customer_user_id} and mechanic ${session.mechanic_id}`)
+      }
     }
   }
   const responseData = {

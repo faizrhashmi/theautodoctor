@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { broadcastSessionRequest, toSessionRequest } from '@/lib/sessionRequests'
+import { toSessionRequest } from '@/lib/sessionRequests'
 import type { SessionRequestRow } from '@/lib/sessionRequests'
+import { broadcastSessionRequest } from '@/lib/realtimeChannels'
 
 const SUPPORTED_SESSION_TYPES = new Set<SessionRequestRow['session_type']>(['chat', 'video', 'diagnostic'])
 

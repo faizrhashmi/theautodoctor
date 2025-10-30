@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     // Step 6: Broadcast to notify mechanics
     try {
-      const { broadcastSessionRequest } = await import('@/lib/sessionRequests')
+      const { broadcastSessionRequest } = await import('@/lib/realtimeChannels')
       await broadcastSessionRequest('new_request', { request: newRequest })
       results.steps.push({
         step: 5,

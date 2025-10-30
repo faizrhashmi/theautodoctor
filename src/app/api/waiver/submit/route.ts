@@ -181,8 +181,8 @@ export async function POST(req: NextRequest) {
               } else {
                 console.log('[waiver] ✅ Created session_request:', newRequest.id)
 
-                // Broadcast to mechanics
-                const { broadcastSessionRequest } = await import('@/lib/sessionRequests')
+                // Broadcast to mechanics using persistent channel
+                const { broadcastSessionRequest } = await import('@/lib/realtimeChannels')
                 await broadcastSessionRequest('new_request', { request: newRequest })
                 console.log('[waiver] ✅ Broadcasted to mechanics')
               }
