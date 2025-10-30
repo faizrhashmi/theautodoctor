@@ -655,21 +655,21 @@ export async function POST(
     // Don't fail the request if email fails
   }
 
-  // CRITICAL FIX: Also mark the session_request as cancelled
-  // This prevents orphaned "accepted" requests from blocking mechanics
+  // CRITICAL FIX: Mark the session_request as completed
+  // This removes it from the mechanic's "new requests" list and tracks successful completion
   // Match by customer_id + mechanic_id since session_requests has no session_id column
   if (session.mechanic_id && session.customer_user_id) {
     await supabaseAdmin
       .from('session_requests')
       .update({
-        status: 'cancelled',
+        status: 'completed',
         updated_at: now,
       })
       .eq('customer_id', session.customer_user_id)
       .eq('mechanic_id', session.mechanic_id)
       .in('status', ['pending', 'accepted', 'unattended'])
 
-    console.log(`[end session] Updated session_request status to cancelled for customer ${session.customer_user_id}`)
+    console.log(`[end session] Updated session_request status to completed for customer ${session.customer_user_id}`)
   }
   const responseData = {
     success: true,
