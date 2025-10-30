@@ -655,21 +655,26 @@ export async function POST(
     // Don't fail the request if email fails
   }
 
-  // CRITICAL FIX: Mark the session_request as completed
+  // CRITICAL FIX: Mark the session_request as completed using parent_session_id
   // This removes it from the mechanic's "new requests" list and tracks successful completion
-  // Match by customer_id + mechanic_id since session_requests has no session_id column
+  // Use parent_session_id for precise matching (avoids marking multiple requests)
   if (session.mechanic_id && session.customer_user_id) {
-    await supabaseAdmin
+    const { data: updatedRequest, error: updateError } = await supabaseAdmin
       .from('session_requests')
       .update({
         status: 'completed',
-        updated_at: now,
+        // Note: updated_at column doesn't exist in session_requests table
       })
-      .eq('customer_id', session.customer_user_id)
-      .eq('mechanic_id', session.mechanic_id)
-      .in('status', ['pending', 'accepted', 'unattended'])
+      .eq('parent_session_id', sessionId)
+      .select()
 
-    console.log(`[end session] Updated session_request status to completed for customer ${session.customer_user_id}`)
+    if (updateError) {
+      console.error(`[end session] Failed to update session_request:`, updateError)
+    } else if (updatedRequest && updatedRequest.length > 0) {
+      console.log(`[end session] Marked session_request ${updatedRequest[0].id} as completed`)
+    } else {
+      console.warn(`[end session] No session_request found for session ${sessionId}`)
+    }
   }
   const responseData = {
     success: true,
