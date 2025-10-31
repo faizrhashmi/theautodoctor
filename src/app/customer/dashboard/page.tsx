@@ -644,11 +644,11 @@ export default function CustomerDashboardPage() {
               Recent Activity
             </h2>
             <div className="flex items-center gap-3 flex-wrap">
-              <button className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-900 transition-colors">
+              <button className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <Filter className="w-4 h-4" />
                 <span className="hidden sm:inline">Filter</span>
               </button>
-              <button className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-900 transition-colors">
+              <button className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
                 <Search className="w-4 h-4" />
                 <span className="hidden sm:inline">Search</span>
               </button>
@@ -972,11 +972,11 @@ export default function CustomerDashboardPage() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {user && <NotificationBell userId={user.id} />}
-            <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm">
+            <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Export</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm">
+            <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
               <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Settings</span>
             </button>
