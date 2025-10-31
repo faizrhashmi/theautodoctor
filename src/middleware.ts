@@ -47,7 +47,7 @@ const WORKSHOP_PUBLIC_ROUTES = [
 // Public customer routes - these DO NOT require authentication
 const CUSTOMER_PUBLIC_ROUTES = [
   '/customer/signup',
-  '/customer/forgot-password',
+  '/forgot-password',  // Moved outside customer layout to avoid sidebar
   '/customer/verify-email',
 ]
 

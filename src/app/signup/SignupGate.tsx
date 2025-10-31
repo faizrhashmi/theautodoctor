@@ -603,7 +603,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
         {mode === "login" && (
           <div className="flex justify-end text-sm">
-            <Link href="/customer/forgot-password" className="font-semibold text-orange-200 transition hover:text-white">
+            <Link href="/forgot-password" className="font-semibold text-orange-200 transition hover:text-white">
               Forgot password?
             </Link>
           </div>
