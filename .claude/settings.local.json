@@ -93,7 +93,11 @@
       "Bash(del:*)",
       "Bash(timeout 10 npm run build:*)",
       "Bash(timeout 180 pnpm build:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cmd //c \"taskkill //F //PID 26288\")",
+      "Bash(if [ -d \".next\" ])",
+      "Bash(then rm -rf .next)",
+      "Bash(else echo \".next directory not found\")"
     ],
     "deny": [],
     "ask": []
