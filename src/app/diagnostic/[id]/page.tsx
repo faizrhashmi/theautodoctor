@@ -106,7 +106,6 @@ export default async function DiagnosticSessionPage({ params, searchParams }: Pa
     sessionMechanicId: session.mechanic_id,
     isMechanicForThisSession,
     isCustomerForThisSession,
-    mechanicCookieExists: !!mechanicCookie,
     testRoleActive: !!testRole,
   })
 
