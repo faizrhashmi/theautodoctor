@@ -221,7 +221,7 @@ export default function MechanicSessionsPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Session History & Analytics</h1>
             <p className="mt-1 text-sm text-slate-400">View detailed session history and performance metrics</p>
@@ -229,7 +229,7 @@ export default function MechanicSessionsPage() {
           <button
             onClick={exportToCSV}
             disabled={sessions.length === 0}
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -373,14 +373,14 @@ export default function MechanicSessionsPage() {
 
         {/* Sessions List */}
         <div className="rounded-3xl border border-slate-700/50 bg-slate-800/50 p-6 backdrop-blur-sm">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-bold text-white">Sessions</h2>
             <button
               onClick={() => {
                 setPage(0)
                 fetchSessions()
               }}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 sm:w-auto"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -407,7 +407,7 @@ export default function MechanicSessionsPage() {
                     key={session.id}
                     className="rounded-xl border border-slate-700/50 bg-slate-900/50 p-4"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           {getTypeIcon(session.type)}
@@ -449,7 +449,7 @@ export default function MechanicSessionsPage() {
 
                       <button
                         onClick={() => router.push(`/mechanic/session/${session.id}`)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 sm:w-auto"
                       >
                         <Eye className="h-4 w-4" />
                         View
