@@ -516,11 +516,15 @@ export default function AdminIntakesPage() {
       )}
       <div className="mx-auto max-w-7xl px-4 pb-8">
         <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+          {/* Mobile scroll hint */}
+          <div className="lg:hidden px-4 py-2 bg-slate-900/50 border-b border-slate-700 text-xs text-slate-400 text-center">
+            ← Scroll horizontally to see all columns →
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
-                  <th className="w-12">
+                  <th className="w-12 sticky left-0 z-10 bg-slate-950">
                     <input
                       type="checkbox"
                       checked={selectedIds.size === rows.length && rows.length > 0}
@@ -528,7 +532,7 @@ export default function AdminIntakesPage() {
                       className="h-4 w-4 rounded border-slate-700 text-orange-600 focus:ring-orange-500"
                     />
                   </th>
-                  <th>Created</th>
+                  <th className="sticky left-12 z-10 bg-slate-950">Created</th>
                   <th>Customer</th>
                   <th>Contact</th>
                   <th>VIN</th>
@@ -554,7 +558,7 @@ export default function AdminIntakesPage() {
                 )}
                 {rows.map((r) => (
                   <tr key={r.id} className="[&>td]:px-4 [&>td]:py-3">
-                    <td>
+                    <td className="sticky left-0 z-10 bg-slate-800">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(r.id)}
@@ -562,7 +566,7 @@ export default function AdminIntakesPage() {
                         className="h-4 w-4 rounded border-slate-700 text-orange-600 focus:ring-orange-500"
                       />
                     </td>
-                    <td className="whitespace-nowrap text-slate-400">
+                    <td className="sticky left-12 z-10 bg-slate-800 whitespace-nowrap text-slate-400">
                       {new Date(r.created_at).toLocaleString()}
                     </td>
                     <td className="whitespace-nowrap">

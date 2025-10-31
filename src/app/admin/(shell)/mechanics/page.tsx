@@ -594,11 +594,15 @@ export default function MechanicsPage() {
       {/* Table */}
       <div className="mx-auto max-w-7xl px-4 pb-8">
         <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm">
+          {/* Mobile scroll hint */}
+          <div className="lg:hidden px-4 py-2 bg-slate-900/50 border-b border-slate-700 text-xs text-slate-400 text-center">
+            ← Scroll horizontally to see all columns →
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:font-semibold">
-                  <th>Mechanic</th>
+                  <th className="sticky left-0 z-10 bg-slate-950">Mechanic</th>
                   <th>Contact</th>
                   <th>Status</th>
                   <th>Approval</th>
@@ -627,7 +631,7 @@ export default function MechanicsPage() {
                 )}
                 {rows.map((mechanic) => (
                   <tr key={mechanic.id} className="[&>td]:px-4 [&>td]:py-3 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-                    <td>
+                    <td className="sticky left-0 z-10 bg-slate-800">
                       <div className="font-medium text-white">
                         {mechanic.name || 'Unnamed Mechanic'}
                       </div>

@@ -509,7 +509,7 @@ function MechanicMatchCard({
     <button
       onClick={onSelect}
       className={`
-        w-full p-4 border-2 rounded-xl text-left transition-all
+        w-full p-5 border-2 rounded-xl text-left transition-all
         ${isSelected
           ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-500/20'
           : 'border-slate-300 dark:border-slate-600 hover:border-blue-400'

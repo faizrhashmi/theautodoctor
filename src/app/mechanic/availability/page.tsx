@@ -369,7 +369,7 @@ export default function MechanicAvailabilityPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => toggleBlock(block.id)}
-                        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                           block.is_active
                             ? 'bg-green-600 text-white hover:bg-green-700'
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -389,7 +389,7 @@ export default function MechanicAvailabilityPage() {
                       </button>
                       <button
                         onClick={() => deleteBlock(block.id)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-900/30"
+                        className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-900/20 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-900/30"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -479,7 +479,7 @@ export default function MechanicAvailabilityPage() {
                 <button
                   onClick={saveTimeOff}
                   disabled={savingTimeOff}
-                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50"
                 >
                   {savingTimeOff ? (
                     <>
@@ -495,7 +495,7 @@ export default function MechanicAvailabilityPage() {
                 </button>
                 <button
                   onClick={() => setShowTimeOffForm(false)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                 >
                   Cancel
                 </button>

@@ -192,7 +192,7 @@ function VehiclesPageContent() {
           <h1 className="text-lg font-semibold text-white">My Vehicles</h1>
           <Link
             href="/customer/dashboard"
-            className="text-sm font-medium text-slate-300 transition hover:text-white"
+            className="text-sm font-medium text-slate-300 transition hover:text-white py-2.5 px-3"
           >
             Back to Dashboard
           </Link>
@@ -216,7 +216,7 @@ function VehiclesPageContent() {
           <div className="mb-6">
             <button
               onClick={handleAddNew}
-              className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700"
             >
               <Plus className="h-4 w-4" />
               Add New Vehicle
@@ -235,7 +235,7 @@ function VehiclesPageContent() {
                   setShowForm(false)
                   setEditingId(null)
                 }}
-                className="text-sm text-slate-400 hover:text-white"
+                className="text-sm text-slate-400 hover:text-white py-2.5 px-3"
               >
                 Cancel
               </button>
@@ -404,7 +404,7 @@ function VehiclesPageContent() {
                         ) : (
                           <button
                             onClick={() => handleSetPrimary(v.id)}
-                            className="text-xs text-slate-400 hover:text-orange-400"
+                            className="text-xs text-slate-400 hover:text-orange-400 py-2.5 px-3"
                           >
                             Set as primary
                           </button>
@@ -414,21 +414,21 @@ function VehiclesPageContent() {
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/customer/vehicles/${v.id}/history`}
-                            className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                            className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
                             title="View Service History"
                           >
                             <History className="h-4 w-4" />
                           </Link>
                           <button
                             onClick={() => handleEdit(v)}
-                            className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                            className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
                             title="Edit"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(v.id)}
-                            className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400"
+                            className="rounded-lg p-3 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />

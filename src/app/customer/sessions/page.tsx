@@ -294,7 +294,7 @@ export default function CustomerSessionsPage() {
           <p>{error}</p>
           <button
             onClick={fetchSessions}
-            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            className="mt-4 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
           >
             Retry
           </button>
@@ -380,7 +380,7 @@ export default function CustomerSessionsPage() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as any)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                       activeTab === tab.key
                         ? 'bg-orange-500 text-white'
                         : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
@@ -405,7 +405,7 @@ export default function CustomerSessionsPage() {
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     showFilters ? 'bg-orange-500 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
@@ -487,7 +487,7 @@ export default function CustomerSessionsPage() {
                 {selectedSessions.size > 0 && (
                   <button
                     onClick={handleBulkDelete}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete Selected ({selectedSessions.size})
@@ -495,7 +495,7 @@ export default function CustomerSessionsPage() {
                 )}
                 <button
                   onClick={handleClearAllHistory}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All History
@@ -599,7 +599,7 @@ export default function CustomerSessionsPage() {
                                 e.stopPropagation()
                                 setOpenDropdown(openDropdown === session.id ? null : session.id)
                               }}
-                              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                              className="p-3 hover:bg-slate-800 rounded-lg transition-colors"
                             >
                               <MoreVertical className="w-5 h-5 text-slate-400" />
                             </button>

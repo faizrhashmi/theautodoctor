@@ -169,7 +169,7 @@ export default function VirtualMechanicDashboard() {
               </div>
               <button
                 onClick={handleToggleAvailability}
-                className={`relative inline-flex h-10 w-20 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-11 w-20 items-center rounded-full transition-colors ${
                   isAvailable ? 'bg-green-600' : 'bg-gray-300'
                 }`}
               >
@@ -230,7 +230,7 @@ export default function VirtualMechanicDashboard() {
             <button
               onClick={() => router.push('/mechanic/sessions/virtual?filter=pending')}
               disabled={activeSessions.length > 0}
-              className={`mt-3 text-sm font-medium flex items-center gap-1 ${
+              className={`mt-3 text-sm font-medium flex items-center gap-1 py-2.5 ${
                 activeSessions.length > 0
                   ? 'text-slate-500 cursor-not-allowed'
                   : 'text-orange-600 hover:text-orange-700'
@@ -255,7 +255,7 @@ export default function VirtualMechanicDashboard() {
             </p>
             <button
               onClick={() => router.push('/mechanic/sessions/virtual?filter=accepted')}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 py-2.5"
             >
               View sessions
               <ArrowRight className="w-4 h-4" />
@@ -320,7 +320,7 @@ export default function VirtualMechanicDashboard() {
             </p>
             <button
               onClick={() => router.push('/mechanic/earnings')}
-              className="text-green-100 hover:text-white text-sm font-medium flex items-center gap-1"
+              className="text-green-100 hover:text-white text-sm font-medium flex items-center gap-1 py-2.5"
             >
               View detailed breakdown
               <ArrowRight className="w-4 h-4" />
@@ -384,7 +384,7 @@ export default function VirtualMechanicDashboard() {
               <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
               <button
                 onClick={() => router.push('/mechanic/sessions/virtual?filter=completed')}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium py-2.5 px-3"
               >
                 View all
               </button>

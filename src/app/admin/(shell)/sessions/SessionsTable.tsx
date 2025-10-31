@@ -134,24 +134,29 @@ export default function SessionsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="border-b border-slate-200 bg-slate-50">
-          <tr>
-            <th className="px-6 py-3 text-left">
-              <input
-                type="checkbox"
-                checked={selectedSessions.size === sessions.length && sessions.length > 0}
-                onChange={onSelectAll}
-                className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-              />
-            </th>
-            <th
-              className="cursor-pointer px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700"
-              onClick={() => handleSort('created_at')}
-            >
-              Created <SortIcon field="created_at" />
-            </th>
+    <div>
+      {/* Mobile scroll hint */}
+      <div className="lg:hidden px-4 py-2 bg-slate-100 border-b border-slate-200 text-xs text-slate-600 text-center">
+        ← Scroll horizontally to see all columns →
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="border-b border-slate-200 bg-slate-50">
+            <tr>
+              <th className="px-6 py-3 text-left sticky left-0 z-10 bg-slate-50">
+                <input
+                  type="checkbox"
+                  checked={selectedSessions.size === sessions.length && sessions.length > 0}
+                  onChange={onSelectAll}
+                  className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                />
+              </th>
+              <th
+                className="cursor-pointer px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 sticky left-[64px] z-10 bg-slate-50"
+                onClick={() => handleSort('created_at')}
+              >
+                Created <SortIcon field="created_at" />
+              </th>
             <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
               Session ID
             </th>
@@ -199,7 +204,7 @@ export default function SessionsTable({
                   className="hover:bg-slate-50 transition-colors cursor-pointer"
                   onClick={() => onViewDetails(session)}
                 >
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-6 py-4 sticky left-0 z-10 bg-white" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedSessions.has(session.id)}
@@ -207,7 +212,7 @@ export default function SessionsTable({
                       className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                     />
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
+                  <td className="px-6 py-4 text-sm text-slate-600 sticky left-[64px] z-10 bg-white">
                     {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
                   </td>
                   <td className="px-6 py-4 text-sm font-mono text-slate-900">
