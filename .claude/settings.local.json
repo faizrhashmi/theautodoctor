@@ -89,7 +89,8 @@
       "Bash(powershell.exe -ExecutionPolicy Bypass -File \"c:\\Users\\Faiz Hashmi\\theautodoctor\\migrate-admin-routes.ps1\")",
       "Bash(python:*)",
       "Bash(python3:*)",
-      "Bash(timeout 60 npm run build:*)"
+      "Bash(timeout 60 npm run build:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []
