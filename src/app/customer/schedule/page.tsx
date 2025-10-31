@@ -66,9 +66,9 @@ export default async function CustomerSchedulePage() {
   const eligible = plan ? SCHEDULABLE_PLANS.includes(plan) : false
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-6 sm:py-12">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 pb-6 md:flex-row md:items-center md:justify-between">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="flex flex-col gap-3 sm:gap-4 pb-4 sm:pb-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs sm:text-sm font-medium uppercase tracking-wide text-orange-500">Live session scheduling</p>
             <h1 className="mt-2 text-2xl sm:text-3xl font-semibold text-white">Book your live mechanic session</h1>
@@ -87,7 +87,7 @@ export default async function CustomerSchedulePage() {
           </div>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div>
             <EnhancedSchedulingCalendar initialEvents={scheduledEvents} plan={plan} />
           </div>
