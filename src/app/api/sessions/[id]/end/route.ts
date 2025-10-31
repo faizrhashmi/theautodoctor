@@ -186,6 +186,18 @@ export async function POST(
           },
         })
         console.log(`[end session] Broadcast sent to ${channelName}`)
+
+        // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
+        await supabaseAdmin.channel('active-sessions-updates').send({
+          type: 'broadcast',
+          event: 'session_completed',
+          payload: {
+            session_id: sessionId,
+            status: 'cancelled',
+            ended_at: now,
+          },
+        })
+        console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel`)
       } catch (broadcastError) {
         console.error('[end session] Failed to broadcast session:ended', broadcastError)
       }
@@ -322,6 +334,19 @@ export async function POST(
         },
       })
       console.log(`[end session] Broadcast sent to ${channelName}`)
+
+      // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
+      await supabaseAdmin.channel('active-sessions-updates').send({
+        type: 'broadcast',
+        event: 'session_completed',
+        payload: {
+          session_id: sessionId,
+          status: 'completed',
+          ended_at: now,
+          no_show: true,
+        },
+      })
+      console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel (no-show)`)
     } catch (broadcastError) {
       console.error('[end session] Failed to broadcast session:ended', broadcastError)
     }
@@ -635,6 +660,20 @@ export async function POST(
       },
     })
     console.log(`[end session] Broadcast sent to ${channelName}`)
+
+    // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
+    // This ensures ActiveSessionsManager immediately removes the session from display
+    await supabaseAdmin.channel('active-sessions-updates').send({
+      type: 'broadcast',
+      event: 'session_completed',
+      payload: {
+        session_id: sessionId,
+        status: 'completed',
+        ended_at: now,
+        duration_minutes: durationMinutes,
+      },
+    })
+    console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel`)
   } catch (broadcastError) {
     console.error('[end session] Failed to broadcast session:ended', broadcastError)
   }

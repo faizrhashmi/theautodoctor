@@ -193,7 +193,12 @@ export default function CustomerDashboardPage() {
       const [statsResponse, availabilityResponse, activeSessionsResponse] = await Promise.all([
         fetch(`/api/customer/dashboard/stats?t=${Date.now()}`), // Cache busting
         fetch('/api/mechanics/available-count'),
-        fetch('/api/customer/active-sessions')
+        fetch(`/api/customer/active-sessions?t=${Date.now()}`, {  // ✅ CRITICAL FIX: Cache busting + no-cache headers
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+          },
+        })
       ])
 
       console.log('[CustomerDashboard] Active sessions response status:', activeSessionsResponse.status)
