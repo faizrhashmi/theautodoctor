@@ -60,7 +60,8 @@ export default function SmartBrandSelector({
       borderRadius: '1rem', // rounded-2xl
       marginTop: '8px',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-      zIndex: 9999
+      zIndex: 50,
+      position: 'absolute'
     }),
     menuList: (base) => ({
       ...base,
@@ -171,10 +172,13 @@ export default function SmartBrandSelector({
         aria-label={label}
         // Performance
         menuPlacement="auto"
-        menuPosition="fixed" // Better for mobile scrolling
+        menuPosition="absolute" // Fix for mobile dropdown positioning
         // Mobile optimizations
-        menuShouldScrollIntoView={true}
-        closeMenuOnScroll={false}
+        menuShouldScrollIntoView={false}
+        closeMenuOnScroll={(e: any) => {
+          const target = e.target as HTMLElement
+          return !target.closest('.react-select__menu')
+        }}
         // Filter options case-insensitive
         filterOption={(option, inputValue) => {
           return option.label.toLowerCase().includes(inputValue.toLowerCase())

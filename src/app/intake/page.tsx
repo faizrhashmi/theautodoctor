@@ -410,9 +410,9 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="w-full max-w-[1024px] mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6 shadow-2xl backdrop-blur">
-        <div className="flex flex-col space-y-6">
+    <main className="w-full max-w-[1024px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-6 shadow-2xl backdrop-blur">
+        <div className="flex flex-col space-y-4 sm:space-y-6">
           {/* Urgent Mode Banner */}
           {isUrgent && (
             <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
@@ -438,20 +438,20 @@ export default function IntakePage() {
           )}
 
           {/* Header Section */}
-          <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-5 sm:p-6 lg:p-8 shadow-lg">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+          <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-lg">
+            <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
               <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Step 2 of 3</p>
-                <h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
-                <p className="mt-3 text-sm sm:text-base text-slate-300">
+                <h1 className="mt-2 sm:mt-3 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
+                <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-300">
                   Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
                 </p>
               </div>
-              <div className="w-full lg:w-auto lg:max-w-sm rounded-2xl border border-orange-400/30 bg-orange-500/10 p-5 sm:p-6 text-sm text-orange-100 shadow-xl">
+              <div className="w-full lg:w-auto lg:max-w-sm rounded-2xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5 md:p-6 text-sm text-orange-100 shadow-xl">
                 <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">Selected plan</p>
                 <p className="mt-2 text-base sm:text-lg font-semibold text-white">{planLabel}</p>
-                <p className="mt-2 text-xs leading-relaxed text-orange-100">{planDescription}</p>
-                <ul className="mt-4 space-y-2 text-xs text-orange-100">
+                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-orange-100">{planDescription}</p>
+                <ul className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2 text-xs text-orange-100">
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> Share your vehicle and concern
                   </li>
@@ -491,7 +491,7 @@ export default function IntakePage() {
 
           {/* Contact Details */}
           <Section title="Contact details">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <Input
                 label="Full name"
                 value={form.name}
@@ -581,7 +581,7 @@ export default function IntakePage() {
                 </button>
               </div>
             )}
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-3 sm:gap-4">
               <Input
                 label="VIN (17 characters preferred)"
                 value={form.vin}
@@ -595,12 +595,12 @@ export default function IntakePage() {
                 type="button"
                 onClick={decodeVin}
                 disabled={!form.vin || decoding}
-                className="h-auto sm:h-full rounded-2xl bg-indigo-600 px-6 py-3 sm:py-2 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation"
+                className="sm:h-auto rounded-2xl bg-indigo-600 px-6 py-3 sm:py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation sm:self-end"
               >
                 {decoding ? 'Decoding...' : 'Decode VIN'}
               </button>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SmartYearSelector
                 label={`Year${!isUrgent ? ' *' : ''}`}
                 value={form.year}
@@ -624,7 +624,7 @@ export default function IntakePage() {
                 }}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Odometer (optional)" value={form.odometer} onChange={(value) => setForm((prev) => ({ ...prev, odometer: value }))} />
               <Input label="Plate (optional)" value={form.plate} onChange={(value) => setForm((prev) => ({ ...prev, plate: value }))} />
             </div>
