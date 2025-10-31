@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
@@ -78,49 +78,6 @@ export default function MechanicDashboardPage() {
   const [retryCount, setRetryCount] = useState(0)
   
   const supabase = useMemo(() => createClient(), [])
-
-  // Real-time refresh for lobby requests
-  useEffect(() => {
-    const chLobby = supabase
-      .channel('mechanic:lobby')
-      .on('broadcast', { event: 'new_request' }, () => {
-        console.log('[MechanicDashboard] New request broadcast received, refreshing...')
-        router.refresh()
-      })
-      .on('broadcast', { event: 'request_cancelled' }, () => {
-        console.log('[MechanicDashboard] Request cancelled broadcast received, refreshing...')
-        router.refresh()
-      })
-      .on('broadcast', { event: 'request_accepted' }, () => {
-        console.log('[MechanicDashboard] Request accepted broadcast received, refreshing...')
-        router.refresh()
-      })
-      .subscribe()
-
-    const chRows = supabase
-      .channel('sr-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_requests' }, () => {
-        console.log('[MechanicDashboard] Session request inserted, refreshing...')
-        router.refresh()
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'session_requests' }, () => {
-        console.log('[MechanicDashboard] Session request updated, refreshing...')
-        router.refresh()
-      })
-      .subscribe()
-
-    const onFocus = () => {
-      console.log('[MechanicDashboard] Window focused, refreshing data...')
-      router.refresh()
-    }
-    window.addEventListener('focus', onFocus)
-
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      supabase.removeChannel(chLobby)
-      supabase.removeChannel(chRows)
-    }
-  }, [supabase, router])
 
   // Manual retry handler
   const handleRetry = () => {
@@ -368,7 +325,7 @@ export default function MechanicDashboardPage() {
     console.log('[MechanicDashboard] Setting up real-time subscriptions')
 
     const refetchData = async () => {
-      console.log('[MechanicDashboard] Real-time update detected, refetching data...')
+      console.log('[MechanicDashboard] 🔄 Real-time update detected, refetching all data...')
 
       // Refetch pending requests
       try {
@@ -376,6 +333,7 @@ export default function MechanicDashboardPage() {
         if (requestsResponse.ok) {
           const requestsData = await requestsResponse.json()
           setPendingRequests(requestsData.requests || [])
+          console.log('[MechanicDashboard] ✓ Refetched pending requests:', requestsData.requests?.length || 0)
         }
       } catch (err) {
         console.error('[MechanicDashboard] Failed to refetch pending requests:', err)
@@ -387,6 +345,7 @@ export default function MechanicDashboardPage() {
         if (activeResponse.ok) {
           const activeData = await activeResponse.json()
           setActiveSessions(activeData.sessions || [])
+          console.log('[MechanicDashboard] ✓ Refetched active sessions:', activeData.sessions?.length || 0)
         }
       } catch (err) {
         console.error('[MechanicDashboard] Failed to refetch active sessions:', err)
@@ -399,11 +358,19 @@ export default function MechanicDashboardPage() {
           const statsData = await statsResponse.json()
           setStats(statsData.stats)
           setRecentSessions(statsData.recent_sessions || [])
+          console.log('[MechanicDashboard] ✓ Refetched stats and recent sessions')
         }
       } catch (err) {
         console.error('[MechanicDashboard] Failed to refetch stats:', err)
       }
     }
+
+    // Window focus handler - refetch data when user returns to tab
+    const onFocus = () => {
+      console.log('[MechanicDashboard] Window focused, refetching data...')
+      refetchData()
+    }
+    window.addEventListener('focus', onFocus)
 
     // Subscribe to sessions table changes
     const channel = supabase
@@ -482,6 +449,7 @@ export default function MechanicDashboardPage() {
 
     return () => {
       console.log('[MechanicDashboard] Cleaning up subscriptions')
+      window.removeEventListener('focus', onFocus)
       supabase.removeChannel(channel)
       supabase.removeChannel(broadcastChannel)
     }
