@@ -30,6 +30,13 @@ export async function GET(req: NextRequest) {
     // CRITICAL FIX: Use supabaseAdmin to bypass RLS since mechanics use custom auth
     const supabase = supabaseAdmin;
 
+    // DIAGNOSTIC: Verify service role key is configured
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[MechanicsRequests] ❌ CRITICAL: SUPABASE_SERVICE_ROLE_KEY not set!');
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+    console.log('[MechanicsRequests] ✓ Using service role key (bypasses RLS)');
+
     // Get mechanic's full profile from mechanics table using mechanic ID (NOT user_id!)
     const { data: mechanicProfile, error: profileError } = await supabase
       .from('mechanics')
