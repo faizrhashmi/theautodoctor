@@ -304,72 +304,72 @@ export default function CustomerSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Session Management</h1>
-            <p className="text-slate-400">Track, manage, and review all your diagnostic sessions</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Session Management</h1>
+            <p className="text-sm sm:text-base text-slate-400">Track, manage, and review all your diagnostic sessions</p>
           </div>
           <Link
             href="/customer/dashboard?focus=session"
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all shadow-lg"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold text-sm sm:text-base hover:from-orange-600 hover:to-red-700 transition-all shadow-lg"
           >
-            <Zap className="w-5 h-5" />
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
             New Session
           </Link>
         </div>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-blue-400" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
-              <div className="text-sm text-slate-400">Total Sessions</div>
+              <div className="text-xs sm:text-sm text-slate-400">Total Sessions</div>
             </div>
-            <div className="text-3xl font-bold text-white">{analytics.total_sessions}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_sessions}</div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-400" />
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
               </div>
-              <div className="text-sm text-slate-400">Total Spent</div>
+              <div className="text-xs sm:text-sm text-slate-400">Total Spent</div>
             </div>
-            <div className="text-3xl font-bold text-white">${analytics.total_spent.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white">${analytics.total_spent.toFixed(2)}</div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <Star className="w-5 h-5 text-yellow-400" />
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-lg">
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
               </div>
-              <div className="text-sm text-slate-400">Avg Rating</div>
+              <div className="text-xs sm:text-sm text-slate-400">Avg Rating</div>
             </div>
-            <div className="text-3xl font-bold text-white">{analytics.avg_rating.toFixed(1)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.avg_rating.toFixed(1)}</div>
           </div>
 
-          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Clock className="w-5 h-5 text-purple-400" />
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
               </div>
-              <div className="text-sm text-slate-400">Total Hours</div>
+              <div className="text-xs sm:text-sm text-slate-400">Total Hours</div>
             </div>
-            <div className="text-3xl font-bold text-white">{analytics.total_hours.toFixed(1)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_hours.toFixed(1)}</div>
           </div>
         </div>
 
         {/* Tabs and Filters */}
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 mb-6">
-          <div className="p-4 border-b border-slate-700">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 mb-4 sm:mb-6">
+          <div className="p-3 sm:p-4 border-b border-slate-700">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
               {/* Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto -mx-3 sm:mx-0 px-3 sm:px-0">
                 {[
                   { key: 'all', label: 'All Sessions', count: sessions.length },
                   { key: 'active', label: 'Active', count: sessions.filter(s => ['live', 'waiting'].includes(s.status)).length },
@@ -380,7 +380,7 @@ export default function CustomerSessionsPage() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as any)}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                       activeTab === tab.key
                         ? 'bg-orange-500 text-white'
                         : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
@@ -394,36 +394,36 @@ export default function CustomerSessionsPage() {
               {/* Search and Filters */}
               <div className="flex items-center gap-2 w-full lg:w-auto">
                 <div className="relative flex-1 lg:w-64">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search sessions..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 text-sm sm:text-base bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
                   />
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 ${
                     showFilters ? 'bg-orange-500 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
-                  <Filter className="w-4 h-4" />
-                  Filters
+                  <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Filters</span>
                 </button>
               </div>
             </div>
 
             {/* Advanced Filters */}
             {showFilters && (
-              <div className="mt-4 pt-4 border-t border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">Date Range</label>
+                  <label className="block text-xs sm:text-sm text-slate-400 mb-1.5 sm:mb-2">Date Range</label>
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="all">All Time</option>
                     <option value="7days">Last 7 Days</option>
@@ -433,11 +433,11 @@ export default function CustomerSessionsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">Session Type</label>
+                  <label className="block text-xs sm:text-sm text-slate-400 mb-1.5 sm:mb-2">Session Type</label>
                   <select
                     value={sessionType}
                     onChange={(e) => setSessionType(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="all">All Types</option>
                     <option value="chat">Chat Only</option>
