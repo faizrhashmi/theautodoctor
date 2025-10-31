@@ -325,16 +325,26 @@ export async function requireMechanicAPI(
  * }
  */
 export async function requireCustomerAPI(
-  _req: NextRequest
+  req: NextRequest
 ): Promise<
   | { data: AuthenticatedCustomer; error: null }
   | { data: null; error: NextResponse }
 > {
-  const supabase = getSupabaseServer()
+  // FIXED: Create Supabase client with request cookies (like requireMechanicAPI)
+  // This ensures proper cookie reading in API routes
+  const supabaseClient = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return req.cookies.get(name)?.value
+      },
+      set() {},
+      remove() {},
+    },
+  })
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabaseClient.auth.getUser()
 
   if (!user) {
     return {
@@ -347,7 +357,7 @@ export async function requireCustomerAPI(
   }
 
   // Verify role
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseClient
     .from('profiles')
     .select('role')
     .eq('id', user.id)

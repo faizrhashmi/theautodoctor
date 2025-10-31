@@ -129,8 +129,8 @@ export default async function VideoSessionPage({ params }: PageProps) {
     },
   })
 
-  // Determine correct dashboard URL based on user existence (not role)
-  const dashboardUrl = user ? '/customer/dashboard' : '/mechanic/dashboard'
+  // Determine correct dashboard URL based on actual user role
+  const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
 
   return (
     <VideoSessionClient
