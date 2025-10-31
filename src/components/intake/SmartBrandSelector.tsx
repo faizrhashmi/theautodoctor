@@ -177,6 +177,10 @@ export default function SmartBrandSelector({
         menuShouldScrollIntoView={false}
         closeMenuOnScroll={(e: any) => {
           const target = e.target as HTMLElement
+          // Check if target has closest method (not all scroll targets do)
+          if (!target || typeof target.closest !== 'function') {
+            return true // Close menu for non-element scroll events
+          }
           return !target.closest('.react-select__menu')
         }}
         // Filter options case-insensitive
