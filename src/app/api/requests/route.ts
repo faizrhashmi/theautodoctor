@@ -141,8 +141,8 @@ export async function POST(request: NextRequest) {
 
   // CRITICAL: Add delay before broadcasting to allow database replication
   // Supabase connection pooler needs time to propagate the write
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  console.log('[CREATE REQUEST] ⏱️ Waited 1s for database replication')
+  await new Promise(resolve => setTimeout(resolve, 3000))
+  console.log('[CREATE REQUEST] ⏱️ Waited 3s for database replication')
 
   console.log('[CREATE REQUEST] 📡 Broadcasting to mechanics...')
   void broadcastSessionRequest('new_request', {

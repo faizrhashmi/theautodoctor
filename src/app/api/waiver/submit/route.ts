@@ -184,8 +184,8 @@ export async function POST(req: NextRequest) {
                 // CRITICAL: Add delay before broadcasting to allow database replication
                 // Supabase connection pooler needs time to propagate the write
                 // Without this delay, mechanics may not see the request immediately
-                await new Promise(resolve => setTimeout(resolve, 1000))
-                console.log('[waiver] ⏱️ Waited 1s for database replication')
+                await new Promise(resolve => setTimeout(resolve, 3000))
+                console.log('[waiver] ⏱️ Waited 3s for database replication')
 
                 // Broadcast to mechanics using persistent channel
                 const { broadcastSessionRequest } = await import('@/lib/realtimeChannels')

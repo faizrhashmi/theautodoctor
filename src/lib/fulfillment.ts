@@ -361,8 +361,8 @@ async function createSessionRequest({
 
       // CRITICAL: Add delay before broadcasting to allow database replication
       // Supabase connection pooler needs time to propagate the write
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('[fulfillment] ⏱️ Waited 1s for database replication')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      console.log('[fulfillment] ⏱️ Waited 3s for database replication')
 
       // Smart routing: Notify mechanics based on routing strategy
       if (newRequest) {
