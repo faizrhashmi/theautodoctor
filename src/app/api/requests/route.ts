@@ -138,8 +138,13 @@ export async function POST(request: NextRequest) {
   }
 
   console.log('[CREATE REQUEST] ✓ Session request created:', inserted.id)
-  console.log('[CREATE REQUEST] 📡 Broadcasting to mechanics...')
 
+  // CRITICAL: Add delay before broadcasting to allow database replication
+  // Supabase connection pooler needs time to propagate the write
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  console.log('[CREATE REQUEST] ⏱️ Waited 1s for database replication')
+
+  console.log('[CREATE REQUEST] 📡 Broadcasting to mechanics...')
   void broadcastSessionRequest('new_request', {
     request: inserted,
   })

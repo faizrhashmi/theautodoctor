@@ -359,6 +359,11 @@ async function createSessionRequest({
       console.log('[fulfillment] Session request created successfully for customer', customerId)
       console.log('[fulfillment] Routing type:', routingType, 'Workshop ID:', workshopId)
 
+      // CRITICAL: Add delay before broadcasting to allow database replication
+      // Supabase connection pooler needs time to propagate the write
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('[fulfillment] ⏱️ Waited 1s for database replication')
+
       // Smart routing: Notify mechanics based on routing strategy
       if (newRequest) {
         if (workshopId && routingType === 'workshop_only') {
