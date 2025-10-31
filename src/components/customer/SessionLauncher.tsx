@@ -141,9 +141,9 @@ export default function SessionLauncher({
     }
 
     return (
-      <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-6">
+      <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-4 sm:p-6">
         {/* Header with availability */}
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
           {availableMechanics > 0 ? (
             <>
               <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 rounded-full border border-green-400/30">
@@ -170,11 +170,11 @@ export default function SessionLauncher({
         </div>
 
         {/* Main CTA */}
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold text-white mb-2">
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">
             {isNewCustomer ? '🎁 Get Your FREE First Session!' : '⚡ Start Your Session'}
           </h2>
-          <p className="text-slate-300 text-sm">
+          <p className="text-slate-300 text-xs sm:text-sm">
             {isNewCustomer
               ? 'Try AskAutoDoctor risk-free! Connect with a certified mechanic in under 2 minutes.'
               : 'Connect with a certified mechanic instantly. Choose your service level below.'}
@@ -182,28 +182,28 @@ export default function SessionLauncher({
         </div>
 
         {/* Quick Start or Customization */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Primary CTA with customization toggle */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
             <Link
               ref={startButtonRef}
               href={`/intake?plan=${selectedPlan}${availableMechanics > 0 ? '&urgent=true' : ''}`}
-              className="flex-1 inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl font-bold text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="flex-1 inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               <AlertCircle className="h-5 w-5" />
-              <span>
+              <span className="truncate">
                 {isNewCustomer
                   ? 'Start FREE Session'
                   : `Start ${defaultPlan?.name || 'Session'}`}
               </span>
               {!isNewCustomer && defaultPlan && (
-                <span className="text-sm opacity-90">{defaultPlan.price}</span>
+                <span className="text-xs sm:text-sm opacity-90 shrink-0">{defaultPlan.price}</span>
               )}
             </Link>
 
             <button
               onClick={() => setShowCustomization(!showCustomization)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-slate-800/70 border border-slate-600 text-white rounded-xl font-medium hover:bg-slate-700/70 transition-all"
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-800/70 border border-slate-600 text-white rounded-xl font-medium text-sm sm:text-base hover:bg-slate-700/70 transition-all shrink-0"
             >
               <span>Choose Plan</span>
               {showCustomization ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -212,9 +212,9 @@ export default function SessionLauncher({
 
           {/* Expanded Customization Options */}
           {showCustomization && (
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-5 animate-in slide-in-from-top-2">
-              <h3 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">Select Service Plan</h3>
-              <div className="space-y-3">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4 sm:p-5 animate-in slide-in-from-top-2">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-300 mb-2.5 sm:mb-3 uppercase tracking-wider">Select Service Plan</h3>
+              <div className="space-y-2.5 sm:space-y-3">
                 {PLAN_TIERS.map((tier) => {
                   // Hide free option for returning customers unless admin override
                   if (tier.slug === 'free' && hasUsedFreeSession === true) {
@@ -233,23 +233,23 @@ export default function SessionLauncher({
                           startButtonRef.current?.focus()
                         }, 100)
                       }}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                      className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
                         isSelected
                           ? 'border-orange-500 bg-orange-500/10'
                           : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
                       }`}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="text-white font-bold">{tier.name}</h4>
+                      <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-white font-bold text-sm sm:text-base truncate">{tier.name}</h4>
                           <p className="text-xs text-slate-400">{tier.duration}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl font-bold text-white">{tier.price}</span>
-                          {isSelected && <Check className="h-5 w-5 text-orange-400" />}
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                          <span className="text-lg sm:text-xl font-bold text-white">{tier.price}</span>
+                          {isSelected && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />}
                         </div>
                       </div>
-                      <p className="text-sm text-slate-300 mb-2">{tier.description}</p>
+                      <p className="text-xs sm:text-sm text-slate-300 mb-1.5 sm:mb-2 line-clamp-2">{tier.description}</p>
                       <div className="flex flex-wrap gap-2">
                         {tier.perks.slice(0, 2).map((perk, idx) => (
                           <span key={idx} className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">
@@ -263,7 +263,7 @@ export default function SessionLauncher({
               </div>
 
               {/* Subtle link to full pricing page */}
-              <div className="mt-3 pt-3 border-t border-slate-700">
+              <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-700">
                 <Link
                   href="/onboarding/pricing"
                   className="text-xs text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-1"
