@@ -477,14 +477,26 @@ export default function CustomerDashboardPage() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          <Link
-            href="/customer/schedule"
-            className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
-          >
-            <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-            <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
-            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
-          </Link>
+          {/* Schedule - Disabled when active session exists */}
+          {activeSessions.length > 0 ? (
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 opacity-50 cursor-not-allowed relative">
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3" />
+              <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
+              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-lg">
+                <span className="text-xs text-orange-400 font-medium px-2 text-center">Complete active session first</span>
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/customer/schedule"
+              className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
+            >
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+              <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
+              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
+            </Link>
+          )}
 
           <Link
             href="/customer/quotes"

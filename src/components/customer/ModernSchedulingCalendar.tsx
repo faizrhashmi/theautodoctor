@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ChevronLeft,
@@ -81,6 +81,53 @@ export default function ModernSchedulingCalendar({
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [hasActiveSession, setHasActiveSession] = useState(false)
+  const [checkingActiveSessions, setCheckingActiveSessions] = useState(true)
+  const activeSessionCheckRef = useRef(false)
+
+  // ✅ SECURITY: Check for active sessions on mount - enforce one-session-per-customer policy
+  useEffect(() => {
+    // Prevent multiple simultaneous checks
+    if (activeSessionCheckRef.current) return
+    activeSessionCheckRef.current = true
+
+    async function checkActiveSessions() {
+      try {
+        console.log('[Schedule Calendar] Checking for active sessions...')
+        const response = await fetch('/api/customer/active-sessions', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        })
+
+        if (!response.ok) {
+          console.error('[Schedule Calendar] Failed to check active sessions:', response.status)
+          setCheckingActiveSessions(false)
+          return
+        }
+
+        const data = await response.json()
+        console.log('[Schedule Calendar] Active sessions check result:', data)
+
+        if (data.hasActiveSessions && data.sessions.length > 0) {
+          console.warn('[Schedule Calendar] SECURITY BREACH: Active session detected, blocking schedule access')
+          setHasActiveSession(true)
+          // Redirect after a brief moment to show the error message
+          setTimeout(() => {
+            router.push('/customer/dashboard?message=active_session_exists')
+          }, 2000)
+        }
+      } catch (error) {
+        console.error('[Schedule Calendar] Error checking active sessions:', error)
+      } finally {
+        setCheckingActiveSessions(false)
+        activeSessionCheckRef.current = false
+      }
+    }
+
+    checkActiveSessions()
+  }, [router])
 
   // Convert initial events to session objects
   useEffect(() => {
@@ -236,6 +283,44 @@ export default function ModernSchedulingCalendar({
   }
 
   const calendarDays = getCalendarDays()
+
+  // Show loading state while checking for active sessions
+  if (checkingActiveSessions) {
+    return (
+      <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-orange-500 mb-3" />
+          <p className="text-slate-300 text-sm">Verifying session eligibility...</p>
+          <p className="text-slate-500 text-xs mt-1">Checking for active sessions</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if active session detected - CRITICAL SECURITY BLOCK
+  if (hasActiveSession) {
+    return (
+      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 shadow-sm backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-400 mb-3" />
+          <h3 className="text-white font-bold text-lg mb-2">Active Session In Progress</h3>
+          <p className="text-red-300 text-center mb-4 max-w-md">
+            You already have an active session running.<br />
+            Please complete or cancel it before scheduling a new one.
+          </p>
+          <p className="text-xs text-red-400/70 mb-6">
+            Policy: One session per customer at a time
+          </p>
+          <button
+            onClick={() => router.push('/customer/dashboard')}
+            className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3 sm:space-y-4">
