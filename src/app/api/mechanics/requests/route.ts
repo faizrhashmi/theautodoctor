@@ -58,10 +58,13 @@ export async function GET(req: NextRequest) {
     });
 
     // Build base query for session requests - simplified (foreign keys don't exist)
+    // CACHE BUSTER: Add timestamp filter to prevent pooler caching
+    const cacheBreaker = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 24 hours ago
     let query = supabase
       .from('session_requests')
       .select('*')
       .eq('status', status)
+      .gte('created_at', cacheBreaker) // Force fresh query by adding timestamp filter
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 

@@ -15,7 +15,15 @@ export const supabaseAdmin: SupabaseClient<Database> =
   _admin ??
   createClient<Database>(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-    db: { schema: 'public' },
+    db: {
+      schema: 'public',
+    },
+    global: {
+      headers: {
+        // Disable pooler caching by adding no-cache header
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    },
   });
 
 export function getSupabaseAdmin() {
