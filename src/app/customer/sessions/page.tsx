@@ -392,8 +392,8 @@ export default function CustomerSessionsPage() {
               </div>
 
               {/* Search and Filters */}
-              <div className="flex items-center gap-2 w-full lg:w-auto">
-                <div className="relative flex-1 lg:w-64">
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 lg:w-auto">
+                <div className="relative flex-1 sm:min-w-[220px] lg:w-64">
                   <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
                   <input
                     type="text"
@@ -405,9 +405,9 @@ export default function CustomerSessionsPage() {
                 </div>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 ${
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all shrink-0 ${
                     showFilters ? 'bg-orange-500 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  } w-full sm:w-auto`}
                 >
                   <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Filters</span>
@@ -464,8 +464,8 @@ export default function CustomerSessionsPage() {
 
           {/* Bulk Actions Bar */}
           {filteredSessions.filter(s => ['completed', 'cancelled'].includes(s.status)).length > 0 && (
-            <div className="p-4 border-b border-slate-700 flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 border-b border-slate-700 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white transition-colors">
                   <input
                     type="checkbox"
@@ -483,11 +483,11 @@ export default function CustomerSessionsPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 {selectedSessions.size > 0 && (
                   <button
                     onClick={handleBulkDelete}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete Selected ({selectedSessions.size})
@@ -495,7 +495,7 @@ export default function CustomerSessionsPage() {
                 )}
                 <button
                   onClick={handleClearAllHistory}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700/50 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All History
@@ -522,7 +522,7 @@ export default function CustomerSessionsPage() {
                       className="bg-slate-900/50 rounded-lg border border-slate-700 hover:border-orange-500/50 transition-all p-4 cursor-pointer"
                       onClick={() => setSelectedSession(session)}
                     >
-                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         {/* Checkbox for selectable sessions */}
                         {isSelectable && (
                           <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
@@ -586,8 +586,8 @@ export default function CustomerSessionsPage() {
                         </div>
 
                         {/* Price and Actions */}
-                        <div className="flex items-center gap-4 lg:ml-auto">
-                          <div className="text-right">
+                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:ml-auto lg:w-auto">
+                          <div className="text-left sm:text-right">
                             <div className="text-2xl font-bold text-white">${session.price.toFixed(2)}</div>
                             <div className="text-xs text-slate-400 capitalize">{session.plan}</div>
                           </div>
@@ -599,7 +599,7 @@ export default function CustomerSessionsPage() {
                                 e.stopPropagation()
                                 setOpenDropdown(openDropdown === session.id ? null : session.id)
                               }}
-                              className="p-3 hover:bg-slate-800 rounded-lg transition-colors"
+                              className="flex w-full justify-center rounded-lg p-3 transition-colors hover:bg-slate-800 sm:w-auto"
                             >
                               <MoreVertical className="w-5 h-5 text-slate-400" />
                             </button>
@@ -651,12 +651,12 @@ export default function CustomerSessionsPage() {
 
                       {/* Quick Actions for Active Sessions */}
                       {['pending', 'live', 'waiting', 'scheduled'].includes(session.status) && (
-                        <div className="mt-4 pt-4 border-t border-slate-700 flex gap-2 flex-wrap">
+                        <div className="mt-4 flex flex-col gap-2 border-t border-slate-700 pt-4 sm:flex-row sm:flex-wrap">
                           {session.status === 'live' && (
                             <>
                               <Link
                                 href={`/video/${session.id}`}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-center text-white transition-colors hover:bg-green-600 sm:w-auto"
                               >
                                 <Play className="w-4 h-4" />
                                 Join Now
@@ -686,7 +686,7 @@ export default function CustomerSessionsPage() {
                                     alert(err.message || 'Failed to end session')
                                   }
                                 }}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-4 py-2 text-red-400 transition-colors hover:bg-red-500/30 sm:w-auto"
                               >
                                 <X className="w-4 h-4" />
                                 End Session
@@ -719,11 +719,11 @@ export default function CustomerSessionsPage() {
                                   alert(err.message || 'Failed to cancel')
                                 }
                               }}
-                              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg hover:bg-red-500/30 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                              Cancel Session
-                            </button>
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/50 bg-red-500/20 px-4 py-2 text-red-400 transition-colors hover:bg-red-500/30 sm:w-auto"
+                              >
+                                <X className="w-4 h-4" />
+                                Cancel Session
+                              </button>
                           )}
                           {session.status === 'scheduled' && (
                             <>

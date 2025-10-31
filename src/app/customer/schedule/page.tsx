@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import EnhancedSchedulingCalendar from '@/components/customer/EnhancedSchedulingCalendar'
+import ModernSchedulingCalendar from '@/components/customer/ModernSchedulingCalendar'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import type { PlanKey } from '@/config/pricing'
 
@@ -89,7 +89,7 @@ export default async function CustomerSchedulePage() {
 
         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div>
-            <EnhancedSchedulingCalendar initialEvents={scheduledEvents} plan={plan} />
+            <ModernSchedulingCalendar initialEvents={scheduledEvents} plan={plan} />
           </div>
           <aside className="space-y-4 sm:space-y-6">
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6 shadow-sm backdrop-blur-sm">

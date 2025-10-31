@@ -756,14 +756,14 @@ export default function MechanicDashboardPage() {
 
         {/* Recent Sessions */}
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-bold text-white">Recent Sessions</h2>
               <p className="text-sm text-slate-400 mt-1">Your latest completed and active sessions</p>
             </div>
             <Link
               href="/mechanic/sessions"
-              className="text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg border border-blue-500/40 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:border-blue-400 hover:text-blue-200 sm:px-5"
             >
               View All →
             </Link>
@@ -773,7 +773,7 @@ export default function MechanicDashboardPage() {
             // Loading skeletons for recent sessions
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-slate-700 bg-slate-900/50 animate-pulse">
+                <div key={i} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-slate-700 bg-slate-900/50 animate-pulse">
                   <div className="flex items-center gap-4 flex-1">
                     <div className="h-12 w-12 rounded-xl bg-slate-700"></div>
                     <div className="flex-1">
@@ -781,7 +781,7 @@ export default function MechanicDashboardPage() {
                       <div className="h-4 bg-slate-700 rounded w-48"></div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex w-full items-center justify-between gap-4 sm:w-auto">
                     <div className="h-4 bg-slate-700 rounded w-20"></div>
                     <div className="h-9 bg-slate-700 rounded w-24"></div>
                   </div>
@@ -838,12 +838,12 @@ export default function MechanicDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                       <StatusBadge status={session.status as any} size="md" showIcon={true} />
 
                       <Link
                         href={`/mechanic/session/${session.id}`}
-                        className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-lg text-sm font-semibold hover:bg-blue-500/20 border border-blue-500/30 transition-colors text-center"
+                        className="w-full rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-center text-sm font-semibold text-blue-400 transition-colors hover:bg-blue-500/20 sm:w-auto"
                       >
                         View Details
                       </Link>

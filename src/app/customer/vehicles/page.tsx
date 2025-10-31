@@ -352,99 +352,159 @@ function VehiclesPageContent() {
 
         {/* Vehicles Table */}
         {vehicles.length > 0 && (
-          <div className="rounded-3xl border border-white/10 bg-white/5 shadow-sm backdrop-blur overflow-hidden">
-            {/* Mobile scroll hint */}
-            <div className="md:hidden px-4 py-2 bg-slate-900/50 border-b border-white/10 text-xs text-slate-400 text-center">
-              ← Scroll horizontally to see all details →
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-white/10 bg-white/5">
-                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Vehicle
-                    </th>
-                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Details
-                    </th>
-                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Status
-                    </th>
-                    <th className="px-4 sm:px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {vehicles.map((v) => (
-                    <tr key={v.id} className="transition hover:bg-white/5">
-                      <td className="px-4 sm:px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {v.is_primary && (
-                            <Star className="h-4 w-4 fill-orange-400 text-orange-400" />
-                          )}
-                          <div>
-                            <p className="font-semibold text-white">
-                              {v.year} {v.make} {v.model}
-                            </p>
-                            {v.nickname && (
-                              <p className="text-xs text-slate-400">{v.nickname}</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4">
-                        <div className="space-y-1 text-sm text-slate-300">
-                          {v.color && <p>Color: {v.color}</p>}
-                          {v.plate && <p>Plate: {v.plate}</p>}
-                          {v.mileage && <p>Mileage: {v.mileage}</p>}
-                        </div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4">
-                        {v.is_primary ? (
-                          <span className="inline-flex items-center rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-300">
-                            Primary
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleSetPrimary(v.id)}
-                            className="text-xs text-slate-400 hover:text-orange-400 py-2.5 px-3"
-                          >
-                            Set as primary
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/customer/vehicles/${v.id}/history`}
-                            className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
-                            title="View Service History"
-                          >
-                            <History className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleEdit(v)}
-                            className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
-                            title="Edit"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(v.id)}
-                            className="rounded-lg p-3 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+          <>
+            <div className="hidden overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-sm backdrop-blur md:block">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5">
+                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Vehicle
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Details
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Status
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/10">
+                    {vehicles.map((v) => (
+                      <tr key={v.id} className="transition hover:bg-white/5">
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {v.is_primary && (
+                              <Star className="h-4 w-4 fill-orange-400 text-orange-400" />
+                            )}
+                            <div>
+                              <p className="font-semibold text-white">
+                                {v.year} {v.make} {v.model}
+                              </p>
+                              {v.nickname && (
+                                <p className="text-xs text-slate-400">{v.nickname}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="space-y-1 text-sm text-slate-300">
+                            {v.color && <p>Color: {v.color}</p>}
+                            {v.plate && <p>Plate: {v.plate}</p>}
+                            {v.mileage && <p>Mileage: {v.mileage}</p>}
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          {v.is_primary ? (
+                            <span className="inline-flex items-center rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-300">
+                              Primary
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleSetPrimary(v.id)}
+                              className="py-2.5 px-3 text-xs text-slate-400 hover:text-orange-400"
+                            >
+                              Set as primary
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              href={`/customer/vehicles/${v.id}/history`}
+                              className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                              title="View Service History"
+                            >
+                              <History className="h-4 w-4" />
+                            </Link>
+                            <button
+                              onClick={() => handleEdit(v)}
+                              className="rounded-lg p-3 text-slate-400 transition hover:bg-white/10 hover:text-white"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(v.id)}
+                              className="rounded-lg p-3 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400"
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            <div className="space-y-4 md:hidden">
+              {vehicles.map((v) => (
+                <div key={v.id} className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-sm backdrop-blur">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-lg font-semibold text-white">
+                          {v.year} {v.make} {v.model}
+                        </p>
+                        {v.nickname && <p className="text-sm text-slate-400">{v.nickname}</p>}
+                      </div>
+                      {v.is_primary ? (
+                        <span className="inline-flex items-center rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-200">
+                          Primary Vehicle
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleSetPrimary(v.id)}
+                          className="text-xs font-semibold text-slate-300 underline-offset-2 hover:text-orange-300"
+                        >
+                          Set as primary
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 text-sm text-slate-300">
+                      {v.color && <p><span className="text-slate-500">Color:</span> {v.color}</p>}
+                      {v.plate && <p><span className="text-slate-500">Plate:</span> {v.plate}</p>}
+                      {v.mileage && <p><span className="text-slate-500">Mileage:</span> {v.mileage}</p>}
+                      {v.vin && <p className="break-all text-xs"><span className="text-slate-500">VIN:</span> {v.vin}</p>}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        href={`/customer/vehicles/${v.id}/history`}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                      >
+                        <History className="h-4 w-4" />
+                        View Service History
+                      </Link>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <button
+                          onClick={() => handleEdit(v)}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:text-white"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Edit Vehicle
+                        </button>
+                        <button
+                          onClick={() => handleDelete(v.id)}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:border-rose-500/50 hover:text-rose-200"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {vehicles.length === 0 && !showForm && (
