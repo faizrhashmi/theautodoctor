@@ -345,7 +345,7 @@ export default function SessionWorkspacePage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      <header className="flex flex-wrap items-center justify-between gap-4 bg-slate-950/50 px-6 py-4 backdrop-blur">
+      <header className="flex flex-wrap items-center justify-between gap-4 bg-slate-950/50 px-6 py-4 backdrop-blur pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2 text-sm text-slate-300 transition hover:text-white">
             <ArrowLeft className="h-4 w-4" /> Back to dashboard
@@ -418,7 +418,7 @@ export default function SessionWorkspacePage() {
                     </div>
                   )}
                 </div>
-                <ControlBar className="border-t border-slate-800 bg-slate-900/80 px-6 py-4" />
+                <ControlBar className="border-t border-slate-800 bg-slate-900/80 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]" />
               </LiveKitRoom>
             )}
           </div>

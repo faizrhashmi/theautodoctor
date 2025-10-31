@@ -1145,7 +1145,7 @@ export default function ChatRoom({
       />
 
       {/* Header - Mobile First Design */}
-      <header className="border-b border-slate-700/50 bg-slate-800/90 backdrop-blur-sm shadow-xl">
+      <header className="border-b border-slate-700/50 bg-slate-800/90 backdrop-blur-sm shadow-xl pt-[env(safe-area-inset-top)]">
         <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-6">
           {/* Left: Back Button + Session Info */}
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -1939,7 +1939,7 @@ export default function ChatRoom({
 
           {/* Drawer - Slides in from right with swipe gesture */}
           <div
-            className="fixed right-0 top-0 bottom-0 z-50 w-full sm:w-96 bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto animate-slide-in-right transition-transform touch-none"
+            className="fixed right-0 top-0 bottom-0 z-50 w-[85vw] max-w-sm bg-slate-900 border-l border-slate-700 shadow-2xl overflow-y-auto animate-slide-in-right transition-transform touch-none"
             style={{
               transform: sidebarSwipeOffset > 0 ? `translateX(${sidebarSwipeOffset}px)` : 'none',
             }}

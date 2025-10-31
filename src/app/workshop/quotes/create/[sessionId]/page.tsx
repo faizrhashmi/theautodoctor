@@ -251,7 +251,7 @@ export default function CreateQuotePage() {
             {/* Customer & Vehicle Info */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Customer & Vehicle</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Customer Name</label>
                   <p className="text-gray-900">{session.customer_name}</p>
@@ -296,7 +296,7 @@ export default function CreateQuotePage() {
                 </ul>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Urgency</label>
                   <p className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
@@ -343,8 +343,8 @@ export default function CreateQuotePage() {
                 <div className="space-y-4">
                   {lineItems.map((item) => (
                     <div key={item.id} className="border rounded p-4">
-                      <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-5">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <div className="md:col-span-5">
                           <label className="text-sm font-medium text-gray-600">Description</label>
                           <input
                             type="text"
@@ -357,7 +357,7 @@ export default function CreateQuotePage() {
 
                         {item.type === 'labor' ? (
                           <>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                               <label className="text-sm font-medium text-gray-600">Hours</label>
                               <input
                                 type="number"
@@ -367,7 +367,7 @@ export default function CreateQuotePage() {
                                 className="w-full border rounded px-3 py-2"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                               <label className="text-sm font-medium text-gray-600">Rate ($)</label>
                               <input
                                 type="number"
@@ -379,7 +379,7 @@ export default function CreateQuotePage() {
                           </>
                         ) : (
                           <>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                               <label className="text-sm font-medium text-gray-600">Qty</label>
                               <input
                                 type="number"
@@ -388,7 +388,7 @@ export default function CreateQuotePage() {
                                 className="w-full border rounded px-3 py-2"
                               />
                             </div>
-                            <div className="col-span-2">
+                            <div className="md:col-span-2">
                               <label className="text-sm font-medium text-gray-600">Unit Cost ($)</label>
                               <input
                                 type="number"
@@ -401,12 +401,12 @@ export default function CreateQuotePage() {
                           </>
                         )}
 
-                        <div className="col-span-2">
+                        <div className="md:col-span-2">
                           <label className="text-sm font-medium text-gray-600">Subtotal</label>
                           <p className="text-lg font-semibold">${item.subtotal.toFixed(2)}</p>
                         </div>
 
-                        <div className="col-span-1 flex items-end">
+                        <div className="md:col-span-1 flex items-end">
                           <button
                             onClick={() => removeLineItem(item.id)}
                             className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -452,7 +452,7 @@ export default function CreateQuotePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Estimated Completion (hours)
