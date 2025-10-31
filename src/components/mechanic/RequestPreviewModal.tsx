@@ -124,7 +124,7 @@ export function RequestPreviewModal({ requestId, isOpen, onClose }: RequestPrevi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl my-8 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl">
+      <div className="w-full max-w-4xl mx-4 my-8 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl">
         {/* Header */}
         <div className="border-b border-slate-700 p-6 flex items-center justify-between">
           <div>

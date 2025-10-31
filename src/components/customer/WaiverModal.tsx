@@ -23,7 +23,7 @@ export default function WaiverModal({ isOpen, onAccept, onDecline }: WaiverModal
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-3xl mx-4 rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="border-b border-slate-200 px-6 py-4">
           <h2 className="text-2xl font-bold text-slate-900">Terms of Service & Waiver</h2>

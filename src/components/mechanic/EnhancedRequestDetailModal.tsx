@@ -68,7 +68,7 @@ export default function EnhancedRequestDetailModal({
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-        <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-2xl">
+        <div className="relative w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden rounded-3xl border border-slate-700/50 bg-slate-900 shadow-2xl">
           {/* Header */}
           <div className="sticky top-0 z-10 border-b border-slate-700/50 bg-slate-900/95 backdrop-blur-sm">
             <div className="flex items-center justify-between px-6 py-4">

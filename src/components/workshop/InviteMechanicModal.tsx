@@ -76,7 +76,7 @@ export default function InviteMechanicModal({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
+        className="w-full max-w-md mx-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
       >
         {/* Header */}
         <div className="border-b border-white/10 p-6">

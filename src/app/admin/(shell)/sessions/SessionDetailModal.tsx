@@ -225,7 +225,7 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-5xl mx-4 max-h-[90vh] overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <div>
@@ -623,7 +623,7 @@ export default function SessionDetailModal({ session, onClose, onUpdate }: Props
       {/* Reassign Modal */}
       {showReassignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="relative w-full max-w-md rounded-xl bg-white shadow-2xl">
+          <div className="relative w-full max-w-md mx-4 rounded-xl bg-white shadow-2xl">
             <div className="border-b border-slate-200 px-6 py-4">
               <h3 className="text-lg font-bold text-slate-900">Reassign Mechanic</h3>
               <p className="mt-1 text-sm text-slate-600">

@@ -168,7 +168,7 @@ export default function SINCollectionModal({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
+        className="w-full max-w-2xl mx-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl"
       >
         {/* Header */}
         <div className="border-b border-white/10 bg-gradient-to-r from-orange-500/10 to-red-500/10 p-6">

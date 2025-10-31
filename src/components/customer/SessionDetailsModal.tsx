@@ -120,7 +120,7 @@ export default function SessionDetailsModal({ isOpen, onClose, session }: Sessio
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-6 shadow-2xl transition-all">
+              <Dialog.Panel className="w-full max-w-3xl mx-4 transform overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-6 shadow-2xl transition-all">
                 {/* Header */}
                 <div className="flex items-start justify-between border-b border-white/10 pb-4">
                   <div className="flex items-center gap-3">
