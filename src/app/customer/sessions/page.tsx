@@ -322,7 +322,7 @@ export default function CustomerSessionsPage() {
         </div>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -536,7 +536,7 @@ export default function CustomerSessionsPage() {
                         )}
 
                         {/* Session Info */}
-                        <div className="flex items-start gap-4 flex-1">
+                        <div className="flex flex-col sm:flex-row items-start gap-4 flex-1">
                           <div className="p-3 bg-slate-800 rounded-lg">
                             {getTypeIcon(session.type)}
                           </div>
@@ -924,7 +924,7 @@ function SessionDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-slate-900 rounded-2xl border border-slate-700 max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-slate-700 flex items-center justify-between">
           <div>
@@ -977,7 +977,7 @@ function SessionDetailModal({
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-slate-400 block mb-2">Created</label>
                   <div className="text-white">

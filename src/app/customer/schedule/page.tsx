@@ -66,17 +66,17 @@ export default async function CustomerSchedulePage() {
   const eligible = plan ? SCHEDULABLE_PLANS.includes(plan) : false
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-6 sm:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 pb-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-orange-500">Live session scheduling</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Book your live mechanic session</h1>
-            <p className="mt-3 max-w-2xl text-sm text-slate-400">
+            <p className="text-xs sm:text-sm font-medium uppercase tracking-wide text-orange-500">Live session scheduling</p>
+            <h1 className="mt-2 text-2xl sm:text-3xl font-semibold text-white">Book your live mechanic session</h1>
+            <p className="mt-3 max-w-2xl text-sm sm:text-base text-slate-400">
               Choose a time that works for you. We&apos;ll confirm with the next available certified mechanic and email you the joining details.
             </p>
           </div>
-          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300 shadow-sm backdrop-blur-sm">
+          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300 shadow-sm backdrop-blur-sm w-full md:w-auto">
             <p className="font-semibold text-white">Current plan</p>
             <p>{plan ? planLabel(plan) : 'No active plan selected'}</p>
             {!eligible && (
@@ -87,12 +87,12 @@ export default async function CustomerSchedulePage() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div>
             <EnhancedSchedulingCalendar initialEvents={scheduledEvents} plan={plan} />
           </div>
-          <aside className="space-y-6">
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
+          <aside className="space-y-4 sm:space-y-6">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6 shadow-sm backdrop-blur-sm">
               <h2 className="text-sm font-semibold text-white">How scheduling works</h2>
               <ul className="mt-3 space-y-3 text-sm text-slate-400">
                 <li>Pick a time in your local timezone. We store everything in UTC so your mechanic sees it correctly.</li>
@@ -100,7 +100,7 @@ export default async function CustomerSchedulePage() {
                 <li>Need something sooner? Reply to the confirmation email and we&apos;ll prioritize your request.</li>
               </ul>
             </div>
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6 shadow-sm backdrop-blur-sm">
               <h2 className="text-sm font-semibold text-white">Session prep checklist</h2>
               <ul className="mt-3 space-y-3 text-sm text-slate-400">
                 <li>Gather recent service history or diagnostic codes.</li>

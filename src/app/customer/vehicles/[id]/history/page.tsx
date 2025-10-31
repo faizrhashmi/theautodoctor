@@ -187,18 +187,18 @@ function VehicleHistoryPageContent() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
         {/* Vehicle Info Card */}
-        <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-          <div className="flex items-start justify-between">
+        <div className="mb-6 sm:mb-8 rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-sm backdrop-blur">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h2>
               {vehicle.nickname && (
-                <p className="mt-1 text-slate-400">{vehicle.nickname}</p>
+                <p className="mt-1 text-sm sm:text-base text-slate-400">{vehicle.nickname}</p>
               )}
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-300">
+              <div className="mt-3 sm:mt-4 flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-slate-300">
                 {vehicle.vin && <span>VIN: {vehicle.vin}</span>}
                 {vehicle.plate && <span>Plate: {vehicle.plate}</span>}
                 {vehicle.color && <span>Color: {vehicle.color}</span>}
@@ -214,8 +214,8 @@ function VehicleHistoryPageContent() {
         </div>
 
         {/* Service History Timeline */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-sm backdrop-blur">
-          <h3 className="mb-6 text-xl font-semibold text-white">Service History</h3>
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-sm backdrop-blur">
+          <h3 className="mb-4 sm:mb-6 text-lg sm:text-xl font-semibold text-white">Service History</h3>
 
           {history.length === 0 ? (
             <div className="py-12 text-center">
@@ -226,29 +226,29 @@ function VehicleHistoryPageContent() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {history.map((item) => (
                 <div
                   key={`${item.record_type}-${item.record_id}`}
-                  className="rounded-xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 p-4 sm:p-5 transition hover:bg-white/10"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="rounded-lg bg-orange-500/20 p-3">
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
+                    <div className="flex items-start gap-3 sm:gap-4 w-full">
+                      <div className="rounded-lg bg-orange-500/20 p-2.5 sm:p-3 shrink-0">
                         {item.record_type === 'session' ? (
-                          <Wrench className="h-5 w-5 text-orange-400" />
+                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                         ) : (
-                          <FileText className="h-5 w-5 text-orange-400" />
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-semibold text-white">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <h4 className="text-sm sm:text-base font-semibold text-white">
                             {item.record_type === 'session' ? 'Service Session' : 'Intake Form'}
                           </h4>
                           {item.status && getStatusBadge(item.status)}
                         </div>
-                        <div className="mt-2 space-y-1 text-sm text-slate-400">
+                        <div className="mt-2 space-y-1 text-xs sm:text-sm text-slate-400">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
                             <span>{formatDate(item.record_date)}</span>

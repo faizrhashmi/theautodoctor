@@ -209,19 +209,19 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
   }
 
   return (
-    <div className={`max-w-4xl mx-auto space-y-8 ${className}`}>
+    <div className={`max-w-4xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 px-4 sm:px-0 ${className}`}>
       {/* Step 1: Service Type Selection */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
           Step 1: Choose Service Type
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           {/* General Service */}
           <button
             onClick={() => setRequestType('general')}
             className={`
-              p-6 border-2 rounded-xl text-left transition-all
+              p-4 sm:p-6 border-2 rounded-xl text-left transition-all
               ${requestType === 'general'
                 ? 'border-slate-500 bg-slate-50 dark:bg-slate-900/20 ring-4 ring-slate-500/20'
                 : 'border-slate-300 dark:border-slate-600 hover:border-slate-400'
@@ -262,7 +262,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
             <button
               onClick={() => setRequestType('brand_specialist')}
               className={`
-                p-6 border-2 rounded-xl text-left transition-all relative overflow-hidden
+                p-4 sm:p-6 border-2 rounded-xl text-left transition-all relative overflow-hidden
                 ${requestType === 'brand_specialist'
                   ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 ring-4 ring-orange-500/20'
                   : 'border-slate-300 dark:border-slate-600 hover:border-orange-400 hover:bg-orange-50/50'
@@ -275,7 +275,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
               </div>
 
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 pr-20">
+                <div className="flex-1 pr-12 sm:pr-20">
                   <div className="flex items-center gap-2 mb-2">
                     <SpecialistTierBadge tier="brand" size="sm" showIcon={true} showLabel={true} />
                   </div>
@@ -313,15 +313,15 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
 
       {/* Step 2: Brand Selection (if specialist) */}
       {requestType === 'brand_specialist' && (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
             Step 2: Select Your Vehicle Brand
           </h2>
 
           <select
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="">Select your vehicle brand...</option>
             {brands.map((brand) => (
@@ -335,12 +335,12 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
       )}
 
       {/* Step 3: Location */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
           Step {requestType === 'brand_specialist' ? '3' : '2'}: Your Location
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {/* Country */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -352,7 +352,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
                 setCustomerCountry(e.target.value)
                 setCustomerCity('') // Reset city
               }}
-              className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select country...</option>
               {countries.map((country) => (
@@ -372,7 +372,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
               value={customerCity}
               onChange={(e) => setCustomerCity(e.target.value)}
               disabled={!customerCountry || loadingCities}
-              className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 disabled:opacity-50"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select city...</option>
               {cities.map((city) => (
@@ -401,18 +401,23 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
       </div>
 
       {/* Step 4: Describe Concern */}
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
           Step {requestType === 'brand_specialist' ? '4' : '3'}: Describe Your Concern
         </h2>
 
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Example: I need to install a backup camera in my 2020 BMW X5. The camera is already purchased, just need help with installation and coding."
-          rows={5}
-          className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="relative">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Example: I need to install a backup camera in my 2020 BMW X5. The camera is already purchased, just need help with installation and coding."
+            rows={5}
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-base rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+            {description.length} characters
+          </div>
+        </div>
 
         {/* Extracted Keywords */}
         {extractedKeywords.length > 0 && (
@@ -442,7 +447,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
         <button
           onClick={findMatches}
           disabled={isMatching || description.length < 10}
-          className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="mt-4 w-full bg-blue-600 text-white py-3 sm:py-4 text-base sm:text-lg rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation"
         >
           {isMatching ? (
             <>
@@ -457,8 +462,8 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
 
       {/* Step 5: Matched Mechanics */}
       {matchedMechanics.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4">
             Step {requestType === 'brand_specialist' ? '5' : '4'}: Choose Your Mechanic
           </h2>
 
@@ -466,7 +471,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
             We found {matchedMechanics.length} matching mechanics. Select one to proceed:
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {matchedMechanics.slice(0, 5).map((mechanic) => (
               <MechanicMatchCard
                 key={mechanic.mechanicId}
@@ -481,7 +486,7 @@ export function EnhancedIntakeForm({ onSubmit, className = '' }: EnhancedIntakeF
           {selectedMechanic && (
             <button
               onClick={handleSubmit}
-              className="mt-6 w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 flex items-center justify-center gap-2"
+              className="mt-4 sm:mt-6 w-full bg-green-600 text-white py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg hover:bg-green-700 flex items-center justify-center gap-2 touch-manipulation"
             >
               <CheckCircle className="h-6 w-6" />
               Book Session with Selected Mechanic
@@ -509,25 +514,25 @@ function MechanicMatchCard({
     <button
       onClick={onSelect}
       className={`
-        w-full p-5 border-2 rounded-xl text-left transition-all
+        w-full p-4 sm:p-5 border-2 rounded-xl text-left transition-all touch-manipulation
         ${isSelected
           ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-500/20'
           : 'border-slate-300 dark:border-slate-600 hover:border-blue-400'
         }
       `}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
         {/* Profile Photo */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 self-center sm:self-start">
           {mechanic.profilePhoto ? (
             <img
               src={mechanic.profilePhoto}
               alt={mechanic.mechanicName}
-              className="w-16 h-16 rounded-full object-cover"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-              <span className="text-2xl font-bold text-slate-600 dark:text-slate-300">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+              <span className="text-xl sm:text-2xl font-bold text-slate-600 dark:text-slate-300">
                 {mechanic.mechanicName.charAt(0)}
               </span>
             </div>
@@ -535,13 +540,13 @@ function MechanicMatchCard({
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white text-lg">
+        <div className="flex-1 min-w-0 w-full">
+          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-2 mb-2">
+            <div className="flex-1">
+              <h3 className="font-semibold text-slate-900 dark:text-white text-base sm:text-lg">
                 {mechanic.mechanicName}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mt-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                 {mechanic.availability === 'online' && (
                   <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                     <span className="w-2 h-2 bg-green-500 rounded-full" />
@@ -558,18 +563,18 @@ function MechanicMatchCard({
             </div>
 
             {/* Match Score */}
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-right flex-shrink-0">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {mechanic.matchScore}
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">
-                match score
+                match
               </div>
             </div>
           </div>
 
           {/* Experience & Rating */}
-          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400 mb-2">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-2">
             <span>{mechanic.yearsExperience} years exp</span>
             <span className="flex items-center gap-1">
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />

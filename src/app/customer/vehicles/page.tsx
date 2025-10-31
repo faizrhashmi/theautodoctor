@@ -242,7 +242,7 @@ function VehiclesPageContent() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
                 <SmartYearSelector
                   label="Year *"
                   value={vehicle.year}
@@ -353,20 +353,24 @@ function VehiclesPageContent() {
         {/* Vehicles Table */}
         {vehicles.length > 0 && (
           <div className="rounded-3xl border border-white/10 bg-white/5 shadow-sm backdrop-blur overflow-hidden">
+            {/* Mobile scroll hint */}
+            <div className="md:hidden px-4 py-2 bg-slate-900/50 border-b border-white/10 text-xs text-slate-400 text-center">
+              ← Scroll horizontally to see all details →
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5">
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Vehicle
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Details
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 sm:px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Actions
                     </th>
                   </tr>
@@ -374,7 +378,7 @@ function VehiclesPageContent() {
                 <tbody className="divide-y divide-white/10">
                   {vehicles.map((v) => (
                     <tr key={v.id} className="transition hover:bg-white/5">
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-4">
                         <div className="flex items-center gap-3">
                           {v.is_primary && (
                             <Star className="h-4 w-4 fill-orange-400 text-orange-400" />
@@ -389,14 +393,14 @@ function VehiclesPageContent() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-4">
                         <div className="space-y-1 text-sm text-slate-300">
                           {v.color && <p>Color: {v.color}</p>}
                           {v.plate && <p>Plate: {v.plate}</p>}
                           {v.mileage && <p>Mileage: {v.mileage}</p>}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 sm:px-6 py-4">
                         {v.is_primary ? (
                           <span className="inline-flex items-center rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-300">
                             Primary
@@ -410,7 +414,7 @@ function VehiclesPageContent() {
                           </button>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 sm:px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/customer/vehicles/${v.id}/history`}

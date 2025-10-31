@@ -726,8 +726,8 @@ export default function CustomerDashboardPage() {
       ) : analyticsData ? (
         <>
           {/* Spending Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="md:col-span-2 lg:col-span-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-orange-500" />
                 Monthly Spending
@@ -885,7 +885,7 @@ export default function CustomerDashboardPage() {
           </div>
 
           {/* Quotes and Warranties */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pending Quotes */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
