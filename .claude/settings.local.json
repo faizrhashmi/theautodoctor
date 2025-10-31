@@ -91,7 +91,9 @@
       "Bash(python3:*)",
       "Bash(timeout 60 npm run build:*)",
       "Bash(del:*)",
-      "Bash(timeout 10 npm run build:*)"
+      "Bash(timeout 10 npm run build:*)",
+      "Bash(timeout 180 pnpm build:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

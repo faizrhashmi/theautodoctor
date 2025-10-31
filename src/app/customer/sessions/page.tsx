@@ -7,7 +7,7 @@ import {
   Filter, Search, Calendar, Download, Star, FileText, MoreVertical,
   TrendingUp, DollarSign, Award, Play, Edit, Trash2, RefreshCw,
   X, Phone, User, ChevronDown, ExternalLink, Image as ImageIcon,
-  BarChart3, Zap
+  BarChart3, Zap, Car
 } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 
@@ -304,7 +304,7 @@ export default function CustomerSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -369,7 +369,7 @@ export default function CustomerSessionsPage() {
           <div className="p-3 sm:p-4 border-b border-slate-700">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
               {/* Tabs */}
-              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto px-1 sm:px-0">
                 {[
                   { key: 'all', label: 'All Sessions', count: sessions.length },
                   { key: 'active', label: 'Active', count: sessions.filter(s => ['live', 'waiting'].includes(s.status)).length },
@@ -519,133 +519,163 @@ export default function CustomerSessionsPage() {
                   return (
                     <div
                       key={session.id}
-                      className="bg-slate-900/50 rounded-lg border border-slate-700 hover:border-orange-500/50 transition-all p-4 cursor-pointer"
+                      className="rounded-2xl border border-slate-700 bg-slate-900/50 p-5 transition-all hover:border-orange-500/50 cursor-pointer"
                       onClick={() => setSelectedSession(session)}
                     >
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        {/* Checkbox for selectable sessions */}
-                        {isSelectable && (
-                          <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={selectedSessions.has(session.id)}
-                              onChange={() => toggleSelectSession(session.id)}
-                              className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900 cursor-pointer"
-                            />
-                          </div>
-                        )}
-
-                        {/* Session Info */}
-                        <div className="flex flex-col sm:flex-row items-start gap-4 flex-1">
-                          <div className="p-3 bg-slate-800 rounded-lg">
-                            {getTypeIcon(session.type)}
-                          </div>
-
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2 flex-wrap">
-                              <h3 className="text-white font-semibold">
-                                {session.mechanic_name || 'Waiting for assignment'}
-                              </h3>
-                              {getStatusBadge(session.status)}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(session.created_at).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {new Date(session.created_at).toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              <span className="capitalize px-2 py-0.5 bg-slate-700 rounded text-xs">
-                                {session.type}
-                              </span>
-                            </div>
-
-                            {session.rating && (
-                              <div className="flex items-center gap-1 mt-2">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`w-4 h-4 ${
-                                      i < session.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'
-                                    }`}
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                            <div className="flex items-start gap-3">
+                              {isSelectable && (
+                                <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedSessions.has(session.id)}
+                                    onChange={() => toggleSelectSession(session.id)}
+                                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900 cursor-pointer"
                                   />
-                                ))}
+                                </div>
+                              )}
+                              <div className="flex items-start gap-3">
+                                <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3">
+                                  {getTypeIcon(session.type)}
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="text-lg font-semibold text-white">
+                                      {session.mechanic_name || 'Waiting for assignment'}
+                                    </h3>
+                                    {getStatusBadge(session.status)}
+                                  </div>
+                                  {session.issue && (
+                                    <p className="text-sm text-slate-400 line-clamp-2">{session.issue}</p>
+                                  )}
+                                  {session.notes && (
+                                    <p className="text-xs text-slate-500 line-clamp-2">{session.notes}</p>
+                                  )}
+                                  {session.rating && (
+                                    <div className="flex items-center gap-1 pt-1">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          className={`w-4 h-4 ${
+                                            i < session.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
+                            </div>
+                          </div>
+
+                          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                            <div className="text-left sm:text-right">
+                              <div className="text-2xl font-bold text-white">${session.price.toFixed(2)}</div>
+                              <div className="text-xs text-slate-400 capitalize">{session.plan}</div>
+                            </div>
+
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setOpenDropdown(openDropdown === session.id ? null : session.id)
+                                }}
+                                className="flex w-full justify-center rounded-lg p-3 transition-colors hover:bg-slate-800 sm:w-auto"
+                              >
+                                <MoreVertical className="w-5 h-5 text-slate-400" />
+                              </button>
+
+                              {openDropdown === session.id && (
+                                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-slate-700 bg-slate-800 shadow-xl">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedSession(session)
+                                      setOpenDropdown(null)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-t-lg px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    View Details
+                                  </button>
+                                  {session.status === 'completed' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        alert('Download report functionality coming soon')
+                                        setOpenDropdown(null)
+                                      }}
+                                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                      Download Report
+                                    </button>
+                                  )}
+                                  {['completed', 'cancelled'].includes(session.status) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteSession(session.id)
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-b-lg border-t border-slate-700 px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete from History
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Price and Actions */}
-                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:ml-auto lg:w-auto">
-                          <div className="text-left sm:text-right">
-                            <div className="text-2xl font-bold text-white">${session.price.toFixed(2)}</div>
-                            <div className="text-xs text-slate-400 capitalize">{session.plan}</div>
+                        <div className="grid grid-cols-1 gap-2 text-sm text-slate-400 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(session.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}{' '}
+                              {new Date(session.created_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
                           </div>
 
-                          {/* Dropdown Menu */}
-                          <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setOpenDropdown(openDropdown === session.id ? null : session.id)
-                              }}
-                              className="flex w-full justify-center rounded-lg p-3 transition-colors hover:bg-slate-800 sm:w-auto"
-                            >
-                              <MoreVertical className="w-5 h-5 text-slate-400" />
-                            </button>
-
-                            {openDropdown === session.id && (
-                              <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setSelectedSession(session)
-                                    setOpenDropdown(null)
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2 rounded-t-lg"
-                                >
-                                  <ExternalLink className="w-4 h-4" />
-                                  View Details
-                                </button>
-                                {session.status === 'completed' && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      // TODO: Download report
-                                      alert('Download report functionality coming soon')
-                                      setOpenDropdown(null)
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                    Download Report
-                                  </button>
-                                )}
-                                {['completed', 'cancelled'].includes(session.status) && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleDeleteSession(session.id)
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 rounded-b-lg border-t border-slate-700"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                    Delete from History
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {session.duration
+                                ? `${session.duration} minutes`
+                                : session.status === 'scheduled'
+                                ? 'Scheduled'
+                                : 'Timing pending'}
+                            </span>
                           </div>
+
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="capitalize">{session.type}</span>
+                          </div>
+
+                          {session.vehicle && (
+                            <div className="flex items-center gap-2">
+                              <Car className="w-4 h-4" />
+                              <span className="capitalize">{session.vehicle}</span>
+                            </div>
+                          )}
+
+                          {session.mechanic_id && (
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              <span>Mechanic ID: {session.mechanic_id.slice(0, 8)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

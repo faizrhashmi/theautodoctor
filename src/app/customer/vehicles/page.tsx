@@ -468,7 +468,7 @@ function VehiclesPageContent() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2 text-sm text-slate-300">
+                    <div className="grid grid-cols-1 gap-2 text-sm text-slate-300 sm:grid-cols-2">
                       {v.color && <p><span className="text-slate-500">Color:</span> {v.color}</p>}
                       {v.plate && <p><span className="text-slate-500">Plate:</span> {v.plate}</p>}
                       {v.mileage && <p><span className="text-slate-500">Mileage:</span> {v.mileage}</p>}

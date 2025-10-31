@@ -8,7 +8,6 @@
     · turbo
 
    Creating an optimized production build ...
-<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (118kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
 Failed to compile.
 
 ./src/app/admin/(shell)/sessions/SessionsTable.tsx
@@ -22,7 +21,7 @@ Error:
      : [31;1m     ^^^[0m
  [2m138[0m |       {/* Mobile scroll hint */}
  [2m139[0m |       <div className="lg:hidden px-4 py-2 bg-slate-100 border-b border-slate-200 text-xs text-slate-600 text-center">
- [2m139[0m |         ← Scroll horizontally to see all columns →
+ [2m139[0m |         Scroll horizontally to see all columns
      `----
 
 Caused by:

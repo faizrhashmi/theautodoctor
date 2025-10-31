@@ -137,7 +137,7 @@ export default function SessionsTable({
     <div>
       {/* Mobile scroll hint */}
       <div className="lg:hidden px-4 py-2 bg-slate-100 border-b border-slate-200 text-xs text-slate-600 text-center">
-        ← Scroll horizontally to see all columns →
+        Scroll horizontally to see all columns
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -279,6 +279,7 @@ export default function SessionsTable({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

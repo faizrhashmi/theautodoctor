@@ -824,7 +824,7 @@ export default function MechanicDashboardPage() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-sm text-slate-400 capitalize">{session.session_type}</span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-500">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5" />
                             {new Date(session.created_at).toLocaleDateString()}
