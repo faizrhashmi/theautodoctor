@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -6,33 +5,33 @@ import Link from 'next/link'
 
 interface DashboardMetrics {
   // Customer Consent Metrics
-  total_customers_with_consents: number
-  customers_fully_compliant: number
-  customers_opted_in_marketing: number
+  totalCustomersWithConsents: number
+  customersFullyCompliant: number
+  customersOptedInMarketing: number
 
   // Data Access Requests
-  data_access_requests_30_days: number
-  data_access_requests_overdue: number
+  dataAccessRequests30Days: number
+  dataAccessRequestsOverdue: number
 
   // Account Deletions
-  pending_deletion_requests: number
-  deletions_completed_30_days: number
+  pendingDeletionRequests: number
+  deletionsCompleted30Days: number
 
   // Data Breaches
-  active_data_breaches: number
-  critical_high_breaches: number
+  activeDataBreaches: number
+  criticalHighBreaches: number
 
   // Privacy Activity
-  privacy_events_24_hours: number
-  opt_outs_7_days: number
+  privacyEvents24Hours: number
+  optOuts7Days: number
 }
 
 interface ComplianceScore {
-  total_customers: number
-  compliant_customers: number
-  non_compliant_customers: number
-  compliance_score: number
-  compliance_grade: string
+  totalCustomers: number
+  compliantCustomers: number
+  nonCompliantCustomers: number
+  complianceScore: number
+  complianceGrade: string
 }
 
 export default function PrivacyDashboardPage() {
@@ -51,7 +50,7 @@ export default function PrivacyDashboardPage() {
       }
 
       const data = await response.json()
-      setMetrics(data.dashboardSummary)
+      setMetrics(data.summary)
       setComplianceScore(data.complianceScore)
       setError(null)
     } catch (err) {
@@ -135,15 +134,15 @@ export default function PrivacyDashboardPage() {
             <div>
               <h2 className="text-xl font-semibold text-white mb-2">Overall PIPEDA Compliance</h2>
               <p className="text-slate-300">
-                {complianceScore.compliant_customers} of {complianceScore.total_customers} customers fully compliant
+                {complianceScore.compliantCustomers} of {complianceScore.totalCustomers} customers fully compliant
               </p>
             </div>
             <div className="text-center">
-              <div className={`text-6xl font-bold ${getGradeColor(complianceScore.compliance_grade)}`}>
-                {complianceScore.compliance_grade}
+              <div className={`text-6xl font-bold ${getGradeColor(complianceScore.complianceGrade)}`}>
+                {complianceScore.complianceGrade}
               </div>
               <div className="text-2xl text-slate-400 mt-2">
-                {complianceScore.compliance_score.toFixed(1)}%
+                {complianceScore.complianceScore.toFixed(1)}%
               </div>
             </div>
           </div>
@@ -151,8 +150,8 @@ export default function PrivacyDashboardPage() {
           {/* Progress Bar */}
           <div className="mt-4 bg-slate-800 rounded-full h-3 overflow-hidden">
             <div
-              className={`h-full transition-all duration-500 ${getComplianceColor(complianceScore.compliance_score)}`}
-              style={{ width: `${complianceScore.compliance_score}%` }}
+              className={`h-full transition-all duration-500 ${getComplianceColor(complianceScore.complianceScore)}`}
+              style={{ width: `${complianceScore.complianceScore}%` }}
             />
           </div>
         </div>
@@ -163,7 +162,7 @@ export default function PrivacyDashboardPage() {
         {/* Consent Metrics */}
         <MetricCard
           title="Total Consents"
-          value={metrics?.total_customers_with_consents || 0}
+          value={metrics?.totalCustomersWithConsents || 0}
           icon="✅"
           color="blue"
           subtitle="Customers with active consents"
@@ -171,7 +170,7 @@ export default function PrivacyDashboardPage() {
 
         <MetricCard
           title="Marketing Opt-ins"
-          value={metrics?.customers_opted_in_marketing || 0}
+          value={metrics?.customersOptedInMarketing || 0}
           icon="📧"
           color="green"
           subtitle="CASL marketing consents"
@@ -180,7 +179,7 @@ export default function PrivacyDashboardPage() {
         {/* Data Access Requests */}
         <MetricCard
           title="Access Requests (30d)"
-          value={metrics?.data_access_requests_30_days || 0}
+          value={metrics?.dataAccessRequests30Days || 0}
           icon="📋"
           color="purple"
           subtitle="PIPEDA data access requests"
@@ -188,11 +187,11 @@ export default function PrivacyDashboardPage() {
 
         <MetricCard
           title="Overdue Requests"
-          value={metrics?.data_access_requests_overdue || 0}
+          value={metrics?.dataAccessRequestsOverdue || 0}
           icon="⚠️"
-          color={metrics?.data_access_requests_overdue > 0 ? "red" : "gray"}
+          color={metrics?.dataAccessRequestsOverdue > 0 ? "red" : "gray"}
           subtitle="Past 30-day deadline"
-          alert={metrics?.data_access_requests_overdue > 0}
+          alert={metrics?.dataAccessRequestsOverdue > 0}
         />
       </div>
 
@@ -200,7 +199,7 @@ export default function PrivacyDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Pending Deletions"
-          value={metrics?.pending_deletion_requests || 0}
+          value={metrics?.pendingDeletionRequests || 0}
           icon="🗑️"
           color="orange"
           subtitle="Account deletion requests"
@@ -208,16 +207,16 @@ export default function PrivacyDashboardPage() {
 
         <MetricCard
           title="Active Breaches"
-          value={metrics?.active_data_breaches || 0}
+          value={metrics?.activeDataBreaches || 0}
           icon="🚨"
-          color={metrics?.active_data_breaches > 0 ? "red" : "gray"}
+          color={metrics?.activeDataBreaches > 0 ? "red" : "gray"}
           subtitle="Open breach incidents"
-          alert={metrics?.active_data_breaches > 0}
+          alert={metrics?.activeDataBreaches > 0}
         />
 
         <MetricCard
           title="Recent Opt-outs"
-          value={metrics?.opt_outs_7_days || 0}
+          value={metrics?.optOuts7Days || 0}
           icon="📉"
           color="yellow"
           subtitle="Last 7 days"
@@ -225,7 +224,7 @@ export default function PrivacyDashboardPage() {
 
         <MetricCard
           title="Privacy Events (24h)"
-          value={metrics?.privacy_events_24_hours || 0}
+          value={metrics?.privacyEvents24Hours || 0}
           icon="📊"
           color="blue"
           subtitle="Audit log activity"
@@ -233,35 +232,35 @@ export default function PrivacyDashboardPage() {
       </div>
 
       {/* Critical Alerts */}
-      {(metrics?.data_access_requests_overdue > 0 ||
-        metrics?.critical_high_breaches > 0 ||
-        metrics?.active_data_breaches > 0) && (
+      {(metrics?.dataAccessRequestsOverdue > 0 ||
+        metrics?.criticalHighBreaches > 0 ||
+        metrics?.activeDataBreaches > 0) && (
         <div className="bg-red-500/10 border border-red-500 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-red-500 mb-4 flex items-center gap-2">
             <span>🚨</span>
             Critical Compliance Alerts
           </h2>
           <div className="space-y-3">
-            {metrics.data_access_requests_overdue > 0 && (
+            {metrics.dataAccessRequestsOverdue > 0 && (
               <AlertItem
                 title="Overdue Data Access Requests"
-                description={`${metrics.data_access_requests_overdue} requests exceed PIPEDA 30-day requirement`}
+                description={`${metrics.dataAccessRequestsOverdue} requests exceed PIPEDA 30-day requirement`}
                 action="View Requests"
                 href="/admin/privacy/data-access"
               />
             )}
-            {metrics.critical_high_breaches > 0 && (
+            {metrics.criticalHighBreaches > 0 && (
               <AlertItem
                 title="Critical Data Breaches"
-                description={`${metrics.critical_high_breaches} high/critical severity breaches require immediate attention`}
+                description={`${metrics.criticalHighBreaches} high/critical severity breaches require immediate attention`}
                 action="View Breaches"
                 href="/admin/privacy/breaches"
               />
             )}
-            {metrics.active_data_breaches > 0 && (
+            {metrics.activeDataBreaches > 0 && (
               <AlertItem
                 title="Active Data Breaches"
-                description={`${metrics.active_data_breaches} breach incidents currently being managed`}
+                description={`${metrics.activeDataBreaches} breach incidents currently being managed`}
                 action="Manage Breaches"
                 href="/admin/privacy/breaches"
               />
