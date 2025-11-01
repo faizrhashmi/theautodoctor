@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2 } from 'lucide-react'
+import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2, Wrench, CreditCard } from 'lucide-react'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
 
 interface PlanTier {
@@ -35,6 +35,22 @@ interface Workshop {
   created_at: string
 }
 
+interface CreditPricing {
+  session_type: string
+  is_specialist: boolean
+  credit_cost: number
+}
+
+interface Subscription {
+  id: string
+  current_credits: number
+  status: string
+  plan: {
+    name: string
+    discount_percent: number
+  }
+}
+
 interface SessionLauncherProps {
   accountType?: string
   hasUsedFreeSession?: boolean | null
@@ -57,10 +73,16 @@ export default function SessionLauncher({
 
   const [showCustomization, setShowCustomization] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string>('free')
+  const [specialistMode, setSpecialistMode] = useState(false)
   const [workshops, setWorkshops] = useState<Workshop[]>([])
   const [selectedWorkshop, setSelectedWorkshop] = useState<string>('')
   const [loadingWorkshops, setLoadingWorkshops] = useState(false)
   const startButtonRef = useRef<HTMLAnchorElement>(null)
+
+  // Subscription & Credit State
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [creditPricing, setCreditPricing] = useState<CreditPricing[]>([])
+  const [loadingSubscription, setLoadingSubscription] = useState(false)
 
   // Determine default plan based on account type
   useEffect(() => {
@@ -102,10 +124,71 @@ export default function SessionLauncher({
     fetchWorkshops()
   }, [accountType, workshopId])
 
+  // Fetch subscription and credit pricing for B2C customers
+  useEffect(() => {
+    async function fetchSubscriptionData() {
+      if (!isB2CCustomer) return
+
+      setLoadingSubscription(true)
+      try {
+        // Fetch subscription
+        const subRes = await fetch('/api/customer/subscriptions')
+        if (subRes.ok) {
+          const subData = await subRes.json()
+          if (subData.has_subscription) {
+            setSubscription(subData.subscription)
+          }
+        }
+
+        // Fetch credit pricing
+        const pricingRes = await fetch('/api/credit-pricing')
+        if (pricingRes.ok) {
+          const pricingData = await pricingRes.json()
+          setCreditPricing(pricingData.pricing || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription data:', error)
+      } finally {
+        setLoadingSubscription(false)
+      }
+    }
+    fetchSubscriptionData()
+  }, [isB2CCustomer])
+
+  // Helper function to get session type from plan slug
+  const getSessionType = (planSlug: string): string => {
+    // Map plan slugs to session types
+    if (planSlug === 'quick' || planSlug === 'free') return 'quick'
+    if (planSlug === 'video') return 'video'
+    if (planSlug === 'diagnostic') return 'diagnostic'
+    return 'quick' // default
+  }
+
+  // Helper function to calculate credit cost for current selection
+  const getCreditCost = (): number | null => {
+    if (!subscription || creditPricing.length === 0) return null
+
+    const sessionType = getSessionType(selectedPlan)
+    const pricing = creditPricing.find(
+      p => p.session_type === sessionType && p.is_specialist === specialistMode
+    )
+    return pricing ? pricing.credit_cost : null
+  }
+
+  // Check if user has enough credits
+  const hasEnoughCredits = (): boolean => {
+    if (!subscription) return false
+    const cost = getCreditCost()
+    if (cost === null) return false
+    return subscription.current_credits >= cost
+  }
+
   // Render different UI based on account type
   const renderB2CCustomer = () => {
     const isNewCustomer = hasUsedFreeSession === false
     const defaultPlan = PLAN_TIERS.find(p => p.slug === selectedPlan || p.id === selectedPlan)
+    const creditCost = getCreditCost()
+    const canUseCredits = subscription && creditCost !== null && hasEnoughCredits()
 
     // Loading state
     if (loadingPlans) {
@@ -169,6 +252,40 @@ export default function SessionLauncher({
           )}
         </div>
 
+        {/* Subscription Credit Balance Banner */}
+        {subscription && !isNewCustomer && (
+          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm sm:text-base">
+                    {subscription.plan.name} - {subscription.current_credits} credits
+                  </p>
+                  <p className="text-xs text-blue-300">
+                    Save {subscription.plan.discount_percent}% on all sessions
+                  </p>
+                </div>
+              </div>
+              {creditCost !== null && (
+                <div className="text-xs sm:text-sm">
+                  {canUseCredits ? (
+                    <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full border border-green-400/30 font-medium">
+                      ✓ {creditCost} credits will be used
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full border border-yellow-400/30 font-medium">
+                      ⚠ Need {creditCost} credits (low balance)
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Main CTA */}
         <div className="mb-3 sm:mb-4">
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">
@@ -187,16 +304,24 @@ export default function SessionLauncher({
           <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
             <Link
               ref={startButtonRef}
-              href={`/intake?plan=${selectedPlan}${availableMechanics > 0 ? '&urgent=true' : ''}`}
+              href={`/intake?plan=${selectedPlan}${specialistMode ? '&specialist=true' : ''}${availableMechanics > 0 ? '&urgent=true' : ''}${canUseCredits ? '&use_credits=true' : ''}`}
               className="flex-1 inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
-              <AlertCircle className="h-5 w-5" />
+              {canUseCredits ? (
+                <CreditCard className="h-5 w-5" />
+              ) : specialistMode ? (
+                <Star className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
               <span className="truncate">
                 {isNewCustomer
                   ? 'Start FREE Session'
-                  : `Start ${defaultPlan?.name || 'Session'}`}
+                  : canUseCredits
+                  ? `Use ${creditCost} Credits`
+                  : `Start ${specialistMode ? 'Specialist ' : ''}${defaultPlan?.name || 'Session'}`}
               </span>
-              {!isNewCustomer && defaultPlan && (
+              {!isNewCustomer && !canUseCredits && defaultPlan && (
                 <span className="text-xs sm:text-sm opacity-90 shrink-0">{defaultPlan.price}</span>
               )}
             </Link>
@@ -213,6 +338,60 @@ export default function SessionLauncher({
           {/* Expanded Customization Options */}
           {showCustomization && (
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700 p-4 sm:p-5 animate-in slide-in-from-top-2">
+              {/* Mechanic Type Selector */}
+              <div className="mb-4 sm:mb-5">
+                <h3 className="text-xs sm:text-sm font-semibold text-slate-300 mb-2.5 sm:mb-3 uppercase tracking-wider">Choose Mechanic Type</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                  {/* Standard Mechanic Option */}
+                  <button
+                    onClick={() => setSpecialistMode(false)}
+                    className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all text-left ${
+                      !specialistMode
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <div className={`p-2 rounded-lg ${!specialistMode ? 'bg-orange-500/20' : 'bg-slate-700/50'}`}>
+                        <Wrench className={`h-4 w-4 sm:h-5 sm:w-5 ${!specialistMode ? 'text-orange-400' : 'text-slate-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <h4 className="text-white font-bold text-sm sm:text-base">Standard Mechanic</h4>
+                          {!specialistMode && <Check className="h-4 w-4 text-orange-400 shrink-0" />}
+                        </div>
+                        <p className="text-xs text-slate-400 mb-1">General automotive expertise</p>
+                        <p className="text-xs sm:text-sm font-semibold text-white">From $9.99</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Brand Specialist Option */}
+                  <button
+                    onClick={() => setSpecialistMode(true)}
+                    className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all text-left ${
+                      specialistMode
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <div className={`p-2 rounded-lg ${specialistMode ? 'bg-orange-500/20' : 'bg-slate-700/50'}`}>
+                        <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${specialistMode ? 'text-orange-400' : 'text-slate-400'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <h4 className="text-white font-bold text-sm sm:text-base">Brand Specialist</h4>
+                          {specialistMode && <Check className="h-4 w-4 text-orange-400 shrink-0" />}
+                        </div>
+                        <p className="text-xs text-slate-400 mb-1">BMW • Tesla • Mercedes • +17 more</p>
+                        <p className="text-xs sm:text-sm font-semibold text-white">From $29.99</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <h3 className="text-xs sm:text-sm font-semibold text-slate-300 mb-2.5 sm:mb-3 uppercase tracking-wider">Select Service Plan</h3>
               <div className="space-y-2.5 sm:space-y-3">
                 {PLAN_TIERS.map((tier) => {
@@ -222,6 +401,14 @@ export default function SessionLauncher({
                   }
 
                   const isSelected = tier.slug === selectedPlan || tier.id === selectedPlan
+
+                  // Calculate credit cost for this tier
+                  const tierSessionType = getSessionType(tier.slug || tier.id)
+                  const tierCreditPricing = creditPricing.find(
+                    p => p.session_type === tierSessionType && p.is_specialist === specialistMode
+                  )
+                  const tierCreditCost = tierCreditPricing ? tierCreditPricing.credit_cost : null
+
                   return (
                     <button
                       key={tier.slug || tier.id}
@@ -244,9 +431,20 @@ export default function SessionLauncher({
                           <h4 className="text-white font-bold text-sm sm:text-base truncate">{tier.name}</h4>
                           <p className="text-xs text-slate-400">{tier.duration}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                          <span className="text-lg sm:text-xl font-bold text-white">{tier.price}</span>
-                          {isSelected && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            {subscription && tierCreditCost !== null ? (
+                              <span className="text-sm sm:text-base font-bold text-blue-300">
+                                {tierCreditCost} credits
+                              </span>
+                            ) : (
+                              <span className="text-lg sm:text-xl font-bold text-white">{tier.price}</span>
+                            )}
+                            {isSelected && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />}
+                          </div>
+                          {subscription && tierCreditCost !== null && (
+                            <span className="text-xs text-slate-500 line-through">{tier.price}</span>
+                          )}
                         </div>
                       </div>
                       <p className="text-xs sm:text-sm text-slate-300 mb-1.5 sm:mb-2 line-clamp-2">{tier.description}</p>
@@ -263,7 +461,7 @@ export default function SessionLauncher({
               </div>
 
               {/* Subtle link to full pricing page */}
-              <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-700">
+              <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-slate-700 space-y-2">
                 <Link
                   href="/onboarding/pricing"
                   className="text-xs text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-1"
@@ -271,6 +469,24 @@ export default function SessionLauncher({
                   View detailed plan comparison
                   <ChevronDown className="h-3 w-3" />
                 </Link>
+                {!subscription && !isNewCustomer && (
+                  <Link
+                    href="/customer/plans"
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 font-medium"
+                  >
+                    💳 Save with monthly subscriptions
+                    <ChevronDown className="h-3 w-3" />
+                  </Link>
+                )}
+                {subscription && (
+                  <Link
+                    href="/customer/plans"
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 font-medium"
+                  >
+                    Manage subscription
+                    <ChevronDown className="h-3 w-3" />
+                  </Link>
+                )}
               </div>
             </div>
           )}

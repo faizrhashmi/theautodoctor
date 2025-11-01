@@ -339,6 +339,63 @@ export default function CustomerQuoteViewPage() {
           </div>
         </div>
 
+        {/* OCPA Disclosure - Required before quote acceptance */}
+        {canRespond && (
+          <div className="bg-blue-500/10 border-2 border-blue-400/30 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-blue-100 mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              Important Information About This Quote
+            </h3>
+
+            <ul className="text-sm text-blue-100/90 space-y-2.5">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold mt-0.5">✓</span>
+                <span>
+                  This quote is provided by <strong>{quote.workshop?.name || 'an independent mechanic'}</strong>,
+                  an independent automotive repair business
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold mt-0.5">✓</span>
+                <span>
+                  The Auto Doctor facilitates the connection but does not perform repair work
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold mt-0.5">✓</span>
+                <span>
+                  {quote.workshop?.name || 'The mechanic'} is responsible for the quality and accuracy of this quote
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold mt-0.5">⚖</span>
+                <span>
+                  <strong>Ontario law protects you:</strong> Final cost cannot exceed this quote by more than 10%
+                  without your written approval (O. Reg. 17/05, s. 56(3))
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold mt-0.5">✓</span>
+                <span>
+                  Warranty: {quote.warranty_days} days from completion date
+                </span>
+              </li>
+            </ul>
+
+            <div className="mt-4 pt-4 border-t border-blue-400/20">
+              <p className="text-xs text-blue-200/70">
+                By accepting this quote, you authorize {quote.workshop?.name || 'the mechanic'} to perform
+                the described services at the quoted price.{' '}
+                <a href="/customer/rights" className="text-blue-300 underline hover:text-blue-200">
+                  Learn about your rights
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         {canRespond && !showDeclineForm && (
           <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6 mb-6">

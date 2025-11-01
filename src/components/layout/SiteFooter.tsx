@@ -106,14 +106,25 @@ export default function SiteFooter() {
       </div>
 
       <div className="border-t border-white/5 bg-slate-900/60">
+        {/* Legal Disclaimer */}
+        <div className="mx-auto max-w-7xl px-6 py-6 border-b border-white/5">
+          <p className="text-xs text-slate-400 leading-relaxed max-w-4xl">
+            The Auto Doctor Inc. is a technology platform connecting vehicle owners with independent automotive repair
+            workshops in Ontario. We do not perform repair services. Workshops are independent businesses responsible
+            for their work quality, quotes, and customer service. Workshops must comply with the Ontario Consumer
+            Protection Act and maintain proper licensing and insurance.
+          </p>
+        </div>
+
+        {/* Copyright and Links */}
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} AskAutoDoctor. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link href="/privacy" className="transition hover:text-white">
-              Privacy
+            <Link href="/privacy-policy" className="transition hover:text-white">
+              Privacy Policy
             </Link>
             <Link href="/terms" className="transition hover:text-white">
-              Terms
+              Terms of Service
             </Link>
             <span className="text-slate-700">•</span>
             <p className="text-slate-500">Made with care by real mechanics.</p>

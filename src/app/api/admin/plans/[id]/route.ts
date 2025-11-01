@@ -15,13 +15,13 @@ export async function PUT(
 
     const admin = authResult.data
 
-    console.info('[admin/plans] update plan', {
-      admin: admin.email ?? auth.user?.id ?? 'unknown',
-      planId,
-    })
-
     const planId = params.id
     const body = await request.json()
+
+    console.info('[admin/plans] update plan', {
+      admin: admin.email ?? admin.user?.id ?? 'unknown',
+      planId,
+    })
 
     const {
       slug,
@@ -33,7 +33,20 @@ export async function PUT(
       recommended_for,
       is_active,
       display_order,
-      stripe_price_id
+      stripe_price_id,
+      plan_type,
+      credit_allocation,
+      billing_cycle,
+      discount_percent,
+      max_rollover_credits,
+      show_on_homepage,
+      marketing_badge,
+      stripe_subscription_price_id,
+      plan_category,
+      features,
+      routing_preference,
+      restricted_brands,
+      requires_certification
     } = body
 
     // Check if plan exists
@@ -75,6 +88,19 @@ export async function PUT(
     if (is_active !== undefined) updateData.is_active = is_active
     if (display_order !== undefined) updateData.display_order = display_order
     if (stripe_price_id !== undefined) updateData.stripe_price_id = stripe_price_id
+    if (plan_type !== undefined) updateData.plan_type = plan_type
+    if (credit_allocation !== undefined) updateData.credit_allocation = credit_allocation
+    if (billing_cycle !== undefined) updateData.billing_cycle = billing_cycle
+    if (discount_percent !== undefined) updateData.discount_percent = discount_percent
+    if (max_rollover_credits !== undefined) updateData.max_rollover_credits = max_rollover_credits
+    if (show_on_homepage !== undefined) updateData.show_on_homepage = show_on_homepage
+    if (marketing_badge !== undefined) updateData.marketing_badge = marketing_badge
+    if (stripe_subscription_price_id !== undefined) updateData.stripe_subscription_price_id = stripe_subscription_price_id
+    if (plan_category !== undefined) updateData.plan_category = plan_category
+    if (features !== undefined) updateData.features = features
+    if (routing_preference !== undefined) updateData.routing_preference = routing_preference
+    if (restricted_brands !== undefined) updateData.restricted_brands = restricted_brands
+    if (requires_certification !== undefined) updateData.requires_certification = requires_certification
 
     const { data: updatedPlan, error } = await supabaseAdmin
       .from('service_plans')
@@ -106,12 +132,12 @@ export async function DELETE(
 
     const admin = authResult.data
 
+    const planId = params.id
+
     console.info('[admin/plans] delete plan', {
-      admin: admin.email ?? auth.user?.id ?? 'unknown',
+      admin: admin.email ?? admin.user?.id ?? 'unknown',
       planId,
     })
-
-    const planId = params.id
 
     // Check if plan exists
     const { data: existing } = await supabaseAdmin

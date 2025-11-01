@@ -29,6 +29,15 @@ interface SignupFormData {
   // Legal
   is18Plus: boolean
   termsAccepted: boolean
+
+  // PIPEDA Consents (Required)
+  privacyPolicyAccepted: boolean
+  marketplaceUnderstanding: boolean
+
+  // PIPEDA Consents (Optional)
+  marketingEmailsConsent: boolean
+  analyticsCookiesConsent: boolean
+  productImprovementConsent: boolean
 }
 
 const LANGUAGES = [
@@ -71,6 +80,11 @@ export default function CustomerSignupPage() {
     referralSource: '',
     is18Plus: false,
     termsAccepted: false,
+    privacyPolicyAccepted: false,
+    marketplaceUnderstanding: false,
+    marketingEmailsConsent: false,
+    analyticsCookiesConsent: false,
+    productImprovementConsent: false,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [passwordStrength, setPasswordStrength] = useState(0)
@@ -144,7 +158,9 @@ export default function CustomerSignupPage() {
 
     if (step === 3) {
       if (!formData.is18Plus) newErrors.is18Plus = 'You must be 18 or older'
-      if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms'
+      if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the Terms of Service'
+      if (!formData.privacyPolicyAccepted) newErrors.privacyPolicyAccepted = 'You must accept the Privacy Policy'
+      if (!formData.marketplaceUnderstanding) newErrors.marketplaceUnderstanding = 'You must acknowledge that we are a marketplace'
     }
 
     setErrors(newErrors)
@@ -199,6 +215,15 @@ export default function CustomerSignupPage() {
           referralSource: formData.referralSource,
           waiverAccepted: true,
           is18Plus: true,
+          // PIPEDA Consents
+          consents: {
+            termsOfService: formData.termsAccepted,
+            privacyPolicy: formData.privacyPolicyAccepted,
+            marketplaceUnderstanding: formData.marketplaceUnderstanding,
+            marketingEmails: formData.marketingEmailsConsent,
+            analyticsCookies: formData.analyticsCookiesConsent,
+            productImprovement: formData.productImprovementConsent,
+          },
         }),
       })
 
@@ -690,30 +715,33 @@ export default function CustomerSignupPage() {
                     </div>
                   </div>
 
-                  {/* Legal */}
+                  {/* PIPEDA Consents */}
                   <div className="space-y-4">
-                    <div className={`rounded-lg border p-4 ${formData.termsAccepted ? 'border-green-200 bg-green-50' : errors.is18Plus || errors.termsAccepted ? 'border-red-300 bg-red-50' : 'border-slate-700 bg-slate-800/50 backdrop-blur-sm'}`}>
-                      <label className="flex items-start gap-3">
+                    {/* Age Verification */}
+                    <div className={`rounded-lg border p-4 ${formData.is18Plus ? 'border-green-500/30 bg-green-500/10' : errors.is18Plus ? 'border-red-500/30 bg-red-500/10' : 'border-slate-700 bg-slate-800/50 backdrop-blur-sm'}`}>
+                      <label className="flex items-start gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.is18Plus}
                           readOnly
-                          className="mt-1 h-5 w-5 rounded border-slate-700 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                          className="mt-1 h-5 w-5 rounded border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500"
                         />
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-white">I confirm I am 18 years or older</span>
+                          <span className="text-sm font-medium text-white">I confirm I am 18 years or older *</span>
                           <p className="mt-1 text-xs text-slate-400">Our services are only available to adults 18+</p>
                         </div>
                       </label>
+                      {errors.is18Plus && <p className="mt-2 text-xs text-red-400">{errors.is18Plus}</p>}
                     </div>
 
+                    {/* Waiver Button */}
                     <button
                       type="button"
                       onClick={() => setShowWaiver(true)}
                       className={`w-full rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                         formData.termsAccepted
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100'
+                          ? 'border-green-500 bg-green-500/20 text-green-200'
+                          : 'border-orange-500 bg-orange-500/20 text-orange-200 hover:bg-orange-500/30'
                       }`}
                     >
                       {formData.termsAccepted ? (
@@ -727,9 +755,145 @@ export default function CustomerSignupPage() {
                         'Read & Accept Terms & Waiver *'
                       )}
                     </button>
-                    {(errors.termsAccepted || errors.is18Plus) && !formData.termsAccepted && (
-                      <p className="text-xs text-red-600">{errors.termsAccepted || errors.is18Plus}</p>
-                    )}
+
+                    {/* Required Consents Section */}
+                    <div className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-5">
+                      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                        <svg className="h-5 w-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Required Agreements
+                      </h3>
+
+                      <div className="space-y-4">
+                        {/* Terms of Service */}
+                        <div className={`${errors.termsAccepted && !formData.termsAccepted ? 'p-3 border border-red-500/30 bg-red-500/10 rounded-lg' : ''}`}>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.termsAccepted}
+                              onChange={(e) => {
+                                setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))
+                                setErrors(prev => ({ ...prev, termsAccepted: '' }))
+                              }}
+                              className="mt-1 h-4 w-4 rounded border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                            />
+                            <div className="flex-1">
+                              <span className="text-sm text-slate-300">
+                                I agree to the{' '}
+                                <Link href="/terms" target="_blank" className="text-orange-400 hover:text-orange-300 underline">
+                                  Terms of Service
+                                </Link>{' '}
+                                *
+                              </span>
+                            </div>
+                          </label>
+                          {errors.termsAccepted && <p className="mt-1 ml-7 text-xs text-red-400">{errors.termsAccepted}</p>}
+                        </div>
+
+                        {/* Privacy Policy */}
+                        <div className={`${errors.privacyPolicyAccepted && !formData.privacyPolicyAccepted ? 'p-3 border border-red-500/30 bg-red-500/10 rounded-lg' : ''}`}>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.privacyPolicyAccepted}
+                              onChange={(e) => {
+                                setFormData(prev => ({ ...prev, privacyPolicyAccepted: e.target.checked }))
+                                setErrors(prev => ({ ...prev, privacyPolicyAccepted: '' }))
+                              }}
+                              className="mt-1 h-4 w-4 rounded border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                            />
+                            <div className="flex-1">
+                              <span className="text-sm text-slate-300">
+                                I have read and accept the{' '}
+                                <Link href="/privacy-policy" target="_blank" className="text-orange-400 hover:text-orange-300 underline">
+                                  Privacy Policy
+                                </Link>{' '}
+                                *
+                              </span>
+                              <p className="mt-1 text-xs text-slate-500">PIPEDA: Your privacy rights and how we use your data</p>
+                            </div>
+                          </label>
+                          {errors.privacyPolicyAccepted && <p className="mt-1 ml-7 text-xs text-red-400">{errors.privacyPolicyAccepted}</p>}
+                        </div>
+
+                        {/* Marketplace Understanding */}
+                        <div className={`${errors.marketplaceUnderstanding && !formData.marketplaceUnderstanding ? 'p-3 border border-red-500/30 bg-red-500/10 rounded-lg' : ''}`}>
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.marketplaceUnderstanding}
+                              onChange={(e) => {
+                                setFormData(prev => ({ ...prev, marketplaceUnderstanding: e.target.checked }))
+                                setErrors(prev => ({ ...prev, marketplaceUnderstanding: '' }))
+                              }}
+                              className="mt-1 h-4 w-4 rounded border-slate-600 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                            />
+                            <div className="flex-1">
+                              <span className="text-sm text-slate-300">
+                                I understand The Auto Doctor is a <strong>marketplace</strong> connecting me with independent repair workshops *
+                              </span>
+                              <p className="mt-1 text-xs text-slate-500">Workshops are responsible for their work quality and quotes</p>
+                            </div>
+                          </label>
+                          {errors.marketplaceUnderstanding && <p className="mt-1 ml-7 text-xs text-red-400">{errors.marketplaceUnderstanding}</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional Consents Section */}
+                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-5">
+                      <h3 className="text-sm font-semibold text-blue-200 mb-3 flex items-center gap-2">
+                        <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Optional Preferences (You can change these later)
+                      </h3>
+
+                      <div className="space-y-3">
+                        {/* Marketing Emails (CASL) */}
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.marketingEmailsConsent}
+                            onChange={(e) => setFormData(prev => ({ ...prev, marketingEmailsConsent: e.target.checked }))}
+                            className="mt-1 h-4 w-4 rounded border-slate-600 text-blue-500 focus:ring-2 focus:ring-blue-400"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm text-slate-300">Send me promotional emails and special offers</span>
+                            <p className="mt-1 text-xs text-slate-500">CASL: Marketing communications (you can unsubscribe anytime)</p>
+                          </div>
+                        </label>
+
+                        {/* Analytics Cookies */}
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.analyticsCookiesConsent}
+                            onChange={(e) => setFormData(prev => ({ ...prev, analyticsCookiesConsent: e.target.checked }))}
+                            className="mt-1 h-4 w-4 rounded border-slate-600 text-blue-500 focus:ring-2 focus:ring-blue-400"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm text-slate-300">Allow analytics cookies</span>
+                            <p className="mt-1 text-xs text-slate-500">Help us improve by analyzing how you use the platform</p>
+                          </div>
+                        </label>
+
+                        {/* Product Improvement */}
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.productImprovementConsent}
+                            onChange={(e) => setFormData(prev => ({ ...prev, productImprovementConsent: e.target.checked }))}
+                            className="mt-1 h-4 w-4 rounded border-slate-600 text-blue-500 focus:ring-2 focus:ring-blue-400"
+                          />
+                          <div className="flex-1">
+                            <span className="text-sm text-slate-300">Share anonymized data for product improvement</span>
+                            <p className="mt-1 text-xs text-slate-500">Help us build better features (data is anonymized)</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Trust Badges */}
@@ -778,7 +942,7 @@ export default function CustomerSignupPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={loading || !formData.termsAccepted}
+                  disabled={loading || !formData.termsAccepted || !formData.privacyPolicyAccepted || !formData.marketplaceUnderstanding || !formData.is18Plus}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-600 to-orange-500 px-6 py-3 font-semibold text-white shadow-lg transition hover:from-orange-700 hover:to-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? (

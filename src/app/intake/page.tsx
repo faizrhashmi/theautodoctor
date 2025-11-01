@@ -55,6 +55,8 @@ const PLAN_DESCRIPTIONS: Record<string, string> = {
 export default function IntakePage() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan') || 'trial'
+  const useCredits = searchParams.get('use_credits') === 'true'
+  const isSpecialist = searchParams.get('specialist') === 'true'
   const router = useRouter()
 
   // SIMPLE AUTH - Same as dashboard
@@ -354,7 +356,14 @@ export default function IntakePage() {
       const res = await fetch('/api/intake/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, ...form, files: uploadedPaths, urgent: isUrgent }),
+        body: JSON.stringify({
+          plan,
+          ...form,
+          files: uploadedPaths,
+          urgent: isUrgent,
+          use_credits: useCredits,
+          is_specialist: isSpecialist
+        }),
       })
       const data = await res.json()
 

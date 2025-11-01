@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
     files = [],
     urgent = false,
     vehicle_id = null, // Vehicle ID from vehicles table (optional)
+    use_credits = false, // Flag to use subscription credits
+    is_specialist = false, // Flag for brand specialist
   } = body || {};
 
   // Strict server-side validation mirrors the client
@@ -103,6 +105,129 @@ export async function POST(req: NextRequest) {
     }
   } else {
     intakeId = `local-${Date.now()}`;
+  }
+
+  // Handle credit-based sessions
+  if (use_credits && user?.id) {
+    if (!supabaseAdmin || !intakeId) {
+      return bad('Server error: Admin client unavailable');
+    }
+
+    // Determine session type from plan
+    let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat';
+    const planConfig = PRICING[plan as PlanKey];
+    const fulfillment = planConfig?.fulfillment || 'chat';
+    if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
+      sessionType = fulfillment;
+    }
+
+    // Get credit cost from pricing table
+    const { data: creditPricing, error: pricingError } = await supabaseAdmin
+      .from('credit_pricing')
+      .select('credit_cost')
+      .eq('session_type', sessionType)
+      .eq('is_specialist', is_specialist)
+      .or('effective_until.is.null,effective_until.gt.' + new Date().toISOString())
+      .order('effective_from', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (pricingError || !creditPricing) {
+      return bad('Unable to determine credit cost for this session');
+    }
+
+    const creditCost = creditPricing.credit_cost;
+
+    // Check for existing active/pending sessions
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: activeSessions, error: checkError } = await supabaseAdmin
+      .from('sessions')
+      .select('id, status, type, created_at')
+      .eq('customer_user_id', user.id)
+      .in('status', ['pending', 'waiting', 'live', 'scheduled'])
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!checkError && activeSessions && activeSessions.length > 0) {
+      const activeSession = activeSessions[0]!;
+      return NextResponse.json({
+        error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
+        activeSessionId: activeSession.id,
+        activeSessionType: activeSession.type,
+        activeSessionStatus: activeSession.status,
+      }, { status: 409 });
+    }
+
+    // Create session first
+    const metadata: Record<string, Json> = {
+      intake_id: intakeId,
+      source: 'intake',
+      plan,
+      urgent,
+      payment_method: 'credits',
+      is_specialist,
+      credit_cost: creditCost,
+    };
+
+    const { data: sessionInsert, error: sessionError } = await supabaseAdmin
+      .from('sessions')
+      .insert({
+        type: sessionType,
+        status: 'pending',
+        plan,
+        intake_id: intakeId,
+        customer_user_id: user.id,
+        metadata,
+        stripe_session_id: null, // No Stripe payment for credit sessions
+      })
+      .select('id')
+      .single();
+
+    if (sessionError) {
+      return NextResponse.json({ error: sessionError.message }, { status: 500 });
+    }
+
+    const sessionId = sessionInsert.id;
+
+    // Deduct credits using database function
+    const { error: deductError } = await supabaseAdmin.rpc('deduct_session_credits', {
+      p_customer_id: user.id,
+      p_session_id: sessionId,
+      p_session_type: sessionType,
+      p_is_specialist: is_specialist,
+      p_credit_cost: creditCost,
+    });
+
+    if (deductError) {
+      // Delete the session if credit deduction failed
+      await supabaseAdmin.from('sessions').delete().eq('id', sessionId);
+
+      return NextResponse.json({
+        error: deductError.message.includes('Insufficient credits')
+          ? 'Insufficient credits. Please add more credits or choose a pay-as-you-go option.'
+          : 'Failed to deduct credits. Please try again.',
+      }, { status: 400 });
+    }
+
+    // Add customer as participant
+    await supabaseAdmin
+      .from('session_participants')
+      .upsert(
+        { session_id: sessionId, user_id: user.id, role: 'customer' },
+        { onConflict: 'session_id,user_id' },
+      );
+
+    console.log(`[INTAKE] Created credit-based session ${sessionId} for intake ${intakeId}, deducted ${creditCost} credits`);
+
+    // Redirect to waiver signing page
+    const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
+    waiverUrl.searchParams.set('plan', plan);
+    waiverUrl.searchParams.set('intake_id', intakeId);
+    waiverUrl.searchParams.set('session', sessionId);
+    waiverUrl.searchParams.set('credits_used', 'true');
+
+    return NextResponse.json({ redirect: `${waiverUrl.pathname}${waiverUrl.search}` });
   }
 
   if (plan === 'trial' || plan === 'free' || plan === 'trial-free') {

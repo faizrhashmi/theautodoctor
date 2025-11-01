@@ -1,634 +1,585 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Save, X, Check, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 
 interface ServicePlan {
   id: string
   slug: string
   name: string
   price: number
-  duration_minutes: number
+  duration_minutes: number | null
   description: string
-  perks: string[]
-  recommended_for: string
-  is_active: boolean
+  perks: any[]
+  recommended_for: string | null
   display_order: number
-  stripe_price_id: string | null
-  plan_category: string
-  features: Record<string, boolean>
+  is_active: boolean
+  plan_category: string | null
+  features: any
   routing_preference: string
-  restricted_brands: string[]
-  requires_certification: boolean
+  // Subscription fields
+  plan_type: 'payg' | 'subscription'
+  credit_allocation: number
+  billing_cycle: string | null
+  discount_percent: number
+  max_rollover_credits: number
+  show_on_homepage: boolean
+  marketing_badge: string | null
+  stripe_subscription_price_id: string | null
+  created_at: string
+  updated_at: string
 }
-
-// Available feature flags organized by category
-const FEATURE_CATEGORIES = {
-  'Communication': [
-    { key: 'chat', label: 'Text Chat', description: 'Enable text-based communication' },
-    { key: 'video_sessions', label: 'Video Sessions', description: 'Enable live video calls' },
-    { key: 'screen_sharing', label: 'Screen Sharing', description: 'Share screens during video' },
-    { key: 'photo_sharing', label: 'Photo Sharing', description: 'Share photos and videos' },
-  ],
-  'Support Features': [
-    { key: 'priority_support', label: 'Priority Support', description: 'Jump the queue' },
-    { key: 'emergency_help', label: '24/7 Emergency Help', description: 'Emergency assistance button' },
-    { key: 'dedicated_mechanic', label: 'Dedicated Mechanic', description: 'Same mechanic every session' },
-  ],
-  'Content & Reports': [
-    { key: 'session_recordings', label: 'Session Recordings', description: 'Video playback after session' },
-    { key: 'custom_reports', label: 'Custom Reports', description: 'Detailed PDF reports' },
-    { key: 'diagnostic_history', label: 'Full Diagnostic History', description: 'Access to all past diagnostics' },
-    { key: 'diagnostic_codes', label: 'OBD Code Analysis', description: 'Scan tool code interpretation' },
-  ],
-  'Perks & Limits': [
-    { key: 'unlimited_sessions', label: 'Unlimited Sessions', description: 'No session count limits' },
-    { key: 'parts_discount', label: 'Parts Discount', description: '10% off parts purchases' },
-    { key: 'free_inspections', label: 'Free Annual Inspection', description: 'One free inspection per year' },
-  ],
-}
-
-// Available car brands for specialist routing
-const CAR_BRANDS = [
-  'BMW', 'Mercedes-Benz', 'Audi', 'Porsche', 'Volkswagen',
-  'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru',
-  'Ford', 'Chevrolet', 'Dodge', 'Ram', 'GMC',
-  'Lexus', 'Acura', 'Infiniti', 'Tesla', 'Volvo',
-  'Jeep', 'Hyundai', 'Kia', 'Genesis', 'Land Rover'
-]
 
 export default function AdminPlansPage() {
-  const [plans, setPlans] = useState<ServicePlan[]>([])
   const [loading, setLoading] = useState(true)
+  const [plans, setPlans] = useState<ServicePlan[]>([])
+  const [filter, setFilter] = useState<'all' | 'payg' | 'subscription'>('all')
   const [editingPlan, setEditingPlan] = useState<ServicePlan | null>(null)
-  const [isCreating, setIsCreating] = useState(false)
-
-  // New plan template
-  const newPlanTemplate: Omit<ServicePlan, 'id'> = {
-    slug: '',
-    name: '',
-    price: 0,
-    duration_minutes: 30,
-    description: '',
-    perks: [''],
-    recommended_for: '',
-    is_active: true,
-    display_order: plans.length + 1,
-    stripe_price_id: null,
-    plan_category: 'basic',
-    features: {},
-    routing_preference: 'any',
-    restricted_brands: [],
-    requires_certification: false
-  }
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
-    fetchPlans()
+    loadPlans()
   }, [])
 
-  async function fetchPlans() {
+  async function loadPlans() {
     try {
-      const res = await fetch('/api/admin/plans')
-      if (!res.ok) throw new Error('Failed to fetch plans')
-      const data = await res.json()
-      setPlans(data.plans)
-    } catch (err) {
-      console.error('Error fetching plans:', err)
-      alert('Failed to load plans')
+      const response = await fetch('/api/admin/plans')
+      if (response.ok) {
+        const data = await response.json()
+        setPlans(data.plans || [])
+      }
+    } catch (error) {
+      console.error('Error loading plans:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  async function togglePlanStatus(planId: string, currentStatus: boolean) {
+  async function togglePlan(planId: string, currentActive: boolean) {
     try {
-      const res = await fetch(`/api/admin/plans/${planId}/toggle`, {
+      const response = await fetch(`/api/admin/plans/${planId}/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !currentStatus })
-      })
-      if (!res.ok) throw new Error('Failed to toggle plan')
-      fetchPlans()
-    } catch (err) {
-      alert('Failed to toggle plan status')
-    }
-  }
-
-  async function savePlan(plan: ServicePlan | Omit<ServicePlan, 'id'>) {
-    try {
-      const isNew = !('id' in plan)
-      const url = isNew ? '/api/admin/plans' : `/api/admin/plans/${(plan as ServicePlan).id}`
-      const method = isNew ? 'POST' : 'PUT'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(plan)
+        body: JSON.stringify({ is_active: !currentActive })
       })
 
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to save plan')
+      if (response.ok) {
+        loadPlans()
+      } else {
+        alert('Failed to toggle plan')
       }
-
-      setEditingPlan(null)
-      setIsCreating(false)
-      fetchPlans()
-    } catch (err: any) {
-      alert(err.message || 'Failed to save plan')
+    } catch (error) {
+      console.error('Error toggling plan:', error)
+      alert('Failed to toggle plan')
     }
   }
 
-  async function deletePlan(planId: string) {
-    if (!confirm('Are you sure you want to delete this plan? This cannot be undone.')) return
-
+  async function toggleHomepage(planId: string, currentShow: boolean) {
     try {
-      const res = await fetch(`/api/admin/plans/${planId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete plan')
-      fetchPlans()
-    } catch (err) {
-      alert('Failed to delete plan')
+      const response = await fetch(`/api/admin/plans/${planId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show_on_homepage: !currentShow })
+      })
+
+      if (response.ok) {
+        loadPlans()
+      } else {
+        alert('Failed to update plan')
+      }
+    } catch (error) {
+      console.error('Error updating plan:', error)
+      alert('Failed to update plan')
     }
   }
+
+  async function updatePlan(planId: string, updates: any) {
+    try {
+      const response = await fetch(`/api/admin/plans/${planId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+
+      if (response.ok) {
+        loadPlans()
+        setShowEditModal(false)
+        setEditingPlan(null)
+      } else {
+        const data = await response.json()
+        alert(`Failed to update plan: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error updating plan:', error)
+      alert('Failed to update plan')
+    }
+  }
+
+  const filteredPlans = plans.filter(plan => {
+    if (filter === 'payg') return plan.plan_type === 'payg'
+    if (filter === 'subscription') return plan.plan_type === 'subscription'
+    return true
+  }).sort((a, b) => a.display_order - b.display_order)
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900/50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-slate-400">Loading plans...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading service plans...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4 sm:p-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-slate-900/50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">Service Plans Management</h1>
-              <p className="mt-2 text-slate-400">
-                Create, modify, or delete service plans. Changes appear instantly on customer dashboards.
-              </p>
+              <h1 className="text-3xl font-bold text-white mb-2">Service Plans Manager</h1>
+              <p className="text-slate-400">Manage PAYG session plans and subscription packages</p>
             </div>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700 transition-colors"
+            <Link
+              href="/admin/dashboard"
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
             >
-              <Plus className="h-5 w-5" />
-              Add New Plan
-            </button>
+              Back to Dashboard
+            </Link>
           </div>
         </div>
 
-        {/* Info Banner */}
-        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">How it works:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Create Stripe Price first, then paste the Price ID here</li>
-                <li>Toggle plans ON/OFF to show/hide on customer dashboard</li>
-                <li>Use features to control what customers can access</li>
-                <li>Brand routing sends customers to specialized mechanics</li>
-              </ul>
-            </div>
-          </div>
+        {/* Filter Tabs */}
+        <div className="mb-6 flex gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            All Plans ({plans.length})
+          </button>
+          <button
+            onClick={() => setFilter('payg')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'payg'
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Pay As You Go ({plans.filter(p => p.plan_type === 'payg').length})
+          </button>
+          <button
+            onClick={() => setFilter('subscription')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'subscription'
+                ? 'bg-purple-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Subscriptions ({plans.filter(p => p.plan_type === 'subscription').length})
+          </button>
         </div>
 
-        {/* Create New Plan Modal */}
-        {isCreating && (
-          <div className="mb-6">
-            <PlanEditor
-              plan={newPlanTemplate}
-              onSave={(plan) => savePlan(plan)}
-              onCancel={() => setIsCreating(false)}
-            />
-          </div>
-        )}
-
-        {/* Plans List */}
-        <div className="space-y-4">
-          {plans.map((plan) => (
-            <div key={plan.id}>
-              {editingPlan?.id === plan.id ? (
-                <PlanEditor
-                  plan={editingPlan}
-                  onSave={(updatedPlan) => savePlan(updatedPlan)}
-                  onCancel={() => setEditingPlan(null)}
-                />
-              ) : (
-                <PlanCard
-                  plan={plan}
-                  onToggle={() => togglePlanStatus(plan.id, plan.is_active)}
-                  onEdit={() => setEditingPlan(plan)}
-                  onDelete={() => deletePlan(plan.id)}
-                />
+        {/* Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPlans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`bg-slate-800/50 backdrop-blur-sm border rounded-lg p-6 transition relative ${
+                plan.is_active ? 'border-slate-700' : 'border-slate-800 opacity-60'
+              } ${plan.plan_type === 'subscription' ? 'border-l-4 border-l-purple-500' : ''}`}
+            >
+              {/* Marketing Badge */}
+              {plan.marketing_badge && (
+                <div className="absolute -top-2 -right-2 px-3 py-1 bg-yellow-500 text-yellow-900 text-xs font-bold rounded-full shadow-lg">
+                  {plan.marketing_badge}
+                </div>
               )}
-            </div>
-          ))}
-        </div>
 
-        {plans.length === 0 && !isCreating && (
-          <div className="rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/50 backdrop-blur-sm p-12 text-center">
-            <p className="text-slate-500 mb-4">No plans yet. Create your first plan to get started!</p>
-            <button
-              onClick={() => setIsCreating(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
-            >
-              <Plus className="h-5 w-5" />
-              Create First Plan
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+              {/* Plan Header */}
+              <div className="mb-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                  <code className="text-xs text-slate-400">#{plan.display_order}</code>
+                </div>
+                <p className="text-slate-400 text-sm mb-3">{plan.description}</p>
 
-// Plan Card Component
-function PlanCard({
-  plan,
-  onToggle,
-  onEdit,
-  onDelete
-}: {
-  plan: ServicePlan
-  onToggle: () => void
-  onEdit: () => void
-  onDelete: () => void
-}) {
-  const enabledFeatures = Object.entries(plan.features || {}).filter(([_, enabled]) => enabled)
-  const routingBadge = plan.routing_preference === 'brand_specialist' ? '🏆 Brand Specialist' :
-                       plan.routing_preference === 'general' ? '👔 General' : '⚡ Any'
+                {/* Price */}
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-3xl font-bold text-white">${plan.price.toFixed(2)}</span>
+                  {plan.plan_type === 'subscription' && plan.billing_cycle && (
+                    <span className="text-slate-400 text-sm">/{plan.billing_cycle}</span>
+                  )}
+                </div>
 
-  return (
-    <div className={`rounded-xl border bg-white p-6 transition-all ${plan.is_active ? 'border-slate-200' : 'border-slate-300 bg-slate-50 opacity-60'}`}>
-      <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
-        <div className="flex-1 w-full">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-            <span className="text-2xl font-bold text-orange-600">${plan.price.toFixed(2)}</span>
-            <span className="text-sm text-slate-500">{plan.duration_minutes} min</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${plan.is_active ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-600'}`}>
-              {plan.is_active ? 'Active' : 'Inactive'}
-            </span>
-            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-              {plan.plan_category}
-            </span>
-            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-              {routingBadge}
-            </span>
-          </div>
-
-          <p className="text-slate-400 mb-3">{plan.description}</p>
-
-          <div className="flex flex-wrap gap-2 mb-3">
-            {plan.perks.map((perk, idx) => (
-              <span key={idx} className="text-xs bg-slate-100 text-slate-200 px-2 py-1 rounded">
-                ✓ {perk}
-              </span>
-            ))}
-          </div>
-
-          {enabledFeatures.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-slate-500 mb-1">Enabled Features:</p>
-              <div className="flex flex-wrap gap-1">
-                {enabledFeatures.map(([key, _]) => (
-                  <span key={key} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                    {key.replace(/_/g, ' ')}
+                {/* Type Badge */}
+                <div className="flex gap-2 items-center flex-wrap">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      plan.plan_type === 'subscription'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    }`}
+                  >
+                    {plan.plan_type === 'subscription' ? 'SUBSCRIPTION' : 'PAY AS YOU GO'}
                   </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {plan.restricted_brands.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-slate-500 mb-1">Brand Specialists:</p>
-              <div className="flex flex-wrap gap-1">
-                {plan.restricted_brands.map((brand) => (
-                  <span key={brand} className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded font-semibold">
-                    {brand}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      plan.is_active
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}
+                  >
+                    {plan.is_active ? 'ACTIVE' : 'DISABLED'}
                   </span>
-                ))}
+                  {plan.show_on_homepage && (
+                    <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium">
+                      ON HOMEPAGE
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
 
-          {plan.stripe_price_id && (
-            <p className="text-xs text-slate-500">Stripe: {plan.stripe_price_id}</p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex lg:flex-col items-center gap-2">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={plan.is_active}
-              onChange={onToggle}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-800/50 backdrop-blur-sm after:border-slate-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-          </label>
-          <button
-            onClick={onEdit}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Edit"
-          >
-            <Edit2 className="h-5 w-5" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Plan Editor Component
-function PlanEditor({
-  plan,
-  onSave,
-  onCancel
-}: {
-  plan: ServicePlan | Omit<ServicePlan, 'id'>
-  onSave: (plan: ServicePlan | Omit<ServicePlan, 'id'>) => void
-  onCancel: () => void
-}) {
-  const [formData, setFormData] = useState(plan)
-
-  function addPerk() {
-    setFormData({ ...formData, perks: [...formData.perks, ''] })
-  }
-
-  function updatePerk(index: number, value: string) {
-    const newPerks = [...formData.perks]
-    newPerks[index] = value
-    setFormData({ ...formData, perks: newPerks })
-  }
-
-  function removePerk(index: number) {
-    setFormData({ ...formData, perks: formData.perks.filter((_, i) => i !== index) })
-  }
-
-  function toggleFeature(featureKey: string) {
-    setFormData({
-      ...formData,
-      features: {
-        ...formData.features,
-        [featureKey]: !formData.features[featureKey]
-      }
-    })
-  }
-
-  function toggleBrand(brand: string) {
-    const brands = formData.restricted_brands || []
-    if (brands.includes(brand)) {
-      setFormData({ ...formData, restricted_brands: brands.filter(b => b !== brand) })
-    } else {
-      setFormData({ ...formData, restricted_brands: [...brands, brand] })
-    }
-  }
-
-  return (
-    <div className="rounded-xl border-2 border-orange-500 bg-slate-800/50 backdrop-blur-sm p-6 shadow-lg">
-      <h3 className="text-lg font-bold text-white mb-4">
-        {'id' in plan ? 'Edit Plan' : 'Create New Plan'}
-      </h3>
-
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Plan Name *</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-            placeholder="e.g., BMW Premium Care"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Slug (URL-safe) *</label>
-          <input
-            type="text"
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-            placeholder="e.g., bmw-premium"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Price ($) *</label>
-          <input
-            type="number"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Duration (minutes) *</label>
-          <input
-            type="number"
-            value={formData.duration_minutes}
-            onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 0 })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Plan Category</label>
-          <select
-            value={formData.plan_category}
-            onChange={(e) => setFormData({ ...formData, plan_category: e.target.value })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-          >
-            <option value="basic">Basic</option>
-            <option value="premium">Premium</option>
-            <option value="enterprise">Enterprise</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-200 mb-1">Stripe Price ID</label>
-          <input
-            type="text"
-            value={formData.stripe_price_id || ''}
-            onChange={(e) => setFormData({ ...formData, stripe_price_id: e.target.value })}
-            className="w-full rounded-lg border border-slate-700 px-3 py-2"
-            placeholder="price_1ABC123..."
-          />
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-200 mb-1">Description *</label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="w-full rounded-lg border border-slate-700 px-3 py-2"
-          rows={2}
-          placeholder="What makes this plan special?"
-        />
-      </div>
-
-      {/* Perks */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-200 mb-2">Display Perks (shown on cards)</label>
-        {formData.perks.map((perk, idx) => (
-          <div key={idx} className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={perk}
-              onChange={(e) => updatePerk(idx, e.target.value)}
-              className="flex-1 rounded-lg border border-slate-700 px-3 py-2"
-              placeholder="Enter perk"
-            />
-            <button
-              onClick={() => removePerk(idx)}
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={addPerk}
-          className="text-sm text-blue-600 hover:underline"
-        >
-          + Add Perk
-        </button>
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-200 mb-1">Recommended For</label>
-        <input
-          type="text"
-          value={formData.recommended_for}
-          onChange={(e) => setFormData({ ...formData, recommended_for: e.target.value })}
-          className="w-full rounded-lg border border-slate-700 px-3 py-2"
-          placeholder="e.g., Ideal when you need quick reassurance"
-        />
-      </div>
-
-      {/* Routing Preferences */}
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-white mb-3">🎯 Mechanic Routing Preferences</h4>
-        <div className="space-y-2 mb-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={formData.routing_preference === 'any'}
-              onChange={() => setFormData({ ...formData, routing_preference: 'any', restricted_brands: [] })}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-medium">Any Available Mechanic (Fastest)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={formData.routing_preference === 'general'}
-              onChange={() => setFormData({ ...formData, routing_preference: 'general', restricted_brands: [] })}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-medium">General Mechanics Only</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={formData.routing_preference === 'brand_specialist'}
-              onChange={() => setFormData({ ...formData, routing_preference: 'brand_specialist' })}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-medium">🏆 Brand Specialists Only</span>
-          </label>
-        </div>
-
-        {formData.routing_preference === 'brand_specialist' && (
-          <div>
-            <p className="text-sm font-medium text-slate-200 mb-2">Select Brands:</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-slate-800/50 backdrop-blur-sm rounded border border-slate-700">
-              {CAR_BRANDS.map(brand => (
-                <label key={brand} className="flex items-center gap-2 cursor-pointer hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-1 rounded">
-                  <input
-                    type="checkbox"
-                    checked={(formData.restricted_brands || []).includes(brand)}
-                    onChange={() => toggleBrand(brand)}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">{brand}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <label className="flex items-center gap-2 cursor-pointer mt-3">
-          <input
-            type="checkbox"
-            checked={formData.requires_certification}
-            onChange={(e) => setFormData({ ...formData, requires_certification: e.target.checked })}
-            className="w-4 h-4"
-          />
-          <span className="text-sm font-medium">Require Red Seal Certification</span>
-        </label>
-      </div>
-
-      {/* Features */}
-      <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-        <h4 className="font-semibold text-white mb-3">✨ Plan Features (Controls customer access)</h4>
-        <div className="space-y-4">
-          {Object.entries(FEATURE_CATEGORIES).map(([category, features]) => (
-            <div key={category}>
-              <p className="text-sm font-semibold text-slate-200 mb-2">{category}:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {features.map(feature => (
-                  <label key={feature.key} className="flex items-start gap-2 cursor-pointer hover:bg-slate-800/50 backdrop-blur-sm p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={formData.features[feature.key] || false}
-                      onChange={() => toggleFeature(feature.key)}
-                      className="w-4 h-4 mt-0.5"
-                    />
+              {/* Subscription Details */}
+              {plan.plan_type === 'subscription' && (
+                <div className="mb-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-sm font-medium block">{feature.label}</span>
-                      <span className="text-xs text-slate-500">{feature.description}</span>
+                      <div className="text-purple-400 text-xs">Credits/Month</div>
+                      <div className="text-white font-semibold">{plan.credit_allocation}</div>
                     </div>
-                  </label>
-                ))}
+                    <div>
+                      <div className="text-purple-400 text-xs">Discount</div>
+                      <div className="text-white font-semibold">{plan.discount_percent}%</div>
+                    </div>
+                    <div>
+                      <div className="text-purple-400 text-xs">Max Rollover</div>
+                      <div className="text-white font-semibold">{plan.max_rollover_credits}</div>
+                    </div>
+                    <div>
+                      <div className="text-purple-400 text-xs">Billing</div>
+                      <div className="text-white font-semibold capitalize">{plan.billing_cycle}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PAYG Details */}
+              {plan.plan_type === 'payg' && plan.duration_minutes && (
+                <div className="mb-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <div className="text-green-400 text-xs">Session Duration</div>
+                  <div className="text-white font-semibold">{plan.duration_minutes} minutes</div>
+                </div>
+              )}
+
+              {/* Perks */}
+              {plan.perks && plan.perks.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-xs text-slate-400 mb-2">Included:</div>
+                  <ul className="space-y-1">
+                    {plan.perks.slice(0, 3).map((perk, idx) => (
+                      <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                        <span className="text-green-400">✓</span>
+                        <span className="flex-1">{perk}</span>
+                      </li>
+                    ))}
+                    {plan.perks.length > 3 && (
+                      <li className="text-xs text-slate-500">+{plan.perks.length - 3} more...</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="space-y-2 pt-4 border-t border-slate-700">
+                <button
+                  onClick={() => {
+                    setEditingPlan(plan)
+                    setShowEditModal(true)
+                  }}
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+                >
+                  Edit Plan
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => togglePlan(plan.id, plan.is_active)}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      plan.is_active
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {plan.is_active ? 'Disable' : 'Enable'}
+                  </button>
+                  <button
+                    onClick={() => toggleHomepage(plan.id, plan.show_on_homepage)}
+                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      plan.show_on_homepage
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                    }`}
+                  >
+                    {plan.show_on_homepage ? 'On Home' : 'Add to Home'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => onSave(formData)}
-          className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 font-semibold transition-colors"
-        >
-          <Save className="h-5 w-5" />
-          Save Plan
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded-lg border border-slate-700 bg-slate-800/50 backdrop-blur-sm px-6 py-3 text-slate-200 hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 font-semibold transition-colors"
-        >
-          Cancel
-        </button>
+        {filteredPlans.length === 0 && (
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-8 text-center">
+            <p className="text-slate-400">No plans found</p>
+          </div>
+        )}
+
+        {/* Info Box */}
+        <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
+          <h3 className="text-blue-400 font-semibold mb-2">💡 Plan Management Tips</h3>
+          <ul className="text-blue-300/80 text-sm space-y-1 list-disc list-inside">
+            <li>PAYG plans are one-time session purchases</li>
+            <li>Subscription plans give customers monthly credits at a discounted rate</li>
+            <li>Enable "Subscriptions" feature flag to show subscription plans to customers</li>
+            <li>Toggle "Show on Homepage" to feature specific plans</li>
+            <li>Marketing badges like "POPULAR" or "BEST VALUE" attract attention</li>
+          </ul>
+        </div>
+
+        {/* Edit Plan Modal */}
+        {showEditModal && editingPlan && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-slate-800 rounded-lg p-6 max-w-4xl w-full border border-slate-700 my-8">
+              <h3 className="text-2xl font-semibold text-white mb-6">
+                Edit Plan: {editingPlan.name}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">Basic Information</h4>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Plan Name</label>
+                    <input
+                      type="text"
+                      id="edit-name"
+                      defaultValue={editingPlan.name}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Price ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="edit-price"
+                      defaultValue={editingPlan.price}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Description</label>
+                    <textarea
+                      id="edit-description"
+                      defaultValue={editingPlan.description}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Recommended For</label>
+                    <input
+                      type="text"
+                      id="edit-recommended"
+                      defaultValue={editingPlan.recommended_for || ''}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Marketing Badge</label>
+                    <input
+                      type="text"
+                      id="edit-badge"
+                      defaultValue={editingPlan.marketing_badge || ''}
+                      placeholder="e.g., POPULAR, BEST VALUE"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Display Order</label>
+                    <input
+                      type="number"
+                      id="edit-order"
+                      defaultValue={editingPlan.display_order}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Stripe & Type-Specific Settings */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">Stripe & Settings</h4>
+
+                  {editingPlan.plan_type === 'payg' && (
+                    <>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Stripe Price ID (One-time)</label>
+                        <input
+                          type="text"
+                          id="edit-stripe-price"
+                          defaultValue={(editingPlan as any).stripe_price_id || ''}
+                          placeholder="price_xxx"
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Session Duration (minutes)</label>
+                        <input
+                          type="number"
+                          id="edit-duration"
+                          defaultValue={editingPlan.duration_minutes || 0}
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {editingPlan.plan_type === 'subscription' && (
+                    <>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Stripe Subscription Price ID</label>
+                        <input
+                          type="text"
+                          id="edit-stripe-sub-price"
+                          defaultValue={editingPlan.stripe_subscription_price_id || ''}
+                          placeholder="price_xxx"
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Monthly Credits</label>
+                        <input
+                          type="number"
+                          id="edit-credits"
+                          defaultValue={editingPlan.credit_allocation}
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Discount Percent (%)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          id="edit-discount"
+                          defaultValue={editingPlan.discount_percent}
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Max Rollover Credits</label>
+                        <input
+                          type="number"
+                          id="edit-rollover"
+                          defaultValue={editingPlan.max_rollover_credits}
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-2">Billing Cycle</label>
+                        <select
+                          id="edit-billing"
+                          defaultValue={editingPlan.billing_cycle || 'monthly'}
+                          className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="annual">Annual</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Perks */}
+                <div className="md:col-span-2">
+                  <h4 className="text-lg font-semibold text-white border-b border-slate-700 pb-2 mb-4">Perks (JSON Array)</h4>
+                  <textarea
+                    id="edit-perks"
+                    defaultValue={JSON.stringify(editingPlan.perks, null, 2)}
+                    rows={6}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder='["Perk 1", "Perk 2", "Perk 3"]'
+                  />
+                  <p className="mt-2 text-xs text-slate-500">JSON array of strings</p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 mt-6 border-t border-slate-700">
+                <button
+                  onClick={() => {
+                    try {
+                      const updates: any = {
+                        name: (document.getElementById('edit-name') as HTMLInputElement).value,
+                        price: parseFloat((document.getElementById('edit-price') as HTMLInputElement).value),
+                        description: (document.getElementById('edit-description') as HTMLTextAreaElement).value,
+                        recommended_for: (document.getElementById('edit-recommended') as HTMLInputElement).value || null,
+                        marketing_badge: (document.getElementById('edit-badge') as HTMLInputElement).value || null,
+                        display_order: parseInt((document.getElementById('edit-order') as HTMLInputElement).value),
+                        perks: JSON.parse((document.getElementById('edit-perks') as HTMLTextAreaElement).value)
+                      }
+
+                      if (editingPlan.plan_type === 'payg') {
+                        updates.stripe_price_id = (document.getElementById('edit-stripe-price') as HTMLInputElement)?.value || null
+                        updates.duration_minutes = parseInt((document.getElementById('edit-duration') as HTMLInputElement)?.value || '0')
+                      }
+
+                      if (editingPlan.plan_type === 'subscription') {
+                        updates.stripe_subscription_price_id = (document.getElementById('edit-stripe-sub-price') as HTMLInputElement)?.value || null
+                        updates.credit_allocation = parseInt((document.getElementById('edit-credits') as HTMLInputElement).value)
+                        updates.discount_percent = parseFloat((document.getElementById('edit-discount') as HTMLInputElement).value)
+                        updates.max_rollover_credits = parseInt((document.getElementById('edit-rollover') as HTMLInputElement).value)
+                        updates.billing_cycle = (document.getElementById('edit-billing') as HTMLSelectElement).value
+                      }
+
+                      updatePlan(editingPlan.id, updates)
+                    } catch (error) {
+                      alert('Invalid JSON in perks field or other validation error')
+                      console.error(error)
+                    }
+                  }}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setEditingPlan(null)
+                  }}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

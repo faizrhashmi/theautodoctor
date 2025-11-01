@@ -539,11 +539,14 @@ export default function CustomerDashboardPage() {
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Your account</div>
           </Link>
 
-          <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/5 border border-pink-500/30 rounded-lg p-3 sm:p-4 opacity-50 cursor-not-allowed">
-            <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-pink-400 mb-2 sm:mb-3" />
-            <div className="text-xs sm:text-sm font-medium text-white">Messages</div>
-            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Coming Soon</div>
-          </div>
+          <Link
+            href="/customer/specialists"
+            className="bg-gradient-to-br from-yellow-500/10 to-orange-600/5 border border-yellow-500/30 rounded-lg p-3 sm:p-4 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20 transition-all group"
+          >
+            <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <div className="text-xs sm:text-sm font-medium text-white">Specialists</div>
+            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">BMW • Tesla • +18</div>
+          </Link>
         </div>
       </div>
 

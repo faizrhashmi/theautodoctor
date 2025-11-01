@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       vehicleInfo,
       waiverAccepted,
       is18Plus,
+      consents, // PIPEDA consents
     } = body
 
     // Validation
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
     if (!waiverAccepted || !is18Plus) {
       return NextResponse.json(
         { error: 'You must be 18+ and accept the terms to sign up' },
+        { status: 400 }
+      )
+    }
+
+    // PIPEDA: Validate required consents
+    if (!consents?.termsOfService || !consents?.privacyPolicy || !consents?.marketplaceUnderstanding) {
+      return NextResponse.json(
+        { error: 'You must accept all required consents (Terms, Privacy Policy, and Marketplace Understanding)' },
         { status: 400 }
       )
     }
@@ -123,6 +132,105 @@ export async function POST(req: NextRequest) {
       waiver_version: 'v1.0',
       ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown',
+    })
+
+    // PIPEDA: Record customer consents
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    const userAgent = req.headers.get('user-agent') || 'unknown'
+    const consentVersion = 'v1.0.0'
+
+    // Record required consents
+    const consentPromises = []
+
+    if (consents.termsOfService) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'terms_of_service',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    if (consents.privacyPolicy) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'privacy_policy',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    if (consents.marketplaceUnderstanding) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'marketplace_understanding',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    // Record optional consents
+    if (consents.marketingEmails) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'marketing_emails',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    if (consents.analyticsCookies) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'analytics_cookies',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    if (consents.productImprovement) {
+      consentPromises.push(
+        supabaseAdmin.rpc('grant_customer_consent', {
+          p_customer_id: authData.user.id,
+          p_consent_type: 'product_improvement',
+          p_consent_version: consentVersion,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent,
+          p_consent_method: 'signup',
+          p_consent_text: null,
+        })
+      )
+    }
+
+    // Execute all consent recordings in parallel
+    await Promise.all(consentPromises).catch((error) => {
+      console.error('[signup] Consent recording error:', error)
+      // Don't fail the signup if consent recording fails
     })
 
     // Send verification email (Supabase handles this automatically)

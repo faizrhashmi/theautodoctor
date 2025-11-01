@@ -115,6 +115,25 @@ export default function Home() {
       {/* Hero Section - Full Width Background */}
       <HeroSection />
 
+      {/* Legal Disclosure Banner */}
+      <section className="relative bg-blue-500/10 border-y border-blue-400/20 py-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 mt-0.5">
+              <Shield className="h-6 w-6 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-blue-100/90 leading-relaxed">
+                <strong className="text-blue-200">The Auto Doctor</strong> connects you with licensed, insured automotive
+                workshops and certified mechanics in Ontario. Our service providers are independent businesses responsible
+                for their repair work and quotes. We facilitate the connection but do not perform repairs directly.
+                All workshops must comply with the Ontario Consumer Protection Act.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Services/Pricing Section */}
       <section className="relative py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

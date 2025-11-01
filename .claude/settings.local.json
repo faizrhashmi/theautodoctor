@@ -98,7 +98,10 @@
       "Bash(if [ -d \".next\" ])",
       "Bash(then rm -rf .next)",
       "Bash(else echo \".next directory not found\")",
-      "Bash(rd \"src\\app\\customer\\forgot-password\")"
+      "Bash(rd \"src\\app\\customer\\forgot-password\")",
+      "Bash(for file in \"src/app/api/admin/credit-pricing/route.ts\" \"src/app/api/admin/credit-pricing/[id]/route.ts\" \"src/app/api/admin/homepage/route.ts\" \"src/app/api/admin/homepage/[id]/route.ts\")",
+      "Bash(pnpm add:*)",
+      "Bash(touch:*)"
     ],
     "deny": [],
     "ask": []

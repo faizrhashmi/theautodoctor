@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCustomerAPI } from '@/lib/auth/guards'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(req: NextRequest) {
   // ✅ SECURITY: Require customer authentication
@@ -9,34 +10,136 @@ export async function GET(req: NextRequest) {
   const customer = authResult.data
   console.log(`[CUSTOMER] ${customer.email} fetching analytics`)
 
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+  }
+
   try {
     const customerId = customer.id
 
-    // Mock analytics data - replace with actual database queries
-    const analyticsData = {
-      monthlySpending: [
-        { month: 'Jan 2024', amount: 450.00, trend: 'up' as const, change: 12 },
-        { month: 'Feb 2024', amount: 520.00, trend: 'up' as const, change: 15 },
-        { month: 'Mar 2024', amount: 380.00, trend: 'down' as const, change: -8 },
-        { month: 'Apr 2024', amount: 410.00, trend: 'up' as const, change: 5 },
-        { month: 'May 2024', amount: 490.00, trend: 'up' as const, change: 20 },
-      ],
-      serviceDistribution: [
-        { type: 'Diagnostic', count: 12, percentage: 40, color: '#3B82F6' },
-        { type: 'Maintenance', count: 8, percentage: 27, color: '#10B981' },
-        { type: 'Repair', count: 6, percentage: 20, color: '#F59E0B' },
-        { type: 'Consultation', count: 4, percentage: 13, color: '#8B5CF6' },
-      ],
-      mechanicRatings: [
-        { id: '1', name: 'Mike Johnson', rating: 4.8, sessions: 5, specialization: 'Engine Specialist' },
-        { id: '2', name: 'Sarah Chen', rating: 4.9, sessions: 3, specialization: 'Electrical Systems' },
-        { id: '3', name: 'David Wilson', rating: 4.7, sessions: 4, specialization: 'Transmission' },
-      ],
-      vehicleStats: {
-        total_vehicles: 3,
-        most_serviced: 'Toyota Camry',
-        average_mileage: 45600,
+    // Fetch customer analytics from materialized view
+    const { data: customerAnalytics } = await supabaseAdmin
+      .from('customer_analytics')
+      .select('*')
+      .eq('customer_id', customerId)
+      .single()
+
+    // Fetch spending trend (last 12 months)
+    const { data: spendingTrend } = await supabaseAdmin.rpc('get_customer_spending_trend', {
+      p_customer_id: customerId,
+    })
+
+    // Fetch session distribution
+    const { data: sessionDistribution } = await supabaseAdmin.rpc('get_customer_session_distribution', {
+      p_customer_id: customerId,
+    })
+
+    // Fetch top rated mechanics for this customer
+    const { data: mechanicRatings } = await supabaseAdmin
+      .from('sessions')
+      .select(`
+        mechanic:profiles!sessions_mechanic_user_id_fkey (
+          id,
+          full_name,
+          specialties
+        ),
+        session_reviews (
+          rating
+        )
+      `)
+      .eq('customer_user_id', customerId)
+      .eq('status', 'completed')
+      .not('mechanic_user_id', 'is', null)
+      .limit(20)
+
+    // Aggregate mechanic data
+    const mechanicMap = new Map()
+    mechanicRatings?.forEach((session: any) => {
+      if (session.mechanic && session.mechanic.id) {
+        const mechId = session.mechanic.id
+        if (!mechanicMap.has(mechId)) {
+          mechanicMap.set(mechId, {
+            id: mechId,
+            name: session.mechanic.full_name,
+            specialization: session.mechanic.specialties?.[0] || 'General',
+            sessions: 0,
+            totalRating: 0,
+            ratingCount: 0,
+          })
+        }
+        const mech = mechanicMap.get(mechId)
+        mech.sessions++
+        if (session.session_reviews?.[0]?.rating) {
+          mech.totalRating += session.session_reviews[0].rating
+          mech.ratingCount++
+        }
       }
+    })
+
+    const topMechanics = Array.from(mechanicMap.values())
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        rating: m.ratingCount > 0 ? Number((m.totalRating / m.ratingCount).toFixed(1)) : 0,
+        sessions: m.sessions,
+        specialization: m.specialization,
+      }))
+      .sort((a, b) => b.sessions - a.sessions)
+      .slice(0, 5)
+
+    // Format spending trend with trend indicators
+    const monthlySpending =
+      spendingTrend?.map((item: any, index: number, arr: any[]) => {
+        const prevAmount = index < arr.length - 1 ? parseFloat(arr[index + 1].total_spent) : 0
+        const currentAmount = parseFloat(item.total_spent)
+        const change = prevAmount > 0 ? ((currentAmount - prevAmount) / prevAmount) * 100 : 0
+
+        return {
+          month: new Date(item.month + '-01').toLocaleDateString('en-US', {
+            month: 'short',
+            year: 'numeric',
+          }),
+          amount: currentAmount,
+          trend: change > 0 ? ('up' as const) : change < 0 ? ('down' as const) : ('stable' as const),
+          change: Math.abs(Math.round(change)),
+        }
+      }) || []
+
+    // Format session distribution with colors
+    const colorMap: Record<string, string> = {
+      chat: '#3B82F6',
+      video: '#10B981',
+      diagnostic: '#F59E0B',
+    }
+
+    const serviceDistribution =
+      sessionDistribution?.map((item: any) => ({
+        type: item.session_type.charAt(0).toUpperCase() + item.session_type.slice(1),
+        count: item.count,
+        percentage: Math.round(parseFloat(item.percentage)),
+        color: colorMap[item.session_type] || '#8B5CF6',
+      })) || []
+
+    // Vehicle stats
+    const vehicleStats = {
+      total_vehicles: customerAnalytics?.total_vehicles || 0,
+      most_serviced: 'N/A', // TODO: Calculate from sessions
+      average_mileage: 0, // TODO: Calculate from vehicles
+    }
+
+    const analyticsData = {
+      monthlySpending,
+      serviceDistribution,
+      mechanicRatings: topMechanics,
+      vehicleStats,
+      summary: {
+        total_sessions: customerAnalytics?.total_sessions || 0,
+        completed_sessions: customerAnalytics?.completed_sessions || 0,
+        total_spent: customerAnalytics?.total_spent || 0,
+        avg_session_cost: customerAnalytics?.avg_session_cost || 0,
+        engagement_score: customerAnalytics?.engagement_score || 0,
+        current_credits: customerAnalytics?.current_credits || 0,
+      },
     }
 
     return NextResponse.json(analyticsData)

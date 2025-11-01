@@ -1,324 +1,277 @@
 'use client'
 
-/**
- * Admin: Feature Flags Management
- * Control brand specialist and smart matching features with toggle switches
- */
-
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
-import { AlertCircle, CheckCircle, RefreshCw, Shield, Zap, Info, Eye, DollarSign, Target } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 interface FeatureFlag {
   id: string
+  flag_key: string
   flag_name: string
-  description: string
-  enabled: boolean
+  description: string | null
+  is_enabled: boolean
+  enabled_for_roles: string[]
+  rollout_percentage: number
+  metadata: any
   created_at: string
   updated_at: string
 }
 
-export default function FeatureFlagsAdminPage() {
-  const [flags, setFlags] = useState<FeatureFlag[]>([])
+export default function AdminFeatureFlagsPage() {
   const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [flags, setFlags] = useState<FeatureFlag[]>([])
+  const [filter, setFilter] = useState<'all' | 'enabled' | 'disabled'>('all')
 
-  const supabase = createClient()
+  useEffect(() => {
+    loadFlags()
+  }, [])
 
-  const fetchFlags = async () => {
+  async function loadFlags() {
     try {
-      setLoading(true)
-      setError(null)
-
-      const { data, error: fetchError } = await supabase
-        .from('feature_flags')
-        .select('*')
-        .order('flag_name', { ascending: true })
-
-      if (fetchError) throw fetchError
-
-      setFlags(data || [])
-    } catch (err: any) {
-      console.error('Error fetching feature flags:', err)
-      setError(err.message)
+      const response = await fetch('/api/admin/feature-flags')
+      if (response.ok) {
+        const data = await response.json()
+        setFlags(data.flags || [])
+      }
+    } catch (error) {
+      console.error('Error loading feature flags:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchFlags()
-  }, [])
-
-  const toggleFlag = async (flagId: string, currentState: boolean) => {
+  async function toggleFlag(flagId: string, currentEnabled: boolean) {
     try {
-      setUpdating(flagId)
-      setError(null)
-      setSuccess(null)
+      const response = await fetch(`/api/admin/feature-flags/${flagId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_enabled: !currentEnabled })
+      })
 
-      const { error: updateError } = await supabase
-        .from('feature_flags')
-        .update({
-          enabled: !currentState,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', flagId)
-
-      if (updateError) throw updateError
-
-      // Update local state
-      setFlags(flags.map(f =>
-        f.id === flagId
-          ? { ...f, enabled: !currentState, updated_at: new Date().toISOString() }
-          : f
-      ))
-
-      setSuccess(`Feature flag ${!currentState ? 'enabled' : 'disabled'} successfully`)
-    } catch (err: any) {
-      console.error('Error updating feature flag:', err)
-      setError(err.message)
-    } finally {
-      setUpdating(null)
+      if (response.ok) {
+        loadFlags()
+      } else {
+        alert('Failed to toggle feature flag')
+      }
+    } catch (error) {
+      console.error('Error toggling flag:', error)
+      alert('Failed to toggle feature flag')
     }
   }
 
-  const getFlagIcon = (flagName: string) => {
-    if (flagName.includes('specialist')) return Target
-    if (flagName.includes('matching')) return Zap
-    if (flagName.includes('profile')) return Shield
-    if (flagName.includes('keyword')) return Eye
-    if (flagName.includes('pricing')) return DollarSign
-    return Shield
-  }
+  async function updateRollout(flagId: string, percentage: number) {
+    try {
+      const response = await fetch(`/api/admin/feature-flags/${flagId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rollout_percentage: percentage })
+      })
 
-  const getFlagRecommendation = (flagName: string): {
-    phase: number
-    description: string
-    dependencies?: string[]
-  } => {
-    switch (flagName) {
-      case 'require_profile_completion':
-        return {
-          phase: 1,
-          description: 'Week 1: Encourage profile updates',
-          dependencies: []
-        }
-      case 'smart_matching_enabled':
-        return {
-          phase: 2,
-          description: 'Week 2: Improve match quality',
-          dependencies: ['require_profile_completion']
-        }
-      case 'keyword_extraction_enabled':
-        return {
-          phase: 3,
-          description: 'Week 3: Auto-detect services',
-          dependencies: ['smart_matching_enabled']
-        }
-      case 'enable_brand_specialist_matching':
-        return {
-          phase: 4,
-          description: 'Week 4: Full specialist launch',
-          dependencies: ['keyword_extraction_enabled']
-        }
-      case 'show_specialist_pricing':
-        return {
-          phase: 4,
-          description: 'Week 4: Display premium pricing',
-          dependencies: ['enable_brand_specialist_matching']
-        }
-      default:
-        return {
-          phase: 0,
-          description: 'Custom feature flag',
-          dependencies: []
-        }
+      if (response.ok) {
+        loadFlags()
+      } else {
+        alert('Failed to update rollout percentage')
+      }
+    } catch (error) {
+      console.error('Error updating rollout:', error)
+      alert('Failed to update rollout percentage')
     }
   }
+
+  const filteredFlags = flags.filter(flag => {
+    if (filter === 'enabled') return flag.is_enabled
+    if (filter === 'disabled') return !flag.is_enabled
+    return true
+  })
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="h-8 w-8 animate-spin text-orange-500" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-900/50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading feature flags...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Feature Flags
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Control feature rollout for brand specialist matching system
-          </p>
-        </div>
-        <button
-          onClick={fetchFlags}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 shadow-lg shadow-orange-500/25 transition"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </button>
-      </div>
-
-      {/* Success Message */}
-      {success && (
-        <div className="bg-green-500/20 border border-green-500/30 p-4 rounded-lg flex items-start gap-3">
-          <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-100">{success}</p>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500/30 p-4 rounded-lg flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-red-100">Error</p>
-            <p className="text-sm text-red-300 mt-1">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Rollout Guide */}
-      <div className="bg-blue-500/20 border border-blue-500/30 p-6 rounded-lg">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-semibold text-blue-100 mb-2">
-              Recommended Rollout Strategy
-            </h3>
-            <div className="space-y-2 text-sm text-blue-200">
-              <p>• <strong>Week 1:</strong> Enable profile completion requirement</p>
-              <p>• <strong>Week 2:</strong> Enable smart matching algorithm</p>
-              <p>• <strong>Week 3:</strong> Enable keyword extraction</p>
-              <p>• <strong>Week 4:</strong> Enable brand specialist matching + pricing</p>
+    <div className="min-h-screen bg-slate-900/50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">Feature Flags</h1>
+              <p className="text-slate-400">Manage toggleable platform features and gradual rollouts</p>
             </div>
+            <Link
+              href="/admin/dashboard"
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+            >
+              Back to Dashboard
+            </Link>
           </div>
         </div>
-      </div>
 
-      {/* Feature Flags List */}
-      <div className="space-y-4">
-        {flags.map((flag) => {
-          const Icon = getFlagIcon(flag.flag_name)
-          const recommendation = getFlagRecommendation(flag.flag_name)
-          const isUpdating = updating === flag.id
+        {/* Filter Tabs */}
+        <div className="mb-6 flex gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            All Features ({flags.length})
+          </button>
+          <button
+            onClick={() => setFilter('enabled')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'enabled'
+                ? 'bg-green-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Enabled ({flags.filter(f => f.is_enabled).length})
+          </button>
+          <button
+            onClick={() => setFilter('disabled')}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === 'disabled'
+                ? 'bg-slate-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+          >
+            Disabled ({flags.filter(f => !f.is_enabled).length})
+          </button>
+        </div>
 
-          return (
-            <div
-              key={flag.id}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-lg shadow-lg"
-            >
-              <div className="flex items-start justify-between">
-                {/* Flag Info */}
-                <div className="flex items-start gap-4 flex-1">
-                  <div className={`p-3 rounded-lg border ${
-                    flag.enabled
-                      ? 'bg-green-500/20 border-green-500/30 text-green-400'
-                      : 'bg-slate-700/50 border-slate-700 text-slate-400'
-                  }`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-
+        {/* Feature Flags List */}
+        <div className="space-y-4">
+          {filteredFlags.length === 0 ? (
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-8 text-center">
+              <p className="text-slate-400">No feature flags found</p>
+            </div>
+          ) : (
+            filteredFlags.map((flag) => (
+              <div
+                key={flag.id}
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-6 hover:border-slate-600 transition"
+              >
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-semibold text-white">
-                        {flag.flag_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </h3>
-                      {recommendation.phase > 0 && (
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded">
-                          Phase {recommendation.phase}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-semibold text-white">{flag.flag_name}</h3>
+                      <code className="px-2 py-1 bg-slate-900 text-blue-400 text-sm rounded border border-slate-700">
+                        {flag.flag_key}
+                      </code>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          flag.is_enabled
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : 'bg-slate-700 text-slate-400 border border-slate-600'
+                        }`}
+                      >
+                        {flag.is_enabled ? 'ENABLED' : 'DISABLED'}
+                      </span>
                     </div>
-
-                    <p className="text-sm text-slate-400 mt-1">
-                      {flag.description}
-                    </p>
-
-                    {recommendation.phase > 0 && (
-                      <p className="text-xs text-blue-400 mt-2">
-                        {recommendation.description}
-                      </p>
+                    {flag.description && (
+                      <p className="text-slate-400 mb-3">{flag.description}</p>
                     )}
-
-                    {recommendation.dependencies && recommendation.dependencies.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs text-slate-400 mb-1">
-                          Dependencies:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {recommendation.dependencies.map((dep) => {
-                            const depFlag = flags.find(f => f.flag_name === dep)
-                            return (
-                              <span
-                                key={dep}
-                                className={`text-xs px-2 py-1 rounded border ${
-                                  depFlag?.enabled
-                                    ? 'bg-green-500/20 border-green-500/30 text-green-300'
-                                    : 'bg-orange-500/20 border-orange-500/30 text-orange-300'
-                                }`}
-                              >
-                                {dep.replace(/_/g, ' ')}
-                                {depFlag?.enabled ? ' ✓' : ' (disabled)'}
-                              </span>
-                            )
-                          })}
-                        </div>
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="text-slate-500">
+                        Roles: <span className="text-slate-300">{flag.enabled_for_roles.join(', ')}</span>
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                      <span>Updated: {new Date(flag.updated_at).toLocaleString()}</span>
+                      <div className="text-slate-500">
+                        Rollout: <span className="text-slate-300">{flag.rollout_percentage}%</span>
+                      </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => toggleFlag(flag.id, flag.is_enabled)}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      flag.is_enabled
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {flag.is_enabled ? 'Disable' : 'Enable'}
+                  </button>
                 </div>
 
-                {/* Toggle Switch */}
-                <button
-                  onClick={() => toggleFlag(flag.id, flag.enabled)}
-                  disabled={isUpdating}
-                  className={`
-                    relative inline-flex h-8 w-14 flex-shrink-0 items-center rounded-full
-                    transition-colors duration-200 ease-in-out
-                    ${flag.enabled ? 'bg-green-600' : 'bg-slate-600'}
-                    ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                  `}
-                >
-                  <span className="sr-only">Toggle feature</span>
-                  <span
-                    className={`
-                      inline-block h-6 w-6 transform rounded-full bg-white shadow-lg
-                      transition duration-200 ease-in-out
-                      ${flag.enabled ? 'translate-x-7' : 'translate-x-1'}
-                    `}
-                  >
-                    {isUpdating && (
-                      <RefreshCw className="h-4 w-4 animate-spin text-slate-600 mx-auto mt-1" />
-                    )}
-                  </span>
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                {/* Rollout Percentage Control */}
+                {flag.is_enabled && flag.rollout_percentage < 100 && (
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <label className="block text-sm text-slate-400 mb-2">
+                      Gradual Rollout: {flag.rollout_percentage}%
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="10"
+                        value={flag.rollout_percentage}
+                        onChange={(e) => updateRollout(flag.id, parseInt(e.target.value))}
+                        className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateRollout(flag.id, 50)}
+                          className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded transition"
+                        >
+                          50%
+                        </button>
+                        <button
+                          onClick={() => updateRollout(flag.id, 100)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition"
+                        >
+                          100%
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-      {flags.length === 0 && (
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-12 rounded-lg shadow-lg text-center">
-          <AlertCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-400">
-            No feature flags found. Run the database migration to create feature flags.
-          </p>
+                {/* Key Feature Highlights */}
+                {flag.flag_key === 'rfq_system' && (
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-blue-400 text-sm font-medium">
+                      🎯 RFQ System: When enabled, customers can request quotes from multiple workshops
+                    </p>
+                  </div>
+                )}
+                {flag.flag_key === 'subscriptions' && (
+                  <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p className="text-purple-400 text-sm font-medium">
+                      💳 Subscriptions: Enable credit-based monthly plans for customers
+                    </p>
+                  </div>
+                )}
+                {flag.flag_key === 'brand_specialists' && (
+                  <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <p className="text-green-400 text-sm font-medium">
+                      ⭐ Brand Specialists: Customers can filter mechanics by vehicle brand expertise
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
-      )}
+
+        {/* Info Box */}
+        <div className="mt-8 bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
+          <h3 className="text-blue-400 font-semibold mb-2">ℹ️ Feature Flag Guidelines</h3>
+          <ul className="text-blue-300/80 text-sm space-y-1 list-disc list-inside">
+            <li>Test features with gradual rollout before enabling for 100% of users</li>
+            <li>Features disabled here will be hidden from customers immediately</li>
+            <li>RFQ System is currently toggleable as requested - enable when ready</li>
+            <li>Subscription Plans require Stripe configuration before enabling</li>
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }
