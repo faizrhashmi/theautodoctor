@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState, type ComponentType } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { notFound, useParams } from 'next/navigation'
-import { ArrowLeft, Camera, Headphones, Mic, MicOff, PhoneOff, Share } from 'lucide-react'
+import { ArrowLeft, Camera, Headphones, Mic, MicOff, PhoneOff, Share, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import SessionTimer from '@/components/session/SessionTimer'
 import FileSharePanel from '@/components/session/FileSharePanel'
@@ -10,37 +10,84 @@ import SessionExtensionPanel from '@/components/session/SessionExtensionPanel'
 import WaitingRoom from '@/components/session/WaitingRoom'
 import type { SessionExtensionRequest, SessionQueueItem } from '@/types/session'
 
-const MOCK_SESSIONS: Record<string, SessionQueueItem> = {
-  'queue-1': {
-    id: 'queue-1',
-    vehicle: '2020 Audi Q5',
-    customerName: 'Brandon Lee',
-    mechanicName: 'You',
-    scheduledStart: new Date().toISOString(),
-    scheduledEnd: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    status: 'live',
-    concernSummary: 'Check engine light + rough idle',
-    waiverAccepted: true,
-    extensionBalance: 0,
-    queuePosition: 1,
-    waitingSince: new Date(Date.now() - 60 * 1000).toISOString()
-  }
-}
-
-const MOCK_EXTENSIONS: SessionExtensionRequest[] = [
-  { id: 'ext-1', minutes: 15, status: 'approved', requestedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString() }
-]
-
 export default function MechanicSessionPage() {
   const params = useParams<{ id: string }>()
-  const session = useMemo(() => MOCK_SESSIONS[params.id], [params.id])
+  const [session, setSession] = useState<SessionQueueItem | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [micEnabled, setMicEnabled] = useState(true)
   const [cameraEnabled, setCameraEnabled] = useState(true)
   const [screenShared, setScreenShared] = useState(false)
-  const [showWaitingRoom, setShowWaitingRoom] = useState(session?.status !== 'live')
+  const [showWaitingRoom, setShowWaitingRoom] = useState(false)
 
-  if (!session) {
-    return notFound()
+  useEffect(() => {
+    async function fetchSession() {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const response = await fetch(`/api/mechanic/sessions/${params.id}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load session')
+        }
+
+        // Transform API response to SessionQueueItem format
+        const vehicle = data.session?.vehicles
+          ? `${data.session.vehicles.year} ${data.session.vehicles.make} ${data.session.vehicles.model}`
+          : 'Vehicle'
+
+        const transformedSession: SessionQueueItem = {
+          id: data.id,
+          vehicle,
+          customerName: data.customer?.full_name || 'Customer',
+          mechanicName: 'You',
+          scheduledStart: data.created_at || new Date().toISOString(),
+          scheduledEnd: data.completed_at || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          status: data.status === 'in_progress' ? 'live' : (data.status as any),
+          concernSummary: data.session?.concern_summary || data.diagnosis_summary || 'No details provided',
+          waiverAccepted: true,
+          extensionBalance: 0,
+          queuePosition: 1,
+          waitingSince: data.created_at || new Date().toISOString()
+        }
+
+        setSession(transformedSession)
+        setShowWaitingRoom(transformedSession.status !== 'live')
+      } catch (err: any) {
+        console.error('[Session Page] Error fetching session:', err)
+        setError(err.message || 'Failed to load session')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSession()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-orange-500 animate-spin mx-auto" />
+          <p className="mt-4 text-slate-400">Loading session...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !session) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <p className="text-red-400 mb-4">{error || 'Session not found'}</p>
+          <Link href="/mechanic/dashboard" className="text-orange-400 hover:underline">
+            Return to dashboard
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -120,7 +167,7 @@ export default function MechanicSessionPage() {
           </div>
 
           <FileSharePanel />
-          <SessionExtensionPanel existingRequests={MOCK_EXTENSIONS} />
+          <SessionExtensionPanel existingRequests={[]} />
         </aside>
       </main>
     </div>
