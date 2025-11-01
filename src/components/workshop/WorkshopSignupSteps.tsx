@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { motion } from 'framer-motion'
@@ -14,9 +13,52 @@ import {
   Info,
   CheckCircle2,
 } from 'lucide-react'
+import { Dispatch, SetStateAction } from 'react'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
+
+// TypeScript interfaces for Workshop Signup Steps
+interface WorkshopSignupData {
+  workshopName: string
+  contactName: string
+  email: string
+  phone: string
+  password: string
+  confirmPassword: string
+  businessRegistrationNumber: string
+  taxId: string
+  website: string
+  industry: string
+  address: string
+  city: string
+  province: string
+  postalCode: string
+  coveragePostalCodes: string[]
+  serviceRadiusKm: number
+  mechanicCapacity: number
+  commissionRate: number
+  termsAccepted: boolean
+}
+
+interface StepProps {
+  formData: WorkshopSignupData
+  updateForm: (updates: Partial<WorkshopSignupData>) => void
+  errors: Record<string, string>
+}
+
+interface Step3Props extends StepProps {
+  postalCodeInput: string
+  setPostalCodeInput: (value: string) => void
+  addPostalCode: () => void
+  removePostalCode: (code: string) => void
+  provinces: string[]
+}
+
+interface Step4Props extends StepProps {
+  setCurrentStep: Dispatch<SetStateAction<number>>
+}
 
 // Step 1: Basic Information
-export function Step1Basic({ formData, updateForm, errors }) {
+export function Step1Basic({ formData, updateForm, errors }: StepProps) {
   return (
     <motion.div
       key="step1"
@@ -115,7 +157,7 @@ export function Step1Basic({ formData, updateForm, errors }) {
 }
 
 // Step 2: Business Details
-export function Step2Business({ formData, updateForm, errors }) {
+export function Step2Business({ formData, updateForm, errors }: StepProps) {
   const INDUSTRIES = [
     'Independent Auto Repair Shop',
     'Dealership Service Center',
@@ -202,7 +244,7 @@ export function Step3Coverage({
   addPostalCode,
   removePostalCode,
   provinces,
-}) {
+}: Step3Props) {
   return (
     <motion.div
       key="step3"
@@ -364,7 +406,7 @@ export function Step3Coverage({
           max="50"
           step="0.5"
           value={formData.commissionRate}
-          onChange={(e) => updateForm({ commissionRate: parseFloat(e.target.value) || 10 })}
+          onChange={(e) => updateForm({ commissionRate: parseFloat(e.target.value) || WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE })}
           className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
         />
         <p className="mt-1 text-xs text-slate-400">
@@ -376,7 +418,7 @@ export function Step3Coverage({
 }
 
 // Step 4: Review
-export function Step4Review({ formData, updateForm, errors, setCurrentStep }) {
+export function Step4Review({ formData, updateForm, errors, setCurrentStep }: Step4Props) {
   return (
     <motion.div
       key="step4"
@@ -452,7 +494,19 @@ export function Step4Review({ formData, updateForm, errors, setCurrentStep }) {
 }
 
 // Helper Components
-function TextField({ label, value, onChange, type = 'text', icon: Icon, placeholder, error, required = false, helpText = '' }) {
+interface TextFieldProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  type?: string
+  icon: React.ComponentType<{ className?: string }>
+  placeholder?: string
+  error?: string
+  required?: boolean
+  helpText?: string
+}
+
+function TextField({ label, value, onChange, type = 'text', icon: Icon, placeholder, error, required = false, helpText = '' }: TextFieldProps) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-200">
@@ -478,7 +532,16 @@ function TextField({ label, value, onChange, type = 'text', icon: Icon, placehol
   )
 }
 
-function SelectField({ label, value, onChange, options, error, required = false }) {
+interface SelectFieldProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  options: string[]
+  error?: string
+  required?: boolean
+}
+
+function SelectField({ label, value, onChange, options, error, required = false }: SelectFieldProps) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-200">
