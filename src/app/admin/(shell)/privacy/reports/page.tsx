@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState } from 'react'
@@ -361,7 +360,7 @@ function ReportCard({
 }
 
 // Simple CSV converter (basic implementation)
-function convertToCSV(data: any): string {
+function convertToCSV(data: Record<string, unknown>): string {
   if (!data || !data.summary) return ''
 
   const summary = data.summary

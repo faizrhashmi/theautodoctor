@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -180,7 +179,7 @@ function StatCard({
   color: string
   alert?: boolean
 }) {
-  const colorClasses = {
+  const colorClasses: Record<string, string> = {
     blue: 'border-blue-500/30 bg-blue-500/10',
     yellow: 'border-yellow-500/30 bg-yellow-500/10',
     orange: 'border-orange-500/30 bg-orange-500/10',

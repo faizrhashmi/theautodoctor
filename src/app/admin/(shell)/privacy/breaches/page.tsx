@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -216,7 +215,7 @@ function StatCard({
   color: string
   alert?: boolean
 }) {
-  const colorClasses = {
+  const colorClasses: Record<string, string> = {
     blue: 'border-blue-500/30 bg-blue-500/10',
     orange: 'border-orange-500/30 bg-orange-500/10',
     red: 'border-red-500/30 bg-red-500/10',
@@ -264,7 +263,7 @@ function FilterButton({
 // Breach Card Component
 function BreachCard({ breach, onUpdate }: { breach: DataBreach; onUpdate: () => void }) {
   const getSeverityBadge = (severity: string) => {
-    const badges = {
+    const badges: Record<string, { bg: string; text: string; label: string }> = {
       critical: { bg: 'bg-red-500', text: 'text-white', label: 'CRITICAL' },
       high: { bg: 'bg-orange-500', text: 'text-white', label: 'HIGH' },
       medium: { bg: 'bg-yellow-500', text: 'text-slate-900', label: 'MEDIUM' },
@@ -280,7 +279,7 @@ function BreachCard({ breach, onUpdate }: { breach: DataBreach; onUpdate: () => 
   }
 
   const getStatusBadge = (status: string) => {
-    const badges = {
+    const badges: Record<string, { bg: string; text: string; label: string }> = {
       discovered: { bg: 'bg-red-500/20', text: 'text-red-400', label: '🔍 Discovered' },
       investigating: { bg: 'bg-orange-500/20', text: 'text-orange-400', label: '🔎 Investigating' },
       contained: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: '🛡️ Contained' },

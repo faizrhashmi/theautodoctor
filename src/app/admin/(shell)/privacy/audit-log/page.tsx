@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState } from 'react'
@@ -13,7 +12,7 @@ interface AuditLogEntry {
   user_role: string | null
   ip_address: string | null
   user_agent: string | null
-  event_details: any
+  event_details: Record<string, unknown>
   legal_basis: string | null
   data_categories_accessed: string[] | null
 }
@@ -235,7 +234,7 @@ function AuditLogEntry({ entry }: { entry: AuditLogEntry }) {
   const [expanded, setExpanded] = useState(false)
 
   const getEventIcon = (eventType: string) => {
-    const icons = {
+    const icons: Record<string, string> = {
       consent_granted: '✅',
       consent_withdrawn: '❌',
       data_access_requested: '📋',
@@ -375,7 +374,7 @@ function formatEventType(type: string): string {
 }
 
 function formatLegalBasis(basis: string): string {
-  const basisMap = {
+  const basisMap: Record<string, string> = {
     consent: 'Consent',
     contract: 'Contract',
     legal_obligation: 'Legal Obligation',

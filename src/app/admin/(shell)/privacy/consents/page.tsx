@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -335,7 +334,7 @@ function MethodCard({
 
 // Helper function to format consent type
 function formatConsentType(type: string): string {
-  const typeMap = {
+  const typeMap: Record<string, string> = {
     privacy_policy: 'Privacy Policy',
     terms_of_service: 'Terms of Service',
     marketing_emails: 'Marketing Emails',
