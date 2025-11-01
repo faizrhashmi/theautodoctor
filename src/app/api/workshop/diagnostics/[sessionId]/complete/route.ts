@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { canDiagnose } from '@/lib/auth/permissions'
 import { requireWorkshopAPI } from '@/lib/auth/guards'
+import { sendEmail } from '@/lib/email/emailService'
+import { serviceAdvisorQuoteReminder } from '@/lib/email/internalTemplates'
 
 /**
  * POST /api/workshop/diagnostics/[sessionId]/complete
@@ -115,8 +117,41 @@ export async function POST(
       )
     }
 
-    // Create a notification for service advisor (optional - can be added later)
-    // TODO: Send notification to service advisor that quote needs to be created
+    // Send notification to service advisor that quote needs to be created
+    try {
+      // Fetch customer details for the notification
+      const { data: customer, error: customerError } = await supabaseAdmin
+        .from('customers')
+        .select('id, full_name')
+        .eq('id', session.customer_id)
+        .single()
+
+      const customerName = customer?.full_name || 'Customer'
+
+      // Send to workshop service advisor email if configured, otherwise to workshop contact email
+      const serviceAdvisorEmail = process.env.WORKSHOP_SERVICE_ADVISOR_EMAIL || workshop.email
+      const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://theautodoctor.com'}/workshop/diagnostics/${sessionId}`
+
+      const advisorNotification = serviceAdvisorQuoteReminder({
+        workshopName: workshop.organizationName,
+        mechanicName: workshop.email.split('@')[0], // Use email prefix as mechanic name
+        sessionId,
+        customerName,
+        diagnosis: summary,
+        dashboardUrl,
+      })
+
+      await sendEmail({
+        to: serviceAdvisorEmail,
+        subject: advisorNotification.subject,
+        html: advisorNotification.html,
+      })
+
+      console.log(`[DIAGNOSIS COMPLETE] Service advisor notification sent to ${serviceAdvisorEmail}`)
+    } catch (emailError) {
+      console.error('[DIAGNOSIS COMPLETE] Failed to send service advisor notification:', emailError)
+      // Don't fail the diagnosis completion if email fails - log and continue
+    }
 
     // Return success
     return NextResponse.json({

@@ -153,6 +153,82 @@ ${
   }
 }
 
+interface WorkshopSignupConfirmationParams {
+  workshopName: string
+  contactName?: string
+  contactEmail: string
+}
+
+export function workshopSignupConfirmationEmail({
+  workshopName,
+  contactName,
+  contactEmail,
+}: WorkshopSignupConfirmationParams): { subject: string; html: string } {
+  const greeting = contactName ? `Hi ${contactName}` : 'Hello'
+
+  const content = `
+<h2 style="margin: 0 0 16px 0; color: #1e293b; font-size: 24px; font-weight: 700;">
+  ✅ Application Received!
+</h2>
+
+<p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.6;">
+  ${greeting},
+</p>
+
+<p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.6;">
+  Thank you for submitting your workshop application for <strong>${workshopName}</strong> to The Auto Doctor platform!
+</p>
+
+${emailInfoBox(
+  '📋 What Happens Next?',
+  `Our team is reviewing your application. This typically takes 2-3 business days.\\n\\nYou'll receive an email notification once your application has been reviewed.`
+)}
+
+<div style="margin: 32px 0; padding: 24px; background-color: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 8px;">
+  <h3 style="margin: 0 0 12px 0; color: #1e293b; font-size: 18px; font-weight: 600;">
+    Application Details
+  </h3>
+  <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
+    <strong>Workshop Name:</strong> ${workshopName}<br/>
+    <strong>Contact Email:</strong> ${contactEmail}<br/>
+    <strong>Submitted:</strong> ${new Date().toLocaleString('en-CA')}
+  </p>
+</div>
+
+<p style="margin: 24px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">
+  In the meantime, make sure you have:
+</p>
+
+<ul style="margin: 12px 0 24px 0; color: #475569; font-size: 16px; line-height: 1.8; padding-left: 24px;">
+  <li>Your business registration documentation ready</li>
+  <li>Workshop photos and facility information</li>
+  <li>List of certifications and licenses</li>
+  <li>Mechanic team information (if applicable)</li>
+</ul>
+
+<div style="margin: 32px 0; padding: 20px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+  <p style="margin: 0; color: #78350f; font-size: 14px; line-height: 1.6;">
+    <strong>📧 Keep an eye on your inbox!</strong> We'll send you an email as soon as your application is reviewed.
+    Make sure to check your spam folder just in case.
+  </p>
+</div>
+
+<p style="margin: 24px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">
+  Thank you for choosing The Auto Doctor. We're excited about the possibility of working with you!
+</p>
+
+<p style="margin: 16px 0 0 0; color: #475569; font-size: 16px; line-height: 1.6;">
+  Best regards,<br/>
+  <strong>The Auto Doctor Team</strong>
+</p>
+  `
+
+  return {
+    subject: `Application Received - ${workshopName}`,
+    html: emailLayout(content),
+  }
+}
+
 interface MechanicInviteEmailParams {
   mechanicEmail: string
   workshopName: string

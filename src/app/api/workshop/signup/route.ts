@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { trackSignupEvent, EventTimer } from '@/lib/analytics/workshopEvents'
 import { WORKSHOP_PRICING } from '@/config/workshopPricing'
+import { sendEmail } from '@/lib/email/emailService'
+import { workshopSignupConfirmationEmail } from '@/lib/email/workshopTemplates'
+import { adminWorkshopSignupNotification } from '@/lib/email/internalTemplates'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -235,8 +238,48 @@ export async function POST(req: NextRequest) {
       durationMs: timer.elapsed(),
     })
 
-    // TODO: Send confirmation email to workshop
-    // TODO: Send notification to admin team for review
+    // Send confirmation email to workshop
+    try {
+      const confirmationEmail = workshopSignupConfirmationEmail({
+        workshopName,
+        contactName,
+        contactEmail: email,
+      })
+      await sendEmail({
+        to: email,
+        subject: confirmationEmail.subject,
+        html: confirmationEmail.html,
+      })
+      console.log(`[WORKSHOP SIGNUP] Confirmation email sent to ${email}`)
+    } catch (emailError) {
+      console.error('[WORKSHOP SIGNUP] Failed to send confirmation email:', emailError)
+      // Don't fail the signup if email fails - log and continue
+    }
+
+    // Send notification to admin team for review
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.SUPPORT_EMAIL || 'admin@theautodoctor.com'
+      const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://theautodoctor.com'}/admin/workshops/${org.id}`
+
+      const adminNotification = adminWorkshopSignupNotification({
+        workshopName,
+        contactName,
+        contactEmail: email,
+        phone,
+        city,
+        province,
+        reviewUrl,
+      })
+      await sendEmail({
+        to: adminEmail,
+        subject: adminNotification.subject,
+        html: adminNotification.html,
+      })
+      console.log(`[WORKSHOP SIGNUP] Admin notification sent to ${adminEmail}`)
+    } catch (emailError) {
+      console.error('[WORKSHOP SIGNUP] Failed to send admin notification:', emailError)
+      // Don't fail the signup if email fails - log and continue
+    }
 
     return NextResponse.json({
       success: true,

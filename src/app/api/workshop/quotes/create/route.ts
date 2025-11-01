@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { canSendQuotes } from '@/lib/auth/permissions'
 import { requireWorkshopAPI } from '@/lib/auth/guards'
+import { sendEmail } from '@/lib/email/emailService'
+import { quoteNotificationEmail } from '@/lib/email/customerTemplates'
 
 /**
  * POST /api/workshop/quotes/create
@@ -161,8 +163,41 @@ export async function POST(req: NextRequest) {
       // Continue anyway - quote was created successfully
     }
 
-    // TODO: Send notification to customer about new quote
-    // This can be done via email, SMS, or push notification
+    // Send notification to customer about new quote
+    try {
+      // Fetch customer details
+      const { data: customer, error: customerError } = await supabaseAdmin
+        .from('customers')
+        .select('id, email, full_name')
+        .eq('id', session.customer_id)
+        .single()
+
+      if (customerError || !customer || !customer.email) {
+        console.error('[QUOTE CREATE] Customer not found or has no email:', customerError)
+      } else {
+        const quoteViewUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://theautodoctor.com'}/customer/quotes/${quote.id}`
+
+        const customerEmail = quoteNotificationEmail({
+          customerName: customer.full_name || 'Valued Customer',
+          workshopName: workshop.organizationName,
+          quoteTotalPrice: customer_total,
+          quoteCurrency: 'CAD',
+          quoteViewUrl,
+          issueDescription: session.issue_description || 'Vehicle diagnostic session',
+        })
+
+        await sendEmail({
+          to: customer.email,
+          subject: customerEmail.subject,
+          html: customerEmail.html,
+        })
+
+        console.log(`[QUOTE CREATE] Quote notification email sent to customer ${customer.email}`)
+      }
+    } catch (emailError) {
+      console.error('[QUOTE CREATE] Failed to send customer notification:', emailError)
+      // Don't fail the quote creation if email fails - log and continue
+    }
 
     return NextResponse.json({
       success: true,
