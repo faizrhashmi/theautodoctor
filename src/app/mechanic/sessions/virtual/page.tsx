@@ -63,6 +63,32 @@ export default function VirtualSessionsPage() {
   }, [filter])
 
   const handleAcceptSession = async (sessionId: string) => {
+    // SOFT CHECK: Warn if mechanic may already have an active session
+    // Non-blocking - allows proceeding if confirmed
+    try {
+      // Check for active sessions (accepted/in-progress)
+      const activeSessionCheck = await fetch('/api/mechanics/sessions/virtual?status=accepted&limit=5')
+      const activeData = await activeSessionCheck.json()
+
+      if (activeData.sessions?.length > 0) {
+        const proceed = confirm(
+          `⚠️ One-Active-Session Warning\n\n` +
+          `You may already have ${activeData.sessions.length} active session(s).\n\n` +
+          `For best customer experience, we recommend focusing on one session at a time.\n\n` +
+          `Continue accepting this session anyway?`
+        )
+
+        if (!proceed) {
+          console.log('[MECH SESSION] {"action":"accept_cancelled","reason":"active_session_warning","active_count":' + activeData.sessions.length + '}')
+          return
+        }
+        console.log('[MECH SESSION] {"action":"accept_proceeded","warning":"active_session_exists","active_count":' + activeData.sessions.length + '}')
+      }
+    } catch (checkErr) {
+      // If check fails, proceed anyway (non-blocking)
+      console.warn('[MECH SESSION] Active session check failed, proceeding:', checkErr)
+    }
+
     try {
       const response = await fetch('/api/mechanics/sessions/virtual', {
         method: 'POST',

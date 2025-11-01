@@ -227,7 +227,7 @@ export default function VirtualOnlyOnboardingPage() {
             <span className="text-sm font-medium text-slate-300">Profile Completion</span>
             <span className="text-sm font-semibold text-blue-600">{completionPercentage}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-slate-700 rounded-full h-2">
             <div
               className="bg-gradient-to-r from-blue-600 to-green-600 h-2 rounded-full transition-all duration-500"
               style={{ width: `${completionPercentage}%` }}
@@ -280,7 +280,7 @@ export default function VirtualOnlyOnboardingPage() {
                     type="text"
                     value={formData.certification_number}
                     onChange={e => setFormData(prev => ({ ...prev, certification_number: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., RS123456"
                   />
                 </div>
@@ -291,7 +291,7 @@ export default function VirtualOnlyOnboardingPage() {
                   <select
                     value={formData.certification_province}
                     onChange={e => setFormData(prev => ({ ...prev, certification_province: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select province</option>
                     {CANADIAN_PROVINCES.map(province => (
@@ -313,7 +313,7 @@ export default function VirtualOnlyOnboardingPage() {
                   value={newCertification}
                   onChange={e => setNewCertification(e.target.value)}
                   onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddCertification())}
-                  className="flex-1 px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., ASE Master Technician"
                 />
                 <button
@@ -364,7 +364,7 @@ export default function VirtualOnlyOnboardingPage() {
                 max="60"
                 value={formData.years_experience || ''}
                 onChange={e => setFormData(prev => ({ ...prev, years_experience: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="e.g., 15"
                 required
               />
@@ -437,10 +437,10 @@ export default function VirtualOnlyOnboardingPage() {
                   value={formData.bio}
                   onChange={e => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                   rows={4}
-                  className="w-full px-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Tell customers about your experience and expertise..."
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   This will be shown to customers when they view your profile
                 </p>
               </div>
@@ -451,13 +451,13 @@ export default function VirtualOnlyOnboardingPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="w-5 h-5 text-gray-400" />
+                    <Phone className="w-5 h-5 text-slate-400" />
                   </div>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full pl-10 pr-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="(123) 456-7890"
                   />
                 </div>
@@ -469,7 +469,7 @@ export default function VirtualOnlyOnboardingPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500">$</span>
+                    <span className="text-slate-500">$</span>
                   </div>
                   <input
                     type="number"
@@ -477,11 +477,11 @@ export default function VirtualOnlyOnboardingPage() {
                     step="5"
                     value={formData.hourly_rate || ''}
                     onChange={e => setFormData(prev => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
-                    className="w-full pl-8 pr-3 py-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="50"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   This is just for reference and won't affect consultation pricing
                 </p>
               </div>
@@ -489,9 +489,9 @@ export default function VirtualOnlyOnboardingPage() {
           </div>
 
           {/* Submit Button */}
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-6">
+          <div className="bg-gradient-to-r from-slate-800 via-slate-800 to-slate-800 border border-slate-700 rounded-xl p-6">
             <div className="flex items-start gap-3 mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+              <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
               <div>
                 <h3 className="font-semibold text-white mb-1">
                   Ready to start earning!
