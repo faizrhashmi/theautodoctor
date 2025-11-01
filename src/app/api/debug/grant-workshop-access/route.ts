@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,7 +19,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
  * Grant workshop dashboard access to workshop.mechanic@test.com
  * This adds them to organization_members table
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const results: any = {
     timestamp: new Date().toISOString(),
     email: 'workshop.mechanic@test.com',
@@ -247,7 +249,7 @@ export async function POST(req: NextRequest) {
  *
  * Check current access status for workshop.mechanic@test.com
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     // Get user
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
@@ -305,3 +307,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

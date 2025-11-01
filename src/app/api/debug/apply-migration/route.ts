@@ -2,13 +2,15 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Apply the missing columns migration
  *
  * GET /api/debug/apply-migration?file=99999999998_add_missing_session_request_columns.sql
  */
-export async function GET(req: Request) {
+async function getHandler(req: Request) {
   const { searchParams } = new URL(req.url)
   const fileName = searchParams.get('file') || '99999999998_add_missing_session_request_columns.sql'
 
@@ -71,3 +73,6 @@ export async function GET(req: Request) {
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

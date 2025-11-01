@@ -176,7 +176,20 @@ export async function checkRateLimit(
     }
   } catch (error) {
     console.error('[RateLimit] Error checking rate limit:', error)
-    // On error, allow request (fail open) but log for monitoring
+
+    // P0-2 FIX: Fail closed in production to prevent brute force attacks
+    // In development, fail open for easier testing
+    const isProduction = process.env.NODE_ENV === 'production'
+
+    if (isProduction) {
+      return {
+        allowed: false,
+        error: 'Rate limiting service temporarily unavailable. Please try again in a moment.',
+      }
+    }
+
+    // In development, allow request but log the error
+    console.warn('[RateLimit] DEVELOPMENT MODE: Allowing request despite rate limit error')
     return { allowed: true }
   }
 }

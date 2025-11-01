@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Force end a session
@@ -9,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * This bypasses all validation and FSM checks to force a session to end.
  * Use this to clear lingering sessions that are preventing users from creating new requests.
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('sessionId')
 
@@ -153,3 +155,6 @@ export async function GET(req: NextRequest) {
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

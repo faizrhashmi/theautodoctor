@@ -9,6 +9,7 @@ import { NextResponse, NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { validateRedirect } from '@/lib/security/redirects'
+import { clearAllSupabaseCookies } from '@/lib/cookies'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -73,9 +74,28 @@ function isPublicCustomerRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
+  // P0-3 FIX: Gate development logging to prevent PII leaks in production
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   // Allow static assets immediately
   if (pathname.startsWith('/_next') || pathname === '/favicon.ico') {
     return NextResponse.next()
+  }
+
+  // P0-1 FIX: Block debug endpoints in production (defense-in-depth)
+  // Even though debug endpoints should use withDebugAuth, we block at middleware level
+  // This prevents accidental exposure if an endpoint forgets the auth wrapper
+  if (pathname.startsWith('/api/debug')) {
+    const isProduction = process.env.NODE_ENV === 'production'
+    const isExplicitProduction = process.env.AAD_ENV === 'production'
+
+    if (isProduction || isExplicitProduction) {
+      console.warn(`[SECURITY] Debug endpoint blocked in production: ${pathname}`)
+      return NextResponse.json(
+        { error: 'Not found' },
+        { status: 404 }
+      )
+    }
   }
 
   // Handle email confirmation codes landing on the homepage
@@ -105,24 +125,30 @@ export async function middleware(request: NextRequest) {
     cookies: {
       get(name: string) {
         const value = request.cookies.get(name)?.value
-        console.log(`[MIDDLEWARE] Reading cookie: ${name}`, value ? 'PRESENT' : 'MISSING')
+        if (isDevelopment) {
+          console.log(`[MIDDLEWARE] Reading cookie: ${name}`, value ? 'PRESENT' : 'MISSING')
+        }
         return value
       },
       set(name: string, value: string) {
-        console.log(`[MIDDLEWARE] Setting cookie: ${name}`)
-        response.cookies.set({ 
-          name, 
-          value, 
-          ...cookieOptions 
+        if (isDevelopment) {
+          console.log(`[MIDDLEWARE] Setting cookie: ${name}`)
+        }
+        response.cookies.set({
+          name,
+          value,
+          ...cookieOptions
         })
       },
       remove(name: string) {
-        console.log(`[MIDDLEWARE] Removing cookie: ${name}`)
-        response.cookies.set({ 
-          name, 
-          value: '', 
+        if (isDevelopment) {
+          console.log(`[MIDDLEWARE] Removing cookie: ${name}`)
+        }
+        response.cookies.set({
+          name,
+          value: '',
           ...cookieOptions,
-          maxAge: 0 
+          maxAge: 0
         })
       },
     },
@@ -134,56 +160,22 @@ export async function middleware(request: NextRequest) {
     const { data, error } = await supabase.auth.getUser()
 
     if (error) {
-      console.log('[MIDDLEWARE] Auth error:', error.message)
+      if (isDevelopment) {
+        console.log('[MIDDLEWARE] Auth error:', error.message)
+      }
 
-      // Clear ALL Supabase auth cookies on error with consistent settings
-      const authCookies = ['sb-access-token', 'sb-refresh-token']
-      authCookies.forEach((name) => {
-        console.log('[MIDDLEWARE] Clearing auth cookie:', name)
-        response.cookies.set({
-          name,
-          value: '',
-          maxAge: 0,
-          path: '/',
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: isProduction,
-        })
-      })
-
-      // Also clear any other Supabase cookies
-      request.cookies.getAll().forEach((cookie) => {
-        if (cookie.name.startsWith('sb-') && !authCookies.includes(cookie.name)) {
-          console.log('[MIDDLEWARE] Clearing additional cookie:', cookie.name)
-          response.cookies.set({
-            name: cookie.name,
-            value: '',
-            maxAge: 0,
-            path: '/',
-          })
-        }
-      })
+      // P0-7 FIX: Use centralized cookie clearing utility
+      clearAllSupabaseCookies(response, request.cookies.getAll())
     } else {
       user = data.user
-      if (user) {
+      if (user && isDevelopment) {
         console.log(`[MIDDLEWARE] User authenticated: ${user.email}`)
       }
     }
   } catch (error) {
     console.error('[MIDDLEWARE] Exception getting user:', error)
-    // Clear cookies on exception too with consistent settings
-    const authCookies = ['sb-access-token', 'sb-refresh-token']
-    authCookies.forEach((name) => {
-      response.cookies.set({
-        name,
-        value: '',
-        maxAge: 0,
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: isProduction,
-      })
-    })
+    // P0-7 FIX: Use centralized cookie clearing utility
+    clearAllSupabaseCookies(response, request.cookies.getAll())
   }
 
   // ==========================================================================
@@ -195,19 +187,25 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    console.log(`[MIDDLEWARE] 🔍 Admin route check for: ${pathname}`)
-    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] 🔍 Admin route check for: ${pathname}`)
+      console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    }
 
     if (!user) {
-      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      }
       const loginUrl = new URL('/admin/login', request.url)
       const next = pathname === '/admin' ? '/admin/intakes' : pathname
       loginUrl.searchParams.set('next', next)
       return NextResponse.redirect(loginUrl)
     }
 
-    console.log(`[MIDDLEWARE] User ID: ${user.id}`)
-    console.log(`[MIDDLEWARE] User email: ${user.email}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] User ID: ${user.id}`)
+      console.log(`[MIDDLEWARE] User email: ${user.email}`)
+    }
 
     // ✅ SECURITY FIX: Verify admin role
     const { data: profile, error: profileError } = await supabase
@@ -216,8 +214,10 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
-    console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+      console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+    }
 
     if (profileError) {
       console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
@@ -229,12 +229,16 @@ export async function middleware(request: NextRequest) {
         { hasProfile: !!profile, role: profile?.role }
       )
       // Redirect non-admins to home page
-      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      }
       return NextResponse.redirect(new URL('/', request.url))
     }
 
     // Log admin access for security monitoring
-    console.log(`[ADMIN] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+    if (isDevelopment) {
+      console.log(`[ADMIN] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+    }
 
     return response
   }
@@ -251,12 +255,16 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    console.log(`[MIDDLEWARE] 🔍 Mechanic route check for: ${pathname}`)
-    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] 🔍 Mechanic route check for: ${pathname}`)
+      console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    }
 
     // UPDATED: Check Supabase Auth instead of custom cookie
     if (!user) {
-      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      }
       const loginUrl = new URL('/mechanic/login', request.url)
       // SECURITY: Validate redirect to prevent open redirects
       const safeRedirect = validateRedirect(pathname, '/mechanic/dashboard')
@@ -271,8 +279,10 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
-    console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+      console.log(`[MIDDLEWARE] Profile role: ${profile?.role || 'NONE'}`)
+    }
 
     if (profileError) {
       console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
@@ -284,11 +294,15 @@ export async function middleware(request: NextRequest) {
         { hasProfile: !!profile, role: profile?.role }
       )
       // Redirect non-mechanics to homepage
-      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      }
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    console.log(`[MECHANIC] ✅ ${user.email} accessing ${pathname}`)
+    if (isDevelopment) {
+      console.log(`[MECHANIC] ✅ ${user.email} accessing ${pathname}`)
+    }
 
     return response
   }
@@ -305,11 +319,15 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    console.log(`[MIDDLEWARE] 🔍 Workshop route check for: ${pathname}`)
-    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] 🔍 Workshop route check for: ${pathname}`)
+      console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    }
 
     if (!user) {
-      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to login`)
+      }
       const loginUrl = new URL('/workshop/login', request.url)
       const safeRedirect = validateRedirect(pathname, '/workshop/dashboard')
       loginUrl.searchParams.set('next', safeRedirect)
@@ -338,11 +356,13 @@ export async function middleware(request: NextRequest) {
       .eq('status', 'active')
       .maybeSingle()
 
-    console.log(`[MIDDLEWARE] Membership query result:`, {
-      found: !!membership,
-      error: membershipError?.message,
-      userId: user.id
-    })
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] Membership query result:`, {
+        found: !!membership,
+        error: membershipError?.message,
+        userId: user.id
+      })
+    }
 
     const org = membership?.organizations as any
 
@@ -354,7 +374,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/', request.url))
     }
 
-    console.log(`[WORKSHOP] ✅ ${user.email} accessing ${pathname} (Role: ${membership.role})`)
+    if (isDevelopment) {
+      console.log(`[WORKSHOP] ✅ ${user.email} accessing ${pathname} (Role: ${membership.role})`)
+    }
 
     return response
   }
@@ -371,11 +393,15 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    console.log(`[MIDDLEWARE] 🔍 Customer route check for: ${pathname}`)
-    console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] 🔍 Customer route check for: ${pathname}`)
+      console.log(`[MIDDLEWARE] User authenticated: ${!!user}`)
+    }
 
     if (!user) {
-      console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to homepage`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] ⚠️  No user found - redirecting to homepage`)
+      }
       const homeUrl = new URL('/', request.url)
       return NextResponse.redirect(homeUrl)
     }
@@ -387,7 +413,9 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+    if (isDevelopment) {
+      console.log(`[MIDDLEWARE] Profile found: ${!!profile}`)
+    }
 
     if (profileError) {
       console.error(`[MIDDLEWARE] ❌ Profile fetch error:`, profileError)
@@ -399,12 +427,16 @@ export async function middleware(request: NextRequest) {
         { hasProfile: !!profile }
       )
       // Redirect users without profiles to homepage
-      console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      if (isDevelopment) {
+        console.log(`[MIDDLEWARE] 🔴 REDIRECTING TO HOMEPAGE`)
+      }
       return NextResponse.redirect(new URL('/', request.url))
     }
 
     // Log customer access for monitoring
-    console.log(`[CUSTOMER] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+    if (isDevelopment) {
+      console.log(`[CUSTOMER] ✅ ${profile.full_name || profile.email} accessing ${pathname}`)
+    }
 
     // Add cache control headers to prevent browser caching after logout
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')

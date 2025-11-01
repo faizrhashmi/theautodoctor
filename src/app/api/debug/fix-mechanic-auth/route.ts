@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,7 +19,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
  * Fix the get_authenticated_mechanic_id() function that still references deleted mechanic_sessions table
  * This is causing the infinite loading loop on mechanic dashboard
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const results: any = {
     timestamp: new Date().toISOString(),
     steps: [],
@@ -190,7 +192,7 @@ AND policyname LIKE '%Mechanics can%own profile%';
  *
  * Check the current status of the mechanic auth function
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     // Check if function exists and what it contains
     const { data: functions, error: funcError } = await supabaseAdmin
@@ -219,3 +221,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

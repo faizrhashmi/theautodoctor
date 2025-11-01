@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Test different session_requests queries to isolate the error
  */
-export async function GET() {
+async function getHandler() {
   const results: any = {
     timestamp: new Date().toISOString(),
     tests: [],
@@ -96,3 +98,6 @@ export async function GET() {
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

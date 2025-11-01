@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * POST /api/debug/reset-mechanic-password
@@ -7,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * Reset a mechanic's password for testing
  * Body: { email: string, newPassword: string }
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const { email, newPassword } = await request.json()
 
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
  *
  * Check mechanic account status
  */
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
@@ -158,3 +160,7 @@ export async function GET(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

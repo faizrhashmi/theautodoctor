@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Check if a session exists in different tables
  *
  * GET /api/debug/check-session?id=7634b27b-9d36-4c64-9e97-419c9fa153fd
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('id')
 
@@ -100,3 +102,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

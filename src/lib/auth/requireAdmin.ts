@@ -1,3 +1,19 @@
+/**
+ * ⚠️ DEPRECATED - DO NOT USE THIS FILE ⚠️
+ *
+ * P0-4 FIX: This file is deprecated to eliminate duplicate auth guard implementations.
+ * Use the centralized guards from @/lib/auth/guards instead:
+ *
+ * - Instead of requireAdmin() → use requireAdminAPI()
+ * - Instead of requireAdminServerComponent() → use requireAdmin()
+ * - Instead of isAdmin() → use requireAdminAPI() and check result
+ *
+ * This file will be removed in a future cleanup.
+ * All new code should import from @/lib/auth/guards
+ *
+ * @deprecated Use @/lib/auth/guards instead
+ */
+
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'

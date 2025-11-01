@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -10,7 +12,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
  * Actually call the end session endpoint and show the full response
  * This bypasses the frontend to see exactly what's happening
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('sessionId')
 
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
  *
  * Check session requests for a mechanic
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const mechanicEmail = searchParams.get('mechanicEmail') || 'workshop.mechanic@test.com'
 
@@ -129,3 +131,7 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

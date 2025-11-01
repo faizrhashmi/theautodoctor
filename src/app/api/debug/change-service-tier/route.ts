@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,7 +19,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
  * Change workshop.mechanic@test.com service_tier from "virtual_only" to "hybrid"
  * This allows them to access /mechanic/dashboard instead of being redirected to /mechanic/dashboard/virtual
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const results: any = {
     timestamp: new Date().toISOString(),
     email: 'workshop.mechanic@test.com',
@@ -109,7 +111,7 @@ export async function POST(req: NextRequest) {
  *
  * Check current service_tier
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
     const user = authUsers.users.find(u => u.email === 'workshop.mechanic@test.com')
@@ -140,3 +142,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
+export const GET = withDebugAuth(getHandler)

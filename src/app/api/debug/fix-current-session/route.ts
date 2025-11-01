@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * POST /api/debug/fix-current-session
@@ -9,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * 1. Customer user_id matches session.customer_user_id
  * 2. Mechanic user_id matches mechanics.user_id (not mechanic.id!)
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const { sessionId } = await request.json()
 
@@ -141,3 +143,6 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)

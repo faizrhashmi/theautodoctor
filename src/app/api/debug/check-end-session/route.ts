@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { canTransition } from '@/lib/sessionFsm'
 import type { SessionStatus } from '@/types/session'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Check why session end is failing
  *
  * Usage: GET /api/debug/check-end-session?sessionId=xxx&userId=yyy
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sessionId = searchParams.get('sessionId')
   const userId = searchParams.get('userId')
@@ -124,3 +126,6 @@ export async function GET(req: NextRequest) {
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)
