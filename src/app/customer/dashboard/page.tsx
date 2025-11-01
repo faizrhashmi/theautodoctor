@@ -40,6 +40,7 @@ import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 
+// ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
   total_services: number
   total_spent: number
@@ -48,6 +49,17 @@ interface DashboardStats {
   has_used_free_session: boolean | null
   account_type: string
   is_b2c_customer: boolean
+  subscription: {
+    has_active: boolean
+    current_credits: number
+    total_allocated: number
+    credits_used: number
+    plan_name: string | null
+    credit_allocation: number
+    billing_cycle: string | null
+    next_billing_date: string | null
+    billing_cycle_end: string | null
+  }
 }
 
 interface RecentSession {
@@ -451,6 +463,97 @@ export default function CustomerDashboardPage() {
             <ActiveSessionsManager sessions={activeSessions} />
           </div>
         </>
+      )}
+
+      {/* ✅ P0 FIX: Credit Balance Widget */}
+      {stats?.subscription.has_active && (
+        <div className="mb-6 sm:mb-8 rounded-2xl border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 p-4 sm:p-6 shadow-2xl backdrop-blur">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                <svg
+                  className="h-6 w-6 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-white">
+                  Subscription Credits
+                </h3>
+                <p className="text-xs sm:text-sm text-blue-300">
+                  {stats.subscription.plan_name}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Credit Balance Display */}
+          <div className="space-y-4">
+            {/* Current Credits - Large Display */}
+            <div className="text-center p-6 rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border border-blue-400/30">
+              <div className="text-5xl sm:text-6xl font-bold text-white mb-2">
+                {stats.subscription.current_credits}
+              </div>
+              <div className="text-sm sm:text-base text-blue-200">
+                Credits Remaining
+              </div>
+            </div>
+
+            {/* Credit Usage Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-blue-500/10 border border-blue-400/20 p-3">
+                <div className="text-xs text-blue-300 mb-1">Total Allocated</div>
+                <div className="text-xl font-bold text-white">
+                  {stats.subscription.total_allocated}
+                </div>
+              </div>
+              <div className="rounded-lg bg-blue-500/10 border border-blue-400/20 p-3">
+                <div className="text-xs text-blue-300 mb-1">Credits Used</div>
+                <div className="text-xl font-bold text-white">
+                  {stats.subscription.credits_used}
+                </div>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
+                <span>Usage This Cycle</span>
+                <span>
+                  {stats.subscription.credits_used} / {stats.subscription.credit_allocation}
+                </span>
+              </div>
+              <div className="h-2 bg-blue-900/30 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                  style={{
+                    width: `${Math.min(100, (stats.subscription.credits_used / Math.max(1, stats.subscription.credit_allocation)) * 100)}%`
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Renewal Date */}
+            {stats.subscription.next_billing_date && (
+              <div className="text-xs text-blue-300 text-center pt-2 border-t border-blue-400/20">
+                Next renewal: {new Date(stats.subscription.next_billing_date).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Unified Session Launcher - Account-Type Aware */}

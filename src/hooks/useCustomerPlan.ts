@@ -3,21 +3,39 @@
 import { useState, useEffect } from 'react'
 
 interface ServicePlan {
+  // Basic identification
   id: string
   slug: string
   name: string
+
+  // Pricing
   price: string
   priceValue: number
+  stripePriceId: string | null
+
+  // Duration
   duration: string
   durationMinutes: number
+
+  // Content
   description: string
   perks: string[]
   recommendedFor: string
-  stripePriceId: string | null
-  features?: Record<string, boolean>
-  planCategory?: 'basic' | 'premium' | 'enterprise'
-  routingPreference?: 'any' | 'general' | 'brand_specialist'
-  restrictedBrands?: string[]
+
+  // ✅ P0 FIX: Add required fields from API
+  // Subscription & Payment
+  planType: 'one_time' | 'subscription' | null
+  billingCycle: 'monthly' | 'annual' | null
+  creditAllocation: number | null
+
+  // Feature Flags & Tier (now required, not optional)
+  planCategory: 'basic' | 'premium' | 'enterprise'
+  features: Record<string, boolean | string | number>
+
+  // Routing & Specialist Logic (now required, not optional)
+  routingPreference: 'any' | 'general' | 'brand_specialist'
+  restrictedBrands: string[]
+  requiresCertification: boolean
 }
 
 /**

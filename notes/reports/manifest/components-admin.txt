@@ -1,0 +1,10 @@
+src/components/admin/ActivityFeed.tsx
+src/components/admin/AdminActivityTimeout.tsx
+src/components/admin/AuthCheck.tsx
+src/components/admin/DashboardStats.tsx
+src/components/admin/LogoutButton.tsx
+src/components/admin/MetricsCard.tsx
+src/components/admin/QuickActions.tsx
+src/components/admin/QuickNav.tsx
+src/components/admin/ServerAuthCheck.tsx
+src/components/admin/SystemHealth.tsx
