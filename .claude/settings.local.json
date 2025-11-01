@@ -101,7 +101,10 @@
       "Bash(rd \"src\\app\\customer\\forgot-password\")",
       "Bash(for file in \"src/app/api/admin/credit-pricing/route.ts\" \"src/app/api/admin/credit-pricing/[id]/route.ts\" \"src/app/api/admin/homepage/route.ts\" \"src/app/api/admin/homepage/[id]/route.ts\")",
       "Bash(pnpm add:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(for file in src/app/api/debug/*/route.ts)",
+      "Bash(then echo \"$file\")",
+      "Bash(timeout 180 npm run build:*)"
     ],
     "deny": [],
     "ask": []
