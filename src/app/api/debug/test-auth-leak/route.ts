@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const email = searchParams.get('email') || 'workshop1@test.com';
@@ -66,3 +68,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

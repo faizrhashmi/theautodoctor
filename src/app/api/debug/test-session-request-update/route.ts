@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     // Get a completed session with its request
     const sessionId = '1ae55168-3b0c-484a-82ae-433ccc8b5dcd' // From above data
@@ -75,3 +77,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

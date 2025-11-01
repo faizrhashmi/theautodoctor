@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Check foreign keys on session_requests table
  *
  * This will query the PostgreSQL system catalogs to see what foreign keys exist
  */
-export async function GET() {
+async function getHandler() {
   const results: any = {
     timestamp: new Date().toISOString(),
     checks: [],
@@ -118,3 +120,6 @@ export async function GET() {
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * DEBUG ENDPOINT: Apply auth function fix
  *
  * This applies the migration to fix the ambiguous column error in get_authenticated_mechanic_id()
  */
-export async function GET() {
+async function getHandler() {
   const results: any = {
     timestamp: new Date().toISOString(),
     steps: [],
@@ -105,3 +107,6 @@ GRANT EXECUTE ON FUNCTION get_authenticated_mechanic_id() TO anon;
 }
 
 export const dynamic = 'force-dynamic'
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

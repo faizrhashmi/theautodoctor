@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * Debug endpoint to check session requests visibility
  * GET /api/debug/mechanic-requests?email=mechanic.workshop@test.com
  */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const mechanicEmail = searchParams.get('email') || 'mechanic.workshop@test.com'
@@ -129,3 +131,6 @@ export async function GET(req: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const GET = withDebugAuth(getHandler)

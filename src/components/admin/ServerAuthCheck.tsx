@@ -1,9 +1,11 @@
-import { redirect } from 'next/navigation'
-import { requireAdminServerComponent } from '@/lib/auth/requireAdmin'
+import { requireAdmin } from '@/lib/auth/guards'
 
 /**
  * Server-side authentication check for admin pages
  * Redirects unauthorized users to login page
+ *
+ * P0-4 FIX: Updated to use centralized guards from @/lib/auth/guards
+ * (Previously used deprecated @/lib/auth/requireAdmin)
  *
  * Usage in admin layout:
  * <ServerAuthCheck>
@@ -11,12 +13,8 @@ import { requireAdminServerComponent } from '@/lib/auth/requireAdmin'
  * </ServerAuthCheck>
  */
 export async function ServerAuthCheck({ children }: { children: React.ReactNode }) {
-  const auth = await requireAdminServerComponent()
-
-  if (!auth.authorized) {
-    console.warn('[SECURITY] Unauthorized access attempt to admin page - redirecting to login')
-    redirect('/admin/login')
-  }
+  // requireAdmin from guards.ts will redirect unauthorized users automatically
+  await requireAdmin()
 
   return <>{children}</>
 }

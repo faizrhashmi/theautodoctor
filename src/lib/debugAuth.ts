@@ -26,19 +26,27 @@ export interface DebugAuthResult {
  * - In production: Only admins can access
  * - In development: Open access for testing
  * - Always log access attempts for security monitoring
+ *
+ * P0-5 FIX: Enhanced production detection using both NODE_ENV and AAD_ENV
+ * This prevents accidental debug endpoint exposure if NODE_ENV is misconfigured
  */
 export async function verifyDebugAccess(req: NextRequest): Promise<DebugAuthResult> {
-  const isDevelopment = process.env.NODE_ENV === 'development'
   const endpoint = new URL(req.url).pathname
 
+  // P0-5 FIX: Check BOTH NODE_ENV and AAD_ENV for production detection
+  // If either is explicitly set to "production", we require admin auth
+  const isNodeEnvProduction = process.env.NODE_ENV === 'production'
+  const isAadEnvProduction = process.env.AAD_ENV === 'production'
+  const isProduction = isNodeEnvProduction || isAadEnvProduction
+
   // In development, allow access but log it
-  if (isDevelopment) {
+  if (!isProduction) {
     console.log(`[DEBUG AUTH] Development mode - allowing access to: ${endpoint}`)
     return { authorized: true }
   }
 
   // In production, require admin authentication
-  console.log(`[DEBUG AUTH] Production mode - verifying admin access for: ${endpoint}`)
+  console.log(`[DEBUG AUTH] Production mode (NODE_ENV=${process.env.NODE_ENV}, AAD_ENV=${process.env.AAD_ENV}) - verifying admin access for: ${endpoint}`)
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {

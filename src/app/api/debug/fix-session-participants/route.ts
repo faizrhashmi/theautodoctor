@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { withDebugAuth } from '@/lib/debugAuth'
+
 
 /**
  * POST /api/debug/fix-session-participants?sessionId=xxx
@@ -9,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  *
  * This fixes old sessions created before the participant fix was implemented.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
@@ -123,3 +125,6 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// P0-1 FIX: Protect debug endpoint with authentication
+export const POST = withDebugAuth(postHandler)
