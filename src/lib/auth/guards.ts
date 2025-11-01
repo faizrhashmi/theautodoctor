@@ -494,7 +494,7 @@ export async function requireWorkshopAPI(
       organizations!inner (
         id,
         name,
-        type
+        organization_type
       )
     `)
     .eq('user_id', user.id)
@@ -502,6 +502,7 @@ export async function requireWorkshopAPI(
     .maybeSingle()
 
   if (membershipError || !membership) {
+    console.log('[requireWorkshopAPI] No active membership found for user:', user.id, membershipError)
     return {
       data: null,
       error: NextResponse.json(
@@ -513,7 +514,8 @@ export async function requireWorkshopAPI(
 
   // Verify the organization is a workshop
   const organization = membership.organizations as any
-  if (!organization || organization.type !== 'workshop') {
+  if (!organization || organization.organization_type !== 'workshop') {
+    console.log('[requireWorkshopAPI] Organization is not a workshop:', organization?.organization_type)
     return {
       data: null,
       error: NextResponse.json(

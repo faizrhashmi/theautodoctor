@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCustomerAPI } from '@/lib/auth/guards'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import {
+  getCustomerSpendingTrend,
+  getCustomerSessionDistribution,
+  type CustomerSpendingTrendRow,
+  type CustomerSessionDistributionRow
+} from '@/types/database-functions'
 
 export async function GET(req: NextRequest) {
   // ✅ SECURITY: Require customer authentication
@@ -24,15 +30,12 @@ export async function GET(req: NextRequest) {
       .eq('customer_id', customerId)
       .single()
 
+    // ✅ P0 FIX: Use type-safe RPC wrappers
     // Fetch spending trend (last 12 months)
-    const { data: spendingTrend } = await supabaseAdmin.rpc('get_customer_spending_trend', {
-      p_customer_id: customerId,
-    })
+    const spendingTrend = await getCustomerSpendingTrend(supabaseAdmin, customerId)
 
     // Fetch session distribution
-    const { data: sessionDistribution } = await supabaseAdmin.rpc('get_customer_session_distribution', {
-      p_customer_id: customerId,
-    })
+    const sessionDistribution = await getCustomerSessionDistribution(supabaseAdmin, customerId)
 
     // Fetch top rated mechanics for this customer
     const { data: mechanicRatings } = await supabaseAdmin
@@ -88,8 +91,8 @@ export async function GET(req: NextRequest) {
       .slice(0, 5)
 
     // Format spending trend with trend indicators
-    const monthlySpending =
-      spendingTrend?.map((item: any, index: number, arr: any[]) => {
+    // ✅ P0 FIX: Now has full type safety - no 'any' types!
+    const monthlySpending = spendingTrend.map((item, index, arr) => {
         const prevAmount = index < arr.length - 1 ? parseFloat(arr[index + 1].total_spent) : 0
         const currentAmount = parseFloat(item.total_spent)
         const change = prevAmount > 0 ? ((currentAmount - prevAmount) / prevAmount) * 100 : 0
@@ -103,7 +106,7 @@ export async function GET(req: NextRequest) {
           trend: change > 0 ? ('up' as const) : change < 0 ? ('down' as const) : ('stable' as const),
           change: Math.abs(Math.round(change)),
         }
-      }) || []
+      })
 
     // Format session distribution with colors
     const colorMap: Record<string, string> = {
@@ -112,13 +115,13 @@ export async function GET(req: NextRequest) {
       diagnostic: '#F59E0B',
     }
 
-    const serviceDistribution =
-      sessionDistribution?.map((item: any) => ({
+    // ✅ P0 FIX: Type-safe mapping with autocomplete
+    const serviceDistribution = sessionDistribution.map((item) => ({
         type: item.session_type.charAt(0).toUpperCase() + item.session_type.slice(1),
         count: item.count,
         percentage: Math.round(parseFloat(item.percentage)),
         color: colorMap[item.session_type] || '#8B5CF6',
-      })) || []
+      }))
 
     // Vehicle stats
     const vehicleStats = {

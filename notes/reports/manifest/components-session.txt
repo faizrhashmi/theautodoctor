@@ -1,0 +1,12 @@
+src/components/chat/ChatBubble.tsx
+src/components/chat/ChatPopup.tsx
+src/components/chat/FloatingChatPopup.tsx
+src/components/chat/SessionTimer.tsx
+src/components/session/FileSharePanel.tsx
+src/components/session/SessionCountdownTimer.tsx
+src/components/session/SessionExtensionPanel.tsx
+src/components/session/SessionSummaryCard.tsx
+src/components/session/SessionTimer.tsx
+src/components/session/UpsellRecommendations.tsx
+src/components/session/WaitingRoom.tsx
+src/components/video/DevicePreflight.tsx

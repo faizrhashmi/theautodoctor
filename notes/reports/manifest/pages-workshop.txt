@@ -1,0 +1,14 @@
+src/app/workshop/analytics/page.tsx
+src/app/workshop/dashboard/page.tsx
+src/app/workshop/diagnostics/[sessionId]/complete/page.tsx
+src/app/workshop/diagnostics/page.tsx
+src/app/workshop/escalations/page.tsx
+src/app/workshop/login/page.tsx
+src/app/workshop/onboarding/agreement/page.tsx
+src/app/workshop/partnerships/applications/page.tsx
+src/app/workshop/partnerships/programs/page.tsx
+src/app/workshop/quotes/create/[sessionId]/page.tsx
+src/app/workshop/quotes/page.tsx
+src/app/workshop/settings/revenue/page.tsx
+src/app/workshop/signup/page.tsx
+src/app/workshop/signup/success/page.tsx

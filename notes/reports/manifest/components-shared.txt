@@ -1,0 +1,16 @@
+src/components/admin/QuickActions.tsx
+src/components/admin/QuickNav.tsx
+src/components/common/Breadcrumbs.tsx
+src/components/layout/ClientNavbar.tsx
+src/components/layout/ConditionalMainWrapper.tsx
+src/components/layout/CustomerFlowLayout.tsx
+src/components/layout/SiteFooter.tsx
+src/components/shared/AddressAutocomplete.tsx
+src/components/shared/CountrySelector.tsx
+src/components/ui/ConnectionQuality.tsx
+src/components/ui/PresenceChip.tsx
+src/components/ui/ProcessSteps.tsx
+src/components/ui/ProgressTracker.tsx
+src/components/ui/ServiceCards.tsx
+src/components/ui/StatusBadge.tsx
+src/components/ui/tabs.tsx

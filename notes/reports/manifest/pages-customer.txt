@@ -1,0 +1,17 @@
+src/app/customer/complete-profile/page.tsx
+src/app/customer/dashboard/page.tsx
+src/app/customer/plans/page.tsx
+src/app/customer/preferences/page.tsx
+src/app/customer/profile/page.tsx
+src/app/customer/quotes/[quoteId]/page.tsx
+src/app/customer/quotes/page.tsx
+src/app/customer/schedule/page.tsx
+src/app/customer/sessions/page.tsx
+src/app/customer/settings/privacy/delete-account/page.tsx
+src/app/customer/settings/privacy/download-data/page.tsx
+src/app/customer/settings/privacy/page.tsx
+src/app/customer/signup/page.tsx
+src/app/customer/specialists/page.tsx
+src/app/customer/vehicles/[id]/history/page.tsx
+src/app/customer/vehicles/page.tsx
+src/app/customer/verify-email/page.tsx
