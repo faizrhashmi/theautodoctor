@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { Dispatch, SetStateAction } from 'react'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 // TypeScript interfaces for Workshop Signup Steps
 interface WorkshopSignupData {
@@ -405,7 +406,7 @@ export function Step3Coverage({
           max="50"
           step="0.5"
           value={formData.commissionRate}
-          onChange={(e) => updateForm({ commissionRate: parseFloat(e.target.value) || 10 })}
+          onChange={(e) => updateForm({ commissionRate: parseFloat(e.target.value) || WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE })}
           className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
         />
         <p className="mt-1 text-xs text-slate-400">

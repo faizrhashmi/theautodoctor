@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { trackSignupEvent, EventTimer } from '@/lib/analytics/workshopEvents'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
         coverage_postal_codes: coveragePostalCodes,
         service_radius_km: serviceRadiusKm || 25,
         mechanic_capacity: mechanicCapacity || 10,
-        commission_rate: commissionRate || 10.0,
+        commission_rate: commissionRate || WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE,
         subscription_status: 'none', // Workshops don't have subscriptions
         status: 'pending', // Requires admin approval
         verification_status: 'pending',

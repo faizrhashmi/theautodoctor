@@ -25,6 +25,7 @@ import {
   Step3Coverage,
   Step4Review,
 } from '@/components/workshop/WorkshopSignupSteps'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 interface WorkshopSignupData {
   // Step 1: Basic Information
@@ -105,7 +106,7 @@ export default function WorkshopSignupPage() {
     coveragePostalCodes: [],
     serviceRadiusKm: 25,
     mechanicCapacity: 10,
-    commissionRate: 10.0,
+    commissionRate: WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE,
     termsAccepted: false,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
