@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 /**
  * GET /api/mechanics/statements
@@ -57,7 +58,10 @@ export async function GET(req: NextRequest) {
       .gte('updated_at', startDate.toISOString())
       .lte('updated_at', endDate.toISOString())
 
-    const virtualEarnings = virtualSessions?.reduce((sum, s) => sum + (s.total_price * 0.85), 0) || 0
+    const platformFeeRate = WORKSHOP_PRICING.PLATFORM_COMMISSION_RATE / 100 // Convert percentage to decimal
+    const mechanicShareRate = 1 - platformFeeRate // 0.85 (85%)
+
+    const virtualEarnings = virtualSessions?.reduce((sum, s) => sum + (s.total_price * mechanicShareRate), 0) || 0
     const virtualJobs = virtualSessions?.length || 0
 
     // Get physical job earnings (revenue splits)
@@ -128,7 +132,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate totals
     const totalRevenue = (virtualSessions?.reduce((sum, s) => sum + s.total_price, 0) || 0) + physicalRevenue
-    const totalPlatformFees = (virtualSessions?.reduce((sum, s) => sum + (s.total_price * 0.15), 0) || 0) + physicalPlatformFees
+    const totalPlatformFees = (virtualSessions?.reduce((sum, s) => sum + (s.total_price * platformFeeRate), 0) || 0) + physicalPlatformFees
     const totalWorkshopFees = physicalWorkshopFees
     const totalBayRentalCosts = bayRentalCosts
     const totalMembershipFees = membershipFees
@@ -168,7 +172,7 @@ export async function GET(req: NextRequest) {
         virtual: {
           jobs: virtualJobs,
           revenue: virtualSessions?.reduce((sum, s) => sum + s.total_price, 0) || 0,
-          platform_fees: virtualSessions?.reduce((sum, s) => sum + (s.total_price * 0.15), 0) || 0,
+          platform_fees: virtualSessions?.reduce((sum, s) => sum + (s.total_price * platformFeeRate), 0) || 0,
           earnings: virtualEarnings
         },
         physical: {
@@ -183,8 +187,8 @@ export async function GET(req: NextRequest) {
         date: s.updated_at,
         type: s.session_type,
         revenue: s.total_price,
-        platform_fee: s.total_price * 0.15,
-        earnings: s.total_price * 0.85
+        platform_fee: s.total_price * platformFeeRate,
+        earnings: s.total_price * mechanicShareRate
       })) || [],
       physical_jobs_detail: physicalJobs?.map(j => ({
         date: j.completed_at,

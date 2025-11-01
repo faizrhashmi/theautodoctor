@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 /**
  * GET /api/mechanics/dashboard/stats
@@ -50,7 +51,8 @@ export async function GET(req: NextRequest) {
       .gte('updated_at', today.toISOString())
 
     const completedToday = todaySessions?.length || 0
-    const earningsToday = todaySessions?.reduce((sum, s) => sum + (s.total_price * 0.85), 0) || 0
+    const mechanicShareRate = 1 - (WORKSHOP_PRICING.PLATFORM_COMMISSION_RATE / 100) // 0.85 (85%)
+    const earningsToday = todaySessions?.reduce((sum, s) => sum + (s.total_price * mechanicShareRate), 0) || 0
 
     // Get this week's earnings
     const weekStart = new Date()
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
       .eq('status', 'completed')
       .gte('updated_at', weekStart.toISOString())
 
-    const earningsWeek = weekSessions?.reduce((sum, s) => sum + (s.total_price * 0.85), 0) || 0
+    const earningsWeek = weekSessions?.reduce((sum, s) => sum + (s.total_price * mechanicShareRate), 0) || 0
 
     // Get this month's earnings
     const monthStart = new Date()
@@ -78,7 +80,7 @@ export async function GET(req: NextRequest) {
       .eq('status', 'completed')
       .gte('updated_at', monthStart.toISOString())
 
-    const earningsMonth = monthSessions?.reduce((sum, s) => sum + (s.total_price * 0.85), 0) || 0
+    const earningsMonth = monthSessions?.reduce((sum, s) => sum + (s.total_price * mechanicShareRate), 0) || 0
 
     // Get total sessions
     const { count: totalSessions } = await supabaseAdmin
@@ -115,7 +117,7 @@ export async function GET(req: NextRequest) {
       customer_name: (s.profiles as any)?.full_name || 'Unknown Customer',
       session_type: s.session_type,
       status: s.status,
-      earnings: s.total_price * 0.85,
+      earnings: s.total_price * mechanicShareRate,
       created_at: s.created_at
     })) || []
 

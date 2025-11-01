@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { WORKSHOP_PRICING, isValidCommissionRate } from '@/config/workshopPricing'
 
 interface Workshop {
   id: string
@@ -34,7 +35,7 @@ export default function RevenueSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [workshop, setWorkshop] = useState<Workshop | null>(null)
-  const [revenueShare, setRevenueShare] = useState(15) // Default 15%
+  const [revenueShare, setRevenueShare] = useState(WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -89,7 +90,7 @@ export default function RevenueSettingsPage() {
       }
 
       setWorkshop(workshopData)
-      setRevenueShare(workshopData.revenue_share_percentage || 15)
+      setRevenueShare(workshopData.revenue_share_percentage || WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE)
     } catch (err: any) {
       console.error('Error fetching workshop:', err)
       setError(err.message || 'Failed to load workshop data')
@@ -105,8 +106,11 @@ export default function RevenueSettingsPage() {
   const handleSave = async () => {
     if (!workshop) return
 
-    if (revenueShare < 0 || revenueShare > 50) {
-      setError('Revenue share must be between 0% and 50%')
+    // Validate using centralized validation
+    if (!isValidCommissionRate(revenueShare)) {
+      setError(
+        `Revenue share must be between ${WORKSHOP_PRICING.MIN_COMMISSION_RATE}% and ${WORKSHOP_PRICING.MAX_COMMISSION_RATE}%`
+      )
       return
     }
 
@@ -255,22 +259,22 @@ export default function RevenueSettingsPage() {
               <div className="relative">
                 <input
                   type="range"
-                  min="0"
-                  max="50"
+                  min={WORKSHOP_PRICING.MIN_COMMISSION_RATE}
+                  max={WORKSHOP_PRICING.MAX_COMMISSION_RATE}
                   step="1"
                   value={revenueShare}
                   onChange={(e) => setRevenueShare(parseInt(e.target.value))}
                   className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>0%</span>
-                  <span>25%</span>
-                  <span>50%</span>
+                  <span>{WORKSHOP_PRICING.MIN_COMMISSION_RATE}%</span>
+                  <span>{Math.floor(WORKSHOP_PRICING.MAX_COMMISSION_RATE / 2)}%</span>
+                  <span>{WORKSHOP_PRICING.MAX_COMMISSION_RATE}%</span>
                 </div>
               </div>
 
               <p className="text-xs text-gray-500 mt-2">
-                Recommended: 15-25% • Maximum: 50%
+                Recommended: {WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE}-25% • Maximum: {WORKSHOP_PRICING.MAX_COMMISSION_RATE}%
               </p>
             </div>
 

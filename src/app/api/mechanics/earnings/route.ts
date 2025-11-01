@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 /**
  * GET /api/mechanics/earnings
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Calculate earnings breakdown
-    const platformFeeRate = 0.15
+    const platformFeeRate = WORKSHOP_PRICING.PLATFORM_COMMISSION_RATE / 100 // Convert percentage to decimal
     let totalRevenue = 0
     let totalPlatformFee = 0
     let totalEarnings = 0

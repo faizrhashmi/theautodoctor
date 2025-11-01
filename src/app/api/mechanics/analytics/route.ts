@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 /**
  * GET /api/mechanics/analytics
@@ -55,7 +56,8 @@ export async function GET(req: NextRequest) {
       .gte('updated_at', startDate.toISOString())
 
     const virtualRevenue = virtualSessions?.reduce((sum, s) => sum + s.total_price, 0) || 0
-    const virtualEarnings = virtualRevenue * 0.85
+    const mechanicShareRate = 1 - (WORKSHOP_PRICING.PLATFORM_COMMISSION_RATE / 100) // 0.85 (85%)
+    const virtualEarnings = virtualRevenue * mechanicShareRate
     const virtualJobsCount = virtualSessions?.length || 0
 
     // Get physical jobs
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest) {
       }
       dailyData[date].jobs++
       dailyData[date].revenue += session.total_price
-      dailyData[date].earnings += session.total_price * 0.85
+      dailyData[date].earnings += session.total_price * mechanicShareRate
     })
 
     physicalJobs?.forEach(job => {
@@ -148,7 +150,7 @@ export async function GET(req: NextRequest) {
     const previousRevenue = (previousVirtualSessions?.reduce((sum, s) => sum + s.total_price, 0) || 0) +
       (previousPhysicalJobs?.reduce((sum, j) => sum + j.total_revenue, 0) || 0)
 
-    const previousEarnings = (previousVirtualSessions?.reduce((sum, s) => sum + s.total_price * 0.85, 0) || 0) +
+    const previousEarnings = (previousVirtualSessions?.reduce((sum, s) => sum + s.total_price * mechanicShareRate, 0) || 0) +
       (previousPhysicalJobs?.reduce((sum, j) => sum + j.mechanic_share, 0) || 0)
 
     const previousJobs = (previousVirtualSessions?.length || 0) + (previousPhysicalJobs?.length || 0)

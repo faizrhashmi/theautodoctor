@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 
 /**
  * POST /api/mechanics/jobs
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
     const program = agreement.workshop_partnership_programs as any
 
     // Calculate revenue split based on program type
-    const platformFeeRate = 0.15 // 15% platform fee
+    const platformFeeRate = WORKSHOP_PRICING.PLATFORM_COMMISSION_RATE / 100 // Convert percentage to decimal
     const platformFee = total_revenue * platformFeeRate
     const revenueAfterPlatformFee = total_revenue - platformFee
 
