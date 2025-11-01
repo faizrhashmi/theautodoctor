@@ -163,6 +163,8 @@ export async function POST(req: NextRequest) {
           mechanicId,
           shiftId: openShift.id,
           flag: repoConfig.flagValue,
+          planMicro: sessionStats.planFilters.micro,
+          planFull: sessionStats.planFilters.full,
           microSessionsCount: sessionStats.microSessions.length,
           fullSessionsCount: sessionStats.fullSessions.length
         }))

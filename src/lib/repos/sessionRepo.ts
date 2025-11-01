@@ -4,15 +4,24 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  * Session Repository - Abstracts session data access with table-choice flexibility
  *
  * Feature Flag: AAD_USE_DIAGNOSTIC_SESSIONS_FOR_CLOCK
- * - false (default): Use `sessions` table
+ * - false (default): Use `sessions` table with plan-based filtering
  * - true: Use `diagnostic_sessions` table (legacy fallback)
  *
  * Phase 1B: Batch 2 Mechanic Surface Remediation
  * - Addresses P0-2: Wrong table queries in clock route
  * - Allows empirical testing without schema changes
+ *
+ * Phase 1C: Column Mapping Fix
+ * - Fixed: sessions table uses 'plan' column, not 'session_duration_type'
+ * - Micro sessions: plan = 'free'
+ * - Full sessions: plan IN ('video15', 'diagnostic')
  */
 
 const useDiagnosticSessions = process.env.AAD_USE_DIAGNOSTIC_SESSIONS_FOR_CLOCK === 'true'
+
+// Plan-based session type mapping (Phase 1C)
+const MICRO_SESSION_PLAN = 'free'
+const FULL_SESSION_PLANS = ['video15', 'diagnostic']
 
 // Types
 export interface SessionData {
@@ -23,7 +32,7 @@ export interface SessionData {
   created_at: string
   completed_at: string | null
   duration_minutes?: number | null
-  session_duration_type?: string | null
+  plan?: string | null
 }
 
 export interface SessionStats {
@@ -31,6 +40,10 @@ export interface SessionStats {
   fullSessions: Array<{ id: string }>
   microMinutes: number
   tableUsed: 'sessions' | 'diagnostic_sessions'
+  planFilters: {
+    micro: string
+    full: string[]
+  }
 }
 
 export interface ClockStatus {
@@ -50,7 +63,7 @@ export async function getSessionById(sessionId: string): Promise<SessionData | n
 
   const { data, error } = await supabaseAdmin
     .from(tableName)
-    .select('id, mechanic_id, customer_id, status, created_at, completed_at, duration_minutes, session_duration_type')
+    .select('id, mechanic_id, customer_id, status, created_at, completed_at, duration_minutes, plan')
     .eq('id', sessionId)
     .single()
 
@@ -87,6 +100,10 @@ export async function getClockStatusForMechanic(mechanicId: string): Promise<Clo
  * Get session stats during a shift period
  * Used for clock-out to calculate sessions completed during shift
  *
+ * Phase 1C: Uses plan-based filtering
+ * - Micro: plan = 'free'
+ * - Full: plan IN ('video15', 'diagnostic')
+ *
  * @param mechanicId - UUID of mechanic
  * @param shiftStartTime - ISO timestamp of shift start
  * @param shiftEndTime - ISO timestamp of shift end
@@ -99,39 +116,55 @@ export async function getSessionStatsForShift(
 ): Promise<SessionStats> {
   const tableName = useDiagnosticSessions ? 'diagnostic_sessions' : 'sessions'
 
-  // Query micro sessions
+  // Query micro sessions (plan = 'free')
   const { data: microSessions, error: microError } = await supabaseAdmin
     .from(tableName)
-    .select('id, duration_minutes')
+    .select('id, duration_minutes, plan')
     .eq('mechanic_id', mechanicId)
-    .eq('session_duration_type', 'micro')
+    .eq('plan', MICRO_SESSION_PLAN)
     .gte('created_at', shiftStartTime)
     .lte('created_at', shiftEndTime)
 
   if (microError) {
-    console.error(`[SESSION REPO] getSessionStatsForShift micro error (table=${tableName}):`, microError)
+    console.error(`[SESSION REPO] getSessionStatsForShift micro error (table=${tableName}, plan=${MICRO_SESSION_PLAN}):`, microError)
   }
 
-  // Query full sessions
+  // Query full sessions (plan IN ['video15', 'diagnostic'])
   const { data: fullSessions, error: fullError } = await supabaseAdmin
     .from(tableName)
-    .select('id')
+    .select('id, plan')
     .eq('mechanic_id', mechanicId)
-    .in('session_duration_type', ['standard', 'extended'])
+    .in('plan', FULL_SESSION_PLANS)
     .gte('created_at', shiftStartTime)
     .lte('created_at', shiftEndTime)
 
   if (fullError) {
-    console.error(`[SESSION REPO] getSessionStatsForShift full error (table=${tableName}):`, fullError)
+    console.error(`[SESSION REPO] getSessionStatsForShift full error (table=${tableName}, plans=${FULL_SESSION_PLANS.join(',')}):`, fullError)
   }
 
   const microMinutes = (microSessions || []).reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+
+  // Telemetry
+  console.log('[MECH SESSIONS]', JSON.stringify({
+    source: 'sessionRepo',
+    function: 'getSessionStatsForShift',
+    tableUsed: tableName,
+    planMicro: MICRO_SESSION_PLAN,
+    planFull: FULL_SESSION_PLANS,
+    microCount: microSessions?.length || 0,
+    fullCount: fullSessions?.length || 0,
+    microMinutes
+  }))
 
   return {
     microSessions: microSessions || [],
     fullSessions: fullSessions || [],
     microMinutes,
-    tableUsed: tableName
+    tableUsed: tableName,
+    planFilters: {
+      micro: MICRO_SESSION_PLAN,
+      full: FULL_SESSION_PLANS
+    }
   }
 }
 
@@ -144,6 +177,10 @@ export function getSessionRepoConfig() {
     useDiagnosticSessions,
     tableName: useDiagnosticSessions ? 'diagnostic_sessions' : 'sessions',
     flagName: 'AAD_USE_DIAGNOSTIC_SESSIONS_FOR_CLOCK',
-    flagValue: process.env.AAD_USE_DIAGNOSTIC_SESSIONS_FOR_CLOCK
+    flagValue: process.env.AAD_USE_DIAGNOSTIC_SESSIONS_FOR_CLOCK,
+    planMapping: {
+      micro: MICRO_SESSION_PLAN,
+      full: FULL_SESSION_PLANS
+    }
   }
 }
