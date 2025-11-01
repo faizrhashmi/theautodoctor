@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import DOMPurify from 'isomorphic-dompurify'
 
 // Helper to check mechanic auth using unified Supabase auth
 async function getMechanicFromAuth() {
@@ -71,13 +72,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - not assigned to this session' }, { status: 401 })
     }
 
+    // P0-5 FIX: Sanitize message content server-side to prevent XSS
+    const sanitizedContent = DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: [], // No HTML tags allowed
+      ALLOWED_ATTR: [], // No attributes allowed
+      KEEP_CONTENT: true, // Keep text content
+    })
+
     // Insert message using admin client (bypasses RLS)
     const { data: message, error: insertError } = await supabaseAdmin
       .from('chat_messages')
       .insert({
         session_id: sessionId,
         sender_id: senderId,
-        content,
+        content: sanitizedContent, // Use sanitized content
         attachments: attachments || [], // Empty array instead of null
       })
       .select()

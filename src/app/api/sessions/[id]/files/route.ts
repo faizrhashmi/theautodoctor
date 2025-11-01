@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireSessionParticipantRelaxed } from '@/lib/auth/relaxedSessionAuth'
 import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { fileTypeFromBuffer } from 'file-type'
+import { scanFileForMalware, logMalwareDetection, logSecurityEvent } from '@/lib/security/malwareScan'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -102,10 +104,108 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024
+    // P0-3 FIX: Validate file size (25MB limit as approved)
+    const maxSize = 25 * 1024 * 1024
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 })
+      return NextResponse.json({ error: 'File too large (max 25MB)' }, { status: 400 })
+    }
+
+    // P0-3 FIX: File type whitelist (as approved)
+    const ALLOWED_MIME_TYPES = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'application/pdf',
+      'text/plain',
+      'text/csv',
+      'video/mp4',
+    ]
+
+    const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt', '.csv', '.mp4']
+
+    // Validate declared MIME type
+    const declaredType = file.type
+    if (!ALLOWED_MIME_TYPES.includes(declaredType)) {
+      await logSecurityEvent('file_type_rejected', {
+        user_id: participant.userId,
+        session_id: sessionId,
+        filename: file.name,
+        declared_type: declaredType,
+      })
+      return NextResponse.json({
+        error: `File type ${declaredType} not allowed. Allowed: images, PDF, text, CSV, MP4 video`
+      }, { status: 400 })
+    }
+
+    // Validate file extension
+    const fileName = file.name.toLowerCase()
+    const hasAllowedExtension = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext))
+    if (!hasAllowedExtension) {
+      await logSecurityEvent('file_extension_rejected', {
+        user_id: participant.userId,
+        session_id: sessionId,
+        filename: file.name,
+      })
+      return NextResponse.json({
+        error: `File extension not allowed. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`
+      }, { status: 400 })
+    }
+
+    // P0-3 FIX: Validate actual file content (magic bytes)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const detectedType = await fileTypeFromBuffer(buffer)
+
+    // Some text files may not have a detectable type, allow for text/plain and text/csv
+    if (!detectedType && !['text/plain', 'text/csv'].includes(declaredType)) {
+      await logSecurityEvent('file_type_undetectable', {
+        user_id: participant.userId,
+        session_id: sessionId,
+        filename: file.name,
+        declared_type: declaredType,
+      })
+      return NextResponse.json({
+        error: 'Unable to determine file type'
+      }, { status: 400 })
+    }
+
+    // If type is detectable, verify it matches whitelist
+    if (detectedType && !ALLOWED_MIME_TYPES.includes(detectedType.mime)) {
+      await logSecurityEvent('file_type_mismatch', {
+        user_id: participant.userId,
+        session_id: sessionId,
+        filename: file.name,
+        declared_type: declaredType,
+        detected_type: detectedType.mime,
+      })
+      return NextResponse.json({
+        error: 'File content does not match declared type (possible malware)'
+      }, { status: 400 })
+    }
+
+    // P0-4 FIX: Scan for malware before upload
+    let scanResult
+    try {
+      scanResult = await scanFileForMalware(buffer, file.name)
+    } catch (error) {
+      console.error('[files/POST] Malware scan failed:', error)
+      return NextResponse.json({
+        error: 'File scanning unavailable. Upload blocked for security.'
+      }, { status: 503 })
+    }
+
+    if (scanResult.infected) {
+      // Log malware detection
+      await logMalwareDetection({
+        user_id: participant.userId,
+        session_id: sessionId,
+        filename: file.name,
+        virus: scanResult.virus || 'unknown',
+        engine: scanResult.engine || 'unknown',
+      })
+
+      return NextResponse.json({
+        error: 'File blocked: contains malware or suspicious content'
+      }, { status: 400 })
     }
 
     // Generate storage path: session-files/{sessionId}/{timestamp}-{random}.{ext}
@@ -114,12 +214,20 @@ export async function POST(
     const randomId = Math.random().toString(36).substring(7)
     const storagePath = `${sessionId}/${timestamp}-${randomId}.${fileExt}`
 
-    console.log('[files/POST] Uploading file:', { sessionId, fileName: file.name, size: file.size, storagePath })
+    console.log('[files/POST] Uploading file:', {
+      sessionId,
+      fileName: file.name,
+      size: file.size,
+      storagePath,
+      scanned: scanResult.scanned,
+      clean: scanResult.clean,
+    })
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage (now safe after all validations)
     const { error: uploadError } = await supabaseAdmin.storage
       .from('session-files')
-      .upload(storagePath, file, {
+      .upload(storagePath, buffer, {
+        contentType: detectedType?.mime || declaredType,
         cacheControl: '3600',
         upsert: false,
       })

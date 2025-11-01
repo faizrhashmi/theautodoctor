@@ -1,0 +1,5 @@
+src/app/chat/[id]/page.tsx
+src/app/session/[id]/complete/page.tsx
+src/app/session/[id]/page.tsx
+src/app/video/[id]/page.tsx
+src/app/video/page.tsx

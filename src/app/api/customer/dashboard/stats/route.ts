@@ -56,13 +56,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ✅ P0 FIX: Add subscription query for credit balance
     // Execute all queries in parallel for better performance
     const [
       diagnosticSessionsCount,
       sessionsCount,
       diagnosticSessionsData,
       quotesData,
-      recentSessionsData
+      recentSessionsData,
+      activeSubscription
     ] = await Promise.all([
       // Count diagnostic sessions
       supabaseAdmin
@@ -115,7 +117,30 @@ export async function GET(req: NextRequest) {
         `)
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(5),
+
+      // ✅ P0 FIX: Fetch active subscription with credit balance
+      supabaseAdmin
+        .from('customer_subscriptions')
+        .select(`
+          id,
+          current_credits,
+          total_credits_allocated,
+          credits_used,
+          status,
+          billing_cycle_end,
+          next_billing_date,
+          plan:service_plans (
+            name,
+            credit_allocation,
+            billing_cycle
+          )
+        `)
+        .eq('customer_id', customerId)
+        .in('status', ['active', 'past_due'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
     ])
 
     // Calculate totals with error handling
@@ -148,6 +173,29 @@ export async function GET(req: NextRequest) {
       created_at: session.created_at
     })) || []
 
+    // ✅ P0 FIX: Build subscription object for frontend
+    const subscriptionData = activeSubscription.data ? {
+      has_active: true,
+      current_credits: activeSubscription.data.current_credits,
+      total_allocated: activeSubscription.data.total_credits_allocated,
+      credits_used: activeSubscription.data.credits_used,
+      plan_name: activeSubscription.data.plan?.name || 'Unknown',
+      credit_allocation: activeSubscription.data.plan?.credit_allocation || 0,
+      billing_cycle: activeSubscription.data.plan?.billing_cycle || 'monthly',
+      next_billing_date: activeSubscription.data.next_billing_date,
+      billing_cycle_end: activeSubscription.data.billing_cycle_end,
+    } : {
+      has_active: false,
+      current_credits: 0,
+      total_allocated: 0,
+      credits_used: 0,
+      plan_name: null,
+      credit_allocation: 0,
+      billing_cycle: null,
+      next_billing_date: null,
+      billing_cycle_end: null,
+    }
+
     return NextResponse.json({
       stats: {
         total_services: totalServices,
@@ -156,7 +204,8 @@ export async function GET(req: NextRequest) {
         pending_quotes: pendingQuotes,
         has_used_free_session: hasUsedFreeSession,
         account_type: accountType,
-        is_b2c_customer: isB2CCustomer
+        is_b2c_customer: isB2CCustomer,
+        subscription: subscriptionData  // ✅ P0 FIX: Include subscription data
       },
       recent_sessions: formattedRecentSessions
     })

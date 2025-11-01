@@ -119,15 +119,26 @@ export default async function VideoSessionPage({ params }: PageProps) {
   const roomName = `session-${sessionId}`
   const identity = userRole === 'mechanic' ? `mechanic-${currentUserId}` : `customer-${currentUserId}`
 
+  // P0-1 FIX: Remove metadata from JWT - store session mapping server-side instead
   const { token, serverUrl } = await generateLiveKitToken({
     room: roomName,
     identity: identity,
-    metadata: {
-      sessionId,
-      userId: currentUserId,
-      role: userRole,
-    },
   })
+
+  // P0-1 FIX: Store room mapping server-side for security
+  await supabaseAdmin.from('livekit_rooms').upsert(
+    {
+      room_name: roomName,
+      session_id: sessionId,
+      user_id: currentUserId,
+      role: userRole,
+      identity: identity,
+      created_at: new Date().toISOString(),
+    },
+    {
+      onConflict: 'room_name,user_id',
+    }
+  )
 
   // Determine correct dashboard URL based on actual user role
   const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'

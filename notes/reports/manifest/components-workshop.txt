@@ -1,0 +1,4 @@
+src/components/workshop/EarningsPanel.tsx
+src/components/workshop/InviteMechanicModal.tsx
+src/components/workshop/WorkshopSidebar.tsx
+src/components/workshop/WorkshopSignupSteps.tsx
