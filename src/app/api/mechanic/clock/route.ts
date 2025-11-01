@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { getSessionStatsForShift, getSessionRepoConfig } from '@/lib/repos/sessionRepo'
 
 /**
  * POST /api/mechanic/clock
@@ -57,6 +58,16 @@ export async function POST(req: NextRequest) {
       }
 
       const clockInTime = new Date().toISOString()
+
+      // Structured telemetry
+      const repoConfig = getSessionRepoConfig()
+      console.log('[CLOCK ROUTE]', JSON.stringify({
+        action: 'clock_in',
+        tableUsed: repoConfig.tableName,
+        mechanicId,
+        flag: repoConfig.flagValue,
+        timestamp: clockInTime
+      }))
 
       // Update mechanic status
       const { error: updateError } = await supabaseAdmin
@@ -137,24 +148,28 @@ export async function POST(req: NextRequest) {
         const clockOutDate = new Date(clockOutTime)
         const durationMinutes = Math.round((clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60))
 
-        // Get session stats during shift
-        const { data: microSessions } = await supabaseAdmin
-          .from('diagnostic_sessions')
-          .select('id, duration_minutes')
-          .eq('mechanic_id', mechanicId)
-          .eq('session_duration_type', 'micro')
-          .gte('created_at', openShift.clock_in_at)
-          .lte('created_at', clockOutTime)
+        // Get session stats during shift (via repository abstraction)
+        const repoConfig = getSessionRepoConfig()
+        const sessionStats = await getSessionStatsForShift(
+          mechanicId,
+          openShift.clock_in_at,
+          clockOutTime
+        )
 
-        const { data: fullSessions } = await supabaseAdmin
-          .from('diagnostic_sessions')
-          .select('id')
-          .eq('mechanic_id', mechanicId)
-          .in('session_duration_type', ['standard', 'extended'])
-          .gte('created_at', openShift.clock_in_at)
-          .lte('created_at', clockOutTime)
+        // Structured telemetry
+        console.log('[CLOCK ROUTE]', JSON.stringify({
+          action: 'clock_out',
+          tableUsed: sessionStats.tableUsed,
+          mechanicId,
+          shiftId: openShift.id,
+          flag: repoConfig.flagValue,
+          microSessionsCount: sessionStats.microSessions.length,
+          fullSessionsCount: sessionStats.fullSessions.length
+        }))
 
-        const microMinutes = (microSessions || []).reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+        const microSessions = sessionStats.microSessions
+        const fullSessions = sessionStats.fullSessions
+        const microMinutes = sessionStats.microMinutes
 
         // Update shift log
         await supabaseAdmin
@@ -162,9 +177,9 @@ export async function POST(req: NextRequest) {
           .update({
             clock_out_at: clockOutTime,
             shift_duration_minutes: durationMinutes,
-            micro_sessions_taken: (microSessions || []).length,
+            micro_sessions_taken: microSessions.length,
             micro_minutes_used: microMinutes,
-            full_sessions_taken: (fullSessions || []).length,
+            full_sessions_taken: fullSessions.length,
             notes: notes ? `${openShift.notes || ''}\nClock-out: ${notes}`.trim() : openShift.notes
           })
           .eq('id', openShift.id)
