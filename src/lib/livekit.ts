@@ -7,11 +7,9 @@ import { AccessToken } from 'livekit-server-sdk'
 export async function generateLiveKitToken({
   room,
   identity,
-  metadata,
 }: {
   room: string
   identity: string
-  metadata?: Record<string, any>
 }): Promise<{ token: string; serverUrl: string }> {
   const apiKey = process.env.LIVEKIT_API_KEY
   const apiSecret = process.env.LIVEKIT_API_SECRET
@@ -23,9 +21,11 @@ export async function generateLiveKitToken({
   }
 
   try {
+    // P0-1 FIX: Remove metadata parameter - no sensitive data in JWT payload
+    // P0-2 FIX: Add 60-minute token expiration
     const accessToken = new AccessToken(apiKey, apiSecret, {
       identity,
-      metadata: metadata ? JSON.stringify(metadata) : undefined,
+      ttl: 3600, // 60 minutes = 3600 seconds
     })
 
     accessToken.addGrant({
@@ -38,10 +38,14 @@ export async function generateLiveKitToken({
 
     const token = await accessToken.toJwt()
 
-    const serverUrl =
-      process.env.NEXT_PUBLIC_LIVEKIT_URL ||
-      process.env.LIVEKIT_URL ||
-      'wss://myautodoctorca-oe6r6oqr.livekit.cloud'
+    // P0-1 FIX: Remove hardcoded URL fallback - require environment variable
+    const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || process.env.LIVEKIT_URL
+
+    if (!serverUrl) {
+      throw new Error(
+        'LiveKit server URL is not configured. Please set NEXT_PUBLIC_LIVEKIT_URL or LIVEKIT_URL environment variable.'
+      )
+    }
 
     return { token, serverUrl }
   } catch (error) {

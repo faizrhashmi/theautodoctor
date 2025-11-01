@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
+import DOMPurify from 'isomorphic-dompurify'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -770,6 +771,10 @@ export default function VideoSessionClient({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
 
+  // P0-2 FIX: Token refresh state
+  const [currentToken, setCurrentToken] = useState(token)
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
   const skipPreflight = useMemo(() => {
@@ -852,6 +857,59 @@ export default function VideoSessionClient({
       supabase.removeChannel(channel)
     }
   }, [sessionId, dashboardUrl, supabase])
+
+  // P0-2 FIX: Token auto-refresh at T-10m (50 minutes after initial token)
+  useEffect(() => {
+    const REFRESH_DELAY = 50 * 60 * 1000 // 50 minutes in milliseconds
+
+    const refreshToken = async () => {
+      try {
+        console.log('[TOKEN-REFRESH] Refreshing LiveKit token...')
+
+        const roomName = `session-${sessionId}`
+        const identity = _userRole === 'mechanic' ? `mechanic-${_userId}` : `customer-${_userId}`
+
+        const response = await fetch('/api/livekit/refresh', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            room: roomName,
+            identity: identity,
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to refresh token')
+        }
+
+        const data = await response.json()
+        setCurrentToken(data.token)
+        console.log('[TOKEN-REFRESH] Token refreshed successfully, expires in', data.expiresIn, 'seconds')
+
+        // Schedule next refresh at T-10m of the new token
+        refreshTimerRef.current = setTimeout(refreshToken, REFRESH_DELAY)
+      } catch (error) {
+        console.error('[TOKEN-REFRESH] Failed to refresh token:', error)
+        // Don't retry automatically to avoid infinite loop
+        // LiveKit will handle disconnection gracefully when token expires
+      }
+    }
+
+    // Schedule first refresh at T-10m
+    console.log('[TOKEN-REFRESH] Scheduling token refresh in 50 minutes')
+    refreshTimerRef.current = setTimeout(refreshToken, REFRESH_DELAY)
+
+    // Cleanup timer on unmount
+    return () => {
+      if (refreshTimerRef.current) {
+        console.log('[TOKEN-REFRESH] Clearing refresh timer')
+        clearTimeout(refreshTimerRef.current)
+      }
+    }
+  }, [sessionId, _userId, _userRole])
 
   // Task 6: Monitor for disconnections
   useEffect(() => {
@@ -1414,7 +1472,7 @@ export default function VideoSessionClient({
       {/* Main Video Conference */}
       <LiveKitRoom
         serverUrl={serverUrl}
-        token={token}
+        token={currentToken}
         connect={true}
         video={true}
         audio={true}
@@ -1591,10 +1649,17 @@ export default function VideoSessionClient({
                             </div>
                           )}
 
-                          {/* Message Text */}
-                          <p className="break-words text-sm leading-relaxed whitespace-pre-wrap">
-                            {msg.text}
-                          </p>
+                          {/* Message Text - P0-5 FIX: Sanitize to prevent XSS */}
+                          <p
+                            className="break-words text-sm leading-relaxed whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(msg.text, {
+                                ALLOWED_TAGS: [], // No HTML tags
+                                ALLOWED_ATTR: [], // No attributes
+                                KEEP_CONTENT: true, // Keep text
+                              })
+                            }}
+                          />
 
                           {/* Timestamp and Status */}
                           <div className={`mt-1 flex items-center justify-end gap-1 ${
