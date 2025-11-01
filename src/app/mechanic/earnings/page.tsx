@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ArrowLeft
 } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface EarningsSummary {
   total_sessions: number
@@ -198,7 +199,7 @@ export default function MechanicEarningsPage() {
                   ${earningsData.summary.total_earnings.toFixed(2)}
                 </p>
                 <p className="text-sm text-green-100 mt-1">
-                  After 15% platform fee
+                  After {MECHANIC_FEES.PLATFORM_FEE_PERCENT}% platform fee
                 </p>
               </div>
 
@@ -408,7 +409,7 @@ export default function MechanicEarningsPage() {
                     Tax Reporting Information
                   </p>
                   <p className="text-sm text-blue-300">
-                    Export your earnings history for tax reporting purposes. The platform fee (15%) is already
+                    Export your earnings history for tax reporting purposes. The platform fee ({MECHANIC_FEES.PLATFORM_FEE_PERCENT}%) is already
                     deducted from your earnings. Consult with a tax professional for guidance on reporting your
                     income as an independent contractor.
                   </p>

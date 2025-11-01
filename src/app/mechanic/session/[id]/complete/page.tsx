@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardList, FileText, MessageCircle, Building2, AlertCircle, CheckCircle } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface DiagnosticSession {
   id: string
@@ -261,7 +262,7 @@ export default function MechanicSessionCompletePage() {
                   <h2 className="text-lg font-semibold text-white">Escalated to Workshop</h2>
                 </div>
                 <p className="text-sm text-slate-300">
-                  This session has been escalated to a workshop. You'll receive a 5% referral fee when the customer approves the repair quote.
+                  This session has been escalated to a workshop. You'll receive a {MECHANIC_FEES.REFERRAL_FEE_PERCENT}% referral fee when the customer approves the repair quote.
                 </p>
                 {escalationStatus.escalation?.organizations && (
                   <div className="mt-4 rounded-lg border border-slate-700 bg-slate-800/50 p-3">
@@ -278,7 +279,7 @@ export default function MechanicSessionCompletePage() {
                   <h2 className="text-lg font-semibold text-white">Escalate to Workshop</h2>
                 </div>
                 <p className="text-sm text-slate-300 mb-4">
-                  Send this diagnostic to a workshop for repair quote creation. You'll earn a 5% referral fee on approved repairs.
+                  Send this diagnostic to a workshop for repair quote creation. You'll earn a {MECHANIC_FEES.REFERRAL_FEE_PERCENT}% referral fee on approved repairs.
                 </p>
 
                 <div className="space-y-4">

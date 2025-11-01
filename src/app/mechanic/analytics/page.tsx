@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Loader2
 } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface AnalyticsData {
   period: string
@@ -197,7 +198,7 @@ export default function MechanicAnalyticsPage() {
                 <span className="text-green-400 font-bold">${analytics.virtualJobs.revenue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-300">Your Earnings (85%)</span>
+                <span className="text-slate-300">Your Earnings ({MECHANIC_FEES.MECHANIC_SHARE_PERCENT}%)</span>
                 <span className="text-orange-400 font-bold">${analytics.virtualJobs.earnings.toFixed(2)}</span>
               </div>
 

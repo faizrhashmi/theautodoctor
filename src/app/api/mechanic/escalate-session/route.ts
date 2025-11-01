@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 /**
  * POST /api/mechanic/escalate-session
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
         recommended_services: diagSession.recommended_services || [],
         diagnostic_photos: diagSession.diagnostic_photos || [],
         mechanic_notes: mechanic_notes,
-        referral_fee_percent: 5.00 // Default 5% referral fee
+        referral_fee_percent: MECHANIC_FEES.REFERRAL_FEE_PERCENT // Default 5% referral fee
       })
       .select('id')
       .single()

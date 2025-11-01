@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle, CheckCircle2, DollarSign } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 export default function StripeOnboardingPage() {
   const router = useRouter()
@@ -173,7 +174,7 @@ export default function StripeOnboardingPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li className="flex items-start gap-2">
                 <span className="text-orange-500">•</span>
-                <span>You earn 70% of each session price</span>
+                <span>You earn {MECHANIC_FEES.MECHANIC_SHARE_PERCENT}% of each session price</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-orange-500">•</span>

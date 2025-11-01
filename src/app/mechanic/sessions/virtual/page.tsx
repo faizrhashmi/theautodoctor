@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import VirtualSessionCard from '@/components/mechanic/VirtualSessionCard'
 import { MessageCircle, Video, RefreshCw, Filter, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface VirtualSession {
   id: string
@@ -271,7 +272,7 @@ export default function VirtualSessionsPage() {
                   Potential Earnings (if you accept all)
                 </h3>
                 <p className="text-3xl font-bold text-green-900">
-                  ${sessions.reduce((sum, s) => sum + (s.total_price * 0.85), 0).toFixed(2)}
+                  ${sessions.reduce((sum, s) => sum + (s.total_price * MECHANIC_FEES.B2C_MECHANIC_SHARE_RATE), 0).toFixed(2)}
                 </p>
                 <p className="text-sm text-green-700 mt-1">
                   {sessions.length} session{sessions.length !== 1 ? 's' : ''} available
@@ -280,7 +281,7 @@ export default function VirtualSessionsPage() {
               <div className="text-right">
                 <div className="text-sm text-green-700 mb-1">Average per session</div>
                 <div className="text-2xl font-bold text-green-900">
-                  ${((sessions.reduce((sum, s) => sum + s.total_price, 0) / sessions.length) * 0.85).toFixed(2)}
+                  ${((sessions.reduce((sum, s) => sum + s.total_price, 0) / sessions.length) * MECHANIC_FEES.B2C_MECHANIC_SHARE_RATE).toFixed(2)}
                 </div>
               </div>
             </div>

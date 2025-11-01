@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       .eq('status', 'completed')
       .gte('ended_at', firstDayISO)
 
-    // Calculate revenue from completed sessions (70% mechanic share)
+    // Calculate revenue from completed sessions (85% mechanic share from config)
     const MECHANIC_SHARE = 0.7
     const PLAN_PRICING: Record<string, number> = {
       'chat10': 999,      // $9.99

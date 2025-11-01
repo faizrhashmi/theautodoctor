@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { MessageCircle, Video, Clock, DollarSign, User, Car, AlertCircle, CheckCircle } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface VirtualSessionCardProps {
   session: {
@@ -98,8 +99,8 @@ export default function VirtualSessionCard({ session, onAccept, onView }: Virtua
   }
 
   const getYourEarnings = () => {
-    // Platform fee is 15%
-    const platformFee = session.total_price * 0.15
+    // Platform fee from config
+    const platformFee = session.total_price * MECHANIC_FEES.PLATFORM_FEE_RATE
     const yourEarnings = session.total_price - platformFee
     return yourEarnings.toFixed(2)
   }
@@ -193,7 +194,7 @@ export default function VirtualSessionCard({ session, onAccept, onView }: Virtua
                 ${getYourEarnings()}
               </p>
               <p className="text-xs text-green-700">
-                (${session.total_price.toFixed(2)} total, 15% platform fee)
+                (${session.total_price.toFixed(2)} total, {MECHANIC_FEES.PLATFORM_FEE_PERCENT}% platform fee)
               </p>
             </div>
             <div className="text-right">

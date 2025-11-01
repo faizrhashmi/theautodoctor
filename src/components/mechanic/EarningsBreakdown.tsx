@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { DollarSign, TrendingUp, Info, ChevronDown, ChevronUp } from 'lucide-react'
 import { SpecialistTierBadge, getTierPrice } from '@/components/SpecialistTierBadge'
 import type { SpecialistTier } from '@/components/SpecialistTierBadge'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface EarningsBreakdownProps {
   currentTier: SpecialistTier
@@ -187,7 +188,7 @@ export function EarningsBreakdown({
                     <li>You set your hourly rate + base session fee</li>
                     <li>Higher tiers command premium session fees</li>
                     <li>Payments processed weekly via Stripe</li>
-                    <li>Platform fee: 15% per session</li>
+                    <li>Platform fee: {MECHANIC_FEES.PLATFORM_FEE_PERCENT}% per session</li>
                   </ul>
                 </div>
               </div>
@@ -212,7 +213,7 @@ function ProjectionRow({
   highlighted?: boolean
 }) {
   const total = sessions * rate
-  const afterFees = total * 0.85 // 15% platform fee
+  const afterFees = total * MECHANIC_FEES.B2C_MECHANIC_SHARE_RATE // Mechanic share from config
 
   return (
     <div
@@ -248,7 +249,7 @@ function TierComparisonRow({
 }) {
   const rate = getTierPrice(tier) || 0
   const total = sessions * rate
-  const afterFees = total * 0.85
+  const afterFees = total * MECHANIC_FEES.B2C_MECHANIC_SHARE_RATE
 
   return (
     <div

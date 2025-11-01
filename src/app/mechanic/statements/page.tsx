@@ -13,6 +13,7 @@ import {
   Loader2,
   Calendar
 } from 'lucide-react'
+import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
 interface StatementData {
   period: { year: number; month: number | null }
@@ -218,7 +219,7 @@ export default function MechanicStatementsPage() {
                 <span className="text-green-400 font-bold">${statement.virtualWork.revenue.toFixed(2)}</span>
               </div>
               <div className="flex justify-between border-t border-slate-700 pt-3">
-                <span className="text-slate-300">Your Earnings (85%)</span>
+                <span className="text-slate-300">Your Earnings ({MECHANIC_FEES.MECHANIC_SHARE_PERCENT}%)</span>
                 <span className="text-orange-400 font-bold">${statement.virtualWork.earnings.toFixed(2)}</span>
               </div>
             </div>
@@ -249,7 +250,7 @@ export default function MechanicStatementsPage() {
           <h3 className="text-lg font-bold text-white mb-4">Expenses Breakdown</h3>
           <div className="space-y-3">
             <div className="flex justify-between py-2">
-              <span className="text-slate-300">Platform Fees (15% on virtual)</span>
+              <span className="text-slate-300">Platform Fees ({MECHANIC_FEES.PLATFORM_FEE_PERCENT}% on virtual)</span>
               <span className="text-red-400">-${statement.expenses.platformFees.toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-2">
