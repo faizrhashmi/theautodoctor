@@ -181,6 +181,24 @@ export async function POST(req: NextRequest) {
               } else {
                 console.log('[waiver] ✅ Created session_request:', newRequest.id)
 
+                // Create notification for customer
+                try {
+                  await supabaseAdmin
+                    .from('notifications')
+                    .insert({
+                      user_id: existingSession.customer_user_id,
+                      type: 'request_created',
+                      payload: {
+                        request_id: newRequest.id,
+                        session_type: existingSession.type,
+                        plan_code: plan
+                      }
+                    })
+                  console.log('[waiver] ✓ Created request_created notification for customer')
+                } catch (notifError) {
+                  console.warn('[waiver] Failed to create notification:', notifError)
+                }
+
                 // CRITICAL: Add delay before broadcasting to allow database replication
                 // Supabase connection pooler needs time to propagate the write
                 // Without this delay, mechanics may not see the request immediately

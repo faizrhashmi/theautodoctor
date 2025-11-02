@@ -139,6 +139,24 @@ export async function POST(request: NextRequest) {
 
   console.log('[CREATE REQUEST] ✓ Session request created:', inserted.id)
 
+  // Create notification for customer
+  try {
+    await supabaseAdmin
+      .from('notifications')
+      .insert({
+        user_id: user.id,
+        type: 'request_created',
+        payload: {
+          request_id: inserted.id,
+          session_type: sessionType,
+          plan_code: planCode
+        }
+      })
+    console.log('[CREATE REQUEST] ✓ Created request_created notification for customer')
+  } catch (notifError) {
+    console.warn('[CREATE REQUEST] Failed to create notification:', notifError)
+  }
+
   // CRITICAL: Add delay before broadcasting to allow database replication
   // Supabase connection pooler needs time to propagate the write
   await new Promise(resolve => setTimeout(resolve, 3000))
