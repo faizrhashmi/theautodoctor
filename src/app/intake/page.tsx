@@ -57,6 +57,9 @@ export default function IntakePage() {
   const plan = searchParams.get('plan') || 'trial'
   const useCredits = searchParams.get('use_credits') === 'true'
   const isSpecialist = searchParams.get('specialist') === 'true'
+  // Phase 3: Favorites Priority Flow
+  const preferredMechanicId = searchParams.get('preferred_mechanic_id')
+  const routingType = searchParams.get('routing_type')
   const router = useRouter()
 
   // SIMPLE AUTH - Same as dashboard
@@ -362,7 +365,10 @@ export default function IntakePage() {
           files: uploadedPaths,
           urgent: isUrgent,
           use_credits: useCredits,
-          is_specialist: isSpecialist
+          is_specialist: isSpecialist,
+          // Phase 3: Favorites Priority Flow
+          preferred_mechanic_id: preferredMechanicId,
+          routing_type: routingType
         }),
       })
       const data = await res.json()

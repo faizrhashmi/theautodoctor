@@ -18,6 +18,18 @@ export const FEATURE_FLAGS = {
    * @env ENABLE_WORKSHOP_RFQ
    */
   ENABLE_WORKSHOP_RFQ: process.env.ENABLE_WORKSHOP_RFQ === 'true',
+
+  /**
+   * Favorites Priority Broadcast
+   *
+   * Enables priority notification to favorite mechanic before broadcasting to all.
+   * When enabled: Favorite mechanic gets 10-minute priority window
+   * When disabled: Standard broadcast to all mechanics
+   *
+   * @default false
+   * @env ENABLE_FAVORITES_PRIORITY
+   */
+  ENABLE_FAVORITES_PRIORITY: process.env.ENABLE_FAVORITES_PRIORITY === 'true',
 } as const
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS

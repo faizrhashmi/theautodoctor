@@ -8,6 +8,7 @@ import {
   validateSessionParticipantReferences,
   ForeignKeyValidationError
 } from '@/lib/validation/foreignKeyValidator'
+import { isFeatureEnabled } from '@/lib/flags'
 
 type SessionType = 'chat' | 'video' | 'diagnostic'
 type SessionInsert = Database['public']['Tables']['sessions']['Insert']
@@ -168,6 +169,11 @@ export async function fulfillCheckout(
 
     // Create session_request to notify mechanics (if not already created)
     if (supabaseUserId) {
+      // Phase 3: Extract favorite params from session metadata
+      const metadata = existing.data.metadata as any || {}
+      const preferredMechanicId = metadata.preferred_mechanic_id || null
+      const favoriteRoutingType = metadata.routing_type || 'broadcast'
+
       await createSessionRequest({
         customerId: supabaseUserId,
         sessionType: existing.data.type as SessionType,
@@ -175,6 +181,9 @@ export async function fulfillCheckout(
         customerEmail,
         workshopId,
         routingType,
+        // Phase 3: Favorites Priority Flow
+        preferredMechanicId,
+        favoriteRoutingType,
       })
     }
 
@@ -206,6 +215,10 @@ export async function fulfillCheckout(
   // Create session_request to notify mechanics
   console.log('[fulfillment] About to create session_request. supabaseUserId:', supabaseUserId, 'sessionType:', sessionType, 'plan:', plan, 'workshopId:', workshopId)
   if (supabaseUserId) {
+    // Phase 3: Extract favorite params from session metadata
+    const preferredMechanicId = (metadataPatch as any).preferred_mechanic_id || null
+    const favoriteRoutingType = (metadataPatch as any).routing_type || 'broadcast'
+
     await createSessionRequest({
       customerId: supabaseUserId,
       sessionType,
@@ -213,6 +226,9 @@ export async function fulfillCheckout(
       customerEmail,
       workshopId,
       routingType,
+      // Phase 3: Favorites Priority Flow
+      preferredMechanicId,
+      favoriteRoutingType,
     })
 
     // Track checkout completion in CRM
@@ -282,6 +298,9 @@ type CreateSessionRequestOptions = {
   customerEmail?: string | null
   workshopId?: string | null
   routingType?: 'workshop_only' | 'broadcast' | 'hybrid'
+  // Phase 3: Favorites Priority Flow
+  preferredMechanicId?: string | null
+  favoriteRoutingType?: 'broadcast' | 'priority_broadcast'
 }
 
 async function createSessionRequest({
@@ -291,6 +310,9 @@ async function createSessionRequest({
   customerEmail,
   workshopId = null,
   routingType = 'broadcast',
+  // Phase 3: Favorites Priority Flow
+  preferredMechanicId = null,
+  favoriteRoutingType = 'broadcast',
 }: CreateSessionRequestOptions) {
   try {
     // Validate foreign keys before creating session request
@@ -364,7 +386,37 @@ async function createSessionRequest({
       await new Promise(resolve => setTimeout(resolve, 3000))
       console.log('[fulfillment] ⏱️ Waited 3s for database replication')
 
-      // Smart routing: Notify mechanics based on routing strategy
+      // ========================================================================
+      // PHASE 3: FAVORITES PRIORITY ROUTING LOGIC
+      // ========================================================================
+      // Check database for feature flag status (no restart needed to toggle)
+      const priorityEnabled = await isFeatureEnabled('ENABLE_FAVORITES_PRIORITY')
+      const shouldUsePriority = priorityEnabled &&
+                                favoriteRoutingType === 'priority_broadcast' &&
+                                preferredMechanicId &&
+                                !workshopId // Don't override workshop routing
+
+      if (shouldUsePriority && newRequest) {
+        console.log(`[Priority] Attempting priority notification to mechanic ${preferredMechanicId}`)
+
+        const prioritySuccess = await notifyPreferredMechanic(newRequest.id, preferredMechanicId!)
+
+        if (prioritySuccess) {
+          // Set 10-minute fallback timer
+          scheduleFallbackBroadcast(newRequest.id, preferredMechanicId!, 10 * 60 * 1000)
+          console.log(`[Priority] ✅ Priority flow initiated - mechanic ${preferredMechanicId} has 10 minutes`)
+
+          // Exit early - don't broadcast to everyone immediately
+          return
+        } else {
+          // Priority notification failed, fall back to standard broadcast
+          console.warn(`[Priority] Priority notification failed, falling back to standard broadcast`)
+        }
+      }
+
+      // ========================================================================
+      // STANDARD ROUTING: Notify mechanics based on routing strategy
+      // ========================================================================
       if (newRequest) {
         if (workshopId && routingType === 'workshop_only') {
           // Workshop-only: Only notify mechanics from selected workshop
@@ -396,4 +448,181 @@ async function createSessionRequest({
     console.error('[fulfillment] Error creating session request:', error)
     // Don't throw - we don't want to fail the whole payment flow if this fails
   }
+}
+
+// ============================================================================
+// PHASE 3: FAVORITES PRIORITY FLOW - NEW FUNCTIONS
+// ============================================================================
+
+/**
+ * Notify a preferred mechanic with priority access to a session request
+ *
+ * @param sessionRequestId - ID of the session_requests record
+ * @param mechanicId - UUID of the preferred mechanic
+ * @returns Promise<boolean> - true if notification sent successfully
+ */
+async function notifyPreferredMechanic(
+  sessionRequestId: string,
+  mechanicId: string
+): Promise<boolean> {
+  try {
+    console.log(`[Priority] Notifying preferred mechanic ${mechanicId} for session request ${sessionRequestId}`)
+
+    // 1. Verify mechanic exists and is approved
+    const { data: mechanic, error: mechanicError } = await supabaseAdmin
+      .from('mechanics')
+      .select('id, status, is_online, first_name, last_name')
+      .eq('id', mechanicId)
+      .maybeSingle()
+
+    if (mechanicError || !mechanic) {
+      console.warn(`[Priority] Mechanic ${mechanicId} not found:`, mechanicError?.message)
+      return false
+    }
+
+    if (mechanic.status !== 'approved') {
+      console.warn(`[Priority] Mechanic ${mechanicId} not approved (status: ${mechanic.status})`)
+      return false
+    }
+
+    // 2. Get session request details for notification
+    const { data: sessionRequest, error: requestError } = await supabaseAdmin
+      .from('session_requests')
+      .select('*')
+      .eq('id', sessionRequestId)
+      .maybeSingle()
+
+    if (requestError || !sessionRequest) {
+      console.error(`[Priority] Session request ${sessionRequestId} not found:`, requestError?.message)
+      return false
+    }
+
+    // 3. Send priority notification via Realtime channel
+    const channel = await import('@/lib/realtimeChannels').then(m => m.getSessionRequestsChannel())
+
+    await channel.send({
+      type: 'broadcast',
+      event: 'priority_session_request',
+      payload: {
+        request: sessionRequest,
+        target_mechanic_id: mechanicId,
+        priority_window_minutes: 10,
+        message: `${sessionRequest.customer_name} specifically requested you! You have 10 minutes priority access.`
+      }
+    })
+
+    console.log(`[Priority] ✅ Sent priority notification to mechanic ${mechanicId}`)
+
+    // 4. Log priority notification in session_requests metadata (optional, for audit)
+    // Note: This requires metadata column to exist - using raw SQL for flexibility
+    try {
+      await supabaseAdmin
+        .from('session_requests')
+        .update({
+          metadata: {
+            priority_notified_at: new Date().toISOString(),
+            priority_mechanic_id: mechanicId,
+            priority_window_minutes: 10
+          } as any
+        })
+        .eq('id', sessionRequestId)
+    } catch (metadataError) {
+      // Non-critical - metadata logging is optional
+      console.warn(`[Priority] Could not log metadata (column may not exist yet):`, metadataError)
+    }
+
+    return true
+
+  } catch (error) {
+    console.error(`[Priority] Error notifying preferred mechanic ${mechanicId}:`, error)
+    return false
+  }
+}
+
+/**
+ * Schedule a fallback broadcast if preferred mechanic doesn't respond
+ *
+ * @param sessionRequestId - ID of the session_requests record
+ * @param preferredMechanicId - UUID of the preferred mechanic (to optionally exclude)
+ * @param delayMs - Delay in milliseconds before fallback (default: 10 minutes)
+ */
+function scheduleFallbackBroadcast(
+  sessionRequestId: string,
+  preferredMechanicId: string,
+  delayMs: number = 10 * 60 * 1000 // 10 minutes
+): void {
+  console.log(`[Priority] Scheduling fallback broadcast for session request ${sessionRequestId} in ${delayMs / 1000}s`)
+
+  setTimeout(async () => {
+    try {
+      console.log(`[Fallback] Priority window expired for session request ${sessionRequestId}, checking status...`)
+
+      // 1. Check if session request is still unmatched
+      const { data: sessionRequest, error: fetchError } = await supabaseAdmin
+        .from('session_requests')
+        .select('id, status, mechanic_id')
+        .eq('id', sessionRequestId)
+        .maybeSingle()
+
+      if (fetchError || !sessionRequest) {
+        console.warn(`[Fallback] Session request ${sessionRequestId} not found:`, fetchError?.message)
+        return
+      }
+
+      // 2. If already matched, do nothing
+      if (sessionRequest.status === 'accepted' || sessionRequest.mechanic_id) {
+        console.log(`[Fallback] Session request ${sessionRequestId} already matched, skipping broadcast`)
+        return
+      }
+
+      // 3. If still pending, broadcast to all mechanics
+      console.log(`[Fallback] Broadcasting session request ${sessionRequestId} to all mechanics...`)
+
+      await broadcastSessionRequest('new_request', {
+        request: sessionRequest,
+        routingType: 'broadcast',
+        fallback_reason: 'priority_timeout'
+      })
+
+      // 4. Log fallback in metadata (optional)
+      try {
+        await supabaseAdmin
+          .from('session_requests')
+          .update({
+            metadata: {
+              fallback_broadcast_at: new Date().toISOString(),
+              fallback_reason: 'preferred_mechanic_no_response'
+            } as any
+          })
+          .eq('id', sessionRequestId)
+      } catch (metadataError) {
+        // Non-critical
+        console.warn(`[Fallback] Could not log metadata:`, metadataError)
+      }
+
+      console.log(`[Fallback] ✅ Fallback broadcast completed for session request ${sessionRequestId}`)
+
+    } catch (error) {
+      console.error(`[Fallback] Error in fallback broadcast for ${sessionRequestId}:`, error)
+
+      // Ensure we broadcast even on error (customer never stuck)
+      try {
+        const { data: sessionRequest } = await supabaseAdmin
+          .from('session_requests')
+          .select('*')
+          .eq('id', sessionRequestId)
+          .maybeSingle()
+
+        if (sessionRequest && sessionRequest.status === 'pending') {
+          await broadcastSessionRequest('new_request', {
+            request: sessionRequest,
+            routingType: 'broadcast'
+          })
+          console.log(`[Fallback] Emergency broadcast completed despite error`)
+        }
+      } catch (emergencyError) {
+        console.error(`[Fallback] Emergency broadcast failed:`, emergencyError)
+      }
+    }
+  }, delayMs)
 }

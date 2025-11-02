@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
     vehicle_id = null, // Vehicle ID from vehicles table (optional)
     use_credits = false, // Flag to use subscription credits
     is_specialist = false, // Flag for brand specialist
+    // Phase 3: Favorites Priority Flow
+    preferred_mechanic_id = null,
+    routing_type = null,
   } = body || {};
 
   // Strict server-side validation mirrors the client
@@ -168,6 +171,9 @@ export async function POST(req: NextRequest) {
       payment_method: 'credits',
       is_specialist,
       credit_cost: creditCost,
+      // Phase 3: Favorites Priority Flow
+      ...(preferred_mechanic_id && { preferred_mechanic_id }),
+      ...(routing_type && { routing_type }),
     };
 
     const { data: sessionInsert, error: sessionError } = await supabaseAdmin
@@ -263,6 +269,9 @@ export async function POST(req: NextRequest) {
         source: 'intake',
         plan,
         urgent,
+        // Phase 3: Favorites Priority Flow
+        ...(preferred_mechanic_id && { preferred_mechanic_id }),
+        ...(routing_type && { routing_type }),
       };
 
       const freeSessionKey = `free_${intakeId}_${randomUUID()}`;
