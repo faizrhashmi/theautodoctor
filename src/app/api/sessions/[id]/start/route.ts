@@ -35,7 +35,7 @@ export async function POST(
       .from('sessions')
       .select('id, status, started_at, mechanic_id, customer_user_id, type, mechanics(user_id)')
       .eq('id', sessionId)
-      .single()
+      .maybeSingle()
 
     if (fetchError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
