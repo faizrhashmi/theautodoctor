@@ -194,6 +194,34 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
     console.log(`[webhook:extension] ✓ Session extended: ${currentDuration}→${newDuration} mins`)
 
+    // Notify mechanic of extension payment received
+    try {
+      const { data: fullSession } = await supabaseAdmin
+        .from('sessions')
+        .select('mechanic_id, customer_user_id')
+        .eq('id', sessionId)
+        .maybeSingle()
+
+      if (fullSession?.mechanic_id) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: fullSession.mechanic_id,
+            type: 'payment_received',
+            payload: {
+              session_id: sessionId,
+              payment_intent_id: paymentIntent.id,
+              amount: paymentIntent.amount / 100, // Convert cents to dollars
+              currency: paymentIntent.currency,
+              type: 'extension'
+            }
+          })
+        console.log('[webhook:extension] ✓ Created payment_received notification for mechanic')
+      }
+    } catch (notifError) {
+      console.warn('[webhook:extension] Failed to create notification:', notifError)
+    }
+
     // Broadcast session:extended event
     // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
     try {
@@ -254,6 +282,34 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         console.error('[webhook:payment] Error updating session:', updateError)
       } else {
         console.log('[webhook:payment] ✓ Session activated:', sessionId)
+
+        // Notify mechanic of initial payment received
+        try {
+          const { data: fullSession } = await supabaseAdmin
+            .from('sessions')
+            .select('mechanic_id, customer_user_id')
+            .eq('id', sessionId)
+            .maybeSingle()
+
+          if (fullSession?.mechanic_id) {
+            await supabaseAdmin
+              .from('notifications')
+              .insert({
+                user_id: fullSession.mechanic_id,
+                type: 'payment_received',
+                payload: {
+                  session_id: sessionId,
+                  payment_intent_id: paymentIntent.id,
+                  amount: paymentIntent.amount / 100, // Convert cents to dollars
+                  currency: paymentIntent.currency,
+                  type: 'initial'
+                }
+              })
+            console.log('[webhook:payment] ✓ Created payment_received notification for mechanic')
+          }
+        } catch (notifError) {
+          console.warn('[webhook:payment] Failed to create notification:', notifError)
+        }
       }
     } else {
       console.log('[webhook:payment] Session already in state:', session.status, '(skipping transition to live)')
