@@ -402,6 +402,28 @@ export async function POST(req: NextRequest) {
       // Non-critical - don't fail the request
     }
 
+    // 6b. CREATE NOTIFICATION - Notify customer their request was accepted
+    try {
+      if (acceptedRequest.customer_id) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: acceptedRequest.customer_id,
+            type: 'request_accepted',
+            payload: {
+              request_id: requestId,
+              session_id: session.id,
+              mechanic_id: mechanic.id,
+              session_type: session.type
+            }
+          })
+        console.log('[ACCEPT] ✓ Created request_accepted notification for customer')
+      }
+    } catch (notifError) {
+      console.warn('[ACCEPT] Failed to create notification:', notifError)
+      // Non-critical - don't fail the request
+    }
+
     // 7. SUCCESS RESPONSE - Return session details
     return NextResponse.json({
       success: true,
