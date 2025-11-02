@@ -62,6 +62,7 @@ export default function CreateRfqPage() {
   const [loadingVehicles, setLoadingVehicles] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showPreview, setShowPreview] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState<Partial<CreateRfqFormData>>({
@@ -120,10 +121,32 @@ export default function CreateRfqPage() {
     }
   }
 
-  function handleSubmit() {
-    // Phase 2: Show alert (no submission yet)
-    alert('Phase 2: Form validation passed! API submission will be implemented in Phase 3.')
-    // Phase 3 will implement: POST /api/rfq/create
+  async function handleSubmit() {
+    setSubmitting(true)
+    setErrors({})
+
+    try {
+      const response = await fetch('/api/rfq/customer/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create RFQ')
+      }
+
+      // Success - redirect to RFQ detail or my-rfqs
+      router.push(`/customer/rfq/${result.rfq_id}`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create RFQ'
+      setErrors({ submit: errorMessage })
+      setShowPreview(false) // Go back to form to show error
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -164,15 +187,24 @@ export default function CreateRfqPage() {
               <div className="flex gap-4 mt-6">
                 <button
                   onClick={() => setShowPreview(false)}
-                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+                  disabled={submitting}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Edit
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors"
+                  disabled={submitting}
+                  className="flex items-center gap-2 flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Submit (Phase 3)
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    'Submit RFQ'
+                  )}
                 </button>
               </div>
             </div>
@@ -384,6 +416,13 @@ export default function CreateRfqPage() {
                 </label>
                 {errors.customer_consent && <p className="text-red-400 text-sm mt-2">{errors.customer_consent}</p>}
               </div>
+
+              {/* Submission Error */}
+              {errors.submit && (
+                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+                  <p className="text-red-400">{errors.submit}</p>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-4">
