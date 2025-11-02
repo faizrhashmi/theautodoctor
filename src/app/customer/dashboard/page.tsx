@@ -41,7 +41,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ProgressTracker } from '@/components/ui/ProgressTracker'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useRfqEnabled } from '@/hooks/useFeatureFlags'
 
 // ✅ P0 FIX: Add subscription data to interface
@@ -1260,7 +1259,6 @@ export default function CustomerDashboardPage() {
             <p className="text-sm sm:text-base text-slate-400 mt-1">Enterprise command center for your vehicle services</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            {user && <NotificationBell userId={user.id} />}
             <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Export</span>

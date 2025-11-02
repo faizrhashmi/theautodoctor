@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   {
@@ -82,11 +83,19 @@ export default function MechanicSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [mechanicFirstName, setMechanicFirstName] = useState<string>('')
+  const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
 
-  // Fetch mechanic's name on mount
+  // Fetch mechanic's name and userId on mount
   useEffect(() => {
-    const fetchMechanicName = async () => {
+    const fetchMechanicData = async () => {
       try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user) {
+          setMechanicUserId(user.id)
+        }
+
         const response = await fetch('/api/mechanics/me')
         if (response.ok) {
           const data = await response.json()
@@ -94,11 +103,11 @@ export default function MechanicSidebar() {
           setMechanicFirstName(firstName)
         }
       } catch (error) {
-        console.error('Failed to fetch mechanic name:', error)
+        console.error('Failed to fetch mechanic data:', error)
       }
     }
 
-    fetchMechanicName()
+    fetchMechanicData()
   }, [])
 
   async function handleSignOut() {
@@ -150,9 +159,12 @@ export default function MechanicSidebar() {
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/mechanic/dashboard" variant="mechanic" />
-            <p className="text-xs text-slate-400 mt-1">
-              {mechanicFirstName ? `Hi ${mechanicFirstName}` : 'Mechanic Portal'}
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-slate-400">
+                {mechanicFirstName ? `Hi ${mechanicFirstName}` : 'Mechanic Portal'}
+              </p>
+              {mechanicUserId && <NotificationBell userId={mechanicUserId} />}
+            </div>
           </div>
 
           {/* Navigation */}

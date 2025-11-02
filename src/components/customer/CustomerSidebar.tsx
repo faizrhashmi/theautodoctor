@@ -17,10 +17,13 @@ import {
   ChevronRight,
   Settings,
   Bell,
-  Heart
+  Heart,
+  ClipboardList
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
+import { useRfqEnabled } from '@/hooks/useFeatureFlags'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   {
@@ -40,6 +43,13 @@ const NAV_ITEMS = [
     href: '/customer/quotes',
     icon: FileText,
     description: 'View estimates'
+  },
+  {
+    label: 'My RFQs',
+    href: '/customer/rfq/my-rfqs',
+    icon: ClipboardList,
+    description: 'Request quotes from workshops',
+    featureGated: 'rfq'
   },
   {
     label: 'Vehicles',
@@ -65,15 +75,19 @@ export default function CustomerSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [firstName, setFirstName] = useState<string>('')
+  const [userId, setUserId] = useState<string | null>(null)
+  const isRfqEnabled = useRfqEnabled()
 
-  // Fetch customer name
+  // Fetch customer name and userId
   useEffect(() => {
-    async function fetchCustomerName() {
+    async function fetchCustomerData() {
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
+          setUserId(user.id)
+
           const { data: profile } = await supabase
             .from('profiles')
             .select('full_name')
@@ -87,11 +101,11 @@ export default function CustomerSidebar() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch customer name:', error)
+        console.error('Failed to fetch customer data:', error)
       }
     }
 
-    fetchCustomerName()
+    fetchCustomerData()
   }, [])
 
   async function handleSignOut() {
@@ -139,14 +153,21 @@ export default function CustomerSidebar() {
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/" variant="customer" />
-            <p className="text-sm text-slate-300 mt-2 font-medium">
-              {firstName ? `Hi ${firstName}` : 'Customer Portal'}
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-sm text-slate-300 font-medium">
+                {firstName ? `Hi ${firstName}` : 'Customer Portal'}
+              </p>
+              {userId && <NotificationBell userId={userId} />}
+            </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => {
+              // Filter out RFQ items if feature is disabled
+              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
+              return true
+            }).map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 

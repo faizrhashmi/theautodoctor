@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   Calendar,
@@ -22,6 +22,8 @@ import {
   Building2
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
+import { createClient } from '@/lib/supabase'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   {
@@ -59,6 +61,25 @@ const NAV_ITEMS = [
 export default function WorkshopSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [workshopUserId, setWorkshopUserId] = useState<string | null>(null)
+
+  // Fetch workshop userId on mount
+  useEffect(() => {
+    const fetchWorkshopUserId = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user) {
+          setWorkshopUserId(user.id)
+        }
+      } catch (error) {
+        console.error('Failed to fetch workshop user:', error)
+      }
+    }
+
+    fetchWorkshopUserId()
+  }, [])
 
   async function handleSignOut() {
     try {
@@ -105,7 +126,10 @@ export default function WorkshopSidebar() {
           {/* Logo Section - Compact */}
           <div className="p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/workshop/dashboard" variant="workshop" />
-            <p className="text-xs text-slate-500 mt-1">Workshop Portal</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-slate-500">Workshop Portal</p>
+              {workshopUserId && <NotificationBell userId={workshopUserId} />}
+            </div>
           </div>
 
           {/* Navigation */}

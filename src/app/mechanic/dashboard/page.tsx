@@ -10,7 +10,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
 import { createClient } from '@/lib/supabase'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { RequestPreviewModal } from '@/components/mechanic/RequestPreviewModal'
 
 interface ActiveSession {
@@ -476,7 +475,6 @@ export default function MechanicDashboardPage() {
               <p className="text-sm sm:text-base text-slate-400 mt-1">Manage your sessions and quotes</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {mechanicUserId && <NotificationBell userId={mechanicUserId} />}
               <ConnectionQuality quality="excellent" showLabel={true} />
             </div>
           </div>
