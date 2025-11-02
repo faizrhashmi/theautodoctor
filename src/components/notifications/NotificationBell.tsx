@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NotificationCenter } from './NotificationCenter'
 
 interface NotificationBellProps {
@@ -10,7 +10,21 @@ interface NotificationBellProps {
 export function NotificationBell({ userId }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [previousUnreadCount, setPreviousUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+
+  // Play notification sound (throttled per poll cycle)
+  const playNotificationSound = useCallback(() => {
+    try {
+      const audio = new Audio('/sounds/notification.mp3')
+      audio.volume = 0.7
+      audio.play().catch(() => {
+        // Fail silently if sound can't play (muted tab, file missing, etc.)
+      })
+    } catch (error) {
+      // Fail silently - no error shown to user
+    }
+  }, [])
 
   // Fetch unread count
   const fetchUnreadCount = async () => {
@@ -18,7 +32,15 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       const response = await fetch('/api/notifications/feed?limit=1')
       if (response.ok) {
         const data = await response.json()
-        setUnreadCount(data.unreadCount || 0)
+        const newCount = data.unreadCount || 0
+
+        // Play sound only if count increased (new notification) and not initial load
+        if (!loading && newCount > previousUnreadCount) {
+          playNotificationSound()
+        }
+
+        setPreviousUnreadCount(newCount)
+        setUnreadCount(newCount)
       }
     } catch (error) {
       console.error('[NotificationBell] Error fetching unread count:', error)
