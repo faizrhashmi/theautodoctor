@@ -322,10 +322,10 @@ export default function AdminDocumentsPage() {
                       {getStatusBadge(doc.status)}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-400">
-                      {new Date(doc.uploaded_at).toLocaleDateString()}
+                      {new Date(doc.uploaded_at).toLocaleDateString('en-CA')}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-400">
-                      {doc.expires_at ? new Date(doc.expires_at).toLocaleDateString() : 'N/A'}
+                      {doc.expires_at ? new Date(doc.expires_at).toLocaleDateString('en-CA') : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -389,7 +389,7 @@ export default function AdminDocumentsPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-400">Expiry Date</p>
                   <p className="text-sm text-slate-200">
-                    {new Date(selectedDoc.expires_at).toLocaleDateString()}
+                    {new Date(selectedDoc.expires_at).toLocaleDateString('en-CA')}
                   </p>
                 </div>
               )}

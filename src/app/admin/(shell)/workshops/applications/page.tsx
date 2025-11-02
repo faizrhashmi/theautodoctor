@@ -330,7 +330,7 @@ function ApplicationCard({
           </div>
 
           <div className="mt-3 text-xs text-slate-500">
-            Submitted: {new Date(application.created_at).toLocaleDateString()}
+            Submitted: {new Date(application.created_at).toLocaleDateString('en-CA')}
           </div>
         </div>
 

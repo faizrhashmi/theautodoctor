@@ -340,7 +340,7 @@ function RequestRow({ request, mechanics, onAssign, actionLoading }: RequestRowP
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {new Date(request.created_at).toLocaleDateString()}
+              {new Date(request.created_at).toLocaleDateString('en-CA')}
             </div>
           </div>
         </div>

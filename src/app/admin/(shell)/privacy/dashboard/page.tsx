@@ -323,7 +323,7 @@ function MetricCard({
         )}
       </div>
       <div className="text-3xl font-bold text-white mb-1">
-        {value.toLocaleString()}
+        {value.toLocaleString('en-CA')}
       </div>
       <div className="text-sm font-medium text-slate-300">{title}</div>
       {subtitle && (

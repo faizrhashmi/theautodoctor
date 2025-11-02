@@ -318,7 +318,7 @@ export default function AdminCorporatePage() {
                         </span>
                       </td>
                       <td className="text-sm text-slate-400 whitespace-nowrap">
-                        {new Date(business.created_at).toLocaleDateString()}
+                        {new Date(business.created_at).toLocaleDateString('en-CA')}
                       </td>
                       <td>
                         <div className="flex flex-col gap-1">

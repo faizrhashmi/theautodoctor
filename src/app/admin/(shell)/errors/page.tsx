@@ -303,11 +303,11 @@ export default function ErrorsPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-400">First Seen</label>
-                    <div className="mt-1 text-white">{new Date(selectedError.first_seen).toLocaleString()}</div>
+                    <div className="mt-1 text-white">{new Date(selectedError.first_seen).toLocaleString('en-CA')}</div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-400">Last Seen</label>
-                    <div className="mt-1 text-white">{new Date(selectedError.last_seen).toLocaleString()}</div>
+                    <div className="mt-1 text-white">{new Date(selectedError.last_seen).toLocaleString('en-CA')}</div>
                   </div>
                 </div>
                 {selectedError.error_stack && (

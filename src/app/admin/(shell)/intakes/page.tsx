@@ -567,7 +567,7 @@ export default function AdminIntakesPage() {
                       />
                     </td>
                     <td className="sticky left-12 z-10 bg-slate-800 whitespace-nowrap text-slate-400">
-                      {new Date(r.created_at).toLocaleString()}
+                      {new Date(r.created_at).toLocaleString('en-CA')}
                     </td>
                     <td className="whitespace-nowrap">
                       <Link 

@@ -345,7 +345,7 @@ export default function WorkshopsPage() {
                         ID: {workshop.id.slice(0, 8)}
                       </span>
                       <span className="rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-medium text-orange-300">
-                        Since {new Date(workshop.created_at).toLocaleDateString()}
+                        Since {new Date(workshop.created_at).toLocaleDateString('en-CA')}
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-300">

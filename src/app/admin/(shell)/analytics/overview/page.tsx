@@ -204,14 +204,14 @@ export default function AnalyticsOverviewPage() {
     }
   }
 
-  const formatNumber = (value: number) => value.toLocaleString()
+  const formatNumber = (value: number) => value.toLocaleString('en-CA')
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0)
 
   const formatDateLabel = (iso?: string) => {
     if (!iso) return ''
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
   }
 
   const periodLabel = period === 'today' ? 'Today' : period === 'week' ? 'Last 7 days' : 'Last 30 days'
@@ -551,7 +551,7 @@ function MetricCard({ title, value, change = null, icon, color, subtitle }: Metr
     : isNeutral
     ? 'text-slate-500'
     : 'text-red-600'
-  const changeValue = hasChange ? Math.abs(change as number).toLocaleString() : null
+  const changeValue = hasChange ? Math.abs(change as number).toLocaleString('en-CA') : null
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-6">
@@ -598,7 +598,7 @@ function FunnelMetric({ label, value, trend = null }: FunnelMetricProps) {
     : isNeutral
     ? 'text-slate-500'
     : 'text-red-600'
-  const trendValue = hasTrend ? Math.abs(trend as number).toLocaleString() : null
+  const trendValue = hasTrend ? Math.abs(trend as number).toLocaleString('en-CA') : null
 
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-4">

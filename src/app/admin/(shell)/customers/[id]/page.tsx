@@ -335,13 +335,13 @@ export default function CustomerDetailPage() {
                 <div>
                   <div className="text-sm font-medium text-slate-500">Joined</div>
                   <div className="mt-1 text-white">
-                    {new Date(customer.created_at).toLocaleDateString()}
+                    {new Date(customer.created_at).toLocaleDateString('en-CA')}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium text-slate-500">Last Active</div>
                   <div className="mt-1 text-white">
-                    {customer.last_active_at ? new Date(customer.last_active_at).toLocaleDateString() : 'Never'}
+                    {customer.last_active_at ? new Date(customer.last_active_at).toLocaleDateString('en-CA') : 'Never'}
                   </div>
                 </div>
                 <div>
@@ -424,7 +424,7 @@ export default function CustomerDetailPage() {
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-xs font-medium text-slate-400">{note.admin_email}</span>
                       <span className="text-xs text-slate-500">
-                        {new Date(note.created_at).toLocaleString()}
+                        {new Date(note.created_at).toLocaleString('en-CA')}
                       </span>
                     </div>
                     <p className="text-sm text-white">{note.note}</p>
@@ -543,7 +543,7 @@ export default function CustomerDetailPage() {
                     <div className="text-sm font-medium text-white">{action.action_type}</div>
                     <div className="text-xs text-slate-400">{action.admin_email}</div>
                     <div className="text-xs text-slate-500">
-                      {new Date(action.created_at).toLocaleString()}
+                      {new Date(action.created_at).toLocaleString('en-CA')}
                     </div>
                     {action.reason && (
                       <div className="mt-1 text-sm text-slate-200">{action.reason}</div>

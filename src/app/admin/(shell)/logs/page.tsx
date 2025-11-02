@@ -287,7 +287,7 @@ export default function LogsPage() {
                 <div>
                   <label className="text-sm font-medium text-slate-400">Timestamp</label>
                   <div className="mt-1 text-white">
-                    {new Date(selectedLog.created_at || selectedLog.timestamp || '').toLocaleString()}
+                    {new Date(selectedLog.created_at || selectedLog.timestamp || '').toLocaleString('en-CA')}
                   </div>
                 </div>
                 <div>

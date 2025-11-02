@@ -274,7 +274,7 @@ export default function CustomersPage() {
       setActionStatus({
         type: 'success',
         message: data?.message || 'User suspended successfully.',
-        detail: data?.suspended_until ? `Suspended until ${new Date(data.suspended_until).toLocaleString()}` : undefined,
+        detail: data?.suspended_until ? `Suspended until ${new Date(data.suspended_until).toLocaleString('en-CA')}` : undefined,
       });
       await fetchCustomers();
     } catch (err: any) {
@@ -474,7 +474,7 @@ export default function CustomersPage() {
                       <StatusBadge status={customer.account_status} />
                       {customer.suspended_until && new Date(customer.suspended_until) > new Date() && (
                         <div className="text-xs text-yellow-400 mt-1">
-                          Until {new Date(customer.suspended_until).toLocaleDateString()}
+                          Until {new Date(customer.suspended_until).toLocaleDateString('en-CA')}
                         </div>
                       )}
                     </td>
@@ -482,14 +482,14 @@ export default function CustomersPage() {
                       <VerifiedBadge verified={customer.email_verified} />
                     </td>
                     <td className="whitespace-nowrap text-slate-400">
-                      {new Date(customer.created_at).toLocaleDateString()}
+                      {new Date(customer.created_at).toLocaleDateString('en-CA')}
                     </td>
                     <td className="text-center font-medium text-white">
                       {customer.total_sessions ?? 0}
                     </td>
                     <td className="whitespace-nowrap text-slate-400">
                       {customer.last_active_at
-                        ? new Date(customer.last_active_at).toLocaleDateString()
+                        ? new Date(customer.last_active_at).toLocaleDateString('en-CA')
                     : 'Never'}
                   </td>
                     <td className="relative">

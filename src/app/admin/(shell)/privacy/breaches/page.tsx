@@ -356,7 +356,7 @@ function BreachCard({ breach, onUpdate }: { breach: DataBreach; onUpdate: () => 
         </div>
         <div>
           <div className="text-xs text-slate-500 mb-1">Affected Customers</div>
-          <div className="text-2xl font-bold text-white">{breach.affected_customer_count.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-white">{breach.affected_customer_count.toLocaleString('en-CA')}</div>
         </div>
         <div>
           <div className="text-xs text-slate-500 mb-1">Privacy Commissioner</div>

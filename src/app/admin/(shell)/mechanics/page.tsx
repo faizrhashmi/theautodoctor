@@ -333,7 +333,7 @@ export default function MechanicsPage() {
         type: 'success',
         message: data?.message || 'Mechanic suspended.',
         detail: data?.suspended_until
-          ? `Suspended until ${new Date(data.suspended_until).toLocaleString()}`
+          ? `Suspended until ${new Date(data.suspended_until).toLocaleString('en-CA')}`
           : undefined,
       });
       await fetchMechanics();
@@ -659,7 +659,7 @@ export default function MechanicsPage() {
                       <StatusBadge status={mechanic.account_status} />
                       {mechanic.suspended_until && new Date(mechanic.suspended_until) > new Date() && (
                         <div className="text-xs text-yellow-600 mt-1">
-                          Until {new Date(mechanic.suspended_until).toLocaleDateString()}
+                          Until {new Date(mechanic.suspended_until).toLocaleDateString('en-CA')}
                         </div>
                       )}
                     </td>

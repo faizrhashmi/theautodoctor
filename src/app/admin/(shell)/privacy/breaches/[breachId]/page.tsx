@@ -338,7 +338,7 @@ export default function BreachDetailPage({ params }: { params: { breachId: strin
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DetailItem label="Description" value={breach.breach_description} />
             <DetailItem label="Breach Cause" value={breach.breach_cause || 'Not specified'} />
-            <DetailItem label="Affected Customers" value={breach.affected_customer_count.toLocaleString()} />
+            <DetailItem label="Affected Customers" value={breach.affected_customer_count.toLocaleString('en-CA')} />
             <DetailItem label="Discovered By" value={breach.discovered_by || 'Not specified'} />
             <DetailItem label="Handled By" value={breach.handled_by || 'Not assigned'} />
             <div className="col-span-2">

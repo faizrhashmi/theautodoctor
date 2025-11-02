@@ -198,7 +198,7 @@ function ListView({ rows, loading, onOpenDetails }: {
         {loading && <div className="px-4 py-4 text-sm text-slate-500">Loading…</div>}
         {!loading && rows.map((r) => (
           <div key={r.id} className="grid grid-cols-12 gap-4 px-4 py-3">
-            <div className="col-span-2 text-sm">{new Date(r.created_at).toLocaleString()}</div>
+            <div className="col-span-2 text-sm">{new Date(r.created_at).toLocaleString('en-CA')}</div>
             <div className="col-span-2 text-sm">
               {r.customer_name ?? '—'}
               <div className="text-[11px] text-slate-500">{r.id?.slice(0,8)}</div>
@@ -273,7 +273,7 @@ function DetailsView({
             </div>
             <div>
               <div className="text-sm text-slate-500">Created</div>
-              <div className="font-medium">{new Date(item.created_at).toLocaleString()}</div>
+              <div className="font-medium">{new Date(item.created_at).toLocaleString('en-CA')}</div>
             </div>
             <div>
               <div className="text-sm text-slate-500">Plan</div>

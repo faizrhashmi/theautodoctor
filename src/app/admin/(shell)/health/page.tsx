@@ -156,7 +156,7 @@ export default function HealthPage() {
                   : 'Critical services are down'}
               </p>
               <p className="text-xs text-slate-400 mt-2">
-                Last checked: {new Date(healthData.timestamp).toLocaleString()}
+                Last checked: {new Date(healthData.timestamp).toLocaleString('en-CA')}
               </p>
             </div>
           </div>
@@ -266,7 +266,7 @@ export default function HealthPage() {
                         {incident.error_type}
                       </span>
                       <span className="text-xs text-slate-500">
-                        {new Date(incident.last_seen).toLocaleString()}
+                        {new Date(incident.last_seen).toLocaleString('en-CA')}
                       </span>
                     </div>
                     <p className="text-sm text-white mt-1">{incident.error_message}</p>

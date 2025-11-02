@@ -273,11 +273,11 @@ function ConsentTypeCard({ stat }: { stat: ConsentStatistics }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
         <div>
           <div className="text-slate-500 text-xs mb-1">Active</div>
-          <div className="text-white font-medium">{stat.active_consents.toLocaleString()}</div>
+          <div className="text-white font-medium">{stat.active_consents.toLocaleString('en-CA')}</div>
         </div>
         <div>
           <div className="text-slate-500 text-xs mb-1">Withdrawn</div>
-          <div className="text-slate-400">{stat.withdrawn_consents.toLocaleString()}</div>
+          <div className="text-slate-400">{stat.withdrawn_consents.toLocaleString('en-CA')}</div>
         </div>
         <div>
           <div className="text-slate-500 text-xs mb-1">New (30d)</div>
@@ -326,7 +326,7 @@ function MethodCard({
   return (
     <div className={`border rounded-lg p-4 ${colorClasses[color]}`}>
       <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-2xl font-bold text-white mb-1">{count.toLocaleString()}</div>
+      <div className="text-2xl font-bold text-white mb-1">{count.toLocaleString('en-CA')}</div>
       <div className="text-sm text-slate-400">{title}</div>
     </div>
   )

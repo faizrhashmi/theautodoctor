@@ -338,7 +338,7 @@ export default function CleanupPage() {
                     )}
                   </div>
                   <div className="text-right text-xs text-slate-500">
-                    {new Date(item.created_at).toLocaleString()}
+                    {new Date(item.created_at).toLocaleString('en-CA')}
                   </div>
                 </div>
               </div>

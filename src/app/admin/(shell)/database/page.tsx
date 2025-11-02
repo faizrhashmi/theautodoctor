@@ -355,7 +355,7 @@ export default function DatabasePage() {
                           {item.query.substring(0, 200)}{item.query.length > 200 ? '...' : ''}
                         </pre>
                         <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                          <span>{new Date(item.executed_at).toLocaleString()}</span>
+                          <span>{new Date(item.executed_at).toLocaleString('en-CA')}</span>
                           <span>{item.execution_time_ms}ms</span>
                           <span>{item.rows_returned} rows</span>
                           {item.success ? (

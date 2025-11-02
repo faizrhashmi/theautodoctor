@@ -387,7 +387,7 @@ function ClaimRow({ claim, onSelect, onApprove, onReject, actionLoading }: Claim
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {new Date(claim.created_at).toLocaleDateString()}
+              {new Date(claim.created_at).toLocaleDateString('en-CA')}
             </div>
           </div>
 
@@ -502,12 +502,12 @@ function ClaimDetailModal({
               <DetailField label="Customer ID" value={claim.customer_user_id} />
               <DetailField
                 label="Submitted"
-                value={new Date(claim.created_at).toLocaleString()}
+                value={new Date(claim.created_at).toLocaleString('en-CA')}
               />
               {claim.resolved_at && (
                 <DetailField
                   label="Resolved"
-                  value={new Date(claim.resolved_at).toLocaleString()}
+                  value={new Date(claim.resolved_at).toLocaleString('en-CA')}
                 />
               )}
             </div>
@@ -530,7 +530,7 @@ function ClaimDetailModal({
                 <DetailField label="Type" value={claim.sessions.type} />
                 <DetailField
                   label="Session Date"
-                  value={new Date(claim.sessions.created_at).toLocaleString()}
+                  value={new Date(claim.sessions.created_at).toLocaleString('en-CA')}
                 />
               </div>
             </div>

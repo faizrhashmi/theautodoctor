@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 function formatDate(value: string) {
   try {
-    return new Date(value).toLocaleString()
+    return new Date(value).toLocaleString('en-CA')
   } catch {
     return value
   }

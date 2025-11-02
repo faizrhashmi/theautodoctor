@@ -233,10 +233,10 @@ export default function AdminCreditPricingPage() {
                         </td>
                         <td className="px-4 py-3 text-sm font-semibold text-white">{p.credit_cost}</td>
                         <td className="px-4 py-3 text-sm text-slate-400">
-                          {new Date(p.effective_from).toLocaleDateString()}
+                          {new Date(p.effective_from).toLocaleDateString('en-CA')}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-400">
-                          {p.effective_until ? new Date(p.effective_until).toLocaleDateString() : '—'}
+                          {p.effective_until ? new Date(p.effective_until).toLocaleDateString('en-CA') : '—'}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span className={`px-2 py-1 rounded text-xs ${

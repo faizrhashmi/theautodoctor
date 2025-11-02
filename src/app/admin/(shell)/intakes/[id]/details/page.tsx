@@ -95,7 +95,7 @@ export default async function IntakeDetailsPage({ params }: { params: { id: stri
             Intake #{data.id.slice(0, 8)}
           </h1>
           <p className="text-sm text-slate-500">
-            Created {new Date(data.created_at).toLocaleString()}
+            Created {new Date(data.created_at).toLocaleString('en-CA')}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
