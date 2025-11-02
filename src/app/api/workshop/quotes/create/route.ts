@@ -199,6 +199,26 @@ export async function POST(req: NextRequest) {
       // Don't fail the quote creation if email fails - log and continue
     }
 
+    // Create in-app notification for customer
+    try {
+      await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: session.customer_id,
+          type: 'quote_received',
+          payload: {
+            quote_id: quote.id,
+            workshop_name: workshop.organizationName,
+            quote_amount: customer_total,
+            diagnostic_session_id: diagnostic_session_id
+          }
+        })
+      console.log('[QUOTE CREATE] ✓ Created quote_received notification for customer')
+    } catch (notifError) {
+      console.warn('[QUOTE CREATE] Failed to create notification:', notifError)
+      // Non-critical - don't fail the request
+    }
+
     return NextResponse.json({
       success: true,
       quote_id: quote.id,
