@@ -121,6 +121,28 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
         }
         break
 
+      case 'quote_received':
+        if (payload.quote_id) {
+          router.push(`/customer/quotes/${payload.quote_id}`)
+        } else if (payload.diagnostic_session_id) {
+          router.push(`/customer/quotes`)
+        }
+        break
+
+      case 'payment_received':
+        router.push('/mechanic/earnings')
+        break
+
+      case 'session_cancelled':
+        if (payload.session_id) {
+          router.push(`/sessions/${payload.session_id}`)
+        }
+        break
+
+      case 'request_rejected':
+        router.push('/customer/sessions')
+        break
+
       default:
         console.log('[NotificationCenter] Unknown notification type:', notification.type)
     }
@@ -233,6 +255,16 @@ function NotificationItem({
         return { icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-purple-400', bg: 'bg-purple-500/10' }
       case 'session_completed':
         return { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-indigo-400', bg: 'bg-indigo-500/10' }
+      case 'message_received':
+        return { icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', color: 'text-cyan-400', bg: 'bg-cyan-500/10' }
+      case 'quote_received':
+        return { icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-yellow-400', bg: 'bg-yellow-500/10' }
+      case 'payment_received':
+        return { icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-emerald-400', bg: 'bg-emerald-500/10' }
+      case 'session_cancelled':
+        return { icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-red-400', bg: 'bg-red-500/10' }
+      case 'request_rejected':
+        return { icon: 'M6 18L18 6M6 6l12 12', color: 'text-orange-400', bg: 'bg-orange-500/10' }
       default:
         return { icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-slate-400', bg: 'bg-slate-500/10' }
     }
@@ -262,7 +294,15 @@ function NotificationItem({
       case 'session_completed':
         return `Session completed by ${payload.ended_by || 'participant'}`
       case 'message_received':
-        return 'New message received'
+        return payload.preview ? payload.preview : 'New message received'
+      case 'quote_received':
+        return `New quote received from ${payload.workshop_name || 'workshop'}`
+      case 'payment_received':
+        return `Payment received: $${payload.amount ? payload.amount.toFixed(2) : '0.00'}`
+      case 'session_cancelled':
+        return `Session cancelled by ${payload.ended_by || 'participant'}`
+      case 'request_rejected':
+        return 'Your session request was declined'
       default:
         return 'New notification'
     }
