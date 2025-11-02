@@ -30,16 +30,19 @@ export async function POST(
   console.log(`[POST /sessions/${sessionId}/start] ${participant.role} starting session ${participant.sessionId} (auth source: ${participant.source})`)
 
   try {
-    // Fetch current session
+    // Fetch current session with mechanic's user_id (for notifications)
     const { data: session, error: fetchError } = await supabaseAdmin
       .from('sessions')
-      .select('id, status, started_at, mechanic_id, customer_user_id')
+      .select('id, status, started_at, mechanic_id, customer_user_id, type, mechanics(user_id)')
       .eq('id', sessionId)
       .single()
 
     if (fetchError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
+
+    // Extract mechanic's user_id for notifications
+    const mechanicUserId = session.mechanics?.user_id || null
 
     const currentStatus = session.status as SessionStatus
 
@@ -132,9 +135,10 @@ export async function POST(
         })
       }
 
-      if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
+      // FIX: Use mechanic's user_id (not mechanic_id) for notifications
+      if (mechanicUserId && mechanicUserId !== session.customer_user_id) {
         notifications.push({
-          user_id: session.mechanic_id,
+          user_id: mechanicUserId,  // Use mechanic's user_id from join
           type: 'session_started',
           payload: {
             session_id: sessionId,

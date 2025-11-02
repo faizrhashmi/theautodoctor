@@ -46,15 +46,24 @@ export async function POST(req: NextRequest) {
     const mechanic = await getMechanicFromAuth()
 
     // Verify user has access to this session FIRST to determine correct role
+    // Join with mechanics to get user_id for notifications (left join to handle sessions without mechanic)
     const { data: session } = await supabaseAdmin
       .from('sessions')
-      .select('id, customer_user_id, mechanic_id')
+      .select(`
+        id,
+        customer_user_id,
+        mechanic_id,
+        mechanics(user_id)
+      `)
       .eq('id', sessionId)
       .maybeSingle()
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
+
+    // Extract mechanic's user_id from join (if mechanic assigned)
+    const mechanicUserId = session.mechanics?.user_id || null
 
     // CRITICAL: Determine sender based on session assignment (mechanic takes priority)
     // This prevents role confusion when testing with both cookies present
@@ -100,8 +109,9 @@ export async function POST(req: NextRequest) {
 
     // Notify recipient of new message
     try {
+      // FIX: Use mechanic's user_id (not mechanic_id) for notifications
       const recipientId = senderId === session.customer_user_id
-        ? session.mechanic_id
+        ? mechanicUserId  // Use mechanic's user_id from join
         : session.customer_user_id
 
       if (recipientId) {
@@ -117,7 +127,7 @@ export async function POST(req: NextRequest) {
               preview: sanitizedContent.substring(0, 100)
             }
           })
-        console.log('[send-message] ✓ Created message_received notification for recipient')
+        console.log('[send-message] ✓ Created message_received notification for recipient:', recipientId)
       }
     } catch (notifError) {
       console.warn('[send-message] Failed to create notification:', notifError)

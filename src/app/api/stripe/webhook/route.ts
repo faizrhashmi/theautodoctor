@@ -198,15 +198,19 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     try {
       const { data: fullSession } = await supabaseAdmin
         .from('sessions')
-        .select('mechanic_id, customer_user_id')
+        .select('mechanic_id, customer_user_id, mechanics(user_id)')
         .eq('id', sessionId)
         .maybeSingle()
 
-      if (fullSession?.mechanic_id) {
+      // Extract mechanic's user_id for notifications
+      const mechanicUserId = fullSession?.mechanics?.user_id || null
+
+      // FIX: Use mechanic's user_id (not mechanic_id) for notifications
+      if (mechanicUserId) {
         await supabaseAdmin
           .from('notifications')
           .insert({
-            user_id: fullSession.mechanic_id,
+            user_id: mechanicUserId,  // Use mechanic's user_id from join
             type: 'payment_received',
             payload: {
               session_id: sessionId,
@@ -216,7 +220,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
               type: 'extension'
             }
           })
-        console.log('[webhook:extension] ✓ Created payment_received notification for mechanic')
+        console.log('[webhook:extension] ✓ Created payment_received notification for mechanic:', mechanicUserId)
       }
     } catch (notifError) {
       console.warn('[webhook:extension] Failed to create notification:', notifError)
@@ -287,16 +291,19 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         try {
           const { data: fullSession } = await supabaseAdmin
             .from('sessions')
-            .select('mechanic_id, customer_user_id, workshop_id, type')
+            .select('mechanic_id, customer_user_id, workshop_id, type, mechanics(user_id)')
             .eq('id', sessionId)
             .maybeSingle()
 
-          // Notify mechanic if present
-          if (fullSession?.mechanic_id) {
+          // Extract mechanic's user_id for notifications
+          const mechanicUserId = fullSession?.mechanics?.user_id || null
+
+          // Notify mechanic if present (FIX: use user_id not mechanic_id)
+          if (mechanicUserId) {
             await supabaseAdmin
               .from('notifications')
               .insert({
-                user_id: fullSession.mechanic_id,
+                user_id: mechanicUserId,  // Use mechanic's user_id from join
                 type: 'payment_received',
                 payload: {
                   session_id: sessionId,
@@ -306,7 +313,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
                   type: 'initial'
                 }
               })
-            console.log('[webhook:payment] ✓ Created payment_received notification for mechanic')
+            console.log('[webhook:payment] ✓ Created payment_received notification for mechanic:', mechanicUserId)
           }
 
           // Notify workshop owner/admins for diagnostic sessions
