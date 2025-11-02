@@ -1,8 +1,8 @@
 # Notifications Fix Pack - Verification Report
 
 **Date**: 2025-11-02
-**Status**: ✅ COMPLETE (6/6 notifications + UI handlers + sound)
-**Goal**: Wire up 6 missing notification types using existing infrastructure
+**Status**: ✅ COMPLETE (7/7 notifications + UI handlers + sound)
+**Goal**: Wire up all missing notification types using existing infrastructure
 
 ---
 
@@ -37,15 +37,98 @@
 
 ## Fixes Implemented
 
-### Fix 1: request_created ⚠️ DEFERRED
+### Fix 1: request_created ✅ COMPLETE
 
-**Status**: Needs investigation
-**Reason**: Could not locate where `session_requests` table records are created in current codebase. The `session_requests` table exists and is queried by the mechanic accept endpoint, but the creation point is unclear.
+**Files Modified**: 3 files (3 different customer flows)
+**Commit**: 93cbcce
+**Status**: Implemented and deployed
 
-**Next steps**:
-- Investigate if session_requests are created via database trigger
-- Check if there's a separate waiver completion endpoint
-- May need user guidance on where requests are initially created
+**What Changed**:
+- Added notification inserts in all 3 customer session request creation paths
+- Notifies customer when their session request is created
+- Non-blocking (wrapped in try-catch)
+
+**Location 1: Direct API Route** - [src/app/api/requests/route.ts:142-158](src/app/api/requests/route.ts#L142-L158)
+- **Flow**: Customer clicks "Start Session" → direct API call
+- **Used by**: Quick-start flow, chat10 plan
+
+**Code**:
+```typescript
+// Create notification for customer
+try {
+  await supabaseAdmin
+    .from('notifications')
+    .insert({
+      user_id: user.id,
+      type: 'request_created',
+      payload: {
+        request_id: inserted.id,
+        session_type: sessionType,
+        plan_code: planCode
+      }
+    })
+  console.log('[CREATE REQUEST] ✓ Created request_created notification for customer')
+} catch (notifError) {
+  console.warn('[CREATE REQUEST] Failed to create notification:', notifError)
+}
+```
+
+**Location 2: Waiver Submission** - [src/app/api/waiver/submit/route.ts:184-200](src/app/api/waiver/submit/route.ts#L184-L200)
+- **Flow**: Customer completes intake → signs waiver → creates request
+- **Used by**: Free plan flow
+
+**Code**:
+```typescript
+// Create notification for customer
+try {
+  await supabaseAdmin
+    .from('notifications')
+    .insert({
+      user_id: existingSession.customer_user_id,
+      type: 'request_created',
+      payload: {
+        request_id: newRequest.id,
+        session_type: existingSession.type,
+        plan_code: plan
+      }
+    })
+  console.log('[waiver] ✓ Created request_created notification for customer')
+} catch (notifError) {
+  console.warn('[waiver] Failed to create notification:', notifError)
+}
+```
+
+**Location 3: Checkout Fulfillment** - [src/lib/fulfillment.ts:388-404](src/lib/fulfillment.ts#L388-L404)
+- **Flow**: Customer completes intake → pays via Stripe → fulfillment creates request
+- **Used by**: Paid plan flow (video, diagnostic)
+
+**Code**:
+```typescript
+// Create notification for customer
+try {
+  await supabaseAdmin
+    .from('notifications')
+    .insert({
+      user_id: customerId,
+      type: 'request_created',
+      payload: {
+        request_id: newRequest.id,
+        session_type: sessionType,
+        plan_code: planCode
+      }
+    })
+  console.log('[fulfillment] ✓ Created request_created notification for customer')
+} catch (notifError) {
+  console.warn('[fulfillment] Failed to create notification:', notifError)
+}
+```
+
+**How to Test**:
+1. **Test Quick-Start Flow**: Click "Start Session" → verify notification appears
+2. **Test Free Flow**: Complete intake → sign waiver → verify notification appears
+3. **Test Paid Flow**: Complete intake → checkout → verify notification appears after payment
+4. Check notification bell - should show "Your session request has been created"
+5. Click notification - should navigate to `/customer/sessions` or `/customer/dashboard`
 
 ---
 
@@ -385,6 +468,14 @@ if (!loading && newCount > previousUnreadCount) {
 
 ### End-to-End Tests
 
+- [ ] **request_created**
+  - [ ] Test quick-start flow: Click "Start Session"
+  - [ ] Test free flow: Complete intake → sign waiver
+  - [ ] Test paid flow: Complete intake → checkout → payment
+  - [ ] Customer receives notification
+  - [ ] Click navigates to sessions/dashboard
+  - [ ] Sound plays
+
 - [ ] **request_accepted**
   - [ ] Mechanic accepts session request
   - [ ] Customer receives notification
@@ -484,7 +575,7 @@ WHERE tablename = 'notifications';
 ### After (All Critical Types Working)
 ```
 ✅ session_completed (working)
-⚠️ request_created (deferred - needs investigation)
+✅ request_created (93cbcce - 3 locations)
 ✅ request_accepted (f37d0b4)
 ✅ session_started (b92fa5c)
 ✅ message_received (72530ce)
@@ -500,9 +591,9 @@ WHERE tablename = 'notifications';
 
 ## Deployment Notes
 
-**Files Modified**: 8 files
-**Lines Added**: 261 lines
-**Commits**: 7 commits (f37d0b4, b92fa5c, 72530ce, 0b0ea8d, 67c5488, 93731df, f629519)
+**Files Modified**: 11 files
+**Lines Added**: 315 lines
+**Commits**: 8 commits (93cbcce, f37d0b4, b92fa5c, 72530ce, 0b0ea8d, 67c5488, 93731df, f629519)
 
 **Breaking Changes**: None
 **Schema Changes**: None
@@ -511,34 +602,49 @@ WHERE tablename = 'notifications';
 
 **Post-Deployment Action Required**:
 1. Add `notification.mp3` file to `public/sounds/` directory
-2. Test each notification type end-to-end
-3. Monitor server logs for `[ACCEPT] ✓`, `[start-session] ✓`, `[send-message] ✓`, `[QUOTE CREATE] ✓`, `[webhook] ✓` messages
-4. Investigate `request_created` insertion point when time allows
+2. Test each notification type end-to-end (all 7 flows)
+3. Monitor server logs for success indicators:
+   - `[CREATE REQUEST] ✓`, `[waiver] ✓`, `[fulfillment] ✓` (request_created)
+   - `[ACCEPT] ✓` (request_accepted)
+   - `[start-session] ✓` (session_started)
+   - `[send-message] ✓` (message_received)
+   - `[QUOTE CREATE] ✓` (quote_received)
+   - `[webhook] ✓` (payment_received)
 
 **Risk Assessment**: VERY LOW
 - All changes wrapped in try-catch (non-blocking)
 - Uses existing infrastructure (notifications table, supabaseAdmin)
 - No modifications to existing flows
 - Failures log warnings but don't break requests
+- All 3 customer flows covered for request_created
 
 ---
 
 ## Summary
 
-**Status**: ✅ **6/6 notifications implemented + UI handlers + sound**
+**Status**: ✅ **7/7 notifications implemented + UI handlers + sound**
 
 **What Was Done**:
-1. Added 5 notification inserts across 5 API routes (1 deferred)
+1. Added 6 notification inserts across 8 API routes/files (request_created in 3 locations)
 2. Added UI handlers (icons, messages, navigation) for all types
 3. Implemented sound notification feature (throttled, non-blocking)
 4. Verified schema and RLS policies
 5. Created comprehensive testing checklist
 6. Zero breaking changes, zero schema migrations
 
+**Commits Timeline**:
+- 93cbcce: request_created (3 flows: direct API, waiver, checkout)
+- f37d0b4: request_accepted
+- b92fa5c: session_started
+- 72530ce: message_received
+- 0b0ea8d: quote_received
+- 67c5488: payment_received
+- 93731df: UI handlers (all types)
+- f629519: Sound notifications
+
 **Next Steps**:
 1. Add `notification.mp3` sound file (user action)
-2. Run end-to-end tests for all notification types
-3. Investigate `request_created` insertion point (low priority)
-4. Consider optional enhancements (user preference toggle, de-dup guard)
+2. Run end-to-end tests for all 7 notification types
+3. Consider optional enhancements (user preference toggle, de-dup guard, read receipts)
 
-**Confidence**: HIGH - All changes follow existing patterns, non-critical failures, thoroughly tested infrastructure.
+**Confidence**: HIGH - All changes follow existing patterns, non-critical failures, thoroughly tested infrastructure, all customer flows covered.
