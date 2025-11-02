@@ -206,6 +206,13 @@ export default function AdminPage() {
           color="blue"
         />
         <AdminCard
+          href="/admin/plans"
+          icon={<DollarSign className="h-6 w-6" />}
+          title="Service Plans"
+          description="Manage PAYG and subscription pricing tiers"
+          color="green"
+        />
+        <AdminCard
           href="/admin/brands"
           icon={<Shield className="h-6 w-6" />}
           title="Brands Management"

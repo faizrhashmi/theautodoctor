@@ -7,8 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getSupabaseServer } from '@/lib/supabaseServer'
 import { requireFeature } from '@/lib/flags'
 
 export async function GET(
@@ -17,9 +16,9 @@ export async function GET(
 ) {
   try {
     // Feature flag check
-    requireFeature('ENABLE_WORKSHOP_RFQ')
+    await requireFeature('ENABLE_WORKSHOP_RFQ')
 
-    const supabase = createClient({ cookies })
+    const supabase = getSupabaseServer()
 
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser()

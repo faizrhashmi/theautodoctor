@@ -28,7 +28,7 @@ INSERT INTO feature_flags (
   false, -- DEFAULT: Disabled
   'Enable customer-direct RFQ creation (bypasses mechanic escalation). When enabled: customers can create RFQs directly, workshops can bid. When disabled: customer RFQ UI hidden, APIs return 404.',
   0, -- No rollout yet
-  '[]'::jsonb, -- No role restrictions
+  '{}'::text[], -- No role restrictions (empty text array)
   jsonb_build_object(
     'feature_type', 'customer_feature',
     'phase', 'phase_1',

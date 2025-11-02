@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Calendar, FileText, Car, MessageSquare, User, Clock, LogOut } from 'lucide-react'
+import { LayoutDashboard, Calendar, FileText, Car, MessageSquare, User, Clock, LogOut, ClipboardList } from 'lucide-react'
 import { createClient, clearBrowserClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
+import { useRfqEnabled } from '@/hooks/useFeatureFlags'
 
 const NAV_ITEMS = [
   {
@@ -21,6 +22,12 @@ const NAV_ITEMS = [
     label: 'Quotes',
     href: '/customer/quotes',
     icon: FileText,
+  },
+  {
+    label: 'My RFQs',
+    href: '/customer/rfq/my-rfqs',
+    icon: ClipboardList,
+    featureGated: 'rfq'
   },
   {
     label: 'Vehicles',
@@ -43,6 +50,7 @@ export default function CustomerNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const isRfqEnabled = useRfqEnabled()
 
   async function handleSignOut() {
     try {
@@ -70,7 +78,11 @@ export default function CustomerNavbar() {
 
           {/* Navigation Links - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => {
+              // Filter out RFQ items if feature is disabled
+              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
+              return true
+            }).map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 
@@ -122,7 +134,11 @@ export default function CustomerNavbar() {
         {/* Navigation Links - Mobile */}
         <div className="md:hidden pb-3">
           <div className="flex items-center gap-2 overflow-x-auto">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => {
+              // Filter out RFQ items if feature is disabled
+              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
+              return true
+            }).map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 

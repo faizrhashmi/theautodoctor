@@ -25,7 +25,7 @@ export async function GET(
     )
   }
 
-  const enabled = isFeatureEnabled(flag)
+  const enabled = await isFeatureEnabled(flag)
 
   return NextResponse.json({ enabled })
 }

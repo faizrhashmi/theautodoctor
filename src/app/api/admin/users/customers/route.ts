@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { requireAdminAPI } from '@/lib/auth/guards';
@@ -21,8 +20,8 @@ export async function GET(req: NextRequest) {
   try {
     // ✅ SECURITY: Require admin authentication
     const authResult = await requireAdminAPI(req);
-    if (!auth.authorized) {
-      return auth.response!;
+    if (authResult.error) {
+      return authResult.error;
     }
     const url = new URL(req.url);
 
@@ -48,9 +47,7 @@ export async function GET(req: NextRequest) {
         account_status,
         email_verified,
         created_at,
-        last_active_at,
-        suspended_until,
-        ban_reason
+        updated_at
       `, { count: 'exact' })
       .eq('role', 'customer');
 
@@ -132,6 +129,9 @@ export async function GET(req: NextRequest) {
         return {
           ...profile,
           email: emailMap.get(profile.id) || '',
+          last_active_at: profile.updated_at, // Map updated_at to last_active_at for frontend
+          suspended_until: null, // Column doesn't exist in schema, set to null
+          ban_reason: null, // Column doesn't exist in schema, set to null
           total_sessions: sessionCount || 0,
           total_spent: totalSpent / 100, // Convert cents to dollars
         };
