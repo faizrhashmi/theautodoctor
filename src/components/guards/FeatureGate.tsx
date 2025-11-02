@@ -80,3 +80,32 @@ export function RfqGate({
     </FeatureGate>
   )
 }
+
+/**
+ * Customer RFQ Creation gate
+ *
+ * Convenience component for customer-direct RFQ creation feature gating
+ *
+ * @param props.children - Content to render when customer RFQ is enabled
+ * @param props.fallback - Optional content to render when disabled
+ *
+ * @example
+ * ```tsx
+ * <CustomerRfqGate>
+ *   <CreateRfqButton />
+ * </CustomerRfqGate>
+ * ```
+ */
+export function CustomerRfqGate({
+  children,
+  fallback
+}: {
+  children: React.ReactNode
+  fallback?: React.ReactNode
+}) {
+  return (
+    <FeatureGate feature="ENABLE_CUSTOMER_RFQ" fallback={fallback}>
+      {children}
+    </FeatureGate>
+  )
+}
