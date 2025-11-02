@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2, Wrench, CreditCard } from 'lucide-react'
+import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2, Wrench, CreditCard, Heart } from 'lucide-react'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
 
 interface PlanTier {
@@ -58,6 +58,10 @@ interface SessionLauncherProps {
   availableMechanics: number
   workshopId?: string | null
   organizationId?: string | null
+  // Phase 2: Favorites Priority Flow
+  preferredMechanicId?: string | null
+  preferredMechanicName?: string | null
+  routingType?: 'broadcast' | 'priority_broadcast'
 }
 
 export default function SessionLauncher({
@@ -67,6 +71,9 @@ export default function SessionLauncher({
   availableMechanics,
   workshopId,
   organizationId,
+  preferredMechanicId = null,
+  preferredMechanicName = null,
+  routingType = 'broadcast',
 }: SessionLauncherProps) {
   // Fetch plans from API
   const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = useServicePlans()
@@ -252,6 +259,25 @@ export default function SessionLauncher({
           )}
         </div>
 
+        {/* Priority Banner (Favorites Priority Flow - Phase 2) */}
+        {routingType === 'priority_broadcast' && preferredMechanicName && (
+          <div className="mb-3 sm:mb-4 bg-gradient-to-r from-pink-500/20 to-rose-500/20 border border-pink-500/30 rounded-xl p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="p-2 bg-pink-500/20 rounded-lg shrink-0">
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-pink-400 fill-pink-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-sm sm:text-base mb-1">
+                  Booking with {preferredMechanicName}
+                </p>
+                <p className="text-xs sm:text-sm text-pink-200">
+                  Your favorite mechanic will be notified first and has 10 minutes to accept. If unavailable, we'll automatically find you another certified mechanic.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Subscription Credit Balance Banner */}
         {subscription && !isNewCustomer && (
           <div className="mb-3 sm:mb-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl p-3 sm:p-4">
@@ -304,7 +330,7 @@ export default function SessionLauncher({
           <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
             <Link
               ref={startButtonRef}
-              href={`/intake?plan=${selectedPlan}${specialistMode ? '&specialist=true' : ''}${availableMechanics > 0 ? '&urgent=true' : ''}${canUseCredits ? '&use_credits=true' : ''}`}
+              href={`/intake?plan=${selectedPlan}${specialistMode ? '&specialist=true' : ''}${availableMechanics > 0 ? '&urgent=true' : ''}${canUseCredits ? '&use_credits=true' : ''}${preferredMechanicId ? `&preferred_mechanic_id=${preferredMechanicId}` : ''}${routingType === 'priority_broadcast' ? '&routing_type=priority_broadcast' : ''}`}
               className="flex-1 inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               {canUseCredits ? (

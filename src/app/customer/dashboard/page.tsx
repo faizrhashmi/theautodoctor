@@ -30,7 +30,10 @@ import {
   Star,
   TrendingDown,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  ClipboardList,
+  Heart,
+  Building2
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
@@ -39,6 +42,7 @@ import { ProgressTracker } from '@/components/ui/ProgressTracker'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { useRfqEnabled } from '@/hooks/useFeatureFlags'
 
 // ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
@@ -174,6 +178,7 @@ interface ActivityTimeline {
 export default function CustomerDashboardPage() {
   // ✅ Auth guard - ensures user is authenticated as customer
   const { loading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
+  const isRfqEnabled = useRfqEnabled()
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -194,6 +199,18 @@ export default function CustomerDashboardPage() {
   const [activityData, setActivityData] = useState<ActivityData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [activityLoading, setActivityLoading] = useState(false)
+
+  // Favorites state
+  const [favorites, setFavorites] = useState<any[]>([])
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [selectedFavorite, setSelectedFavorite] = useState<any>(null)
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false)
+  const [mechanicAvailability, setMechanicAvailability] = useState<{isOnline: boolean, lastSeen?: string} | null>(null)
+
+  // Phase 2: Favorites Priority Flow - store favorite context for SessionLauncher
+  const [favoriteRoutingType, setFavoriteRoutingType] = useState<'broadcast' | 'priority_broadcast'>('broadcast')
+  const [favoriteMechanicId, setFavoriteMechanicId] = useState<string | null>(null)
+  const [favoriteMechanicName, setFavoriteMechanicName] = useState<string | null>(null)
 
   const fetchDashboardData = async () => {
     if (!user) return
@@ -257,17 +274,39 @@ export default function CustomerDashboardPage() {
     }
   }
 
+  const fetchFavorites = async () => {
+    if (!user) return
+
+    try {
+      setFavoritesLoading(true)
+      const response = await fetch('/api/customer/favorites')
+
+      if (response.ok) {
+        const data = await response.json()
+        setFavorites(data || [])
+      } else {
+        console.error('Failed to fetch favorites')
+        setFavorites([])
+      }
+    } catch (err) {
+      console.error('Favorites error:', err)
+      setFavorites([])
+    } finally {
+      setFavoritesLoading(false)
+    }
+  }
+
   const fetchAnalyticsData = async () => {
     if (!user) return
-    
+
     try {
       setAnalyticsLoading(true)
       const response = await fetch('/api/customer/analytics')
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch analytics data')
       }
-      
+
       const data = await response.json()
       setAnalyticsData(data)
     } catch (err) {
@@ -303,6 +342,7 @@ export default function CustomerDashboardPage() {
     if (!user) return
 
     fetchDashboardData()
+    fetchFavorites()
 
     // Refresh availability every 30 seconds
     const interval = setInterval(async () => {
@@ -363,6 +403,55 @@ export default function CustomerDashboardPage() {
 
   const handleRefresh = () => {
     fetchDashboardData()
+  }
+
+  const handleBookFavorite = async (favorite: any) => {
+    // Check mechanic availability first
+    try {
+      const response = await fetch(`/api/mechanics/${favorite.provider_id}/status`)
+      if (response.ok) {
+        const data = await response.json()
+        setMechanicAvailability({
+          isOnline: data.is_online,
+          lastSeen: data.last_seen
+        })
+      } else {
+        // If API fails, assume offline but allow booking
+        setMechanicAvailability({ isOnline: false })
+      }
+
+      setSelectedFavorite(favorite)
+      setShowAvailabilityModal(true)
+    } catch (err) {
+      console.error('Failed to check mechanic availability:', err)
+      // Allow booking anyway with unknown status
+      setSelectedFavorite(favorite)
+      setMechanicAvailability({ isOnline: false })
+      setShowAvailabilityModal(true)
+    }
+  }
+
+  const handleContinueWithFavorite = (routingType: 'priority_broadcast' | 'broadcast') => {
+    setShowAvailabilityModal(false)
+
+    // Phase 2: Store favorite context for SessionLauncher
+    if (selectedFavorite) {
+      setFavoriteRoutingType(routingType)
+      setFavoriteMechanicId(selectedFavorite.provider_id)
+      setFavoriteMechanicName(selectedFavorite.provider_name)
+    }
+
+    // Scroll to SessionLauncher with favorite context
+    if (sessionLauncherRef.current) {
+      sessionLauncherRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+
+      // Highlight the launcher
+      setShouldHighlight(true)
+      setTimeout(() => setShouldHighlight(false), 2000)
+    }
   }
 
   // Show loading state while checking authentication
@@ -574,6 +663,9 @@ export default function CustomerDashboardPage() {
             availableMechanics={availability?.available_now || 0}
             workshopId={undefined}
             organizationId={undefined}
+            preferredMechanicId={favoriteMechanicId}
+            preferredMechanicName={favoriteMechanicName}
+            routingType={favoriteRoutingType}
           />
         </div>
       )}
@@ -614,6 +706,18 @@ export default function CustomerDashboardPage() {
             <div className="text-xs sm:text-sm font-medium text-white">Quotes</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">View estimates</div>
           </Link>
+
+          {/* RFQ Quick Action - Only shown when feature is enabled */}
+          {isRfqEnabled && (
+            <Link
+              href="/customer/rfq/my-rfqs"
+              className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border border-teal-500/30 rounded-lg p-3 sm:p-4 hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/20 transition-all group"
+            >
+              <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-teal-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+              <div className="text-xs sm:text-sm font-medium text-white">My RFQs</div>
+              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Request quotes</div>
+            </Link>
+          )}
 
           <Link
             href="/customer/vehicles"
@@ -757,6 +861,68 @@ export default function CustomerDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* My Favorites */}
+      {favorites.length > 0 && (
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+              My Favorite Mechanics
+            </h2>
+            <div className="text-sm text-slate-400">
+              {favorites.length} {favorites.length === 1 ? 'favorite' : 'favorites'}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {favorites.map((favorite) => (
+              <div
+                key={favorite.id}
+                className="bg-slate-900/50 rounded-lg border border-slate-700 hover:border-orange-500/50 transition-all p-4"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold mb-1">{favorite.provider_name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      {favorite.provider_type === 'independent' ? (
+                        <Wrench className="w-3 h-3" />
+                      ) : (
+                        <Building2 className="w-3 h-3" />
+                      )}
+                      <span className="capitalize">{favorite.provider_type}</span>
+                    </div>
+                  </div>
+                  <Heart className="w-4 h-4 text-red-400 fill-current" />
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Services:</span>
+                    <span className="text-white font-medium">{favorite.total_services || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Total Spent:</span>
+                    <span className="text-white font-medium">${(favorite.total_spent || 0).toFixed(2)}</span>
+                  </div>
+                  {favorite.last_service_at && (
+                    <div className="text-xs text-slate-500">
+                      Last: {new Date(favorite.last_service_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleBookFavorite(favorite)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-medium transition-all"
+                >
+                  <Zap className="w-4 h-4" />
+                  Book Again
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity */}
       {recentSessions.length > 0 ? (
@@ -1154,6 +1320,75 @@ export default function CustomerDashboardPage() {
         {/* Tab Content */}
         {renderTabContent()}
       </div>
+
+      {/* Mechanic Availability Modal */}
+      {showAvailabilityModal && selectedFavorite && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-4">
+              Book with {selectedFavorite.provider_name}
+            </h3>
+
+            {/* Availability Status */}
+            {mechanicAvailability?.isOnline ? (
+              <div className="flex items-center gap-2 text-green-400 mb-6 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                <span className="font-medium">Available Now</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 text-slate-400 mb-6 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-slate-500 rounded-full" />
+                  <span className="font-medium">Currently Offline</span>
+                </div>
+                {mechanicAvailability?.lastSeen && (
+                  <span className="text-sm text-slate-500 ml-5">
+                    Last seen {new Date(mechanicAvailability.lastSeen).toRelativeTimeString()}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={() => handleContinueWithFavorite('priority_broadcast')}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                {mechanicAvailability?.isOnline
+                  ? `Continue with ${selectedFavorite.provider_name}`
+                  : `Notify & Wait for ${selectedFavorite.provider_name}`
+                }
+              </button>
+
+              <button
+                onClick={() => handleContinueWithFavorite('broadcast')}
+                className="w-full border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white px-4 py-3 rounded-lg font-medium transition-all"
+              >
+                Find Available Mechanic Now
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowAvailabilityModal(false)
+                  setSelectedFavorite(null)
+                }}
+                className="w-full text-slate-400 hover:text-slate-300 px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-4 text-xs text-slate-500 text-center">
+              {mechanicAvailability?.isOnline
+                ? `${selectedFavorite.provider_name} will be notified immediately`
+                : `${selectedFavorite.provider_name} will get priority notification. If no response in 10 minutes, we'll find you another mechanic.`
+              }
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
