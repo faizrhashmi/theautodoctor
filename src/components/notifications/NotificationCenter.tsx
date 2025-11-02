@@ -130,7 +130,12 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
         break
 
       case 'payment_received':
-        router.push('/mechanic/earnings')
+        // Navigate to workshop analytics for diagnostic payments, mechanic earnings otherwise
+        if (payload.type === 'diagnostic_payment') {
+          router.push('/workshop/analytics')
+        } else {
+          router.push('/mechanic/earnings')
+        }
         break
 
       case 'session_cancelled':

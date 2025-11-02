@@ -283,14 +283,15 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       } else {
         console.log('[webhook:payment] ✓ Session activated:', sessionId)
 
-        // Notify mechanic of initial payment received
+        // Notify mechanic and/or workshop of initial payment received
         try {
           const { data: fullSession } = await supabaseAdmin
             .from('sessions')
-            .select('mechanic_id, customer_user_id')
+            .select('mechanic_id, customer_user_id, workshop_id, type')
             .eq('id', sessionId)
             .maybeSingle()
 
+          // Notify mechanic if present
           if (fullSession?.mechanic_id) {
             await supabaseAdmin
               .from('notifications')
@@ -306,6 +307,36 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
                 }
               })
             console.log('[webhook:payment] ✓ Created payment_received notification for mechanic')
+          }
+
+          // Notify workshop owner/admins for diagnostic sessions
+          if (fullSession?.workshop_id && fullSession?.type === 'diagnostic') {
+            // Get workshop owner/admins from organization_members
+            const { data: workshopMembers } = await supabaseAdmin
+              .from('organization_members')
+              .select('user_id, role')
+              .eq('organization_id', fullSession.workshop_id)
+              .in('role', ['owner', 'admin'])
+
+            if (workshopMembers && workshopMembers.length > 0) {
+              const workshopNotifications = workshopMembers.map(member => ({
+                user_id: member.user_id,
+                type: 'payment_received',
+                payload: {
+                  session_id: sessionId,
+                  payment_intent_id: paymentIntent.id,
+                  amount: paymentIntent.amount / 100,
+                  currency: paymentIntent.currency,
+                  type: 'diagnostic_payment',
+                  workshop_id: fullSession.workshop_id
+                }
+              }))
+
+              await supabaseAdmin
+                .from('notifications')
+                .insert(workshopNotifications)
+              console.log(`[webhook:payment] ✓ Created payment_received notifications for ${workshopMembers.length} workshop member(s)`)
+            }
           }
         } catch (notifError) {
           console.warn('[webhook:payment] Failed to create notification:', notifError)
