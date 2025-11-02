@@ -98,6 +98,32 @@ export async function POST(req: NextRequest) {
 
     console.log('[send-message] Message inserted successfully:', message.id, 'from sender:', senderId)
 
+    // Notify recipient of new message
+    try {
+      const recipientId = senderId === session.customer_user_id
+        ? session.mechanic_id
+        : session.customer_user_id
+
+      if (recipientId) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: recipientId,
+            type: 'message_received',
+            payload: {
+              session_id: sessionId,
+              message_id: message.id,
+              sender_id: senderId,
+              preview: sanitizedContent.substring(0, 100)
+            }
+          })
+        console.log('[send-message] ✓ Created message_received notification for recipient')
+      }
+    } catch (notifError) {
+      console.warn('[send-message] Failed to create notification:', notifError)
+      // Non-critical - don't fail the request
+    }
+
     return NextResponse.json({ message })
   } catch (error: any) {
     console.error('Error in send-message:', error)
