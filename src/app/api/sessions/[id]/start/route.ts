@@ -117,6 +117,43 @@ export async function POST(
       })
     }
 
+    // Create notifications for both participants
+    try {
+      const notifications = []
+
+      if (session.customer_user_id) {
+        notifications.push({
+          user_id: session.customer_user_id,
+          type: 'session_started',
+          payload: {
+            session_id: sessionId,
+            session_type: updated.type
+          }
+        })
+      }
+
+      if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
+        notifications.push({
+          user_id: session.mechanic_id,
+          type: 'session_started',
+          payload: {
+            session_id: sessionId,
+            session_type: updated.type
+          }
+        })
+      }
+
+      if (notifications.length > 0) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert(notifications)
+        console.log(`[start-session] ✓ Created ${notifications.length} session_started notifications`)
+      }
+    } catch (notifError) {
+      console.warn('[start-session] Failed to create notifications:', notifError)
+      // Non-critical - don't fail the request
+    }
+
     return NextResponse.json({
       success: true,
       session: {
