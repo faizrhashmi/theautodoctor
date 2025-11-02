@@ -370,6 +370,10 @@ async function createSessionRequest({
         customer_email: customerEmail || null,
         preferred_workshop_id: workshopId,
         routing_type: workshopId ? routingType : 'broadcast',
+        // Phase 4: Favorites Priority Database Columns
+        preferred_mechanic_id: preferredMechanicId || null,
+        priority_window_minutes: 10,
+        // priority_notified_at will be set when notification is actually sent
       })
       .select()
       .single()
@@ -513,22 +517,17 @@ async function notifyPreferredMechanic(
 
     console.log(`[Priority] ✅ Sent priority notification to mechanic ${mechanicId}`)
 
-    // 4. Log priority notification in session_requests metadata (optional, for audit)
-    // Note: This requires metadata column to exist - using raw SQL for flexibility
-    try {
-      await supabaseAdmin
-        .from('session_requests')
-        .update({
-          metadata: {
-            priority_notified_at: new Date().toISOString(),
-            priority_mechanic_id: mechanicId,
-            priority_window_minutes: 10
-          } as any
-        })
-        .eq('id', sessionRequestId)
-    } catch (metadataError) {
-      // Non-critical - metadata logging is optional
-      console.warn(`[Priority] Could not log metadata (column may not exist yet):`, metadataError)
+    // 4. Update priority_notified_at timestamp in database (Phase 4: database columns)
+    const { error: updateError } = await supabaseAdmin
+      .from('session_requests')
+      .update({
+        priority_notified_at: new Date().toISOString()
+      })
+      .eq('id', sessionRequestId)
+
+    if (updateError) {
+      console.warn(`[Priority] Could not update priority_notified_at:`, updateError.message)
+      // Non-critical - notification was still sent
     }
 
     return true
