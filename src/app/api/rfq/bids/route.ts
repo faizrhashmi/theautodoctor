@@ -258,6 +258,33 @@ export async function POST(request: Request) {
         ignoreDuplicates: false,
       })
 
+    // Send notifications (async, don't block response)
+    Promise.all([
+      // Notify customer
+      import('@/lib/rfq/notifications').then(({ notifyCustomerNewBid }) =>
+        notifyCustomerNewBid({
+          customerId: rfq.customer_id!,
+          rfqId: data.rfq_marketplace_id,
+          rfqTitle: rfq.title!,
+          workshopName: workshopInfo.workshop_name,
+          bidAmount: data.quote_amount,
+          totalBids: rfq.bid_count + 1,
+          maxBids: rfq.max_bids,
+        })
+      ),
+      // Notify mechanic
+      import('@/lib/rfq/notifications').then(({ notifyMechanicNewBid }) =>
+        notifyMechanicNewBid({
+          mechanicId: rfq.escalating_mechanic_id!,
+          rfqId: data.rfq_marketplace_id,
+          rfqTitle: rfq.title!,
+          workshopName: workshopInfo.workshop_name,
+          bidAmount: data.quote_amount,
+          totalBids: rfq.bid_count + 1,
+        })
+      ),
+    ]).catch(error => console.error('Notification error:', error))
+
     return NextResponse.json({
       success: true,
       bid_id: bid.id,

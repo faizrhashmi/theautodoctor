@@ -59,7 +59,7 @@ export async function POST(
     // Verify RFQ ownership before accepting
     const { data: rfq, error: rfqError } = await supabase
       .from('workshop_rfq_marketplace')
-      .select('id, customer_id, status, escalating_mechanic_id')
+      .select('id, customer_id, status, escalating_mechanic_id, title')
       .eq('id', rfqId)
       .single()
 
@@ -133,6 +133,42 @@ export async function POST(
     const referralFeeAmount = acceptedBid
       ? (acceptedBid.quote_amount * referralFeePercent) / 100
       : 0
+
+    // Send notifications to all parties (async, don't block response)
+    if (acceptedBid) {
+      import('@/lib/rfq/notifications').then(({ notifyBidAccepted, notifyBidRejected }) => {
+        // Notify all parties about acceptance
+        notifyBidAccepted({
+          customerId: rfq.customer_id,
+          mechanicId: rfq.escalating_mechanic_id,
+          workshopId: acceptedBid.workshop_id,
+          rfqId: rfqId,
+          bidId: bid_id,
+          rfqTitle: rfq.title,
+          workshopName: acceptedBid.workshop_name,
+          bidAmount: acceptedBid.quote_amount,
+          referralFee: referralFeeAmount,
+        }).catch(error => console.error('Acceptance notification error:', error))
+
+        // Notify rejected workshops
+        supabase
+          .from('workshop_rfq_bids')
+          .select('workshop_id, workshop_name, quote_amount')
+          .eq('rfq_marketplace_id', rfqId)
+          .eq('status', 'rejected')
+          .then(({ data: rejectedBids }) => {
+            if (rejectedBids) {
+              rejectedBids.forEach(rejectedBid => {
+                notifyBidRejected({
+                  workshopId: rejectedBid.workshop_id,
+                  rfqTitle: rfq.title,
+                  bidAmount: rejectedBid.quote_amount,
+                }).catch(error => console.error('Rejection notification error:', error))
+              })
+            }
+          })
+      }).catch(error => console.error('Notification error:', error))
+    }
 
     return NextResponse.json({
       success: true,
