@@ -82,6 +82,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // CRITICAL: Skip middleware for ALL API routes (except debug endpoints which are handled below)
+  // API routes handle their own authentication
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/debug')) {
+    return NextResponse.next()
+  }
+
   // P0-1 FIX: Block debug endpoints in production (defense-in-depth)
   // Even though debug endpoints should use withDebugAuth, we block at middleware level
   // This prevents accidental exposure if an endpoint forgets the auth wrapper

@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import DOMPurify from 'isomorphic-dompurify'
+
+/**
+ * POST /api/chat/send-message
+ * Send a chat message in a diagnostic session
+ */
 
 // Helper to check mechanic auth using unified Supabase auth
 async function getMechanicFromAuth() {
   const supabase = getSupabaseServer()
+
+  // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+
   if (authError || !user) return null
 
+  // Check if user has mechanic role
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('role')
@@ -16,6 +27,7 @@ async function getMechanicFromAuth() {
 
   if (!profile || profile.role !== 'mechanic') return null
 
+  // Load mechanic profile
   const { data: mechanic } = await supabaseAdmin
     .from('mechanics')
     .select('id, name, email, user_id')
@@ -33,10 +45,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Check auth - either customer (Supabase) or mechanic (unified Supabase auth)
     const supabase = getSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
     const mechanic = await getMechanicFromAuth()
 
+    // Verify user has access to this session FIRST to determine correct role
+    // Join with mechanics to get user_id for notifications (left join to handle sessions without mechanic)
     const { data: session } = await supabaseAdmin
       .from('sessions')
       .select(`
@@ -52,11 +67,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
+    // Extract mechanic's user_id from join (if mechanic assigned)
     const mechanicUserId = session.mechanics?.user_id || null
+
+    // CRITICAL: Determine sender based on session assignment (mechanic takes priority)
+    // This prevents role confusion when testing with both cookies present
     let senderId: string | null = null
 
     if (mechanic && session.mechanic_id === mechanic.id) {
-      senderId = mechanic.user_id
+      senderId = mechanic.user_id  // Use user_id for messages (auth.users ID)
       console.log('[send-message] Sender identified as MECHANIC:', senderId, '(mechanic.id:', mechanic.id, ')')
     } else if (user && session.customer_user_id === user.id) {
       senderId = user.id
@@ -67,16 +86,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - not assigned to this session' }, { status: 401 })
     }
 
-    // Simple sanitization - strip HTML tags
-    const sanitizedContent = content.replace(/<[^>]*>/g, '')
+    // P0-5 FIX: Sanitize message content server-side to prevent XSS
+    const sanitizedContent = DOMPurify.sanitize(content, {
+      ALLOWED_TAGS: [], // No HTML tags allowed
+      ALLOWED_ATTR: [], // No attributes allowed
+      KEEP_CONTENT: true, // Keep text content
+    })
 
+    // Insert message using admin client (bypasses RLS)
     const { data: message, error: insertError } = await supabaseAdmin
       .from('chat_messages')
       .insert({
         session_id: sessionId,
         sender_id: senderId,
-        content: sanitizedContent,
-        attachments: attachments || [],
+        content: sanitizedContent, // Use sanitized content
+        attachments: attachments || [], // Empty array instead of null
       })
       .select()
       .single()
@@ -88,10 +112,11 @@ export async function POST(req: NextRequest) {
 
     console.log('[send-message] Message inserted successfully:', message.id, 'from sender:', senderId)
 
-    // Notify recipient
+    // Notify recipient of new message
     try {
+      // FIX: Use mechanic's user_id (not mechanic_id) for notifications
       const recipientId = senderId === session.customer_user_id
-        ? mechanicUserId
+        ? mechanicUserId  // Use mechanic's user_id from join
         : session.customer_user_id
 
       if (recipientId) {
@@ -111,6 +136,7 @@ export async function POST(req: NextRequest) {
       }
     } catch (notifError) {
       console.warn('[send-message] Failed to create notification:', notifError)
+      // Non-critical - don't fail the request
     }
 
     return NextResponse.json({ message })

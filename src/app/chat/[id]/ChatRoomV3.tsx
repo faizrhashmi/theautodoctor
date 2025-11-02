@@ -158,6 +158,7 @@ export default function ChatRoom({
   const [showSidebar, setShowSidebar] = useState(false) // Hidden by default on mobile
   const [vehicleInfo, setVehicleInfo] = useState<any>(null)
   const [mechanicProfile, setMechanicProfile] = useState<any>(null)
+  const [intakeData, setIntakeData] = useState<any>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imageZoom, setImageZoom] = useState(1)
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
@@ -363,6 +364,11 @@ export default function ChatRoom({
             setCustomerName(data.customerName)
           }
 
+          // Store intake data (problem description, etc.)
+          if (data.intakeData) {
+            setIntakeData(data.intakeData)
+          }
+
           // Fetch vehicle info if customer
           if (data.customerId) {
             const { data: vehicles } = await supabase
@@ -380,7 +386,7 @@ export default function ChatRoom({
             const { data: mechanic } = await supabase
               .from('mechanics')
               .select('id, name, about_me, specializations, rating, total_sessions')
-              .eq('id', data.mechanicId)
+              .eq('user_id', data.mechanicId)  // Query by user_id since mechanicId is auth.users.id
               .maybeSingle()
             if (mechanic) setMechanicProfile(mechanic)
           }
@@ -997,9 +1003,15 @@ export default function ChatRoom({
       setAttachments([])
 
       // Keep focus on input after sending (especially important on mobile)
-      setTimeout(() => {
-        messageInputRef.current?.focus()
-      }, 100)
+      // Use requestAnimationFrame + setTimeout for better mobile browser compatibility
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (messageInputRef.current) {
+            messageInputRef.current.focus({ preventScroll: true })
+            messageInputRef.current.style.height = 'auto'
+          }
+        }, 50)
+      })
     } catch (insertErr: any) {
       console.error('Send message error:', insertErr)
       setError(insertErr?.message ?? 'Unable to send message right now.')
@@ -1281,10 +1293,10 @@ export default function ChatRoom({
                       }}
                       className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-700/50"
                     >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Session Info & Vehicle Details
+                      <span className="text-left">Session Info & Details</span>
                     </button>
 
                     {/* Extend Session - Customers only, live sessions only */}
@@ -1780,127 +1792,123 @@ export default function ChatRoom({
               accept="image/*,application/pdf,.doc,.docx,.txt"
             />
 
-            {/* Main Input Container - WhatsApp Style: Single cohesive box with integrated buttons */}
-            <div className="flex items-end gap-2">
-              {/* Unified Input Box - Contains buttons + textarea */}
-              <div className="flex-1 flex items-end gap-2 rounded-2xl border border-slate-600/50 bg-slate-700/50 px-3 py-2 transition focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20">
-                {/* Left Buttons - Inside the box */}
-                <div className="flex items-center gap-1.5 pb-0.5">
-                  {/* Camera Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (fileInputRef.current) {
-                        fileInputRef.current.setAttribute('capture', 'environment')
-                        fileInputRef.current.setAttribute('accept', 'image/*')
-                        fileInputRef.current.removeAttribute('multiple')
-                        fileInputRef.current.click()
-                        setTimeout(() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.removeAttribute('capture')
-                            fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
-                            fileInputRef.current.setAttribute('multiple', 'true')
-                          }
-                        }, 100)
-                      }
-                    }}
-                    disabled={sending || uploading || sessionEnded}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Take photo"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Paperclip Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (fileInputRef.current) {
-                        fileInputRef.current.removeAttribute('capture')
-                        fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
-                        fileInputRef.current.setAttribute('multiple', 'true')
-                        fileInputRef.current.click()
-                      }
-                    }}
-                    disabled={sending || uploading || sessionEnded}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Attach file"
-                  >
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Textarea - Borderless, fills remaining space */}
-                <textarea
-                  ref={messageInputRef}
-                  value={input}
-                  onChange={(event) => {
-                    setInput(event.target.value)
-                    handleTyping()
-                    event.target.style.height = 'auto'
-                    event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px'
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault()
-                      const form = event.currentTarget.form as HTMLFormElement | null
-                      form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
-                      if (messageInputRef.current) {
-                        messageInputRef.current.style.height = 'auto'
-                      }
+            {/* Main Input Container - WhatsApp Style: Single cohesive box with all buttons integrated */}
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-600/50 bg-slate-700/50 px-3 py-2 transition focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20">
+              {/* Left Buttons - Inside the box */}
+              <div className="flex items-center gap-1.5 pb-0.5">
+                {/* Camera Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.setAttribute('capture', 'environment')
+                      fileInputRef.current.setAttribute('accept', 'image/*')
+                      fileInputRef.current.removeAttribute('multiple')
+                      fileInputRef.current.click()
+                      setTimeout(() => {
+                        if (fileInputRef.current) {
+                          fileInputRef.current.removeAttribute('capture')
+                          fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
+                          fileInputRef.current.setAttribute('multiple', 'true')
+                        }
+                      }, 100)
                     }
                   }}
-                  placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
-                  rows={1}
-                  maxLength={2000}
-                  style={{ maxHeight: '120px' }}
-                  className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder-slate-400 outline-none disabled:cursor-not-allowed"
                   disabled={sending || uploading || sessionEnded}
-                />
-              </div>
-
-              {/* Send Button - Separate, prominent */}
-              <button
-                type="submit"
-                disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none flex-shrink-0"
-                title="Send message"
-              >
-                {sending || uploading ? (
-                  <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Take photo"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                ) : (
+                </button>
+
+                {/* Paperclip Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.removeAttribute('capture')
+                      fileInputRef.current.setAttribute('accept', 'image/*,application/pdf,.doc,.docx,.txt')
+                      fileInputRef.current.setAttribute('multiple', 'true')
+                      fileInputRef.current.click()
+                    }
+                  }}
+                  disabled={sending || uploading || sessionEnded}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Attach file"
+                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
                   </svg>
-                )}
-              </button>
+                </button>
+              </div>
+
+              {/* Textarea - Borderless, fills remaining space */}
+              <textarea
+                ref={messageInputRef}
+                value={input}
+                onChange={(event) => {
+                  setInput(event.target.value)
+                  handleTyping()
+                  event.target.style.height = 'auto'
+                  event.target.style.height = Math.min(event.target.scrollHeight, 120) + 'px'
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    const form = event.currentTarget.form as HTMLFormElement | null
+                    form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+                  }
+                }}
+                placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
+                rows={1}
+                maxLength={2000}
+                style={{ maxHeight: '120px' }}
+                className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder-slate-400 outline-none disabled:cursor-not-allowed"
+                disabled={sending || uploading || sessionEnded}
+              />
+
+              {/* Send Button - Inside the box on the right */}
+              <div className="flex items-center pb-0.5">
+                <button
+                  type="submit"
+                  disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  title="Send message"
+                >
+                  {sending || uploading ? (
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Character Count - Below the input box */}
@@ -1962,6 +1970,55 @@ export default function ChatRoom({
             </div>
 
           <div className="p-4 space-y-6">
+            {/* CRITICAL: Customer's Problem Description - Show FIRST for mechanics */}
+            {isMechanic && intakeData && intakeData.concern && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <svg className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h3 className="font-semibold text-red-300">Customer's Issue</h3>
+                </div>
+                <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{intakeData.concern}</p>
+
+                {/* Intake form images/files */}
+                {intakeData.files && intakeData.files.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-semibold text-slate-400 uppercase">Attached Photos</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {intakeData.files.map((file: string, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedImage(file)}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-slate-600 hover:border-orange-400 transition group"
+                        >
+                          <img
+                            src={file}
+                            alt={`Intake ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                            </svg>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {intakeData.urgent && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-500/20 border border-orange-500/30 px-3 py-2">
+                    <svg className="h-4 w-4 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-xs font-medium text-orange-300">URGENT SESSION</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Mechanic Profile Card - Only for customers */}
             {!isMechanic && mechanicProfile && (
               <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">

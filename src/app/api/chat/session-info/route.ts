@@ -9,10 +9,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch session with mechanic and customer info
+    // Fetch session with mechanic and customer info, and intake data
     const { data: session, error } = await supabaseAdmin
       .from('sessions')
-      .select('id, status, mechanic_id, customer_user_id')
+      .select('id, status, mechanic_id, customer_user_id, intake_id')
       .eq('id', sessionId)
       .single()
 
@@ -23,6 +23,20 @@ export async function GET(req: NextRequest) {
     let mechanicName: string | null = null
     let mechanicUserId: string | null = null
     let customerName: string | null = null
+    let intakeData: any = null
+
+    // Fetch intake form data if available (CRITICAL for mechanics to see the problem)
+    if (session.intake_id) {
+      const { data: intake } = await supabaseAdmin
+        .from('intakes')
+        .select('concern, year, make, model, vin, odometer, plate, urgent, files, city')
+        .eq('id', session.intake_id)
+        .maybeSingle()
+
+      if (intake) {
+        intakeData = intake
+      }
+    }
 
     // Fetch mechanic name and user_id if assigned
     if (session.mechanic_id) {
@@ -64,6 +78,7 @@ export async function GET(req: NextRequest) {
       customerId: session.customer_user_id,
       mechanicName,
       customerName,
+      intakeData,  // Include intake form data (concern, vehicle info, etc.)
     })
   } catch (error: any) {
     console.error('Error fetching session info:', error)

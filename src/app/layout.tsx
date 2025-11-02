@@ -8,9 +8,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
 // import ChatBubble from '@/components/chat/ChatBubble'; // Hidden temporarily
-import SiteFooter from '@/components/layout/SiteFooter';
 import ClientNavbar from '@/components/layout/ClientNavbar';
 import ConditionalMainWrapper from '@/components/layout/ConditionalMainWrapper';
+import ConditionalFooter from '@/components/layout/ConditionalFooter';
 import { SessionMonitor } from '@/components/auth/AuthValidator';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -35,7 +35,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Conditional wrapper - adds pt-16 for public pages, nothing for authenticated pages */}
         <ConditionalMainWrapper>{children}</ConditionalMainWrapper>
 
-        <SiteFooter />
+        {/* Conditional footer - shows on public pages, hides on dashboards/chat/video for immersive experience */}
+        <ConditionalFooter />
         {/* <ChatBubble /> */} {/* Hidden temporarily - needs real backend integration */}
       </body>
     </html>

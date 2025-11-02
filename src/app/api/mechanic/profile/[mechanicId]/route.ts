@@ -16,6 +16,8 @@ export async function GET(
     }
 
     // Fetch mechanic profile data (excluding contact information)
+    // CRITICAL FIX: Query by user_id (auth.users.id) not id (mechanics.id)
+    // ChatRoom passes mechanicId as user_id from session-info API
     const { data: mechanic, error } = await supabaseAdmin
       .from('mechanics')
       .select(`
@@ -32,7 +34,7 @@ export async function GET(
         shop_affiliation,
         completed_sessions
       `)
-      .eq('id', mechanicId)
+      .eq('user_id', mechanicId)
       .maybeSingle()
 
     if (error) {

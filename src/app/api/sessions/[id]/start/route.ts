@@ -98,11 +98,36 @@ export async function POST(
       .eq('id', sessionId)
       .eq('status', currentStatus) // Only update if status hasn't changed
       .select()
-      .single()
+      .maybeSingle()  // Use maybeSingle to handle race conditions when both participants start simultaneously
 
     if (updateError) {
       console.error('[start-session] Failed to start session:', updateError)
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    // If no rows updated, check if session was already started by other participant
+    if (!updated) {
+      const { data: currentSession } = await supabaseAdmin
+        .from('sessions')
+        .select('status, started_at')
+        .eq('id', sessionId)
+        .single()
+
+      if (currentSession?.status === 'live' && currentSession.started_at) {
+        // Session already started by other participant - this is OK
+        console.log(`[start-session] Session ${sessionId} already live (started by other participant)`)
+        return NextResponse.json({
+          success: true,
+          session: {
+            id: sessionId,
+            status: currentSession.status,
+            started_at: currentSession.started_at,
+          },
+        })
+      }
+
+      // Unexpected state - session not updated and not live
+      return NextResponse.json({ error: 'Failed to start session - unexpected state' }, { status: 500 })
     }
 
     console.log(`[start-session] Session ${sessionId} transitioned ${currentStatus} → live at ${now}`)
