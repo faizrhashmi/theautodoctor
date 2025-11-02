@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       executionTime,
       rowCount: Array.isArray(data) ? data.length : 1,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     const executionTime = Date.now() - startTime
 
     await logger.error('database', 'Query execution error', {

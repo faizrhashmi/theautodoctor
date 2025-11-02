@@ -73,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         resolution,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[claim:reject] Error:', error)
     return NextResponse.json(
       {

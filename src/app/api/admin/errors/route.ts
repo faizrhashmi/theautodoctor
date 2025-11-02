@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       errors: data || [],
       total: count || 0,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching errors:', error)
     return NextResponse.json(
       { error: 'Failed to fetch errors', message: error.message },
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       if (error) throw error
       return NextResponse.json(data)
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating/updating error:', error)
     return NextResponse.json(
       { error: 'Failed to create/update error', message: error.message },

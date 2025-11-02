@@ -71,7 +71,7 @@ export default function RequestsQueuePage() {
       if (!mechResponse.ok) throw new Error('Failed to fetch mechanics')
       const mechData = await mechResponse.json()
       setMechanics(mechData.mechanics || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching data:', error)
       alert('Failed to load requests')
     } finally {
@@ -100,7 +100,7 @@ export default function RequestsQueuePage() {
       setSelectedRequest(null)
       setAssigningTo(null)
       await fetchData()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error assigning mechanic:', error)
       alert(error.message || 'Failed to assign mechanic')
     } finally {

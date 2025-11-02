@@ -39,7 +39,7 @@ async function checkSupabase(): Promise<ServiceHealth> {
       responseTime,
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       service: 'supabase',
       status: 'down',
@@ -71,7 +71,7 @@ async function checkLiveKit(): Promise<ServiceHealth> {
       message: 'Credentials configured',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       service: 'livekit',
       status: 'down',
@@ -102,7 +102,7 @@ async function checkStripe(): Promise<ServiceHealth> {
       message: 'API key configured',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       service: 'stripe',
       status: 'down',
@@ -134,7 +134,7 @@ async function checkEmail(): Promise<ServiceHealth> {
       message: 'Email service configured',
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       service: 'email',
       status: 'down',
@@ -167,7 +167,7 @@ async function checkStorage(): Promise<ServiceHealth> {
       message: `${data.length} buckets`,
       lastChecked: new Date().toISOString(),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       service: 'storage',
       status: 'down',
@@ -261,7 +261,7 @@ export async function GET(_request: NextRequest) {
       uptime: uptimeStats,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logger.error('system', 'Health check failed', {
       error: error.message,
       stack: error.stack,

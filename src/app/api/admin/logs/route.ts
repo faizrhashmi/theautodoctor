@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching logs:', error)
     return NextResponse.json(
       { error: 'Failed to fetch logs', message: error.message },
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: `Logs older than ${days} days would be deleted`,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting logs:', error)
     return NextResponse.json(
       { error: 'Failed to delete logs', message: error.message },

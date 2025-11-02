@@ -231,7 +231,7 @@ export async function GET(req: NextRequest) {
         topWorkshops,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ANALYTICS] Error fetching beta program data:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },

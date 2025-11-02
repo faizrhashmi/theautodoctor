@@ -80,7 +80,7 @@ export async function POST(
       message: 'Workshop reactivated successfully',
       workshop
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin Workshops Reactivate] Error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

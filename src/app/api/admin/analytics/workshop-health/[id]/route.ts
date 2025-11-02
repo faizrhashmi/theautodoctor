@@ -207,7 +207,7 @@ export async function GET(
         timeline: timeline.slice(0, 10), // Return last 10 events
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ANALYTICS] Error fetching workshop health:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },

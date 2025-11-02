@@ -172,7 +172,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: 'refunded',
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[claim:approve] Error:', error)
     return NextResponse.json(
       {

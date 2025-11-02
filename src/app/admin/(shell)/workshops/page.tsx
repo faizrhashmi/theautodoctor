@@ -72,7 +72,7 @@ export default function WorkshopsPage() {
 
       const data = await response.json()
       setWorkshops(data.workshops || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching workshops:', error)
     } finally {
       setLoading(false)
@@ -135,7 +135,7 @@ export default function WorkshopsPage() {
       }
       setActionStatus({ type: 'success', message: 'Workshop approved successfully.' })
       await fetchWorkshops()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to approve workshop.' })
     } finally {
       setActionLoading(false)
@@ -163,7 +163,7 @@ export default function WorkshopsPage() {
       }
       setActionStatus({ type: 'success', message: data?.message || 'Workshop suspended.' })
       await fetchWorkshops()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to suspend workshop.' })
     } finally {
       setActionLoading(false)
@@ -184,7 +184,7 @@ export default function WorkshopsPage() {
       }
       setActionStatus({ type: 'success', message: data?.message || 'Workshop reactivated.' })
       await fetchWorkshops()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to reactivate workshop.' })
     } finally {
       setActionLoading(false)

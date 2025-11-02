@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json(data || [])
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching saved queries:', error)
     return NextResponse.json(
       { error: 'Failed to fetch saved queries', message: error.message },

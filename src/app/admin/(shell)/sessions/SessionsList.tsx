@@ -108,7 +108,7 @@ export default function SessionsList({ availableSessions, activeSessions }: Prop
       } else {
         router.push(`/diagnostic/${sessionId}`)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert(error?.message || 'Failed to join session')
     } finally {
       setJoining(null)

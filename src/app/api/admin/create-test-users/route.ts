@@ -399,7 +399,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[CREATE TEST USERS] Error:', error);
     return NextResponse.json({
       success: false,

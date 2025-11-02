@@ -37,7 +37,7 @@ export async function PATCH(
     if (error) throw error
 
     return NextResponse.json(data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating error:', error)
     return NextResponse.json(
       { error: 'Failed to update error', message: error.message },
@@ -65,7 +65,7 @@ export async function DELETE(
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting error:', error)
     return NextResponse.json(
       { error: 'Failed to delete error', message: error.message },

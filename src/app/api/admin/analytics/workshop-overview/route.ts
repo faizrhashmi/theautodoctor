@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       emailPerformance: emailMetrics,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ANALYTICS] Error fetching workshop overview:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Internal server error' },

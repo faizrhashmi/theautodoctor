@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
         withdrawn30Days: stat.withdrawn_30_days,
       })),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[admin-privacy-metrics] Unexpected error:', error)
     return NextResponse.json(
       { error: error?.message || 'Internal server error' },

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/csv',
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error exporting sessions:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to export sessions' },

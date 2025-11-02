@@ -69,7 +69,7 @@ export default function ClaimsPage() {
 
       const data = await response.json()
       setClaims(data.claims || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching claims:', error)
       alert('Failed to load claims')
     } finally {
@@ -115,7 +115,7 @@ export default function ClaimsPage() {
       alert('Claim approved successfully')
       setSelectedClaim(null)
       await fetchClaims()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error approving claim:', error)
       alert(error.message || 'Failed to approve claim')
     } finally {
@@ -143,7 +143,7 @@ export default function ClaimsPage() {
       alert('Claim rejected successfully')
       setSelectedClaim(null)
       await fetchClaims()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error rejecting claim:', error)
       alert(error.message || 'Failed to reject claim')
     } finally {

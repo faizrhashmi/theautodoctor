@@ -54,7 +54,7 @@ export async function GET(
     return NextResponse.json({
       files: files || [],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching session files:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch session files' },

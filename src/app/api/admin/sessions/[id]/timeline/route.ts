@@ -177,7 +177,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         claims: claims?.length || 0,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[timeline] Error:', error)
     return NextResponse.json(
       {

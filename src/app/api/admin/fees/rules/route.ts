@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(rules)
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET fee rules:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch fee rules' },
@@ -191,7 +191,7 @@ export async function POST(req: NextRequest) {
       message: 'Fee rule created successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST fee rule:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to create fee rule' },

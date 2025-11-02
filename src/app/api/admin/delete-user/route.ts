@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       deletedAuthUser: !!user
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[DELETE USER] Error:', error);
     return NextResponse.json({
       success: false,

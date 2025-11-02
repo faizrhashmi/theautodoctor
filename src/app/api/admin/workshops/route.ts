@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       workshops: workshopsWithStats,
       total: workshopsWithStats.length
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin Workshops GET] Error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

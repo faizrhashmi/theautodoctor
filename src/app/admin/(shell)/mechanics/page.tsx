@@ -274,7 +274,7 @@ export default function MechanicsPage() {
       }
       setActionStatus({ type: 'success', message: data?.message || 'Notification logged.' });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to send notification.' });
     } finally {
       setActionLoading(false);
@@ -300,7 +300,7 @@ export default function MechanicsPage() {
         detail: data?.reset_link,
       });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to reset password.' });
     } finally {
       setActionLoading(false);
@@ -337,7 +337,7 @@ export default function MechanicsPage() {
           : undefined,
       });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to suspend mechanic.' });
     } finally {
       setActionLoading(false);
@@ -358,7 +358,7 @@ export default function MechanicsPage() {
       }
       setActionStatus({ type: 'success', message: 'Mechanic approved successfully.' });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to approve mechanic.' });
     } finally {
       setActionLoading(false);
@@ -387,7 +387,7 @@ export default function MechanicsPage() {
       }
       setActionStatus({ type: 'success', message: data?.message || 'Additional information requested.' });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to request information.' });
     } finally {
       setActionLoading(false);
@@ -416,7 +416,7 @@ export default function MechanicsPage() {
       }
       setActionStatus({ type: 'success', message: 'Rating updated successfully.' });
       await fetchMechanics();
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to adjust rating.' });
     } finally {
       setActionLoading(false);

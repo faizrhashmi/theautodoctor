@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(stats)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN DASHBOARD] Error fetching stats:', error)
     return NextResponse.json(
       {

@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       cancelled_count: cancellableSessions.length,
       skipped_count: sessionIds.length - cancellableSessions.length,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error bulk cancelling sessions:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to bulk cancel sessions' },

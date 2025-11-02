@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       updated: data
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json({
       error: error.message
     }, { status: 500 });

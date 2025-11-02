@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       sessionId,
       type: session.type,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[admin/sessions/join] Error:', error)
     return NextResponse.json(
       { error: error?.message || 'Internal server error' },

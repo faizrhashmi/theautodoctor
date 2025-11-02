@@ -376,7 +376,7 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
       }
       setActionStatus({ type: 'success', message: 'Session reassigned successfully.' })
       await refreshStats()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to reassign session.' })
     } finally {
       setActionLoading(false)
@@ -406,7 +406,7 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
       }
       setActionStatus({ type: 'success', message: 'Session cancelled successfully.' })
       await refreshStats()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to cancel session.' })
     } finally {
       setActionLoading(false)
@@ -432,7 +432,7 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
       }
       setActionStatus({ type: 'success', message: 'Session marked as completed.' })
       await refreshStats()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setActionStatus({ type: 'error', message: error?.message || 'Failed to end session.' })
     } finally {
       setActionLoading(false)

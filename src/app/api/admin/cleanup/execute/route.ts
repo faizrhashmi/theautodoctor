@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         totalCleaned,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     await logger.error('cleanup', 'Cleanup execution failed', {
       error: error.message,
       stack: error.stack,

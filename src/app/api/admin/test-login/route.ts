@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(debugInfo)
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test login error:', error)
     return NextResponse.json({
       success: false,

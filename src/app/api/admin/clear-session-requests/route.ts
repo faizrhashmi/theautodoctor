@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
       remaining_count: afterCount || 0
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN] Error clearing session requests:', error)
     return NextResponse.json({
       error: 'Internal server error',
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
       requests: requests || []
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN] Error fetching session requests:', error)
     return NextResponse.json({
       error: 'Internal server error',

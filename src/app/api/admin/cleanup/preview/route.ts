@@ -87,7 +87,7 @@ export async function GET(_request: NextRequest) {
     }
 
     return NextResponse.json(preview)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating cleanup preview:', error)
     return NextResponse.json(
       { error: 'Failed to generate cleanup preview', message: error.message },

@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
         label: period,
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API] Error in admin analytics:', error)
     return NextResponse.json({ error: 'Internal server error', message: error.message }, { status: 500 })
   }
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
       message: 'Analytics refreshed successfully',
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API] Error refreshing analytics:', error)
     return NextResponse.json({ error: 'Internal server error', message: error.message }, { status: 500 })
   }

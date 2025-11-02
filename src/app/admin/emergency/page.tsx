@@ -14,7 +14,7 @@ export default function EmergencyAdminPage() {
       const response = await fetch('/api/admin/clear-all-sessions')
       const data = await response.json()
       setResult(data)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({ error: error.message })
     } finally {
       setLoading(false)
@@ -48,7 +48,7 @@ export default function EmergencyAdminPage() {
       const data = await response.json()
       setResult(data)
       alert(`✅ Success! Deleted ${data.summary?.total_deleted || 0} records`)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({ error: error.message })
       alert('❌ Error: ' + error.message)
     } finally {

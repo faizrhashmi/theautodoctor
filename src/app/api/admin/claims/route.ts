@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       limit,
       offset,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[claims:list] Error:', error)
     return NextResponse.json(
       {
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       success: true,
       claim,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[claims:create] Error:', error)
     return NextResponse.json(
       {

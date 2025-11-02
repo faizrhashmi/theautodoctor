@@ -76,7 +76,7 @@ export async function PATCH(
       message: 'Fee rule updated successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PATCH fee rule:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to update fee rule' },
@@ -125,7 +125,7 @@ export async function DELETE(
       message: 'Fee rule deleted successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE fee rule:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to delete fee rule' },

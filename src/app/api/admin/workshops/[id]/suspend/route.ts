@@ -85,7 +85,7 @@ export async function POST(
       message: 'Workshop suspended successfully',
       workshop
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin Workshops Suspend] Error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

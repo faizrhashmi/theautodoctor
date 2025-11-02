@@ -114,7 +114,7 @@ export async function DELETE(req: NextRequest) {
       errors: results.errors.length > 0 ? results.errors : undefined
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('💥 [ADMIN] Fatal error during cleanup:', error)
     return NextResponse.json({
       success: false,
@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
       total_records: (requestsCount || 0) + (sessionsCount || 0)
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ADMIN] Error fetching counts:', error)
     return NextResponse.json({
       error: 'Internal server error',

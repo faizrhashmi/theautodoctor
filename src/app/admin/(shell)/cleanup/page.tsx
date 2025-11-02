@@ -89,7 +89,7 @@ export default function CleanupPage() {
       } else {
         alert('Cleanup failed: ' + data.error)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert('Cleanup failed: ' + error.message)
     } finally {
       setExecuting(false)

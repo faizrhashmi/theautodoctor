@@ -54,7 +54,7 @@ export async function GET(
     return NextResponse.json({
       messages: messages || [],
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching chat messages:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch chat messages' },

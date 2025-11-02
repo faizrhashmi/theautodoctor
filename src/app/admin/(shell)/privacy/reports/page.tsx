@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 export default function PrivacyReportsPage() {
   const [generating, setGenerating] = useState<string | null>(null)
-  const [reportData, setReportData] = useState<any>(null)
+  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null)
 
   // Report parameters
   const [dateFrom, setDateFrom] = useState(() => {

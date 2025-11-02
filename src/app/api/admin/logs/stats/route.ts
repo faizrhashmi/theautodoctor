@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const stats = await logger.getErrorStats(hours)
 
     return NextResponse.json(stats)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching log stats:', error)
     return NextResponse.json(
       { error: 'Failed to fetch log stats', message: error.message },

@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest) {
       completed: completedCount.count || 0,
       revenue: revenue / 100, // Convert cents to dollars
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching session stats:', error)
     return NextResponse.json(
       { error: error.message || 'Failed to fetch session stats' },
