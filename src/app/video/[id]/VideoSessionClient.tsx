@@ -956,6 +956,9 @@ export default function VideoSessionClient({
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [completionSessionData, setCompletionSessionData] = useState<any>(null)
 
+  // LiveKit Room connection state - disconnect when session ends
+  const [isRoomConnected, setIsRoomConnected] = useState(true)
+
   // Debug: Track modal state changes
   useEffect(() => {
     console.log('[VIDEO] Modal state changed:', {
@@ -1146,43 +1149,14 @@ export default function VideoSessionClient({
         console.log('[VIDEO] 📡 Session ended by other participant:', payload)
         const { status, endedBy } = payload.payload
 
-        // Determine who ended the session for notification (matching chat behavior)
-        const endedByText = endedBy === 'mechanic'
-          ? 'the mechanic'
-          : 'the customer'
+        // Disconnect from LiveKit room immediately
+        console.log('[VIDEO] 📡 Disconnecting from LiveKit room...')
+        setIsRoomConnected(false)
 
-        if (status === 'cancelled') {
-          // Cancelled sessions: show toast and redirect (matching chat behavior)
-          console.log('[VIDEO] 📡 Session was cancelled, showing notification...')
-
-          // Create a temporary toast container if react-hot-toast isn't available
-          const toastDiv = document.createElement('div')
-          toastDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #DC2626;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            z-index: 99999;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          `
-          toastDiv.textContent = `Session has been cancelled by ${endedByText}`
-          document.body.appendChild(toastDiv)
-
-          setTimeout(() => {
-            document.body.removeChild(toastDiv)
-            window.location.href = dashboardUrl
-          }, 2000)
-        } else {
-          // Completed sessions: show modal (matching chat behavior)
-          console.log('[VIDEO] 📡 Session completed, showing modal...')
-          await fetchAndShowCompletionModal()
-          console.log('[VIDEO] 📡 Modal fetch completed')
-        }
+        // Show modal for both completed and cancelled sessions (consolidated approach)
+        console.log('[VIDEO] 📡 Session ended, showing completion modal...')
+        await fetchAndShowCompletionModal()
+        console.log('[VIDEO] 📡 Modal fetch completed')
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[VIDEO] Session extended:', payload)
@@ -1539,6 +1513,11 @@ export default function VideoSessionClient({
   const confirmEndSession = useCallback(async () => {
     try {
       console.log('[VIDEO] 🛑 Manual end session clicked')
+
+      // Disconnect from LiveKit room immediately
+      console.log('[VIDEO] 🛑 Disconnecting from LiveKit room...')
+      setIsRoomConnected(false)
+
       const response = await fetch(`/api/sessions/${sessionId}/end`, {
         method: 'POST',
       })
@@ -1877,7 +1856,7 @@ export default function VideoSessionClient({
       <LiveKitRoom
         serverUrl={serverUrl}
         token={currentToken}
-        connect={true}
+        connect={isRoomConnected}
         video={true}
         audio={true}
         className="h-full w-full"
