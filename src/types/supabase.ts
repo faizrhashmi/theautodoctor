@@ -2324,6 +2324,16 @@ export type Database = {
           can_accept_sessions: boolean | null
           can_perform_physical_work: boolean | null
           certification_documents: string[] | null
+          /** Primary certification type: red_seal | provincial | ase | cpa_quebec | manufacturer | other */
+          certification_type: 'red_seal' | 'provincial' | 'ase' | 'cpa_quebec' | 'manufacturer' | 'other' | null
+          /** Certification/license number (e.g., RS-ON-12345, ASE A1) */
+          certification_number: string | null
+          /** Issuing authority (e.g., "Red Seal Program", "Ontario College of Trades") */
+          certification_authority: string | null
+          /** Province/state of certification (e.g., "ON", "QC", "BC", "CA" for interprovincial) */
+          certification_region: string | null
+          /** Expiry date of primary certification (NULL if no expiry) */
+          certification_expiry_date: string | null
           city: string | null
           completed_sessions: number | null
           country: string | null
@@ -2367,9 +2377,13 @@ export type Database = {
           profile_completion_score: number | null
           province: string | null
           rating: number | null
+          /** @deprecated Use certification_type instead */
           red_seal_certified: boolean | null
+          /** @deprecated Use certification_expiry_date instead */
           red_seal_expiry_date: string | null
+          /** @deprecated Use certification_number instead */
           red_seal_number: string | null
+          /** @deprecated Use certification_region instead */
           red_seal_province: string | null
           requires_sin_collection: boolean | null
           reviewed_at: string | null
@@ -2411,6 +2425,11 @@ export type Database = {
           can_accept_sessions?: boolean | null
           can_perform_physical_work?: boolean | null
           certification_documents?: string[] | null
+          certification_type?: 'red_seal' | 'provincial' | 'ase' | 'cpa_quebec' | 'manufacturer' | 'other' | null
+          certification_number?: string | null
+          certification_authority?: string | null
+          certification_region?: string | null
+          certification_expiry_date?: string | null
           city?: string | null
           completed_sessions?: number | null
           country?: string | null
@@ -2498,6 +2517,11 @@ export type Database = {
           can_accept_sessions?: boolean | null
           can_perform_physical_work?: boolean | null
           certification_documents?: string[] | null
+          certification_type?: 'red_seal' | 'provincial' | 'ase' | 'cpa_quebec' | 'manufacturer' | 'other' | null
+          certification_number?: string | null
+          certification_authority?: string | null
+          certification_region?: string | null
+          certification_expiry_date?: string | null
           city?: string | null
           completed_sessions?: number | null
           country?: string | null
