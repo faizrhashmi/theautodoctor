@@ -1684,8 +1684,16 @@ export default function VideoSessionClient({
             ],
           },
         }}
+        onConnected={() => {
+          console.log('[LiveKitRoom] ✅ CONNECTED to room:', `session-${sessionId}`)
+          console.log('[LiveKitRoom] My identity:', _userRole === 'mechanic' ? `mechanic-${_userId}` : `customer-${_userId}`)
+          console.log('[LiveKitRoom] Server URL:', serverUrl)
+        }}
+        onDisconnected={() => {
+          console.log('[LiveKitRoom] ❌ DISCONNECTED from room')
+        }}
         onError={(error) => {
-          console.error('[LiveKitRoom] Error:', error)
+          console.error('[LiveKitRoom] ⚠️ ERROR:', error)
           if (error.message.includes('permission') || error.message.includes('NotAllowedError')) {
             alert('Camera or microphone access denied. Please allow permissions and reload the page.')
           }
