@@ -1864,10 +1864,6 @@ export default function VideoSessionClient({
           isOpen={showCompletionModal}
           sessionData={completionSessionData}
           onClose={() => setShowCompletionModal(false)}
-          onDownloadPDF={() => {
-            // Phase 2: PDF generation will be implemented here
-            console.log('[VIDEO] Download PDF clicked - Phase 2')
-          }}
           onViewDashboard={() => {
             window.location.href = dashboardUrl
           }}

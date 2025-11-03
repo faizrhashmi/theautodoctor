@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2 } from 'lucide-react'
 import { PRICING, type PlanKey } from '@/config/pricing'
+import { downloadSessionPdf } from '@/lib/reports/sessionReport'
 
 interface SessionData {
   id: string
@@ -39,6 +40,8 @@ export function SessionCompletionModal({
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [submittingRating, setSubmittingRating] = useState(false)
   const [ratingSubmitted, setRatingSubmitted] = useState(!!sessionData.rating)
+  const [downloadingPDF, setDownloadingPDF] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   // Calculate duration
   const duration = sessionData.duration_minutes ||
@@ -82,6 +85,25 @@ export function SessionCompletionModal({
       setRating(sessionData.rating || 0)
     } finally {
       setSubmittingRating(false)
+    }
+  }
+
+  // Handle PDF download
+  const handleDownloadPDF = async () => {
+    if (downloadingPDF) return
+
+    setDownloadingPDF(true)
+    setPdfError(null)
+
+    try {
+      await downloadSessionPdf(sessionData.id)
+    } catch (error) {
+      console.error('[SessionCompletionModal] PDF download error:', error)
+      setPdfError('Failed to generate PDF. Please try again.')
+      // Clear error after 5 seconds
+      setTimeout(() => setPdfError(null), 5000)
+    } finally {
+      setDownloadingPDF(false)
     }
   }
 
@@ -235,14 +257,28 @@ export function SessionCompletionModal({
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {onDownloadPDF && (
-              <button
-                onClick={onDownloadPDF}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-orange-600 hover:to-red-700"
-              >
-                <Download className="h-5 w-5" />
-                Download Session Report (PDF)
-              </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={downloadingPDF}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {downloadingPDF ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="h-5 w-5" />
+                  Download Session Report (PDF)
+                </>
+              )}
+            </button>
+
+            {pdfError && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                <p className="text-center text-xs text-red-400">{pdfError}</p>
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-3">
