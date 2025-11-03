@@ -20,6 +20,17 @@ const nextConfig = {
     },
   },
 
+  // 🚀 PERFORMANCE: Optimize icon imports (CRITICAL FIX)
+  // This transforms barrel imports into direct imports automatically
+  // Before: import { Mail, User } from 'lucide-react'
+  // After: import Mail from 'lucide-react/dist/esm/icons/mail'
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+      skipDefaultConversion: true,
+    },
+  },
+
   // SPEED: Skip type checking in dev - use separate terminal for `npm run typecheck`
   typescript: {
     ignoreBuildErrors: true,
