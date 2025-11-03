@@ -621,12 +621,12 @@ function VideoControls({
         <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
       </button>
 
-      {/* Chat Toggle */}
+      {/* Chat Toggle - Higher z-index to stay above chat window */}
       <button
         onClick={onToggleChat}
-        className={`relative rounded-lg p-2 transition sm:p-3 ${
+        className={`relative z-[60] rounded-lg p-2 transition sm:p-3 ${
           showChat
-            ? 'bg-blue-500/80 text-white hover:bg-blue-600'
+            ? 'bg-blue-500/80 text-white hover:bg-blue-600 ring-2 ring-blue-400/50'
             : 'bg-slate-700/80 text-white hover:bg-slate-600'
         }`}
         title={showChat ? 'Close chat' : 'Open chat'}
