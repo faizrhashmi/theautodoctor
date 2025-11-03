@@ -601,6 +601,16 @@ export default function ChatRoom({
     }
   }
 
+  // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
+  // This provides additional protection if user somehow bypasses server-side checks
+  useEffect(() => {
+    console.log('[CHAT SECURITY L2] Checking initial session status:', status)
+    if (status === 'completed' || status === 'cancelled') {
+      console.log('[CHAT SECURITY L2] ⚠️ Session already ended, redirecting...')
+      window.location.href = dashboardUrl
+    }
+  }, [status, dashboardUrl])
+
   // Real-time subscriptions including typing indicators
   useEffect(() => {
     console.log('[ChatRoom] Setting up real-time subscription for session:', sessionId)
@@ -732,31 +742,33 @@ export default function ChatRoom({
             setCurrentStartedAt(updated.started_at)
           }
 
+          // 🔒 SECURITY LAYER 3: Real-time database status monitoring
           // Show notification when session ends (FALLBACK - main notification via broadcast)
           if ((oldStatus === 'live' || oldStatus === 'waiting') &&
               (updated.status === 'completed' || updated.status === 'cancelled')) {
-            console.log(`[ChatRoom] Session status changed to ${updated.status} (fallback notification)`)
+            console.log(`[CHAT SECURITY L3] Session status changed to ${updated.status} - immediate action required`)
 
             setSessionEnded(true)
 
             // Handle based on completion status
             if (updated.status === 'cancelled') {
-              // Show notification for cancelled sessions
+              // 🔒 SECURITY: Immediate redirect for cancelled sessions (no delay)
+              console.log('[CHAT SECURITY L3] ⚠️ Session cancelled in database, redirecting immediately...')
               toast.error('Session has been cancelled', {
-                duration: 5000,
+                duration: 2000,
                 position: 'top-center',
               })
-              // Redirect to dashboard after delay
-              setTimeout(() => {
-                window.location.href = dashboardUrl
-              }, 3000)
+              // Immediate redirect for security (prevent rejoin attempts)
+              window.location.href = dashboardUrl
             } else {
-              // Show completion modal for completed sessions
+              // 🔒 SECURITY: Immediate redirect for completed sessions
+              console.log('[CHAT SECURITY L3] ⚠️ Session completed in database, redirecting immediately...')
               toast.success('Session completed', {
                 duration: 2000,
                 position: 'top-center',
               })
-              await fetchAndShowCompletionModal()
+              // Immediate redirect for security (prevent rejoin attempts)
+              window.location.href = dashboardUrl
             }
           }
 

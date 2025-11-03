@@ -829,6 +829,51 @@ export default function VideoSessionClient({
     updateSessionStatus()
   }, [sessionId])
 
+  // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
+  // This provides additional protection if user somehow bypasses server-side checks
+  useEffect(() => {
+    console.log('[VIDEO SECURITY L2] Checking initial session status:', _status)
+    if (_status === 'completed' || _status === 'cancelled') {
+      console.log('[VIDEO SECURITY L2] ⚠️ Session already ended, redirecting...')
+      window.location.href = dashboardUrl
+    }
+  }, [_status, dashboardUrl])
+
+  // 🔒 SECURITY LAYER 3: Real-time database listener for status changes
+  // This catches status changes from ANY source (API, admin panel, etc.)
+  useEffect(() => {
+    console.log('[VIDEO SECURITY L3] Setting up real-time status monitor')
+
+    const statusChannel = supabase
+      .channel(`session-status:${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          console.log('[VIDEO SECURITY L3] 🔄 Session status changed:', payload)
+          const newStatus = payload.new?.status
+
+          if (newStatus === 'completed' || newStatus === 'cancelled') {
+            console.log('[VIDEO SECURITY L3] ⚠️ Session ended in database, redirecting...')
+            window.location.href = dashboardUrl
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[VIDEO SECURITY L3] Database subscription status:', status)
+      })
+
+    return () => {
+      console.log('[VIDEO SECURITY L3] Cleaning up status monitor')
+      supabase.removeChannel(statusChannel)
+    }
+  }, [sessionId, dashboardUrl, supabase])
+
   // Listen for session:ended broadcasts from the other participant
   useEffect(() => {
     console.log('[VIDEO] Setting up session:ended broadcast listener')
