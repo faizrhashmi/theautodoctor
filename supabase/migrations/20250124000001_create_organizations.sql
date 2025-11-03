@@ -102,6 +102,7 @@ ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 -- in migration 20250124000002_create_organization_members.sql after that table exists
 
 -- Policy: Platform admins can manage all organizations
+DROP POLICY IF EXISTS "Platform admins can manage organizations" ON organizations;
 CREATE POLICY "Platform admins can manage organizations"
   ON organizations FOR ALL
   USING (
@@ -126,6 +127,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger: Auto-update updated_at on row changes
+DROP TRIGGER IF EXISTS organizations_updated_at ON organizations;
 CREATE TRIGGER organizations_updated_at
   BEFORE UPDATE ON organizations
   FOR EACH ROW
