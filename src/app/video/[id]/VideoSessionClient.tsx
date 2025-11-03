@@ -1387,8 +1387,8 @@ export default function VideoSessionClient({
     }
   }, [mechanicPresent, customerPresent, sessionStarted, sessionId])
 
-  // CRITICAL: Ensure camera and mic are enabled after preflight
-  // This component within LiveKitRoom will have access to useLocalParticipant
+  // CRITICAL: Ensure camera is enabled after preflight
+  // Note: Microphone is NOT auto-enabled - user has full control via toggle button
   const CameraEnabler = () => {
     const { localParticipant } = useLocalParticipant()
     const hasTriedEnabling = useRef(false)
@@ -1396,11 +1396,11 @@ export default function VideoSessionClient({
     useEffect(() => {
       if (!hasTriedEnabling.current && localParticipant) {
         hasTriedEnabling.current = true
-        console.log('[CameraEnabler] Explicitly enabling camera and microphone...')
+        console.log('[CameraEnabler] Explicitly enabling camera...')
 
         // Small delay to ensure LiveKit is fully initialized
         setTimeout(() => {
-          // Enable camera
+          // Enable camera only - let user control microphone via toggle
           localParticipant.setCameraEnabled(true)
             .then(() => {
               console.log('[CameraEnabler] Camera enabled successfully')
@@ -1410,15 +1410,9 @@ export default function VideoSessionClient({
               alert('Failed to enable camera. Please check your permissions and try again.')
             })
 
-          // Enable microphone
-          localParticipant.setMicrophoneEnabled(true)
-            .then(() => {
-              console.log('[CameraEnabler] Microphone enabled successfully')
-            })
-            .catch((err) => {
-              console.error('[CameraEnabler] Failed to enable microphone:', err)
-              alert('Failed to enable microphone. Please check your permissions and try again.')
-            })
+          // FIX: Do NOT auto-enable microphone
+          // User should have full control over mic state via toggle button
+          console.log('[CameraEnabler] Microphone control left to user')
         }, 500)
       }
     }, [localParticipant])
