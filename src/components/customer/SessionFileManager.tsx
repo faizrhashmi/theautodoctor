@@ -123,7 +123,9 @@ export function SessionFileManager({
           throw new Error('You must be signed in to upload files.')
         }
 
-        const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '')
+        // Extract regex to avoid Turbo mode parsing it as Tailwind class
+        const dateCharsRegex = /[-:TZ.]/g
+        const timestamp = new Date().toISOString().replace(dateCharsRegex, '')
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const storagePath = `${sessionId}/${timestamp}-${sanitizedName}`
 
