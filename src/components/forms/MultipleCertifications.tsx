@@ -23,7 +23,7 @@ interface MultipleCertificationsProps {
 }
 
 export default function MultipleCertifications({
-  certifications,
+  certifications = [],
   onChange,
   provinces,
   minRequired = 1,
@@ -42,7 +42,7 @@ export default function MultipleCertifications({
   }
 
   const removeCertification = (id: string) => {
-    if (certifications.length <= minRequired) {
+    if (!certifications || certifications.length <= minRequired) {
       alert(`You must have at least ${minRequired} certification(s)`)
       return
     }
@@ -50,6 +50,7 @@ export default function MultipleCertifications({
   }
 
   const updateCertification = (id: string, updates: Partial<CertificationEntry>) => {
+    if (!certifications) return
     onChange(
       certifications.map((c) => (c.id === id ? { ...c, ...updates } : c))
     )
@@ -74,7 +75,7 @@ export default function MultipleCertifications({
         </button>
       </div>
 
-      {certifications.length === 0 && (
+      {(!certifications || certifications.length === 0) && (
         <div className="rounded-xl border border-white/10 bg-slate-800/40 p-8 text-center">
           <p className="text-sm text-slate-400">
             No certifications added yet. Click "Add Certification" to get started.
@@ -82,7 +83,7 @@ export default function MultipleCertifications({
         </div>
       )}
 
-      {certifications.map((cert, index) => (
+      {certifications && certifications.map((cert, index) => (
         <div
           key={cert.id}
           className="relative rounded-xl border border-white/10 bg-slate-800/40 p-6"
@@ -144,7 +145,7 @@ export default function MultipleCertifications({
         </div>
       ))}
 
-      {certifications.length > 0 && (
+      {certifications && certifications.length > 0 && (
         <p className="text-xs text-slate-400">
           💡 Tip: Your first certification will be displayed as your primary qualification. Add more to showcase your full expertise!
         </p>

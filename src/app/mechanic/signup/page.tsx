@@ -1056,13 +1056,24 @@ function Step6Review({
       <ReviewSection title="Credentials" onEdit={() => setCurrentStep(2)}>
         <ReviewItem label="Years of Experience" value={form.yearsOfExperience} />
         <ReviewItem label="Specializations" value={form.specializations.join(', ')} />
-        <ReviewItem label="Red Seal Certified" value={form.redSealCertified ? 'Yes' : 'No'} />
-        {form.redSealCertified && (
-          <>
-            <ReviewItem label="Red Seal Number" value={form.redSealNumber} />
-            <ReviewItem label="Province" value={form.redSealProvince} />
-            <ReviewItem label="Expiry" value={form.redSealExpiry} />
-          </>
+        <ReviewItem
+          label="Certifications"
+          value={form.certifications && form.certifications.length > 0
+            ? `${form.certifications.length} certification(s) uploaded`
+            : 'None'
+          }
+        />
+        {form.certifications && form.certifications.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {form.certifications.map((cert, idx) => (
+              <div key={cert.id} className="ml-4 text-sm">
+                <span className="text-slate-400">
+                  {idx + 1}. {cert.type ? cert.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Not specified'}
+                  {cert.number ? ` (${cert.number})` : ''}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </ReviewSection>
 
