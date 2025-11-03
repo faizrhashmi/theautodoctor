@@ -23,7 +23,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'The Auto Doctor <noreply@theautodoctor.com>',
+        from: process.env.EMAIL_FROM || 'AskAutoDoctor <noreply@askautodoctor.com>',
         to,
         subject,
         html,
@@ -54,7 +54,7 @@ export function emailLayout(content: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Auto Doctor</title>
+  <title>AskAutoDoctor</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 40px 20px;">
@@ -65,7 +65,7 @@ export function emailLayout(content: string): string {
           <tr>
             <td style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 32px 40px; text-align: center;">
               <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
-                🚗 The Auto Doctor
+                🚗 AskAutoDoctor
               </h1>
               <p style="margin: 8px 0 0 0; color: #dbeafe; font-size: 14px;">
                 Your Virtual Mechanic
@@ -85,12 +85,12 @@ export function emailLayout(content: string): string {
             <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0;">
               <p style="margin: 0 0 12px 0; font-size: 14px; color: #64748b; text-align: center;">
                 Need help? Contact us at
-                <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@theautodoctor.com'}" style="color: #3b82f6; text-decoration: none;">
-                  ${process.env.SUPPORT_EMAIL || 'support@theautodoctor.com'}
+                <a href="mailto:${process.env.SUPPORT_EMAIL || 'support@askautodoctor.com'}" style="color: #3b82f6; text-decoration: none;">
+                  ${process.env.SUPPORT_EMAIL || 'support@askautodoctor.com'}
                 </a>
               </p>
               <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">
-                © ${new Date().getFullYear()} The Auto Doctor. All rights reserved.
+                © ${new Date().getFullYear()} AskAutoDoctor. All rights reserved.
               </p>
             </td>
           </tr>
