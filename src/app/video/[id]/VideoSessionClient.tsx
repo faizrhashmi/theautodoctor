@@ -2347,33 +2347,25 @@ Examples:
         </div>
       )}
 
-      {/* Session Completion Modal */}
-      {(() => {
-        const shouldRender = showCompletionModal && completionSessionData
-        console.log('[VIDEO] Modal render check:', {
-          showCompletionModal,
-          hasData: !!completionSessionData,
-          shouldRender
-        })
-        return shouldRender ? (
-          <SessionCompletionModal
-            isOpen={showCompletionModal}
-            sessionData={completionSessionData}
-            onClose={() => {
-              console.log('[VIDEO] Modal onClose called')
-              setShowCompletionModal(false)
-            }}
-            onViewDashboard={() => {
-              console.log('[VIDEO] Modal onViewDashboard called')
-              window.location.href = dashboardUrl
-            }}
-            onViewDetails={() => {
-              console.log('[VIDEO] Modal onViewDetails called')
-              window.location.href = `/customer/sessions`
-            }}
-          />
-        ) : null
-      })()}
+      {/* Session Completion Modal - Simplified to match working chat implementation */}
+      {completionSessionData && (
+        <SessionCompletionModal
+          isOpen={showCompletionModal}
+          sessionData={completionSessionData}
+          onClose={() => {
+            console.log('[VIDEO] Modal onClose called')
+            setShowCompletionModal(false)
+          }}
+          onViewDashboard={() => {
+            console.log('[VIDEO] Modal onViewDashboard called')
+            window.location.href = dashboardUrl
+          }}
+          onViewDetails={() => {
+            console.log('[VIDEO] Modal onViewDetails called')
+            window.location.href = _userRole === 'mechanic' ? '/mechanic/sessions' : '/customer/sessions'
+          }}
+        />
+      )}
     </div>
   )
 }
