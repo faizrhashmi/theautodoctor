@@ -671,33 +671,9 @@ export default function ChatRoom({
         setSessionEnded(true)
         setCurrentStatus(status)
 
-        // If cancelled, redirect to dashboard after showing alert
-        if (status === 'cancelled') {
-          // Determine who ended the session for notification
-          const endedByText = endedBy === 'mechanic'
-            ? mechanicName || 'the mechanic'
-            : customerName || 'the customer'
-
-          toast.error(
-            `Session has been cancelled by ${endedByText}`,
-            {
-              duration: 3000,
-              position: 'top-center',
-              icon: '❌',
-            }
-          )
-
-          setTimeout(() => {
-            window.location.href = dashboardUrl
-          }, 2000)
-        } else {
-          // If completed, show completion modal
-          toast.success('Session completed', {
-            duration: 2000,
-            position: 'top-center',
-          })
-          await fetchAndShowCompletionModal()
-        }
+        // Show modal for both completed and cancelled sessions (consolidated approach)
+        console.log('[ChatRoom] Session ended, showing completion modal...')
+        await fetchAndShowCompletionModal()
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[ChatRoom] Session extended:', payload)
@@ -1174,13 +1150,7 @@ export default function ChatRoom({
         setSessionEnded(true)
         setCurrentStatus(data.session?.status || 'completed')
 
-        // Show success notification
-        toast.success('Session ended successfully', {
-          duration: 2000,
-          position: 'top-center',
-        })
-
-        // Show completion modal instead of redirecting
+        // Show completion modal (consolidated approach - no toast)
         await fetchAndShowCompletionModal()
       } else {
         console.error('[ChatRoom] Failed to end session:', data)
