@@ -5,11 +5,7 @@ import Image from 'next/image'
 import { ArrowRight, Wrench, Zap, Star, Play, Video, CheckCircle2, Shield } from 'lucide-react'
 import MechanicPresenceIndicator from '@/components/realtime/MechanicPresenceIndicator'
 
-interface HeroSectionProps {
-  multiCertEnabled?: boolean
-}
-
-export default function HeroSection({ multiCertEnabled = false }: HeroSectionProps) {
+export default function HeroSection() {
   return (
     <section className="relative isolate flex min-h-screen items-center overflow-hidden bg-slate-950">
       <div className="absolute inset-0 -z-10">
@@ -118,22 +114,12 @@ export default function HeroSection({ multiCertEnabled = false }: HeroSectionPro
             </div>
             <div className="rounded-2xl border border-white/15 bg-slate-950/60 p-5 backdrop-blur">
               <div className="flex items-center gap-3">
-                {multiCertEnabled ? (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600">
-                    <Shield className="h-6 w-6 text-white" />
-                  </div>
-                ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                    <img
-                      src="https://www.red-seal.ca/images/redsealmapleleafbilingual-eng.png"
-                      alt="Red Seal certification"
-                      className="h-8 w-8 object-contain"
-                    />
-                  </div>
-                )}
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Real Certified Mechanics</p>
-                  <p className="text-xs text-slate-300/90">Professionals you can trust</p>
+                  <p className="text-sm font-semibold text-white">Certified Professionals</p>
+                  <p className="text-xs text-slate-300/90">Trusted and experienced mechanics</p>
                 </div>
               </div>
             </div>

@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { encryptPII } from '@/lib/encryption';
+import { prepareCertificationUpdate } from '@/lib/certifications';
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
@@ -37,14 +38,10 @@ export async function POST(req: NextRequest) {
       dateOfBirth,
       sinOrBusinessNumber,
 
-      // Credentials
-      redSealCertified,
-      redSealNumber,
-      redSealProvince,
-      redSealExpiry,
+      // Credentials (new multi-certification system)
+      certifications,
       yearsOfExperience,
       specializations,
-      otherCertifications,
 
       // Shop Information
       shopAffiliation,
@@ -134,9 +131,19 @@ export async function POST(req: NextRequest) {
     // Build full address
     const full_address = address ? `${address}, ${city}, ${province} ${postalCode}, ${country}` : null;
 
-    // Prepare other certifications JSONB
+    // Extract primary certification (first one) for main fields
+    const primaryCert = certifications && certifications.length > 0 ? certifications[0] : null;
+
+    // Prepare all certifications for JSONB storage
     const other_certifications_jsonb = {
-      certifications: otherCertifications || [],
+      certifications: certifications ? certifications.map(cert => ({
+        type: cert.type,
+        number: cert.number,
+        authority: cert.authority,
+        region: cert.region,
+        expiry: cert.expiry,
+        // Document URL will be added after upload
+      })) : [],
     };
 
     // ========================================================================
@@ -176,11 +183,22 @@ export async function POST(req: NextRequest) {
         date_of_birth: dateOfBirth,
         sin_encrypted: encryptedSIN,
 
-        // Credentials
-        red_seal_certified: redSealCertified || false,
-        red_seal_number: redSealNumber || null,
-        red_seal_province: redSealProvince || null,
-        red_seal_expiry_date: redSealExpiry || null,
+        // Credentials - Dual-write for backward compatibility
+        // Primary certification goes into main fields
+        ...prepareCertificationUpdate(primaryCert ? {
+          type: primaryCert.type || null,
+          number: primaryCert.number || null,
+          authority: primaryCert.authority || null,
+          region: primaryCert.region || null,
+          expiryDate: primaryCert.expiry || null,
+        } : {
+          type: null,
+          number: null,
+          authority: null,
+          region: null,
+          expiryDate: null,
+        }),
+        // All certifications stored in JSONB for matching
         years_of_experience: parseInt(yearsOfExperience) || 0,
         specializations,
         other_certifications: other_certifications_jsonb,

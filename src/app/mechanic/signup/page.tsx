@@ -22,6 +22,8 @@ import {
   FileText,
   AlertCircle,
 } from 'lucide-react';
+import MultipleCertifications, { type CertificationEntry } from '@/components/forms/MultipleCertifications';
+import type { CertificationType } from '@/lib/certifications/certTypes';
 
 // Form data interface
 interface SignupFormData {
@@ -40,12 +42,7 @@ interface SignupFormData {
   sinOrBusinessNumber: string;
 
   // Step 2: Credentials & Certifications
-  redSealCertified: boolean;
-  redSealNumber: string;
-  redSealProvince: string;
-  redSealExpiry: string;
-  redSealDocument: File | null;
-  otherCertifications: Array<{ name: string; issuer: string; number: string; file: File | null }>;
+  certifications: CertificationEntry[];
   yearsOfExperience: string;
   specializations: string[];
 
@@ -123,12 +120,17 @@ export default function MechanicSignup() {
     country: 'Canada',
     dateOfBirth: '',
     sinOrBusinessNumber: '',
-    redSealCertified: false,
-    redSealNumber: '',
-    redSealProvince: '',
-    redSealExpiry: '',
-    redSealDocument: null,
-    otherCertifications: [],
+    certifications: [
+      {
+        id: '1',
+        type: '',
+        number: '',
+        authority: '',
+        region: '',
+        expiry: '',
+        document: null,
+      }
+    ],
     yearsOfExperience: '',
     specializations: [],
     shopAffiliation: '',
@@ -265,13 +267,45 @@ export default function MechanicSignup() {
           setError('Please select at least one specialization');
           return false;
         }
-        if (form.redSealCertified) {
-          if (!form.redSealNumber || !form.redSealProvince || !form.redSealExpiry) {
-            setError('Complete Red Seal information is required');
+        // Validate certifications
+        if (!form.certifications || form.certifications.length === 0) {
+          setError('At least one professional certification is required');
+          return false;
+        }
+        // Check that all certifications have required fields
+        for (let i = 0; i < form.certifications.length; i++) {
+          const cert = form.certifications[i];
+          if (!cert.type) {
+            setError(`Please select a certification type for certification #${i + 1}`);
             return false;
           }
-          if (!form.redSealDocument) {
-            setError('Red Seal certificate document is required');
+          if (!cert.document) {
+            setError(`Please upload a certificate document for certification #${i + 1}`);
+            return false;
+          }
+          // Type-specific validation
+          if (cert.type === 'red_seal' && (!cert.number || !cert.region)) {
+            setError(`Red Seal certificate number and province are required`);
+            return false;
+          }
+          if (cert.type === 'provincial' && (!cert.number || !cert.region || !cert.authority)) {
+            setError(`Certificate number, province, and issuing authority are required for Provincial certification`);
+            return false;
+          }
+          if (cert.type === 'ase' && (!cert.number || !cert.region)) {
+            setError(`ASE ID and state are required`);
+            return false;
+          }
+          if (cert.type === 'cpa_quebec' && !cert.number) {
+            setError(`CPA Quebec permit number is required`);
+            return false;
+          }
+          if (cert.type === 'manufacturer' && !cert.authority) {
+            setError(`Brand/Manufacturer is required for manufacturer certification`);
+            return false;
+          }
+          if (cert.type === 'other' && !cert.authority) {
+            setError(`Certification name is required`);
             return false;
           }
         }
@@ -363,12 +397,22 @@ export default function MechanicSignup() {
   };
 
   const uploadDocuments = async () => {
-    const uploads: Record<string, string> = {};
+    const uploads: Record<string, any> = {};
     const files: Array<{ file: File; type: string; key: string }> = [];
 
-    if (form.redSealDocument) {
-      files.push({ file: form.redSealDocument, type: 'red_seal_certificate', key: 'redSeal' });
+    // Upload all certification documents
+    const certificationUrls: string[] = [];
+    for (let i = 0; i < form.certifications.length; i++) {
+      const cert = form.certifications[i];
+      if (cert.document) {
+        files.push({
+          file: cert.document,
+          type: `certification_${i}`,
+          key: `certification_${i}`
+        });
+      }
     }
+
     if (form.businessLicenseDocument) {
       files.push({ file: form.businessLicenseDocument, type: 'business_license', key: 'businessLicense' });
     }
@@ -749,55 +793,12 @@ function Step2Credentials({
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-slate-800/40 p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="redSeal"
-            checked={form.redSealCertified}
-            onChange={(e) => updateForm({ redSealCertified: e.target.checked })}
-            className="h-5 w-5 rounded border-white/10 bg-slate-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
-          />
-          <label htmlFor="redSeal" className="text-sm font-semibold text-white">
-            I have Red Seal Certification
-          </label>
-        </div>
-
-        {form.redSealCertified && (
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                label="Red Seal Number"
-                value={form.redSealNumber}
-                onChange={(v) => updateForm({ redSealNumber: v })}
-                placeholder="RS123456"
-                required
-              />
-              <SelectField
-                label="Province Issued"
-                value={form.redSealProvince}
-                onChange={(v) => updateForm({ redSealProvince: v })}
-                options={provinces}
-                required
-              />
-            </div>
-            <TextField
-              label="Expiry Date"
-              type="date"
-              value={form.redSealExpiry}
-              onChange={(v) => updateForm({ redSealExpiry: v })}
-              required
-            />
-            <FileUploadField
-              label="Upload Red Seal Certificate"
-              file={form.redSealDocument}
-              onChange={(file) => updateForm({ redSealDocument: file })}
-              accept=".pdf,.jpg,.jpeg,.png"
-              required
-            />
-          </div>
-        )}
-      </div>
+      <MultipleCertifications
+        certifications={form.certifications}
+        onChange={(certifications) => updateForm({ certifications })}
+        provinces={provinces}
+        minRequired={1}
+      />
     </div>
   );
 }

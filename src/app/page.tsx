@@ -1,7 +1,6 @@
 ﻿import Link from 'next/link'
 import { CheckCircle2, Shield, Video, Clock, Zap, Star, Sparkles, MessageSquare, Wrench } from 'lucide-react'
 import HeroSection from '@/components/home/HeroSection'
-import { getFeatureFlag, FeatureFlags } from '@/lib/featureFlags'
 
 const SERVICES = [
   {
@@ -45,7 +44,7 @@ const SERVICES = [
   }
 ]
 
-const getHowItWorks = (multiCertEnabled: boolean) => [
+const HOW_IT_WORKS = [
   {
     step: '01',
     title: 'Book Your Session',
@@ -55,9 +54,7 @@ const getHowItWorks = (multiCertEnabled: boolean) => [
   {
     step: '02',
     title: 'Connect with Mechanic',
-    description: multiCertEnabled
-      ? 'Join a secure HD video or chat session with a certified mechanic.'
-      : 'Join a secure HD video or chat session with a Red Seal certified mechanic.',
+    description: 'Join a secure HD video or chat session with a certified professional mechanic.',
     icon: Video
   },
   {
@@ -68,13 +65,11 @@ const getHowItWorks = (multiCertEnabled: boolean) => [
   }
 ]
 
-const getBenefits = (multiCertEnabled: boolean) => [
+const BENEFITS = [
   {
     icon: Shield,
-    title: multiCertEnabled ? 'Certified Professionals' : 'Red Seal Certified',
-    description: multiCertEnabled
-      ? 'Every mechanic is certified, experienced, and background-verified'
-      : 'Every mechanic is Red Seal certified and background-verified'
+    title: 'Certified Professionals',
+    description: 'Every mechanic is professionally certified, experienced, and background-verified'
   },
   {
     icon: Clock,
@@ -93,13 +88,7 @@ const getBenefits = (multiCertEnabled: boolean) => [
   }
 ]
 
-export default async function Home() {
-  // Fetch feature flag from database (with env var fallback)
-  const multiCertEnabled = await getFeatureFlag(FeatureFlags.MULTI_CERT_COPY)
-
-  const HOW_IT_WORKS = getHowItWorks(multiCertEnabled)
-  const BENEFITS = getBenefits(multiCertEnabled)
-
+export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Limited Time Banner - Sticky */}
@@ -124,7 +113,7 @@ export default async function Home() {
       </div>
 
       {/* Hero Section - Full Width Background */}
-      <HeroSection multiCertEnabled={multiCertEnabled} />
+      <HeroSection />
 
       {/* Legal Disclosure Banner */}
       <section className="relative bg-blue-500/10 border-y border-blue-400/20 py-6">
