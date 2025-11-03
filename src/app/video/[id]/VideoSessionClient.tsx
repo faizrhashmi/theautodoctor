@@ -15,7 +15,7 @@ import {
   Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
   Maximize2, Minimize2, SwitchCamera, Flashlight, Camera, Wifi, WifiOff,
-  MessageCircle, Send, LogOut, Menu, Eye, EyeOff
+  MessageCircle, Send, LogOut, Menu, Eye, EyeOff, FileEdit, Save
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
@@ -914,6 +914,13 @@ export default function VideoSessionClient({
   const [isTyping, setIsTyping] = useState(false) // Other person typing indicator
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Notes (mechanic only)
+  const [showNotes, setShowNotes] = useState(false) // Notes panel visibility
+  const [notes, setNotes] = useState('') // Notes content
+  const [notesInitialValue, setNotesInitialValue] = useState('') // Track initial value to detect changes
+  const [savingNotes, setSavingNotes] = useState(false)
+  const notesInputRef = useRef<HTMLTextAreaElement>(null)
 
   // P0-2 FIX: Token refresh state
   const [currentToken, setCurrentToken] = useState(token)
@@ -1923,11 +1930,11 @@ export default function VideoSessionClient({
         <>
           {/* Backdrop - Click to close (only on mobile where chat is full-width) */}
           <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden"
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm sm:hidden"
             onClick={() => setShowChat(false)}
           />
 
-          <div className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
+          <div className="fixed bottom-0 right-0 top-0 z-[70] flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
             {/* Chat Header with prominent close button */}
             <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750 p-3 shadow-lg sm:p-4">
               <div className="flex items-center gap-3">
