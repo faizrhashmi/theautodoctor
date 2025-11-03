@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
+import { isCertified } from '@/lib/certifications'
 
 export interface ProfileCompletion {
   score: number // 0-100
@@ -137,9 +138,10 @@ function checkFieldCompletion(fieldName: string, mechanic: any): boolean {
       return typeof yearsExp === 'number' && yearsExp > 0
 
     case 'red_seal_certified':
-      // For brand specialists, this is required
+    case 'certified': // NEW: Check for ANY valid certification
+      // For brand specialists, certification is required
       // For general mechanics, it's a bonus
-      return mechanic.is_brand_specialist ? mechanic.red_seal_certified === true : true
+      return mechanic.is_brand_specialist ? isCertified(mechanic) : true
 
     case 'certifications_uploaded':
       // Check if mechanic has uploaded at least one certification
@@ -210,8 +212,8 @@ function generateNextSteps(missingFields: MissingField[]): string[] {
     steps.push('Connect your Stripe account to receive payments')
   }
 
-  if (missingFields.some(f => f.field === 'red_seal_certified')) {
-    steps.push('Indicate if you are Red Seal certified (increases trust and match score)')
+  if (missingFields.some(f => f.field === 'red_seal_certified' || f.field === 'certified')) {
+    steps.push('Add your professional certification (Red Seal, Provincial, ASE, etc. - increases trust and match score)')
   }
 
   return steps
