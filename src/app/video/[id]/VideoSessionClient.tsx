@@ -673,6 +673,147 @@ function VideoControls({
   )
 }
 
+// Draggable Picture-in-Picture Component
+function DraggablePip({ trackRef, label }: { trackRef: any, label: string }) {
+  const pipRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState<{ x: number, y: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
+  // Initialize position at top-right on mount
+  useEffect(() => {
+    if (position === null && pipRef.current) {
+      const pipWidth = pipRef.current.offsetWidth
+      setPosition({
+        x: window.innerWidth - pipWidth - 12, // 12px from right edge
+        y: 80 // 80px from top
+      })
+    }
+  }, [position])
+
+  // Handle drag start (mouse)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true)
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    })
+  }
+
+  // Handle drag start (touch)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+    const touch = e.touches[0]
+    setDragStart({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    })
+  }
+
+  // Handle drag move (mouse)
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!pipRef.current) return
+
+      const newX = e.clientX - dragStart.x
+      const newY = e.clientY - dragStart.y
+
+      // Keep PIP within bounds
+      const maxX = window.innerWidth - pipRef.current.offsetWidth
+      const maxY = window.innerHeight - pipRef.current.offsetHeight
+
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      })
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDragging, dragStart])
+
+  // Handle drag move (touch)
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!pipRef.current) return
+
+      const touch = e.touches[0]
+      const newX = touch.clientX - dragStart.x
+      const newY = touch.clientY - dragStart.y
+
+      // Keep PIP within bounds
+      const maxX = window.innerWidth - pipRef.current.offsetWidth
+      const maxY = window.innerHeight - pipRef.current.offsetHeight
+
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      })
+    }
+
+    const handleTouchEnd = () => {
+      setIsDragging(false)
+    }
+
+    document.addEventListener('touchmove', handleTouchMove)
+    document.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isDragging, dragStart])
+
+  // Don't render until position is initialized
+  if (!position) {
+    return (
+      <div
+        ref={pipRef}
+        className="absolute right-3 top-20 z-50 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:h-32 sm:w-40 md:h-36 md:w-48 lg:h-40 lg:w-56 opacity-0"
+      >
+        <VideoTrack trackRef={trackRef} className="h-full w-full object-contain" />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={pipRef}
+      className={`absolute z-50 h-24 w-32 overflow-hidden rounded-lg border-2 bg-slate-900 shadow-2xl transition-shadow sm:h-32 sm:w-40 md:h-36 md:w-48 lg:h-40 lg:w-56 ${
+        isDragging ? 'cursor-grabbing border-blue-500 shadow-blue-500/50' : 'cursor-grab border-slate-700 hover:border-slate-600'
+      }`}
+      style={{
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        touchAction: 'none', // Prevent default touch actions during drag
+      }}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+    >
+      <VideoTrack
+        trackRef={trackRef}
+        className="h-full w-full object-contain pointer-events-none"
+      />
+      <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-xs pointer-events-none">
+        {label}
+      </div>
+    </div>
+  )
+}
+
 function VideoView({
   userRole,
   showPip = true,
@@ -723,17 +864,12 @@ function VideoView({
         )}
       </div>
 
-      {/* Picture-in-Picture (Other person's camera) - Moved to TOP-RIGHT to avoid control bar overlap */}
+      {/* Picture-in-Picture (Other person's camera) - Draggable */}
       {pipTrack && showPip && (
-        <div className="absolute right-2 top-20 z-50 h-24 w-32 overflow-hidden rounded-lg border-2 border-slate-700 bg-slate-900 shadow-2xl sm:right-3 sm:top-24 sm:h-32 sm:w-40 md:right-4 md:top-28 md:h-36 md:w-48 lg:h-40 lg:w-56">
-          <VideoTrack
-            trackRef={pipTrack}
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-xs">
-            {pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
-          </div>
-        </div>
+        <DraggablePip
+          trackRef={pipTrack}
+          label={pipTrack.participant.isLocal ? 'You' : (userRole === 'mechanic' ? 'Customer' : 'Mechanic')}
+        />
       )}
     </div>
   )
