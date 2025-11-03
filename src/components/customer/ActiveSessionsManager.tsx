@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Activity, Video, MessageSquare, Clock, User, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { sessionUrl } from '@/lib/urls'
 
 interface ActiveSession {
   id: string
@@ -198,11 +199,7 @@ export default function ActiveSessionsManager({ sessions: initialSessions }: Act
               {/* Actions */}
               <div className="flex flex-col gap-2 w-full">
                 <Link
-                  href={
-                    session.type === 'chat'
-                      ? `/chat/${session.id}`
-                      : `/video/${session.id}`
-                  }
+                  href={sessionUrl(session.type, session.id)}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-600 to-green-700 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold text-white shadow-lg shadow-green-500/30 transition hover:from-green-700 hover:to-green-800 hover:shadow-green-500/50"
                 >
                   <ArrowRight className="h-4 w-4" />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { sessionUrl, type SessionType } from '@/lib/urls';
 
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('session_id');
@@ -17,10 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
 
-  const route =
-    data.type === 'chat'
-      ? `/chat/${data.id}`
-      : `/video/${data.id}`;
+  const route = sessionUrl(data.type as SessionType, data.id);
 
   return NextResponse.json({ route });
 }

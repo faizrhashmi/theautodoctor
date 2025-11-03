@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { sessionUrl } from '@/lib/urls'
 import type { SessionType } from '@/types/supabase'
 
 type SessionRecord = {
@@ -101,11 +102,7 @@ export default function SessionsList({ availableSessions, activeSessions }: Prop
         setActive((prev) => [session, ...prev])
       }
 
-      if (type === 'chat') {
-        router.push(`/chat/${sessionId}`)
-      } else {
-        router.push(`/video/${sessionId}`)
-      }
+      router.push(sessionUrl(type, sessionId))
     } catch (error: unknown) {
       alert(error?.message || 'Failed to join session')
     } finally {
