@@ -9,12 +9,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /**
- * POST /api/notifications/mark-read
+ * POST /api/notifications/clear-read
  *
- * Marks notifications as read
- *
- * Body: { ids: string[] } - Array of notification IDs to mark as read
- *       OR { markAll: true } - Mark all notifications as read
+ * Deletes all read notifications for the authenticated user
  */
 export async function POST(request: NextRequest) {
   try {
@@ -38,48 +35,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse request body
-    const body = await request.json()
-    const { ids, markAll } = body
-
-    if (!markAll && (!ids || !Array.isArray(ids) || ids.length === 0)) {
-      return NextResponse.json(
-        { error: 'Invalid request: provide ids array or markAll: true' },
-        { status: 400 }
-      )
-    }
-
-    const now = new Date().toISOString()
-
-    // Mark notifications as read
-    let query = supabaseAdmin
+    // Delete all read notifications for this user
+    const { error: deleteError, data } = await supabaseAdmin
       .from('notifications')
-      .update({ read_at: now })
+      .delete()
       .eq('user_id', user.id)
-      .is('read_at', null) // Only update unread notifications
+      .not('read_at', 'is', null) // Only delete read notifications
+      .select()
 
-    if (!markAll) {
-      query = query.in('id', ids)
-    }
-
-    const { error: updateError, data } = await query
-
-    if (updateError) {
-      console.error('[Mark Read] Error updating notifications:', updateError)
+    if (deleteError) {
+      console.error('[Clear Read] Error deleting notifications:', deleteError)
       return NextResponse.json(
-        { error: 'Failed to mark notifications as read' },
+        { error: 'Failed to clear read notifications' },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
       success: true,
-      marked: data?.length || 0,
-      message: `Marked ${data?.length || 0} notification(s) as read`
+      cleared: data?.length || 0,
+      message: `Cleared ${data?.length || 0} read notification(s)`
     })
 
   } catch (error: any) {
-    console.error('[Mark Read API] Error:', error)
+    console.error('[Clear Read API] Error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -22,6 +22,8 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [markingRead, setMarkingRead] = useState<Set<string>>(new Set())
+  const [clearingRead, setClearingRead] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -86,6 +88,27 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
       }
     } catch (error) {
       console.error('[NotificationCenter] Error marking all as read:', error)
+    }
+  }
+
+  // Clear read notifications
+  const clearReadNotifications = async () => {
+    setClearingRead(true)
+    try {
+      const response = await fetch('/api/notifications/clear-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        // Remove read notifications from local state
+        setNotifications(prev => prev.filter(n => !n.read_at))
+        setShowClearConfirm(false)
+      }
+    } catch (error) {
+      console.error('[NotificationCenter] Error clearing read notifications:', error)
+    } finally {
+      setClearingRead(false)
     }
   }
 
@@ -166,6 +189,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   if (!isOpen) return null
 
   const unreadNotifications = notifications.filter(n => !n.read_at)
+  const readNotifications = notifications.filter(n => n.read_at)
 
   return (
     <>
@@ -178,25 +202,17 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
       {/* Notification Panel */}
       <div className="fixed top-16 right-4 z-50 w-full max-w-md max-h-[80vh] rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b border-slate-700 p-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Notifications</h3>
-            {unreadNotifications.length > 0 && (
-              <p className="text-xs text-slate-400 mt-0.5">
-                {unreadNotifications.length} unread
-              </p>
-            )}
-          </div>
+        <div className="border-b border-slate-700 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Notifications</h3>
+              {unreadNotifications.length > 0 && (
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {unreadNotifications.length} unread
+                </p>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2">
-            {unreadNotifications.length > 0 && (
-              <button
-                onClick={markAllAsRead}
-                className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-              >
-                Mark all read
-              </button>
-            )}
             <button
               onClick={onClose}
               className="rounded-full p-1 text-slate-400 hover:text-white hover:bg-slate-800 transition"
@@ -205,6 +221,26 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {unreadNotifications.length > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400 transition hover:border-indigo-500/50 hover:bg-indigo-500/20"
+              >
+                Mark all read
+              </button>
+            )}
+            {readNotifications.length > 0 && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="flex-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:border-red-500/50 hover:bg-red-500/20"
+              >
+                Clear read
+              </button>
+            )}
           </div>
         </div>
 
@@ -235,6 +271,38 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowClearConfirm(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <h4 className="text-lg font-semibold text-white mb-2">Clear read notifications?</h4>
+            <p className="text-sm text-slate-400 mb-6">
+              This will permanently delete {readNotifications.length} read notification{readNotifications.length !== 1 ? 's' : ''}. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                disabled={clearingRead}
+                className="flex-1 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={clearReadNotifications}
+                disabled={clearingRead}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {clearingRead ? 'Clearing...' : 'Clear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
