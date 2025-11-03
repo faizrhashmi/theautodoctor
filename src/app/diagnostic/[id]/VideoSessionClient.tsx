@@ -998,7 +998,9 @@ export default function VideoSessionClient({
   const handleScreenshotCapture = useCallback(async (blob: Blob) => {
     setCapturingScreenshot(true)
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      // Extract regex to avoid Turbo mode parsing it as Tailwind class
+      const dateCharsRegex = /[:.]/g
+      const timestamp = new Date().toISOString().replace(dateCharsRegex, '-')
       const filename = `screenshot-${timestamp}.png`
 
       const formData = new FormData()
