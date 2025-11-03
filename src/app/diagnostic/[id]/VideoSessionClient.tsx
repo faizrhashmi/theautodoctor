@@ -19,14 +19,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
-
-type PlanKey = 'chat10' | 'video15' | 'diagnostic'
-
-const PLAN_DURATIONS: Record<PlanKey, number> = {
-  chat10: 30,
-  video15: 45,
-  diagnostic: 60,
-}
+import { type PlanKey, getPlanDuration, hasPlanCapability } from '@/config/pricing'
 
 const TIME_EXTENSIONS = [
   { duration: 15, price: 1499, label: '15 minutes - $14.99' },
@@ -237,6 +230,7 @@ function SessionTimer({
 }
 
 function VideoControls({
+  plan,
   onEndSession,
   onUploadFile,
   onCaptureScreenshot,
@@ -247,6 +241,7 @@ function VideoControls({
   showPip,
   onTogglePip,
 }: {
+  plan: string
   onEndSession: () => void
   onUploadFile: (file: File) => void
   onCaptureScreenshot: (blob: Blob) => void
@@ -546,15 +541,17 @@ function VideoControls({
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
 
-      {/* Screenshot Capture */}
-      <button
-        onClick={captureScreenshot}
-        disabled={capturingScreenshot}
-        className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50 sm:p-3"
-        title="Capture screenshot"
-      >
-        <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
-      </button>
+      {/* Screenshot Capture - Only for plans with screenshot capability */}
+      {hasPlanCapability(plan, 'screenshot') && (
+        <button
+          onClick={captureScreenshot}
+          disabled={capturingScreenshot}
+          className="rounded-lg bg-slate-700/80 p-2 text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50 sm:p-3"
+          title="Capture screenshot"
+        >
+          <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+      )}
 
       {/* Chat Toggle */}
       <button
@@ -719,7 +716,7 @@ export default function VideoSessionClient({
     return params.get('skipPreflight') === 'true'
   }, [])
 
-  const baseDuration = PLAN_DURATIONS[plan] || 45
+  const baseDuration = getPlanDuration(plan)
   const durationMinutes = extendedDuration || baseDuration // Use extended duration if available
   const supabase = useMemo(() => createClient(), [])
 
@@ -1350,6 +1347,7 @@ export default function VideoSessionClient({
               </div>
 
               <VideoControls
+                plan={plan}
                 onEndSession={handleEndSession}
                 onUploadFile={handleFileUpload}
                 onCaptureScreenshot={handleScreenshotCapture}
