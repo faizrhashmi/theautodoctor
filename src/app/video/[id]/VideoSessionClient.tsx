@@ -894,16 +894,41 @@ export default function VideoSessionClient({
       })
       .on('broadcast', { event: 'session:ended' }, async (payload) => {
         console.log('[VIDEO] 📡 Session ended by other participant:', payload)
-        const { status } = payload.payload
+        const { status, endedBy } = payload.payload
 
-        // Show completion modal instead of alert + redirect
+        // Determine who ended the session for notification (matching chat behavior)
+        const endedByText = endedBy === 'mechanic'
+          ? 'the mechanic'
+          : 'the customer'
+
         if (status === 'cancelled') {
-          console.log('[VIDEO] 📡 Session was cancelled, redirecting...')
-          alert('Session has been cancelled by the other participant.')
+          // Cancelled sessions: show toast and redirect (matching chat behavior)
+          console.log('[VIDEO] 📡 Session was cancelled, showing notification...')
+
+          // Create a temporary toast container if react-hot-toast isn't available
+          const toastDiv = document.createElement('div')
+          toastDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #DC2626;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 99999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          `
+          toastDiv.textContent = `Session has been cancelled by ${endedByText}`
+          document.body.appendChild(toastDiv)
+
           setTimeout(() => {
+            document.body.removeChild(toastDiv)
             window.location.href = dashboardUrl
           }, 2000)
         } else {
+          // Completed sessions: show modal (matching chat behavior)
           console.log('[VIDEO] 📡 Session completed, showing modal...')
           await fetchAndShowCompletionModal()
           console.log('[VIDEO] 📡 Modal fetch completed')
