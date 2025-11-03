@@ -113,6 +113,14 @@ export default async function ChatSessionPage({ params }: PageProps) {
     notFound()
   }
 
+  // 🔒 SECURITY FIX: Prevent access to completed/cancelled sessions
+  // This blocks browser back button, direct URL access, and bookmarks
+  if (session.status === 'completed' || session.status === 'cancelled') {
+    const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
+    console.log(`[CHAT PAGE SECURITY] Session ${sessionId} is ${session.status} - redirecting to dashboard`)
+    redirect(dashboardUrl)
+  }
+
   const { error: participantsError } = await supabase
     .from('session_participants')
     .select('user_id, role')

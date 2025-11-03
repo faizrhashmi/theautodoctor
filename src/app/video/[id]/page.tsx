@@ -112,6 +112,14 @@ export default async function VideoSessionPage({ params }: PageProps) {
     notFound()
   }
 
+  // 🔒 SECURITY FIX: Prevent access to completed/cancelled sessions
+  // This blocks browser back button, direct URL access, and bookmarks
+  if (session.status === 'completed' || session.status === 'cancelled') {
+    const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
+    console.log(`[VIDEO PAGE SECURITY] Session ${sessionId} is ${session.status} - redirecting to dashboard`)
+    redirect(dashboardUrl)
+  }
+
   const planKey = (session.plan as PlanKey) ?? 'video15'
   const planName = PRICING[planKey]?.name ?? 'Video Consultation'
 
