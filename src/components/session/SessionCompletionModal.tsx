@@ -128,8 +128,8 @@ export function SessionCompletionModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-        <div className="relative w-full max-w-lg rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-2xl">
+      <div className="fixed inset-0 z-[101] flex items-center justify-center p-3 sm:p-4">
+        <div className="relative w-full max-w-[95vw] sm:max-w-lg max-h-[95vh] overflow-y-auto rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-900 to-slate-950 p-4 sm:p-6 shadow-2xl">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -139,84 +139,84 @@ export function SessionCompletionModal({
           </button>
 
           {/* Success Icon */}
-          <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
-              <CheckCircle className="h-10 w-10 text-green-400" />
+          <div className="mb-3 sm:mb-4 flex justify-center">
+            <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500/20">
+              <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-green-400" />
             </div>
           </div>
 
           {/* Header */}
-          <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-white">Session Completed!</h2>
-            <p className="mt-1 text-sm text-slate-400">
+          <div className="mb-4 sm:mb-6 text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Session Completed!</h2>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">
               Thank you for using TheAutoDoctor
             </p>
           </div>
 
           {/* Session Details */}
-          <div className="mb-6 space-y-3 rounded-xl border border-slate-700 bg-slate-800/50 p-4">
-            <div className="flex items-center justify-between text-sm">
+          <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3 rounded-xl border border-slate-700 bg-slate-800/50 p-3 sm:p-4">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Session ID:</span>
               <span className="font-mono text-slate-200">{sessionData.id.slice(0, 8)}</span>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Mechanic:</span>
-              <span className="text-slate-200">
+              <span className="text-slate-200 text-right">
                 {sessionData.mechanic_name || 'Mechanic'}{' '}
-                <span className="text-xs text-slate-500">
+                <span className="text-[10px] sm:text-xs text-slate-500">
                   (#{sessionData.mechanic_id?.slice(0, 6)})
                 </span>
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Customer:</span>
-              <span className="text-slate-200">
+              <span className="text-slate-200 text-right">
                 You{' '}
-                <span className="text-xs text-slate-500">
+                <span className="text-[10px] sm:text-xs text-slate-500">
                   (#{sessionData.customer_user_id?.slice(0, 6)})
                 </span>
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Plan:</span>
-              <span className="text-slate-200">{planName}</span>
+              <span className="text-slate-200 text-right">{planName}</span>
             </div>
 
             {sessionData.started_at && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate-400">Started:</span>
-                <span className="text-slate-200">{formatDateTime(sessionData.started_at)}</span>
+                <span className="text-slate-200 text-right">{formatDateTime(sessionData.started_at)}</span>
               </div>
             )}
 
             {sessionData.ended_at && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate-400">Ended:</span>
-                <span className="text-slate-200">{formatDateTime(sessionData.ended_at)}</span>
+                <span className="text-slate-200 text-right">{formatDateTime(sessionData.ended_at)}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Duration:</span>
               <span className="text-slate-200">{duration} minutes</span>
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-700 pt-3 text-sm">
+            <div className="flex items-center justify-between border-t border-slate-700 pt-2 sm:pt-3 text-xs sm:text-sm">
               <span className="font-semibold text-slate-300">Total Cost:</span>
-              <span className="text-lg font-bold text-green-400">${displayPrice}</span>
+              <span className="text-base sm:text-lg font-bold text-green-400">${displayPrice}</span>
             </div>
           </div>
 
           {/* Rating Section */}
           {!ratingSubmitted && (
-            <div className="mb-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-              <p className="mb-3 text-center text-sm font-medium text-white">
+            <div className="mb-4 sm:mb-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 sm:p-4">
+              <p className="mb-2 sm:mb-3 text-center text-xs sm:text-sm font-medium text-white">
                 How was your experience?
               </p>
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center gap-1 sm:gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -227,7 +227,7 @@ export function SessionCompletionModal({
                     className="transition-transform hover:scale-110 disabled:opacity-50"
                   >
                     <Star
-                      className={`h-8 w-8 ${
+                      className={`h-6 w-6 sm:h-8 sm:w-8 ${
                         star <= (hoverRating || rating)
                           ? 'fill-orange-400 text-orange-400'
                           : 'text-slate-600'
@@ -245,10 +245,10 @@ export function SessionCompletionModal({
           )}
 
           {ratingSubmitted && (
-            <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-3">
+            <div className="mb-4 sm:mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-2 sm:p-3">
               <div className="flex items-center justify-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-400" />
-                <p className="text-sm font-medium text-green-400">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                <p className="text-xs sm:text-sm font-medium text-green-400">
                   Thank you for your feedback!
                 </p>
               </div>
@@ -256,46 +256,48 @@ export function SessionCompletionModal({
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <button
               onClick={handleDownloadPDF}
               disabled={downloadingPDF}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-600 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white transition hover:from-orange-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {downloadingPDF ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Generating PDF...
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                  <span className="hidden sm:inline">Generating PDF...</span>
+                  <span className="sm:hidden">Generating...</span>
                 </>
               ) : (
                 <>
-                  <Download className="h-5 w-5" />
-                  Download Session Report (PDF)
+                  <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline">Download Session Report (PDF)</span>
+                  <span className="sm:hidden">Download Report</span>
                 </>
               )}
             </button>
 
             {pdfError && (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-                <p className="text-center text-xs text-red-400">{pdfError}</p>
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 sm:p-3">
+                <p className="text-center text-[10px] sm:text-xs text-red-400">{pdfError}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button
                 onClick={onViewDashboard}
-                className="flex items-center justify-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2.5 text-sm font-medium text-indigo-400 transition hover:border-indigo-500/50 hover:bg-indigo-500/20"
+                className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-indigo-400 transition hover:border-indigo-500/50 hover:bg-indigo-500/20"
               >
-                <LayoutDashboard className="h-4 w-4" />
+                <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Dashboard
               </button>
 
               {onViewDetails && (
                 <button
                   onClick={onViewDetails}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+                  className="flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-slate-600 bg-slate-800 px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white transition hover:bg-slate-700"
                 >
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   Full Details
                 </button>
               )}
@@ -303,8 +305,8 @@ export function SessionCompletionModal({
           </div>
 
           {/* What's Next Section */}
-          <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800/30 p-4">
-            <h3 className="mb-3 text-center text-sm font-semibold text-white">
+          <div className="mt-4 sm:mt-6 rounded-xl border border-slate-700 bg-slate-800/30 p-3 sm:p-4">
+            <h3 className="mb-2 sm:mb-3 text-center text-xs sm:text-sm font-semibold text-white">
               What's Next?
             </h3>
 
@@ -314,14 +316,14 @@ export function SessionCompletionModal({
                 onClick={() => {
                   window.location.href = `/customer/sessions?action=follow-up&sessionId=${sessionData.id}`
                 }}
-                className="flex w-full items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-left text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
+                className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
               >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
-                  <MessageSquare className="h-5 w-5 text-blue-400" />
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
+                  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-white">Ask Follow-up Question</p>
-                  <p className="text-xs text-slate-400">Get clarification or additional help</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-white text-xs sm:text-sm">Ask Follow-up Question</p>
+                  <p className="text-[10px] sm:text-xs text-slate-400 truncate">Get clarification or additional help</p>
                 </div>
               </button>
 
@@ -330,14 +332,14 @@ export function SessionCompletionModal({
                 onClick={() => {
                   window.location.href = '/customer/quotes'
                 }}
-                className="flex w-full items-center gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-left text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
+                className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
               >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20">
-                  <Wrench className="h-5 w-5 text-purple-400" />
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20">
+                  <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-white">Get Workshop Quotes</p>
-                  <p className="text-xs text-slate-400">Find local shops to fix your vehicle</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-white text-xs sm:text-sm">Get Workshop Quotes</p>
+                  <p className="text-[10px] sm:text-xs text-slate-400 truncate">Find local shops to fix your vehicle</p>
                 </div>
               </button>
 
@@ -347,14 +349,14 @@ export function SessionCompletionModal({
                   onClick={() => {
                     window.location.href = `/book?mechanic=${sessionData.mechanic_id}`
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-left text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
+                  className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
                 >
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
-                    <Calendar className="h-5 w-5 text-green-400" />
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-white">Book with Same Mechanic</p>
-                    <p className="text-xs text-slate-400">Schedule another session with {sessionData.mechanic_name || 'this mechanic'}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-xs sm:text-sm">Book with Same Mechanic</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Schedule another session with {sessionData.mechanic_name || 'this mechanic'}</p>
                   </div>
                 </button>
               )}
@@ -362,7 +364,7 @@ export function SessionCompletionModal({
           </div>
 
           {/* Footer Note */}
-          <p className="mt-4 text-center text-xs text-slate-500">
+          <p className="mt-3 sm:mt-4 text-center text-[10px] sm:text-xs text-slate-500">
             You'll receive an email with session details and next steps
           </p>
         </div>

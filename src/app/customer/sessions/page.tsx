@@ -877,6 +877,7 @@ function SessionDetailModal({
   onUpdate: () => void
   onDelete: (id: string) => void
 }) {
+  const [downloadingPDF, setDownloadingPDF] = useState(false)
   const [activeSection, setActiveSection] = useState<'details' | 'timeline' | 'files'>('details')
   const [rating, setRating] = useState(session.rating || 0)
   const [review, setReview] = useState(session.review || '')
@@ -909,6 +910,19 @@ function SessionDetailModal({
       alert(err.message || 'Failed to submit rating. Please try again.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    if (downloadingPDF) return
+    setDownloadingPDF(true)
+    try {
+      await downloadSessionPdf(session.id)
+    } catch (error) {
+      console.error('[SessionDetailsModal] PDF download error:', error)
+      alert('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloadingPDF(false)
     }
   }
 
@@ -1126,11 +1140,11 @@ function SessionDetailModal({
           {session.status === 'completed' && (
             <>
               <button
-                onClick={() => handleDownloadPDF(session.id)}
-                disabled={downloadingPDF === session.id}
+                onClick={handleDownloadPDF}
+                disabled={downloadingPDF}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {downloadingPDF === session.id ? (
+                {downloadingPDF ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Generating...

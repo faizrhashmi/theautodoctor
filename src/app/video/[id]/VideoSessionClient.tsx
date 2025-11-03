@@ -780,6 +780,15 @@ export default function VideoSessionClient({
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [completionSessionData, setCompletionSessionData] = useState<any>(null)
 
+  // Debug: Track modal state changes
+  useEffect(() => {
+    console.log('[VIDEO] Modal state changed:', {
+      showCompletionModal,
+      hasData: !!completionSessionData,
+      dataId: completionSessionData?.id
+    })
+  }, [showCompletionModal, completionSessionData])
+
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
   const skipPreflight = useMemo(() => {
@@ -831,17 +840,20 @@ export default function VideoSessionClient({
         },
       })
       .on('broadcast', { event: 'session:ended' }, async (payload) => {
-        console.log('[VIDEO] Session ended by other participant:', payload)
+        console.log('[VIDEO] 📡 Session ended by other participant:', payload)
         const { status } = payload.payload
 
         // Show completion modal instead of alert + redirect
         if (status === 'cancelled') {
+          console.log('[VIDEO] 📡 Session was cancelled, redirecting...')
           alert('Session has been cancelled by the other participant.')
           setTimeout(() => {
             window.location.href = dashboardUrl
           }, 2000)
         } else {
+          console.log('[VIDEO] 📡 Session completed, showing modal...')
           await fetchAndShowCompletionModal()
+          console.log('[VIDEO] 📡 Modal fetch completed')
         }
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
@@ -864,7 +876,8 @@ export default function VideoSessionClient({
       console.log('[VIDEO] Cleaning up broadcast subscription')
       supabase.removeChannel(channel)
     }
-  }, [sessionId, dashboardUrl, supabase, fetchAndShowCompletionModal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, dashboardUrl, supabase])
 
   // P0-2 FIX: Token auto-refresh at T-10m (50 minutes after initial token)
   useEffect(() => {
@@ -1100,16 +1113,18 @@ export default function VideoSessionClient({
     })
       .then((res) => res.json())
       .then(async (data) => {
-        console.log('[VIDEO] Session auto-ended:', data)
-        // Show completion modal instead of alert + redirect
+        console.log('[VIDEO] ⏱️ Timer expired - Session auto-ended:', data)
+        console.log('[VIDEO] ⏱️ Calling fetchAndShowCompletionModal...')
         await fetchAndShowCompletionModal()
+        console.log('[VIDEO] ⏱️ fetchAndShowCompletionModal completed')
       })
       .catch((err) => {
         console.error('[VIDEO] Failed to auto-end session:', err)
         // Show extend modal as fallback
         setShowExtendModal(true)
       })
-  }, [sessionId, fetchAndShowCompletionModal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
 
   const handleExtendTime = async (duration: number, price: number) => {
     setExtendingSession(true)
@@ -1141,32 +1156,77 @@ export default function VideoSessionClient({
 
   // Helper: Fetch session data and show completion modal
   const fetchAndShowCompletionModal = useCallback(async () => {
+    console.log('[VIDEO] Fetching session data for completion modal...', { sessionId, userRole: _userRole })
+
     try {
-      // Fetch complete session data with participant names
-      const response = await fetch(`/api/customer/sessions`)
+      // Fetch from role-specific API
+      const apiPath = _userRole === 'customer' ? '/api/customer/sessions' : '/api/mechanic/sessions'
+      console.log('[VIDEO] Fetching from:', apiPath)
+
+      const response = await fetch(apiPath)
+      console.log('[VIDEO] API response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('[VIDEO] API data received:', { sessionCount: data.sessions?.length })
+
         const session = data.sessions?.find((s: any) => s.id === sessionId)
+        console.log('[VIDEO] Session found:', session ? 'YES' : 'NO')
 
         if (session) {
+          console.log('[VIDEO] ✅ Session found! Showing completion modal:', {
+            sessionId: session.id,
+            status: session.status,
+            hasData: !!session
+          })
+          console.log('[VIDEO] Setting completionSessionData...')
           setCompletionSessionData(session)
+          console.log('[VIDEO] Setting showCompletionModal to true...')
           setShowCompletionModal(true)
+          console.log('[VIDEO] Modal state set complete!')
         } else {
-          // Fallback: redirect if can't find session
-          console.warn('[VIDEO] Session not found in customer sessions, redirecting...')
-          window.location.href = dashboardUrl
+          // Retry once after a short delay (session might not be fully persisted yet)
+          console.warn('[VIDEO] Session not found, retrying in 1 second...')
+          setTimeout(async () => {
+            try {
+              const retryResponse = await fetch(apiPath)
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json()
+                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
+                if (retrySession) {
+                  console.log('[VIDEO] ✅ Session found on retry!', {
+                    sessionId: retrySession.id,
+                    status: retrySession.status
+                  })
+                  console.log('[VIDEO] [RETRY] Setting completionSessionData...')
+                  setCompletionSessionData(retrySession)
+                  console.log('[VIDEO] [RETRY] Setting showCompletionModal to true...')
+                  setShowCompletionModal(true)
+                  console.log('[VIDEO] [RETRY] Modal state set complete!')
+                  return
+                }
+              }
+            } catch (retryError) {
+              console.error('[VIDEO] Retry failed:', retryError)
+            }
+            // Final fallback
+            console.warn('[VIDEO] Session still not found after retry, redirecting...')
+            window.location.href = dashboardUrl
+          }, 1000)
         }
       } else {
+        console.error('[VIDEO] API returned error status:', response.status)
+        const errorText = await response.text()
+        console.error('[VIDEO] Error response:', errorText)
         // Fallback: redirect on error
-        console.warn('[VIDEO] Failed to fetch session data, redirecting...')
         window.location.href = dashboardUrl
       }
     } catch (error) {
-      console.error('[VIDEO] Error fetching session data:', error)
+      console.error('[VIDEO] Exception fetching session data:', error)
       // Fallback: redirect on error
       window.location.href = dashboardUrl
     }
-  }, [sessionId, dashboardUrl])
+  }, [sessionId, dashboardUrl, _userRole])
 
   const handleEndSession = useCallback(() => {
     setShowEndConfirm(true)
@@ -1174,20 +1234,24 @@ export default function VideoSessionClient({
 
   const confirmEndSession = useCallback(async () => {
     try {
+      console.log('[VIDEO] 🛑 Manual end session clicked')
       const response = await fetch(`/api/sessions/${sessionId}/end`, {
         method: 'POST',
       })
 
       if (response.ok) {
+        console.log('[VIDEO] 🛑 Session ended successfully, showing modal...')
         // Show completion modal instead of direct redirect
         await fetchAndShowCompletionModal()
+        console.log('[VIDEO] 🛑 Modal fetch completed')
       } else {
-        console.error('Failed to end session')
+        console.error('[VIDEO] 🛑 Failed to end session:', response.status)
       }
     } catch (error) {
       console.error('Error ending session:', error)
     }
-  }, [sessionId, fetchAndShowCompletionModal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setUploadingFile(true)
@@ -1859,19 +1923,32 @@ export default function VideoSessionClient({
       )}
 
       {/* Session Completion Modal */}
-      {showCompletionModal && completionSessionData && (
-        <SessionCompletionModal
-          isOpen={showCompletionModal}
-          sessionData={completionSessionData}
-          onClose={() => setShowCompletionModal(false)}
-          onViewDashboard={() => {
-            window.location.href = dashboardUrl
-          }}
-          onViewDetails={() => {
-            window.location.href = `/customer/sessions`
-          }}
-        />
-      )}
+      {(() => {
+        const shouldRender = showCompletionModal && completionSessionData
+        console.log('[VIDEO] Modal render check:', {
+          showCompletionModal,
+          hasData: !!completionSessionData,
+          shouldRender
+        })
+        return shouldRender ? (
+          <SessionCompletionModal
+            isOpen={showCompletionModal}
+            sessionData={completionSessionData}
+            onClose={() => {
+              console.log('[VIDEO] Modal onClose called')
+              setShowCompletionModal(false)
+            }}
+            onViewDashboard={() => {
+              console.log('[VIDEO] Modal onViewDashboard called')
+              window.location.href = dashboardUrl
+            }}
+            onViewDetails={() => {
+              console.log('[VIDEO] Modal onViewDetails called')
+              window.location.href = `/customer/sessions`
+            }}
+          />
+        ) : null
+      })()}
     </div>
   )
 }

@@ -32,9 +32,12 @@ function assertStripePriceId(id: string | undefined, name: string) {
   }
 }
 
-assertStripePriceId(STRIPE_IDS.chat10, 'STRIPE_PRICE_CHAT10');
-assertStripePriceId(STRIPE_IDS.video15, 'STRIPE_PRICE_VIDEO15');
-assertStripePriceId(STRIPE_IDS.diagnostic, 'STRIPE_PRICE_DIAGNOSTIC');
+// Only validate Stripe IDs on the server (where process.env is available)
+if (typeof window === 'undefined') {
+  assertStripePriceId(STRIPE_IDS.chat10, 'STRIPE_PRICE_CHAT10');
+  assertStripePriceId(STRIPE_IDS.video15, 'STRIPE_PRICE_VIDEO15');
+  assertStripePriceId(STRIPE_IDS.diagnostic, 'STRIPE_PRICE_DIAGNOSTIC');
+}
 
 type PlanConfig = {
   name: string;
@@ -49,7 +52,7 @@ export const PRICING: Record<PlanKey, PlanConfig> = {
   chat10: {
     name: 'Quick Chat (30 min)',
     priceCents: 999,
-    stripePriceId: STRIPE_IDS.chat10!,
+    stripePriceId: STRIPE_IDS.chat10 || '',
     description: 'Text-based consult for fast reassurance and triage.',
     features: [
       '30 minutes of private chat',
@@ -61,7 +64,7 @@ export const PRICING: Record<PlanKey, PlanConfig> = {
   video15: {
     name: 'Standard Video (45 min)',
     priceCents: 2999,
-    stripePriceId: STRIPE_IDS.video15!,
+    stripePriceId: STRIPE_IDS.video15 || '',
     description: 'Live video walkthrough to diagnose complex issues.',
     features: [
       '45 minute HD video call',
@@ -73,7 +76,7 @@ export const PRICING: Record<PlanKey, PlanConfig> = {
   diagnostic: {
     name: 'Full Diagnostic (60 min)',
     priceCents: 4999,
-    stripePriceId: STRIPE_IDS.diagnostic!,
+    stripePriceId: STRIPE_IDS.diagnostic || '',
     description: 'Comprehensive diagnostic session with written summary.',
     features: [
       '60 minute deep-dive with a senior mechanic',

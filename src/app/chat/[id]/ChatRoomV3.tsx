@@ -7,6 +7,7 @@ import type { ChatMessage } from '@/types/supabase'
 import type { PlanKey } from '@/config/pricing'
 import toast, { Toaster } from 'react-hot-toast'
 import MechanicProfileModal from '@/components/MechanicProfileModal'
+import { SessionCompletionModal } from '@/components/session/SessionCompletionModal'
 
 type Message = Pick<ChatMessage, 'id' | 'content' | 'created_at' | 'sender_id'> & {
   attachments?: Array<{ name: string; url: string; size: number; type: string }>
@@ -171,6 +172,8 @@ export default function ChatRoom({
   const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
   const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
   const [isMounted, setIsMounted] = useState(false) // Track if component is mounted (for Portal)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [completionSessionData, setCompletionSessionData] = useState<any>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messagesContainerRef = useRef<HTMLDivElement | null>(null)
@@ -518,24 +521,20 @@ export default function ChatRoom({
           },
         })
           .then((res) => res.json())
-          .then((data) => {
+          .then(async (data) => {
             console.log('[ChatRoom] Session auto-ended:', data)
             // Show toast notification
             toast.error('Your session time has ended', {
               duration: 4000,
               position: 'top-center',
             })
-            // Force redirect after brief delay
-            setTimeout(() => {
-              window.location.href = dashboardUrl
-            }, 2000)
+            // Show completion modal instead of redirecting
+            await fetchAndShowCompletionModal()
           })
           .catch((err) => {
             console.error('[ChatRoom] Failed to auto-end session:', err)
-            // Still redirect even if API fails
-            setTimeout(() => {
-              window.location.href = dashboardUrl
-            }, 3000)
+            // Show extend modal as fallback
+            setShowExtendSessionModal(true)
           })
       }
     }, 1000)
@@ -654,46 +653,39 @@ export default function ChatRoom({
           })
         }
       })
-      .on('broadcast', { event: 'session:ended' }, (payload) => {
+      .on('broadcast', { event: 'session:ended' }, async (payload) => {
         console.log('[ChatRoom] Session ended by other participant:', payload)
         const { status, endedBy } = payload.payload
         setSessionEnded(true)
         setCurrentStatus(status)
 
-        // Determine who ended the session for notification
-        const endedByText = endedBy === 'mechanic'
-          ? mechanicName || 'the mechanic'
-          : customerName || 'the customer'
+        // If cancelled, redirect to dashboard after showing alert
+        if (status === 'cancelled') {
+          // Determine who ended the session for notification
+          const endedByText = endedBy === 'mechanic'
+            ? mechanicName || 'the mechanic'
+            : customerName || 'the customer'
 
-        // Show notification to user
-        toast.error(
-          `Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by ${endedByText}`,
-          {
-            duration: 5000,
-            position: 'top-center',
-            icon: status === 'cancelled' ? '❌' : '✓',
-          }
-        )
-
-        // Redirect to dashboard after 3 seconds with countdown
-        let countdown = 3
-        const countdownToast = toast.loading(`Redirecting to dashboard in ${countdown}...`, {
-          position: 'top-center',
-        })
-
-        const countdownInterval = setInterval(() => {
-          countdown--
-          if (countdown > 0) {
-            toast.loading(`Redirecting to dashboard in ${countdown}...`, {
-              id: countdownToast,
+          toast.error(
+            `Session has been cancelled by ${endedByText}`,
+            {
+              duration: 3000,
               position: 'top-center',
-            })
-          } else {
-            clearInterval(countdownInterval)
-            toast.dismiss(countdownToast)
+              icon: '❌',
+            }
+          )
+
+          setTimeout(() => {
             window.location.href = dashboardUrl
-          }
-        }, 1000)
+          }, 2000)
+        } else {
+          // If completed, show completion modal
+          toast.success('Session completed', {
+            duration: 2000,
+            position: 'top-center',
+          })
+          await fetchAndShowCompletionModal()
+        }
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[ChatRoom] Session extended:', payload)
@@ -747,19 +739,25 @@ export default function ChatRoom({
 
             setSessionEnded(true)
 
-            // Show notification to user
-            toast.error(
-              `Session has been ${updated.status === 'cancelled' ? 'cancelled' : 'ended'}`,
-              {
+            // Handle based on completion status
+            if (updated.status === 'cancelled') {
+              // Show notification for cancelled sessions
+              toast.error('Session has been cancelled', {
                 duration: 5000,
                 position: 'top-center',
-              }
-            )
-
-            // Redirect to dashboard after delay
-            setTimeout(() => {
-              window.location.href = dashboardUrl
-            }, 3000)
+              })
+              // Redirect to dashboard after delay
+              setTimeout(() => {
+                window.location.href = dashboardUrl
+              }, 3000)
+            } else {
+              // Show completion modal for completed sessions
+              toast.success('Session completed', {
+                duration: 2000,
+                position: 'top-center',
+              })
+              await fetchAndShowCompletionModal()
+            }
           }
 
           // If mechanic just joined, fetch their name and show notification
@@ -1083,6 +1081,64 @@ export default function ChatRoom({
     }
   }
 
+  // Helper: Fetch session data and show completion modal
+  const fetchAndShowCompletionModal = useCallback(async () => {
+    console.log('[CHAT] Fetching session data for completion modal...', { sessionId, userRole })
+
+    try {
+      // Fetch from role-specific API
+      const apiPath = isMechanic ? '/api/mechanic/sessions' : '/api/customer/sessions'
+      console.log('[CHAT] Fetching from:', apiPath)
+
+      const response = await fetch(apiPath)
+      console.log('[CHAT] API response status:', response.status)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[CHAT] API data received:', { sessionCount: data.sessions?.length })
+
+        const session = data.sessions?.find((s: any) => s.id === sessionId)
+        console.log('[CHAT] Session found:', session ? 'YES' : 'NO')
+
+        if (session) {
+          console.log('[CHAT] Showing completion modal with session:', session.id)
+          setCompletionSessionData(session)
+          setShowCompletionModal(true)
+        } else {
+          // Retry once after a short delay (session might not be fully persisted yet)
+          console.warn('[CHAT] Session not found, retrying in 1 second...')
+          setTimeout(async () => {
+            try {
+              const retryResponse = await fetch(apiPath)
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json()
+                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
+                if (retrySession) {
+                  console.log('[CHAT] Session found on retry!')
+                  setCompletionSessionData(retrySession)
+                  setShowCompletionModal(true)
+                  return
+                }
+              }
+            } catch (retryError) {
+              console.error('[CHAT] Retry failed:', retryError)
+            }
+            console.warn('[CHAT] Session still not found after retry, redirecting...')
+            window.location.href = dashboardUrl
+          }, 1000)
+        }
+      } else {
+        console.error('[CHAT] API returned error status:', response.status)
+        const errorText = await response.text()
+        console.error('[CHAT] Error response:', errorText)
+        window.location.href = dashboardUrl
+      }
+    } catch (error) {
+      console.error('[CHAT] Exception fetching session data:', error)
+      window.location.href = dashboardUrl
+    }
+  }, [sessionId, dashboardUrl, isMechanic, userRole])
+
   async function handleEndSession() {
     setEndingSession(true)
     setShowEndSessionModal(false)
@@ -1109,13 +1165,8 @@ export default function ChatRoom({
           position: 'top-center',
         })
 
-        // Redirect immediately to dashboard based on role
-        const dashboardUrl = isMechanic ? '/mechanic/dashboard' : '/customer/dashboard'
-        console.log('[ChatRoom] Redirecting to:', dashboardUrl)
-
-        setTimeout(() => {
-          window.location.href = dashboardUrl
-        }, 500)
+        // Show completion modal instead of redirecting
+        await fetchAndShowCompletionModal()
       } else {
         console.error('[ChatRoom] Failed to end session:', data)
         throw new Error(data?.error || 'Failed to end session')
@@ -1126,6 +1177,8 @@ export default function ChatRoom({
       setEndingSession(false)
       // Show the modal again so user can retry
       setShowEndSessionModal(true)
+    } finally {
+      setEndingSession(false)
     }
   }
 
@@ -2442,6 +2495,23 @@ export default function ChatRoom({
           mechanicId={mechanicId}
           isOpen={showMechanicProfileModal}
           onClose={() => setShowMechanicProfileModal(false)}
+        />
+      )}
+
+      {/* Session Completion Modal */}
+      {completionSessionData && (
+        <SessionCompletionModal
+          isOpen={showCompletionModal}
+          sessionData={completionSessionData}
+          onClose={() => setShowCompletionModal(false)}
+          onViewDashboard={() => {
+            window.location.href = dashboardUrl
+          }}
+          onViewDetails={() => {
+            window.location.href = isMechanic
+              ? '/mechanic/sessions'
+              : '/customer/sessions'
+          }}
         />
       )}
     </div>
