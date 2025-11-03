@@ -20,9 +20,7 @@ export async function GET(req: NextRequest) {
   const route =
     data.type === 'chat'
       ? `/chat/${data.id}`
-      : data.type === 'video'
-      ? `/video/${data.id}`
-      : `/diagnostic/${data.id}`;
+      : `/video/${data.id}`;
 
   return NextResponse.json({ route });
 }

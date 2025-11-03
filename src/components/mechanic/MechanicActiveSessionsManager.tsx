@@ -200,8 +200,6 @@ export default function MechanicActiveSessionsManager({ sessions: initialSession
                   href={
                     session.type === 'chat'
                       ? `/chat/${session.id}`
-                      : session.type === 'diagnostic'
-                      ? `/diagnostic/${session.id}`
                       : `/video/${session.id}`
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-700 hover:to-blue-800 hover:shadow-blue-500/50"

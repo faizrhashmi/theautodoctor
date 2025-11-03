@@ -103,10 +103,8 @@ export default function SessionsList({ availableSessions, activeSessions }: Prop
 
       if (type === 'chat') {
         router.push(`/chat/${sessionId}`)
-      } else if (type === 'video') {
-        router.push(`/video/${sessionId}`)
       } else {
-        router.push(`/diagnostic/${sessionId}`)
+        router.push(`/video/${sessionId}`)
       }
     } catch (error: unknown) {
       alert(error?.message || 'Failed to join session')
