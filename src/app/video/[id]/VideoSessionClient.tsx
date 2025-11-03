@@ -375,8 +375,15 @@ function VideoControls({
 
       console.log('[VideoControls] Switching to camera:', nextCamera.label)
 
-      // Switch camera using LiveKit's switchActiveDevice
-      await localParticipant.switchActiveDevice('videoinput', nextCamera.deviceId)
+      // Switch camera by restarting the camera track with new deviceId
+      const cameraTrack = localParticipant.getTrackPublication(Track.Source.Camera)
+      if (cameraTrack?.track) {
+        await cameraTrack.track.restartTrack({
+          deviceId: nextCamera.deviceId
+        })
+      } else {
+        throw new Error('No camera track found')
+      }
 
       setCurrentCameraIndex(nextIndex)
       console.log('[VideoControls] Camera flipped successfully to:', nextCamera.label)
