@@ -86,6 +86,14 @@ export default async function DiagnosticSessionPage({ params, searchParams }: Pa
     notFound()
   }
 
+  // 🔒 SECURITY LAYER 1: Server-side status validation (PRIMARY DEFENSE)
+  // This blocks browser back button, direct URL access, and bookmarks
+  if (session.status === 'completed' || session.status === 'cancelled') {
+    const dashboardUrl = mechanic ? '/mechanic/dashboard' : '/customer/dashboard'
+    console.log(`[DIAGNOSTIC PAGE SECURITY] Session ${sessionId} is ${session.status} - redirecting to dashboard`)
+    redirect(dashboardUrl)
+  }
+
   // CRITICAL: Determine role based on session assignment, NOT just cookie presence
   // This prevents role confusion when both cookies exist (testing on same browser)
   let currentUserId: string

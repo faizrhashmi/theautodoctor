@@ -751,6 +751,73 @@ export default function VideoSessionClient({
     updateSessionStatus()
   }, [sessionId])
 
+  // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
+  // Only redirects if session is ALREADY completed when component mounts
+  // Prevents accessing completed sessions via back button/bookmark
+  useEffect(() => {
+    console.log('[DIAGNOSTIC SECURITY L2] Checking initial session status:', _status)
+    if (_status === 'completed' || _status === 'cancelled') {
+      console.log('[DIAGNOSTIC SECURITY L2] ⚠️ Session already ended, redirecting...')
+      window.location.href = dashboardUrl
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount, not on status changes
+
+  // 🔒 SECURITY LAYER 3: Real-time database listener for status changes
+  // Shows completion modal for normal endings, redirects for external cancellations
+  useEffect(() => {
+    console.log('[DIAGNOSTIC SECURITY L3] Setting up real-time status monitor')
+
+    const statusChannel = supabase
+      .channel(`session-status:${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        (payload) => {
+          console.log('[DIAGNOSTIC SECURITY L3] 🔄 Session status changed:', payload)
+          const newStatus = payload.new?.status
+
+          if (newStatus === 'completed' || newStatus === 'cancelled') {
+            console.log('[DIAGNOSTIC SECURITY L3] ⚠️ Session ended in database, redirecting...')
+            const toastDiv = document.createElement('div')
+            toastDiv.style.cssText = `
+              position: fixed;
+              top: 20px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: ${newStatus === 'cancelled' ? '#DC2626' : '#10B981'};
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-weight: 600;
+              z-index: 99999;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `
+            toastDiv.textContent = `Session has been ${newStatus === 'cancelled' ? 'cancelled' : 'completed'}`
+            document.body.appendChild(toastDiv)
+
+            setTimeout(() => {
+              document.body.removeChild(toastDiv)
+              window.location.href = dashboardUrl
+            }, 2000)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[DIAGNOSTIC SECURITY L3] Database subscription status:', status)
+      })
+
+    return () => {
+      console.log('[DIAGNOSTIC SECURITY L3] Cleaning up status monitor')
+      supabase.removeChannel(statusChannel)
+    }
+  }, [sessionId, dashboardUrl, supabase, _status])
+
   // Listen for session:ended broadcasts from the other participant
   useEffect(() => {
     console.log('[VIDEO] Setting up session:ended broadcast listener')
@@ -763,12 +830,32 @@ export default function VideoSessionClient({
       })
       .on('broadcast', { event: 'session:ended' }, (payload) => {
         console.log('[VIDEO] Session ended by other participant:', payload)
-        const { status } = payload.payload
+        const { status, endedBy } = payload.payload
 
-        alert(`Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant. Redirecting to dashboard...`)
+        // Determine who ended the session
+        const endedByText = endedBy === 'mechanic' ? 'the mechanic' : 'the customer'
+
+        // Show elegant notification (non-blocking)
+        const toastDiv = document.createElement('div')
+        toastDiv.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: ${status === 'cancelled' ? '#DC2626' : '#10B981'};
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          z-index: 99999;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `
+        toastDiv.textContent = `Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by ${endedByText}`
+        document.body.appendChild(toastDiv)
 
         // Redirect to dashboard
         setTimeout(() => {
+          document.body.removeChild(toastDiv)
           window.location.href = dashboardUrl
         }, 2000)
       })
