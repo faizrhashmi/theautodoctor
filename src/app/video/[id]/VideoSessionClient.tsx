@@ -843,12 +843,12 @@ function VideoView({
 
   return (
     <div className="relative h-full w-full">
-      {/* Main Video (Your camera or screen share) - Full screen with proper aspect ratio */}
+      {/* Main Video - Responsive: cover on mobile (fills screen), contain on desktop (shows full video) */}
       <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
         {mainTrack ? (
           <VideoTrack
             trackRef={mainTrack}
-            className="h-full w-full object-contain"
+            className="h-full w-full object-cover md:object-contain"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
