@@ -841,6 +841,80 @@ export default function VideoSessionClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run on mount, not on status changes
 
+  // Helper: Fetch session data and show completion modal
+  const fetchAndShowCompletionModal = useCallback(async () => {
+    console.log('[VIDEO] Fetching session data for completion modal...', { sessionId, userRole: _userRole })
+
+    try {
+      // Fetch from role-specific API
+      const apiPath = _userRole === 'customer' ? '/api/customer/sessions' : '/api/mechanic/sessions'
+      console.log('[VIDEO] Fetching from:', apiPath)
+
+      const response = await fetch(apiPath)
+      console.log('[VIDEO] API response status:', response.status)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[VIDEO] API data received:', { sessionCount: data.sessions?.length })
+
+        const session = data.sessions?.find((s: any) => s.id === sessionId)
+        console.log('[VIDEO] Session found:', session ? 'YES' : 'NO')
+
+        if (session) {
+          console.log('[VIDEO] ✅ Session found! Showing completion modal:', {
+            sessionId: session.id,
+            status: session.status,
+            hasData: !!session
+          })
+          console.log('[VIDEO] Setting completionSessionData...')
+          setCompletionSessionData(session)
+          console.log('[VIDEO] Setting showCompletionModal to true...')
+          setShowCompletionModal(true)
+          console.log('[VIDEO] Modal state set complete!')
+        } else {
+          // Retry once after a short delay (session might not be fully persisted yet)
+          console.warn('[VIDEO] Session not found, retrying in 1 second...')
+          setTimeout(async () => {
+            try {
+              const retryResponse = await fetch(apiPath)
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json()
+                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
+                if (retrySession) {
+                  console.log('[VIDEO] ✅ Session found on retry!', {
+                    sessionId: retrySession.id,
+                    status: retrySession.status
+                  })
+                  console.log('[VIDEO] [RETRY] Setting completionSessionData...')
+                  setCompletionSessionData(retrySession)
+                  console.log('[VIDEO] [RETRY] Setting showCompletionModal to true...')
+                  setShowCompletionModal(true)
+                  console.log('[VIDEO] [RETRY] Modal state set complete!')
+                  return
+                }
+              }
+            } catch (retryError) {
+              console.error('[VIDEO] Retry failed:', retryError)
+            }
+            // Final fallback
+            console.warn('[VIDEO] Session still not found after retry, redirecting...')
+            window.location.href = dashboardUrl
+          }, 1000)
+        }
+      } else {
+        console.error('[VIDEO] API returned error status:', response.status)
+        const errorText = await response.text()
+        console.error('[VIDEO] Error response:', errorText)
+        // Fallback: redirect on error
+        window.location.href = dashboardUrl
+      }
+    } catch (error) {
+      console.error('[VIDEO] Exception fetching session data:', error)
+      // Fallback: redirect on error
+      window.location.href = dashboardUrl
+    }
+  }, [sessionId, dashboardUrl, _userRole])
+
   // 🔒 SECURITY LAYER 3: Real-time database listener for status changes
   // Shows completion modal for normal endings, redirects for external cancellations
   useEffect(() => {
@@ -1252,80 +1326,6 @@ export default function VideoSessionClient({
       setExtendingSession(false)
     }
   }
-
-  // Helper: Fetch session data and show completion modal
-  const fetchAndShowCompletionModal = useCallback(async () => {
-    console.log('[VIDEO] Fetching session data for completion modal...', { sessionId, userRole: _userRole })
-
-    try {
-      // Fetch from role-specific API
-      const apiPath = _userRole === 'customer' ? '/api/customer/sessions' : '/api/mechanic/sessions'
-      console.log('[VIDEO] Fetching from:', apiPath)
-
-      const response = await fetch(apiPath)
-      console.log('[VIDEO] API response status:', response.status)
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[VIDEO] API data received:', { sessionCount: data.sessions?.length })
-
-        const session = data.sessions?.find((s: any) => s.id === sessionId)
-        console.log('[VIDEO] Session found:', session ? 'YES' : 'NO')
-
-        if (session) {
-          console.log('[VIDEO] ✅ Session found! Showing completion modal:', {
-            sessionId: session.id,
-            status: session.status,
-            hasData: !!session
-          })
-          console.log('[VIDEO] Setting completionSessionData...')
-          setCompletionSessionData(session)
-          console.log('[VIDEO] Setting showCompletionModal to true...')
-          setShowCompletionModal(true)
-          console.log('[VIDEO] Modal state set complete!')
-        } else {
-          // Retry once after a short delay (session might not be fully persisted yet)
-          console.warn('[VIDEO] Session not found, retrying in 1 second...')
-          setTimeout(async () => {
-            try {
-              const retryResponse = await fetch(apiPath)
-              if (retryResponse.ok) {
-                const retryData = await retryResponse.json()
-                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
-                if (retrySession) {
-                  console.log('[VIDEO] ✅ Session found on retry!', {
-                    sessionId: retrySession.id,
-                    status: retrySession.status
-                  })
-                  console.log('[VIDEO] [RETRY] Setting completionSessionData...')
-                  setCompletionSessionData(retrySession)
-                  console.log('[VIDEO] [RETRY] Setting showCompletionModal to true...')
-                  setShowCompletionModal(true)
-                  console.log('[VIDEO] [RETRY] Modal state set complete!')
-                  return
-                }
-              }
-            } catch (retryError) {
-              console.error('[VIDEO] Retry failed:', retryError)
-            }
-            // Final fallback
-            console.warn('[VIDEO] Session still not found after retry, redirecting...')
-            window.location.href = dashboardUrl
-          }, 1000)
-        }
-      } else {
-        console.error('[VIDEO] API returned error status:', response.status)
-        const errorText = await response.text()
-        console.error('[VIDEO] Error response:', errorText)
-        // Fallback: redirect on error
-        window.location.href = dashboardUrl
-      }
-    } catch (error) {
-      console.error('[VIDEO] Exception fetching session data:', error)
-      // Fallback: redirect on error
-      window.location.href = dashboardUrl
-    }
-  }, [sessionId, dashboardUrl, _userRole])
 
   const handleEndSession = useCallback(() => {
     setShowEndConfirm(true)
