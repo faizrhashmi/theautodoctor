@@ -15,29 +15,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    // Get mechanic profile to find mechanic_id
-    const { data: mechanicProfile, error: profileError } = await supabaseAdmin
-      .from('mechanics')
-      .select('id')
-      .eq('user_id', mechanic.id)
-      .single()
+    // CRITICAL FIX: sessions.mechanic_id references auth.users(id) directly (Supabase Auth)
+    // No need to look up mechanics table - query by Supabase Auth user ID
+    console.log('[MECHANIC SESSIONS] Querying sessions where mechanic_id =', mechanic.id)
 
-    console.log('[MECHANIC SESSIONS] Profile lookup result:', {
-      found: !!mechanicProfile,
-      mechanicId: mechanicProfile?.id,
-      error: profileError?.message
-    })
-
-    if (!mechanicProfile) {
-      console.error('[MECHANIC SESSIONS] Mechanic profile not found for user_id:', mechanic.id)
-      return NextResponse.json({
-        error: 'Mechanic profile not found',
-        details: 'No mechanic record linked to this user account',
-        user_id: mechanic.id
-      }, { status: 404 })
-    }
-
-    // Fetch all sessions for this mechanic
+    // Fetch all sessions for this mechanic (using Supabase Auth user ID directly)
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('sessions')
       .select(`
@@ -48,9 +30,10 @@ export async function GET(req: NextRequest) {
         created_at,
         ended_at,
         metadata,
-        customer_user_id
+        customer_user_id,
+        mechanic_id
       `)
-      .eq('mechanic_id', mechanicProfile.id)
+      .eq('mechanic_id', mechanic.id)  // Use Supabase Auth user ID directly
       .order('created_at', { ascending: false })
 
     if (sessionsError) {
@@ -98,7 +81,7 @@ export async function GET(req: NextRequest) {
 
     console.log('[MECHANIC SESSIONS] Returning sessions:', {
       count: formattedSessions.length,
-      mechanicId: mechanicProfile.id,
+      mechanicAuthId: mechanic.id,
       sessionIds: formattedSessions.map(s => s.id).slice(0, 3)
     })
 
