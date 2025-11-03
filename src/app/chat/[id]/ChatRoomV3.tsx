@@ -2527,6 +2527,7 @@ export default function ChatRoom({
               ? '/mechanic/sessions'
               : '/customer/sessions'
           }}
+          userRole={isMechanic ? 'mechanic' : 'customer'}
         />
       )}
     </div>

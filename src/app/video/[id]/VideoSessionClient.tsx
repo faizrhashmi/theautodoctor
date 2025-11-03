@@ -2364,6 +2364,7 @@ Examples:
             console.log('[VIDEO] Modal onViewDetails called')
             window.location.href = _userRole === 'mechanic' ? '/mechanic/sessions' : '/customer/sessions'
           }}
+          userRole={_userRole}
         />
       )}
     </div>

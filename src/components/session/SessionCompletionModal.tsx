@@ -26,6 +26,7 @@ interface SessionCompletionModalProps {
   onDownloadPDF?: () => void
   onViewDashboard: () => void
   onViewDetails?: () => void
+  userRole?: 'customer' | 'mechanic' // Role-based customization
 }
 
 export function SessionCompletionModal({
@@ -35,7 +36,9 @@ export function SessionCompletionModal({
   onDownloadPDF,
   onViewDashboard,
   onViewDetails,
+  userRole = 'customer', // Default to customer for backward compatibility
 }: SessionCompletionModalProps) {
+  const isMechanic = userRole === 'mechanic'
   const [rating, setRating] = useState<number>(sessionData.rating || 0)
   const [hoverRating, setHoverRating] = useState<number>(0)
   const [submittingRating, setSubmittingRating] = useState(false)
@@ -59,6 +62,11 @@ export function SessionCompletionModal({
       : '0.00'
 
   const planName = pricingInfo?.name || sessionData.plan
+
+  // Calculate mechanic earnings (70% split)
+  const MECHANIC_SHARE = 0.70
+  const totalCents = sessionData.base_price || pricingInfo?.priceCents || 0
+  const mechanicEarnings = isMechanic ? (totalCents * MECHANIC_SHARE / 100).toFixed(2) : null
 
   // Handle rating submission
   const handleRatingClick = async (starValue: number) => {
@@ -145,11 +153,16 @@ export function SessionCompletionModal({
             </div>
           </div>
 
-          {/* Header */}
+          {/* Header - Role-specific */}
           <div className="mb-4 sm:mb-6 text-center">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Session Completed!</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              {isMechanic ? 'Session Complete' : 'Session Completed!'}
+            </h2>
             <p className="mt-1 text-xs sm:text-sm text-slate-400">
-              Thank you for using TheAutoDoctor
+              {isMechanic
+                ? `Great work! You've earned $${mechanicEarnings}`
+                : 'Thank you for using AskAutoDoctor'
+              }
             </p>
           </div>
 
@@ -160,25 +173,51 @@ export function SessionCompletionModal({
               <span className="font-mono text-slate-200">{sessionData.id.slice(0, 8)}</span>
             </div>
 
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="text-slate-400">Mechanic:</span>
-              <span className="text-slate-200 text-right">
-                {sessionData.mechanic_name || 'Mechanic'}{' '}
-                <span className="text-[10px] sm:text-xs text-slate-500">
-                  (#{sessionData.mechanic_id?.slice(0, 6)})
-                </span>
-              </span>
-            </div>
+            {isMechanic ? (
+              <>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-400">Customer:</span>
+                  <span className="text-slate-200 text-right">
+                    {sessionData.customer_name || 'Customer'}{' '}
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      (#{sessionData.customer_user_id?.slice(0, 6)})
+                    </span>
+                  </span>
+                </div>
 
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              <span className="text-slate-400">Customer:</span>
-              <span className="text-slate-200 text-right">
-                You{' '}
-                <span className="text-[10px] sm:text-xs text-slate-500">
-                  (#{sessionData.customer_user_id?.slice(0, 6)})
-                </span>
-              </span>
-            </div>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-400">Mechanic:</span>
+                  <span className="text-slate-200 text-right">
+                    You{' '}
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      (#{sessionData.mechanic_id?.slice(0, 6)})
+                    </span>
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-400">Mechanic:</span>
+                  <span className="text-slate-200 text-right">
+                    {sessionData.mechanic_name || 'Mechanic'}{' '}
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      (#{sessionData.mechanic_id?.slice(0, 6)})
+                    </span>
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-slate-400">Customer:</span>
+                  <span className="text-slate-200 text-right">
+                    You{' '}
+                    <span className="text-[10px] sm:text-xs text-slate-500">
+                      (#{sessionData.customer_user_id?.slice(0, 6)})
+                    </span>
+                  </span>
+                </div>
+              </>
+            )}
 
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-400">Plan:</span>
@@ -205,13 +244,15 @@ export function SessionCompletionModal({
             </div>
 
             <div className="flex items-center justify-between border-t border-slate-700 pt-2 sm:pt-3 text-xs sm:text-sm">
-              <span className="font-semibold text-slate-300">Total Cost:</span>
-              <span className="text-base sm:text-lg font-bold text-green-400">${displayPrice}</span>
+              <span className="font-semibold text-slate-300">{isMechanic ? 'Your Earnings:' : 'Total Cost:'}</span>
+              <span className="text-base sm:text-lg font-bold text-green-400">
+                ${isMechanic ? mechanicEarnings : displayPrice}
+              </span>
             </div>
           </div>
 
-          {/* Rating Section */}
-          {!ratingSubmitted && (
+          {/* Rating Section - Only for customers */}
+          {!isMechanic && !ratingSubmitted && (
             <div className="mb-4 sm:mb-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 sm:p-4">
               <p className="mb-2 sm:mb-3 text-center text-xs sm:text-sm font-medium text-white">
                 How was your experience?
@@ -244,7 +285,7 @@ export function SessionCompletionModal({
             </div>
           )}
 
-          {ratingSubmitted && (
+          {!isMechanic && ratingSubmitted && (
             <div className="mb-4 sm:mb-6 rounded-xl border border-green-500/30 bg-green-500/10 p-2 sm:p-3">
               <div className="flex items-center justify-center gap-2">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
@@ -304,63 +345,99 @@ export function SessionCompletionModal({
             </div>
           </div>
 
-          {/* What's Next Section */}
+          {/* What's Next Section - Role-specific */}
           <div className="mt-4 sm:mt-6 rounded-xl border border-slate-700 bg-slate-800/30 p-3 sm:p-4">
             <h3 className="mb-2 sm:mb-3 text-center text-xs sm:text-sm font-semibold text-white">
               What's Next?
             </h3>
 
-            <div className="space-y-2">
-              {/* Ask Follow-up Question */}
-              <button
-                onClick={() => {
-                  window.location.href = `/customer/sessions?action=follow-up&sessionId=${sessionData.id}`
-                }}
-                className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
-              >
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
-                  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white text-xs sm:text-sm">Ask Follow-up Question</p>
-                  <p className="text-[10px] sm:text-xs text-slate-400 truncate">Get clarification or additional help</p>
-                </div>
-              </button>
-
-              {/* Get Workshop Quotes */}
-              <button
-                onClick={() => {
-                  window.location.href = '/customer/quotes'
-                }}
-                className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
-              >
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20">
-                  <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white text-xs sm:text-sm">Get Workshop Quotes</p>
-                  <p className="text-[10px] sm:text-xs text-slate-400 truncate">Find local shops to fix your vehicle</p>
-                </div>
-              </button>
-
-              {/* Book Another Session */}
-              {sessionData.mechanic_id && (
+            {isMechanic ? (
+              /* Mechanic Actions */
+              <div className="space-y-2">
+                {/* View All Sessions */}
                 <button
                   onClick={() => {
-                    window.location.href = `/book?mechanic=${sessionData.mechanic_id}`
+                    window.location.href = '/mechanic/sessions'
                   }}
+                  className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
+                >
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-xs sm:text-sm">View All Sessions</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">See your session history and earnings</p>
+                  </div>
+                </button>
+
+                {/* Return to Dashboard */}
+                <button
+                  onClick={onViewDashboard}
                   className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
                 >
                   <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                    <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white text-xs sm:text-sm">Book with Same Mechanic</p>
-                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Schedule another session with {sessionData.mechanic_name || 'this mechanic'}</p>
+                    <p className="font-medium text-white text-xs sm:text-sm">Back to Dashboard</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Ready for your next customer</p>
                   </div>
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Customer Actions */
+              <div className="space-y-2">
+                {/* Ask Follow-up Question */}
+                <button
+                  onClick={() => {
+                    window.location.href = `/customer/sessions?action=follow-up&sessionId=${sessionData.id}`
+                  }}
+                  className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
+                >
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
+                    <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-xs sm:text-sm">Ask Follow-up Question</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Get clarification or additional help</p>
+                  </div>
+                </button>
+
+                {/* Get Workshop Quotes */}
+                <button
+                  onClick={() => {
+                    window.location.href = '/customer/quotes'
+                  }}
+                  className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
+                >
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20">
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-xs sm:text-sm">Get Workshop Quotes</p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Find local shops to fix your vehicle</p>
+                  </div>
+                </button>
+
+                {/* Book Another Session */}
+                {sessionData.mechanic_id && (
+                  <button
+                    onClick={() => {
+                      window.location.href = `/book?mechanic=${sessionData.mechanic_id}`
+                    }}
+                    className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
+                  >
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white text-xs sm:text-sm">Book with Same Mechanic</p>
+                      <p className="text-[10px] sm:text-xs text-slate-400 truncate">Schedule another session with {sessionData.mechanic_name || 'this mechanic'}</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer Note */}
