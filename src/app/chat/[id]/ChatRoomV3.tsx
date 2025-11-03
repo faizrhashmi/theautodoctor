@@ -602,14 +602,16 @@ export default function ChatRoom({
   }
 
   // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
-  // This provides additional protection if user somehow bypasses server-side checks
+  // Only redirects if session is ALREADY completed when component mounts
+  // Prevents accessing completed sessions via back button/bookmark
   useEffect(() => {
     console.log('[CHAT SECURITY L2] Checking initial session status:', status)
     if (status === 'completed' || status === 'cancelled') {
       console.log('[CHAT SECURITY L2] ⚠️ Session already ended, redirecting...')
       window.location.href = dashboardUrl
     }
-  }, [status, dashboardUrl])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount, not on status changes
 
   // Real-time subscriptions including typing indicators
   useEffect(() => {
@@ -743,32 +745,33 @@ export default function ChatRoom({
           }
 
           // 🔒 SECURITY LAYER 3: Real-time database status monitoring
-          // Show notification when session ends (FALLBACK - main notification via broadcast)
+          // Shows completion modal for normal endings, redirects for external cancellations
           if ((oldStatus === 'live' || oldStatus === 'waiting') &&
               (updated.status === 'completed' || updated.status === 'cancelled')) {
-            console.log(`[CHAT SECURITY L3] Session status changed to ${updated.status} - immediate action required`)
+            console.log(`[CHAT SECURITY L3] Session status changed to ${updated.status}`)
 
             setSessionEnded(true)
 
             // Handle based on completion status
             if (updated.status === 'cancelled') {
-              // 🔒 SECURITY: Immediate redirect for cancelled sessions (no delay)
-              console.log('[CHAT SECURITY L3] ⚠️ Session cancelled in database, redirecting immediately...')
+              // Cancelled sessions redirect immediately (admin/external cancellation)
+              console.log('[CHAT SECURITY L3] ⚠️ Session cancelled externally, redirecting...')
               toast.error('Session has been cancelled', {
                 duration: 2000,
                 position: 'top-center',
               })
-              // Immediate redirect for security (prevent rejoin attempts)
-              window.location.href = dashboardUrl
+              // Redirect after showing toast
+              setTimeout(() => {
+                window.location.href = dashboardUrl
+              }, 2000)
             } else {
-              // 🔒 SECURITY: Immediate redirect for completed sessions
-              console.log('[CHAT SECURITY L3] ⚠️ Session completed in database, redirecting immediately...')
+              // Completed sessions show modal (normal ending flow)
+              console.log('[CHAT SECURITY L3] ✅ Session completed, showing modal...')
               toast.success('Session completed', {
                 duration: 2000,
                 position: 'top-center',
               })
-              // Immediate redirect for security (prevent rejoin attempts)
-              window.location.href = dashboardUrl
+              await fetchAndShowCompletionModal()
             }
           }
 

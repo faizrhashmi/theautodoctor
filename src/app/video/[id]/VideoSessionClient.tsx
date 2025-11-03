@@ -830,17 +830,19 @@ export default function VideoSessionClient({
   }, [sessionId])
 
   // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
-  // This provides additional protection if user somehow bypasses server-side checks
+  // Only redirects if session is ALREADY completed when component mounts
+  // Prevents accessing completed sessions via back button/bookmark
   useEffect(() => {
     console.log('[VIDEO SECURITY L2] Checking initial session status:', _status)
     if (_status === 'completed' || _status === 'cancelled') {
       console.log('[VIDEO SECURITY L2] ⚠️ Session already ended, redirecting...')
       window.location.href = dashboardUrl
     }
-  }, [_status, dashboardUrl])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount, not on status changes
 
   // 🔒 SECURITY LAYER 3: Real-time database listener for status changes
-  // This catches status changes from ANY source (API, admin panel, etc.)
+  // Shows completion modal for normal endings, redirects for external cancellations
   useEffect(() => {
     console.log('[VIDEO SECURITY L3] Setting up real-time status monitor')
 
@@ -854,13 +856,19 @@ export default function VideoSessionClient({
           table: 'sessions',
           filter: `id=eq.${sessionId}`,
         },
-        (payload) => {
+        async (payload) => {
           console.log('[VIDEO SECURITY L3] 🔄 Session status changed:', payload)
           const newStatus = payload.new?.status
 
-          if (newStatus === 'completed' || newStatus === 'cancelled') {
-            console.log('[VIDEO SECURITY L3] ⚠️ Session ended in database, redirecting...')
+          if (newStatus === 'cancelled') {
+            // Cancelled sessions redirect immediately (admin/external cancellation)
+            console.log('[VIDEO SECURITY L3] ⚠️ Session cancelled externally, redirecting...')
+            alert('Session has been cancelled.')
             window.location.href = dashboardUrl
+          } else if (newStatus === 'completed') {
+            // Completed sessions show modal (normal ending flow)
+            console.log('[VIDEO SECURITY L3] ✅ Session completed, showing modal...')
+            await fetchAndShowCompletionModal()
           }
         }
       )
@@ -872,7 +880,7 @@ export default function VideoSessionClient({
       console.log('[VIDEO SECURITY L3] Cleaning up status monitor')
       supabase.removeChannel(statusChannel)
     }
-  }, [sessionId, dashboardUrl, supabase])
+  }, [sessionId, dashboardUrl, supabase, fetchAndShowCompletionModal])
 
   // Listen for session:ended broadcasts from the other participant
   useEffect(() => {
