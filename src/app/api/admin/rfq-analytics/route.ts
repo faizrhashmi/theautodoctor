@@ -7,16 +7,30 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireFeature } from '@/lib/flags'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+function createClient() {
+  const cookieStore = cookies()
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
 
 export async function GET(request: Request) {
   try {
     // Feature flag check
     requireFeature('ENABLE_WORKSHOP_RFQ')
 
-    const supabase = createClient({ cookies })
+    const supabase = createClient()
 
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser()

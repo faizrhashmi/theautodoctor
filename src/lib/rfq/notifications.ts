@@ -6,8 +6,22 @@
  * @module lib/rfq/notifications
  */
 
-import { createClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+function createClient() {
+  const cookieStore = cookies()
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+    },
+  })
+}
 
 /**
  * Notification types for RFQ events
@@ -92,7 +106,7 @@ export async function sendSms(data: SmsTemplateData): Promise<boolean> {
  * Get user profile with notification preferences
  */
 async function getUserProfile(userId: string) {
-  const supabase = createClient({ cookies })
+  const supabase = createClient()
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -116,7 +130,7 @@ export async function notifyWorkshopNewRfq(params: {
 }) {
   try {
     // Get workshop admin/owner users
-    const supabase = createClient({ cookies })
+    const supabase = createClient()
     const { data: workshopUsers } = await supabase
       .from('workshop_roles')
       .select('user_id, profiles!inner(email, phone)')
@@ -295,7 +309,7 @@ export async function notifyBidAccepted(params: {
     }
 
     // Notify workshop
-    const supabase = createClient({ cookies })
+    const supabase = createClient()
     const { data: workshopUsers } = await supabase
       .from('workshop_roles')
       .select('user_id, profiles!inner(email)')
@@ -343,7 +357,7 @@ export async function notifyBidRejected(params: {
   bidAmount: number
 }) {
   try {
-    const supabase = createClient({ cookies })
+    const supabase = createClient()
     const { data: workshopUsers } = await supabase
       .from('workshop_roles')
       .select('user_id, profiles!inner(email)')
