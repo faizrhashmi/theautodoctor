@@ -938,8 +938,29 @@ export default function VideoSessionClient({
         console.log('[VIDEO] Session extended:', payload)
         const { extensionMinutes, newDuration } = payload.payload
 
-        // Show notification
-        alert(`Session extended by ${extensionMinutes} minutes!`)
+        // Show notification (non-blocking, matching chat behavior)
+        const toastDiv = document.createElement('div')
+        toastDiv.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #10B981;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          z-index: 99999;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `
+        toastDiv.textContent = `⏱️ Session extended by ${extensionMinutes} minutes!`
+        document.body.appendChild(toastDiv)
+
+        setTimeout(() => {
+          toastDiv.style.transition = 'opacity 0.3s'
+          toastDiv.style.opacity = '0'
+          setTimeout(() => document.body.removeChild(toastDiv), 300)
+        }, 3500)
 
         // Update duration state - SessionTimer will automatically recalculate
         setExtendedDuration(newDuration)
