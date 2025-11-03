@@ -139,20 +139,21 @@ export async function POST(request: NextRequest) {
 
   console.log('[CREATE REQUEST] ✓ Session request created:', inserted.id)
 
-  // Create notification for customer
+  // Create notification for customer - use 'request_submitted' not 'request_created'
+  // 'request_created' is for mechanics receiving new requests
   try {
     await supabaseAdmin
       .from('notifications')
       .insert({
         user_id: user.id,
-        type: 'request_created',
+        type: 'request_submitted',
         payload: {
           request_id: inserted.id,
           session_type: sessionType,
           plan_code: planCode
         }
       })
-    console.log('[CREATE REQUEST] ✓ Created request_created notification for customer')
+    console.log('[CREATE REQUEST] ✓ Created request_submitted notification for customer')
   } catch (notifError) {
     console.warn('[CREATE REQUEST] Failed to create notification:', notifError)
   }

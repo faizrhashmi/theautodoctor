@@ -124,7 +124,19 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
 
     switch (notification.type) {
       case 'request_created':
+        // Mechanic-only: new session request received
+        if (payload.request_id) {
+          router.push(`/mechanic/dashboard?request=${payload.request_id}`)
+        }
+        break
+
+      case 'request_submitted':
+        // Customer-only: their session request was submitted
+        router.push('/customer/sessions')
+        break
+
       case 'request_accepted':
+        // Either role: session request was accepted
         if (payload.request_id) {
           router.push(`/mechanic/dashboard?request=${payload.request_id}`)
         }
@@ -322,6 +334,8 @@ function NotificationItem({
     switch (type) {
       case 'request_created':
         return { icon: 'M12 4v16m8-8H4', color: 'text-blue-400', bg: 'bg-blue-500/10' }
+      case 'request_submitted':
+        return { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-blue-400', bg: 'bg-blue-500/10' }
       case 'request_accepted':
         return { icon: 'M5 13l4 4L19 7', color: 'text-green-400', bg: 'bg-green-500/10' }
       case 'session_started':
@@ -360,6 +374,8 @@ function NotificationItem({
     switch (notification.type) {
       case 'request_created':
         return 'New session request received'
+      case 'request_submitted':
+        return 'Your session request was submitted'
       case 'request_accepted':
         return 'Your session request was accepted'
       case 'session_started':
