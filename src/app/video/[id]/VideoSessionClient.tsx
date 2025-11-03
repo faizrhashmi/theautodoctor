@@ -248,6 +248,10 @@ function VideoControls({
   unreadCount,
   showPip,
   onTogglePip,
+  userRole,
+  showNotes,
+  onToggleNotes,
+  notesChanged,
 }: {
   onEndSession: () => void
   onUploadFile: (file: File) => void
@@ -258,6 +262,10 @@ function VideoControls({
   unreadCount: number
   showPip: boolean
   onTogglePip: () => void
+  userRole: string
+  showNotes?: boolean
+  onToggleNotes?: () => void
+  notesChanged?: boolean
 }) {
   const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -638,6 +646,24 @@ function VideoControls({
           </span>
         )}
       </button>
+
+      {/* Notes Toggle (mechanic only) */}
+      {userRole === 'mechanic' && onToggleNotes && (
+        <button
+          onClick={onToggleNotes}
+          className={`relative z-[60] rounded-lg p-2 transition sm:p-3 ${
+            showNotes
+              ? 'bg-purple-500/80 text-white hover:bg-purple-600 ring-2 ring-purple-400/50'
+              : 'bg-slate-700/80 text-white hover:bg-slate-600'
+          }`}
+          title={showNotes ? 'Close notes' : 'Open notes'}
+        >
+          <FileEdit className="h-4 w-4 sm:h-5 sm:w-5" />
+          {notesChanged && !showNotes && (
+            <span className="absolute -right-1 -top-1 flex h-2 w-2 rounded-full bg-orange-500"></span>
+          )}
+        </button>
+      )}
 
       {/* PIP Toggle */}
       <button
@@ -1351,6 +1377,25 @@ export default function VideoSessionClient({
     }
   }, [showChat])
 
+  // Load existing notes (mechanic only)
+  useEffect(() => {
+    if (_userRole === 'mechanic' && sessionStarted) {
+      const loadNotes = async () => {
+        try {
+          const response = await fetch(`/api/mechanic/sessions/${sessionId}/notes`)
+          if (response.ok) {
+            const data = await response.json()
+            setNotes(data.notes || '')
+            setNotesInitialValue(data.notes || '')
+          }
+        } catch (error) {
+          console.error('Error loading notes:', error)
+        }
+      }
+      loadNotes()
+    }
+  }, [sessionId, _userRole, sessionStarted])
+
   const handleMechanicJoined = useCallback(() => {
     console.log('[VIDEO] Mechanic joined')
     setMechanicPresent(true)
@@ -1894,6 +1939,10 @@ export default function VideoSessionClient({
                 unreadCount={unreadCount}
                 showPip={showPip}
                 onTogglePip={() => setShowPip(!showPip)}
+                userRole={_userRole}
+                showNotes={showNotes}
+                onToggleNotes={() => setShowNotes(!showNotes)}
+                notesChanged={notes !== notesInitialValue}
               />
             </div>
           </div>
@@ -2129,6 +2178,104 @@ export default function VideoSessionClient({
             </p>
           </div>
         </div>
+        </>
+      )}
+
+      {/* Notes Panel (Mechanic Only) */}
+      {showNotes && _userRole === 'mechanic' && (
+        <>
+          {/* Backdrop - Click to close (only on mobile) */}
+          <div
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm sm:hidden"
+            onClick={() => setShowNotes(false)}
+          />
+
+          <div className="fixed bottom-0 right-0 top-0 z-[70] flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
+            {/* Notes Header */}
+            <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-purple-800 to-purple-750 p-3 shadow-lg sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-600">
+                  <FileEdit className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-white">Session Notes</h3>
+                  <p className="text-xs text-purple-200">For your findings and observations</p>
+                </div>
+              </div>
+
+              {/* Close button */}
+              <button
+                onClick={() => setShowNotes(false)}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-red-600 active:scale-95 sm:bg-slate-700 sm:hover:bg-slate-600"
+              >
+                <span>Close</span>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Notes Content */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <textarea
+                ref={notesInputRef}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="h-full w-full resize-none rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-slate-100 placeholder-slate-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                placeholder="Write your findings, observations, and recommendations here...
+
+Examples:
+• Checked oil level - appears low
+• Battery terminals show corrosion
+• Recommended brake pad replacement within 3 months
+• Customer mentioned intermittent noise when turning left"
+              />
+            </div>
+
+            {/* Notes Footer with Save Button */}
+            <div className="border-t border-slate-700 bg-slate-800 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-400">
+                  {notes !== notesInitialValue ? (
+                    <span className="text-orange-400">• Unsaved changes</span>
+                  ) : (
+                    <span>All changes saved</span>
+                  )}
+                </p>
+                <button
+                  onClick={async () => {
+                    setSavingNotes(true)
+                    try {
+                      const response = await fetch(`/api/mechanic/sessions/${sessionId}/notes`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notes }),
+                      })
+                      if (response.ok) {
+                        setNotesInitialValue(notes)
+                      } else {
+                        alert('Failed to save notes. Please try again.')
+                      }
+                    } catch (error) {
+                      console.error('Error saving notes:', error)
+                      alert('Failed to save notes. Please try again.')
+                    } finally {
+                      setSavingNotes(false)
+                    }
+                  }}
+                  disabled={savingNotes || notes === notesInitialValue}
+                  className="flex items-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {savingNotes ? (
+                    <>Saving...</>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Notes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </>
       )}
 
