@@ -9,21 +9,32 @@ export async function GET(req: NextRequest) {
     if (authResult.error) return authResult.error
 
     const mechanic = authResult.data
-    console.log(`[MECHANIC] ${mechanic.email} fetching sessions`)
+    console.log(`[MECHANIC SESSIONS] ${mechanic.email} (${mechanic.id}) fetching sessions`)
 
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
     // Get mechanic profile to find mechanic_id
-    const { data: mechanicProfile } = await supabaseAdmin
+    const { data: mechanicProfile, error: profileError } = await supabaseAdmin
       .from('mechanics')
       .select('id')
       .eq('user_id', mechanic.id)
       .single()
 
+    console.log('[MECHANIC SESSIONS] Profile lookup result:', {
+      found: !!mechanicProfile,
+      mechanicId: mechanicProfile?.id,
+      error: profileError?.message
+    })
+
     if (!mechanicProfile) {
-      return NextResponse.json({ error: 'Mechanic profile not found' }, { status: 404 })
+      console.error('[MECHANIC SESSIONS] Mechanic profile not found for user_id:', mechanic.id)
+      return NextResponse.json({
+        error: 'Mechanic profile not found',
+        details: 'No mechanic record linked to this user account',
+        user_id: mechanic.id
+      }, { status: 404 })
     }
 
     // Fetch all sessions for this mechanic
@@ -84,6 +95,12 @@ export async function GET(req: NextRequest) {
         metadata: session.metadata,
       }
     }) || []
+
+    console.log('[MECHANIC SESSIONS] Returning sessions:', {
+      count: formattedSessions.length,
+      mechanicId: mechanicProfile.id,
+      sessionIds: formattedSessions.map(s => s.id).slice(0, 3)
+    })
 
     return NextResponse.json({
       sessions: formattedSessions,
