@@ -1260,12 +1260,28 @@ export default function VideoSessionClient({
   // Chat: Subscribe to realtime messages and typing indicators
   useEffect(() => {
     const channel = supabase
-      .channel(`chat:${sessionId}`)
+      .channel(`chat:${sessionId}`, {
+        config: {
+          broadcast: { self: true }, // ✅ FIX: Receive own messages so sender can see them
+        },
+      })
       .on('broadcast', { event: 'message' }, (payload) => {
         const message = payload.payload
         console.log('[CHAT] Received message:', message)
 
-        setMessages((prev) => [...prev, { ...message, status: 'delivered' }])
+        // Deduplicate: only add if not already in messages (prevents double-add from optimistic update)
+        setMessages((prev) => {
+          const exists = prev.some((m) => m.timestamp === message.timestamp && m.sender === message.sender)
+          if (exists) {
+            // Update status if message already exists (optimistic -> delivered)
+            return prev.map((m) =>
+              m.timestamp === message.timestamp && m.sender === message.sender
+                ? { ...m, status: 'delivered' }
+                : m
+            )
+          }
+          return [...prev, { ...message, status: 'delivered' }]
+        })
 
         // Increment unread count if chat is closed and message is from other person
         if (!showChat && message.sender !== _userId) {
