@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2 } from 'lucide-react'
+import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2, MessageSquare, Wrench, Calendar } from 'lucide-react'
 import { PRICING, type PlanKey } from '@/config/pricing'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
 
@@ -297,6 +297,65 @@ export function SessionCompletionModal({
                 >
                   <FileText className="h-4 w-4" />
                   Full Details
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* What's Next Section */}
+          <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800/30 p-4">
+            <h3 className="mb-3 text-center text-sm font-semibold text-white">
+              What's Next?
+            </h3>
+
+            <div className="space-y-2">
+              {/* Ask Follow-up Question */}
+              <button
+                onClick={() => {
+                  window.location.href = `/customer/sessions?action=follow-up&sessionId=${sessionData.id}`
+                }}
+                className="flex w-full items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-left text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
+              >
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/20">
+                  <MessageSquare className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-white">Ask Follow-up Question</p>
+                  <p className="text-xs text-slate-400">Get clarification or additional help</p>
+                </div>
+              </button>
+
+              {/* Get Workshop Quotes */}
+              <button
+                onClick={() => {
+                  window.location.href = '/customer/quotes'
+                }}
+                className="flex w-full items-center gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-3 text-left text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
+              >
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20">
+                  <Wrench className="h-5 w-5 text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-white">Get Workshop Quotes</p>
+                  <p className="text-xs text-slate-400">Find local shops to fix your vehicle</p>
+                </div>
+              </button>
+
+              {/* Book Another Session */}
+              {sessionData.mechanic_id && (
+                <button
+                  onClick={() => {
+                    window.location.href = `/book?mechanic=${sessionData.mechanic_id}`
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-left text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
+                >
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20">
+                    <Calendar className="h-5 w-5 text-green-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-white">Book with Same Mechanic</p>
+                    <p className="text-xs text-slate-400">Schedule another session with {sessionData.mechanic_name || 'this mechanic'}</p>
+                  </div>
                 </button>
               )}
             </div>

@@ -7,7 +7,7 @@ import {
   Filter, Search, Calendar, Download, Star, FileText, MoreVertical,
   TrendingUp, DollarSign, Award, Play, Edit, Trash2, RefreshCw,
   X, Phone, User, ChevronDown, ExternalLink, Image as ImageIcon,
-  BarChart3, Zap, Car, Loader2
+  BarChart3, Zap, Car, Loader2, Wrench
 } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
@@ -1142,13 +1142,39 @@ function SessionDetailModal({
                   </>
                 )}
               </button>
+
+              {/* What's Next Actions */}
               <button
-                onClick={() => alert('Request follow-up functionality coming soon')}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                onClick={() => {
+                  window.location.href = `/customer/sessions?action=follow-up&sessionId=${session.id}`
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
-                <RefreshCw className="w-4 h-4" />
-                Request Follow-up
+                <MessageSquare className="w-4 h-4" />
+                Ask Follow-up Question
               </button>
+
+              <button
+                onClick={() => {
+                  window.location.href = '/customer/quotes'
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+              >
+                <Wrench className="w-4 h-4" />
+                Get Quotes
+              </button>
+
+              {session.mechanic_id && (
+                <button
+                  onClick={() => {
+                    window.location.href = `/book?mechanic=${session.mechanic_id}`
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Again
+                </button>
+              )}
             </>
           )}
 
