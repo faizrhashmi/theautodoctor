@@ -198,7 +198,7 @@ export default function MechanicProfileModal({
                       </div>
                     </div>
 
-                    {/* Red Seal Badge */}
+                    {/* Certification Badge */}
                     {profile.redSealCertified && (
                       <div className="rounded-xl border-2 border-red-500/30 bg-gradient-to-r from-red-500/10 to-orange-500/10 p-4">
                         <div className="flex items-center gap-3">
@@ -206,8 +206,16 @@ export default function MechanicProfileModal({
                             <Shield className="h-6 w-6 text-red-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-white">Red Seal Certified</p>
-                            <p className="text-xs text-slate-400">Nationally recognized professional</p>
+                            <p className="text-sm font-bold text-white">
+                              {process.env.NEXT_PUBLIC_ENABLE_MULTI_CERT_COPY === 'true'
+                                ? 'Certified Professional'
+                                : 'Red Seal Certified'}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {process.env.NEXT_PUBLIC_ENABLE_MULTI_CERT_COPY === 'true'
+                                ? 'Verified and experienced mechanic'
+                                : 'Nationally recognized professional'}
+                            </p>
                           </div>
                         </div>
                       </div>

@@ -54,7 +54,9 @@ const HOW_IT_WORKS = [
   {
     step: '02',
     title: 'Connect with Mechanic',
-    description: 'Join a secure HD video or chat session with a Red Seal certified mechanic.',
+    description: process.env.NEXT_PUBLIC_ENABLE_MULTI_CERT_COPY === 'true'
+      ? 'Join a secure HD video or chat session with a certified mechanic.'
+      : 'Join a secure HD video or chat session with a Red Seal certified mechanic.',
     icon: Video
   },
   {
@@ -68,8 +70,12 @@ const HOW_IT_WORKS = [
 const BENEFITS = [
   {
     icon: Shield,
-    title: 'Red Seal Certified',
-    description: 'Every mechanic is Red Seal certified and background-verified'
+    title: process.env.NEXT_PUBLIC_ENABLE_MULTI_CERT_COPY === 'true'
+      ? 'Certified Professionals'
+      : 'Red Seal Certified',
+    description: process.env.NEXT_PUBLIC_ENABLE_MULTI_CERT_COPY === 'true'
+      ? 'Every mechanic is certified, experienced, and background-verified'
+      : 'Every mechanic is Red Seal certified and background-verified'
   },
   {
     icon: Clock,
