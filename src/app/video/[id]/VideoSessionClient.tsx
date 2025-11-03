@@ -1926,31 +1926,41 @@ export default function VideoSessionClient({
 
       {/* Chat Panel - WhatsApp-like Enhanced UI */}
       {showChat && (
-        <div className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
-          {/* Chat Header */}
-          <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750 p-3 shadow-lg sm:p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                {_userRole === 'mechanic' ? '👤' : '🔧'}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-white">
-                  {_userRole === 'mechanic' ? 'Customer' : 'Mechanic'}
-                </h3>
-                {isTyping && (
-                  <p className="text-xs text-green-400 animate-pulse">typing...</p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setShowChat(false)}
-              className="rounded-full p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        <>
+          {/* Backdrop - Click to close (only on mobile where chat is full-width) */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm sm:hidden"
+            onClick={() => setShowChat(false)}
+          />
 
-          {/* Messages Container - WhatsApp pattern background */}
+          <div className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col border-l border-slate-700 bg-slate-900 sm:w-96 md:w-[28rem]">
+            {/* Chat Header with prominent close button */}
+            <div className="flex items-center justify-between border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-750 p-3 shadow-lg sm:p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                  {_userRole === 'mechanic' ? '👤' : '🔧'}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-white">
+                    {_userRole === 'mechanic' ? 'Customer' : 'Mechanic'}
+                  </h3>
+                  {isTyping && (
+                    <p className="text-xs text-green-400 animate-pulse">typing...</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Enhanced close button - Always visible with text on mobile */}
+              <button
+                onClick={() => setShowChat(false)}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-red-600 active:scale-95 sm:bg-slate-700 sm:hover:bg-slate-600"
+              >
+                <span>Close</span>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Messages Container - WhatsApp pattern background */}
           <div
             ref={chatContainerRef}
             className="flex-1 overflow-y-auto bg-slate-950 p-3 sm:p-4"
@@ -2118,6 +2128,7 @@ export default function VideoSessionClient({
             </p>
           </div>
         </div>
+        </>
       )}
 
       {/* End Session Confirmation */}
