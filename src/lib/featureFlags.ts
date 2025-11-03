@@ -8,7 +8,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { createClient as createBrowserClient } from '@/lib/supabase'
 
 /**
  * Feature flag keys (for certification expansion)
