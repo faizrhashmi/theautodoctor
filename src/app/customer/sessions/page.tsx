@@ -7,9 +7,10 @@ import {
   Filter, Search, Calendar, Download, Star, FileText, MoreVertical,
   TrendingUp, DollarSign, Award, Play, Edit, Trash2, RefreshCw,
   X, Phone, User, ChevronDown, ExternalLink, Image as ImageIcon,
-  BarChart3, Zap, Car
+  BarChart3, Zap, Car, Loader2
 } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { downloadSessionPdf } from '@/lib/reports/sessionReport'
 
 interface Session {
   id: string
@@ -49,6 +50,7 @@ export default function CustomerSessionsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set())
+  const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<SessionAnalytics>({
     total_sessions: 0,
     total_spent: 0,
@@ -98,6 +100,21 @@ export default function CustomerSessionsPage() {
       setError('Failed to load sessions')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDownloadPDF(sessionId: string) {
+    if (downloadingPDF === sessionId) return
+
+    setDownloadingPDF(sessionId)
+    try {
+      await downloadSessionPdf(sessionId)
+      setOpenDropdown(null) // Close dropdown after successful download
+    } catch (error) {
+      console.error('[SessionHistory] PDF download error:', error)
+      alert('Failed to generate PDF. Please try again.')
+    } finally {
+      setDownloadingPDF(null)
     }
   }
 
@@ -604,13 +621,17 @@ export default function CustomerSessionsPage() {
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        alert('Download report functionality coming soon')
-                                        setOpenDropdown(null)
+                                        handleDownloadPDF(session.id)
                                       }}
-                                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                                      disabled={downloadingPDF === session.id}
+                                      className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      <Download className="w-4 h-4" />
-                                      Download Report
+                                      {downloadingPDF === session.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Download className="w-4 h-4" />
+                                      )}
+                                      {downloadingPDF === session.id ? 'Generating...' : 'Download Report'}
                                     </button>
                                   )}
                                   {['completed', 'cancelled'].includes(session.status) && (
@@ -1105,11 +1126,21 @@ function SessionDetailModal({
           {session.status === 'completed' && (
             <>
               <button
-                onClick={() => alert('Download report functionality coming soon')}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                onClick={() => handleDownloadPDF(session.id)}
+                disabled={downloadingPDF === session.id}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download className="w-4 h-4" />
-                Download Report
+                {downloadingPDF === session.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Download Report
+                  </>
+                )}
               </button>
               <button
                 onClick={() => alert('Request follow-up functionality coming soon')}
