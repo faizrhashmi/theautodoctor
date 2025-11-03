@@ -68,7 +68,9 @@ export default async function VideoSessionPage({ params }: PageProps) {
     throw new Error(sessionError.message)
   }
 
-  if (!session || session.type !== 'video') {
+  // 🔀 PHASE 2: Accept both 'video' and 'diagnostic' types
+  // Diagnostic sessions now handled by /video route for consolidation
+  if (!session || (session.type !== 'video' && session.type !== 'diagnostic')) {
     notFound()
   }
 
@@ -83,8 +85,9 @@ export default async function VideoSessionPage({ params }: PageProps) {
   // Check if this person is the customer who created this session
   const isCustomerForThisSession = user && session.customer_user_id === user.id
 
-  // Security logging
-  console.log('[VIDEO PAGE SECURITY]', {
+  // Security logging (handles both video and diagnostic types)
+  console.log('[VIDEO/DIAGNOSTIC PAGE SECURITY]', {
+    sessionType: session.type,
     sessionId,
     hasUserAuth: !!user,
     hasMechanicAuth: !!mechanic,
@@ -100,15 +103,15 @@ export default async function VideoSessionPage({ params }: PageProps) {
     // They are the assigned mechanic
     currentUserId = mechanic.id
     userRole = 'mechanic'
-    console.log('[VIDEO PAGE SECURITY] Role assigned: MECHANIC', { currentUserId })
+    console.log('[VIDEO/DIAGNOSTIC PAGE SECURITY] Role assigned: MECHANIC', { currentUserId, sessionType: session.type })
   } else if (isCustomerForThisSession && user) {
     // They are the customer who created this session
     currentUserId = user.id
     userRole = 'customer'
-    console.log('[VIDEO PAGE SECURITY] Role assigned: CUSTOMER', { currentUserId })
+    console.log('[VIDEO/DIAGNOSTIC PAGE SECURITY] Role assigned: CUSTOMER', { currentUserId, sessionType: session.type })
   } else {
     // Neither the assigned mechanic nor the customer - access denied
-    console.log('[VIDEO PAGE SECURITY] ACCESS DENIED - Not assigned to this session')
+    console.log('[VIDEO/DIAGNOSTIC PAGE SECURITY] ACCESS DENIED - Not assigned to this session', { sessionType: session.type })
     notFound()
   }
 
@@ -116,7 +119,7 @@ export default async function VideoSessionPage({ params }: PageProps) {
   // This blocks browser back button, direct URL access, and bookmarks
   if (session.status === 'completed' || session.status === 'cancelled') {
     const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
-    console.log(`[VIDEO PAGE SECURITY] Session ${sessionId} is ${session.status} - redirecting to dashboard`)
+    console.log(`[VIDEO/DIAGNOSTIC PAGE SECURITY] Session ${sessionId} (type: ${session.type}) is ${session.status} - redirecting to dashboard`)
     redirect(dashboardUrl)
   }
 
