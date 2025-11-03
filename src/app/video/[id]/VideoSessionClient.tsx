@@ -921,6 +921,7 @@ export default function VideoSessionClient({
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [endingSession, setEndingSession] = useState(false)
   const [extendingSession, setExtendingSession] = useState(false)
   const [timeWarning, setTimeWarning] = useState<string | null>(null)
   const [bothJoinedNotification, setBothJoinedNotification] = useState(false)
@@ -1511,8 +1512,15 @@ export default function VideoSessionClient({
   }, [])
 
   const confirmEndSession = useCallback(async () => {
+    if (endingSession) {
+      console.log('[VIDEO] 🛑 Already ending session, ignoring duplicate click')
+      return
+    }
+
     try {
       console.log('[VIDEO] 🛑 Manual end session clicked')
+      setEndingSession(true)
+      setShowEndConfirm(false) // Close modal immediately
 
       // Disconnect from LiveKit room immediately
       console.log('[VIDEO] 🛑 Disconnecting from LiveKit room...')
@@ -1529,12 +1537,14 @@ export default function VideoSessionClient({
         console.log('[VIDEO] 🛑 Modal fetch completed')
       } else {
         console.error('[VIDEO] 🛑 Failed to end session:', response.status)
+        setEndingSession(false)
       }
     } catch (error) {
       console.error('Error ending session:', error)
+      setEndingSession(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId])
+  }, [sessionId, endingSession])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setUploadingFile(true)
@@ -1883,7 +1893,7 @@ export default function VideoSessionClient({
           }
         }}
       >
-        <CameraEnabler />
+        {isRoomConnected && <CameraEnabler />}
         <ParticipantMonitor
           onMechanicJoined={handleMechanicJoined}
           onMechanicLeft={handleMechanicLeft}
@@ -2270,15 +2280,17 @@ Examples:
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowEndConfirm(false)}
-                className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/35"
+                disabled={endingSession}
+                className="flex-1 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/35 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmEndSession}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                disabled={endingSession}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                End Session
+                {endingSession ? 'Ending...' : 'End Session'}
               </button>
             </div>
           </div>
