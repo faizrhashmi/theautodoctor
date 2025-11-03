@@ -20,6 +20,7 @@ import {
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
 import DOMPurify from 'isomorphic-dompurify'
+import { SessionCompletionModal } from '@/components/session/SessionCompletionModal'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -775,6 +776,10 @@ export default function VideoSessionClient({
   const [currentToken, setCurrentToken] = useState(token)
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Session Completion Modal state
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [completionSessionData, setCompletionSessionData] = useState<any>(null)
+
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
   const skipPreflight = useMemo(() => {
@@ -825,16 +830,19 @@ export default function VideoSessionClient({
           broadcast: { self: false }, // Don't receive own broadcasts
         },
       })
-      .on('broadcast', { event: 'session:ended' }, (payload) => {
+      .on('broadcast', { event: 'session:ended' }, async (payload) => {
         console.log('[VIDEO] Session ended by other participant:', payload)
         const { status } = payload.payload
 
-        alert(`Session has been ${status === 'cancelled' ? 'cancelled' : 'ended'} by the other participant. Redirecting to dashboard...`)
-
-        // Redirect to dashboard
-        setTimeout(() => {
-          window.location.href = dashboardUrl
-        }, 2000)
+        // Show completion modal instead of alert + redirect
+        if (status === 'cancelled') {
+          alert('Session has been cancelled by the other participant.')
+          setTimeout(() => {
+            window.location.href = dashboardUrl
+          }, 2000)
+        } else {
+          await fetchAndShowCompletionModal()
+        }
       })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[VIDEO] Session extended:', payload)
@@ -856,7 +864,7 @@ export default function VideoSessionClient({
       console.log('[VIDEO] Cleaning up broadcast subscription')
       supabase.removeChannel(channel)
     }
-  }, [sessionId, dashboardUrl, supabase])
+  }, [sessionId, dashboardUrl, supabase, fetchAndShowCompletionModal])
 
   // P0-2 FIX: Token auto-refresh at T-10m (50 minutes after initial token)
   useEffect(() => {
@@ -1091,19 +1099,17 @@ export default function VideoSessionClient({
       },
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         console.log('[VIDEO] Session auto-ended:', data)
-        alert('Your session time has ended. Redirecting to dashboard...')
-        setTimeout(() => {
-          window.location.href = dashboardUrl
-        }, 2000)
+        // Show completion modal instead of alert + redirect
+        await fetchAndShowCompletionModal()
       })
       .catch((err) => {
         console.error('[VIDEO] Failed to auto-end session:', err)
         // Show extend modal as fallback
         setShowExtendModal(true)
       })
-  }, [sessionId, dashboardUrl])
+  }, [sessionId, fetchAndShowCompletionModal])
 
   const handleExtendTime = async (duration: number, price: number) => {
     setExtendingSession(true)
@@ -1133,6 +1139,35 @@ export default function VideoSessionClient({
     }
   }
 
+  // Helper: Fetch session data and show completion modal
+  const fetchAndShowCompletionModal = useCallback(async () => {
+    try {
+      // Fetch complete session data with participant names
+      const response = await fetch(`/api/customer/sessions`)
+      if (response.ok) {
+        const data = await response.json()
+        const session = data.sessions?.find((s: any) => s.id === sessionId)
+
+        if (session) {
+          setCompletionSessionData(session)
+          setShowCompletionModal(true)
+        } else {
+          // Fallback: redirect if can't find session
+          console.warn('[VIDEO] Session not found in customer sessions, redirecting...')
+          window.location.href = dashboardUrl
+        }
+      } else {
+        // Fallback: redirect on error
+        console.warn('[VIDEO] Failed to fetch session data, redirecting...')
+        window.location.href = dashboardUrl
+      }
+    } catch (error) {
+      console.error('[VIDEO] Error fetching session data:', error)
+      // Fallback: redirect on error
+      window.location.href = dashboardUrl
+    }
+  }, [sessionId, dashboardUrl])
+
   const handleEndSession = useCallback(() => {
     setShowEndConfirm(true)
   }, [])
@@ -1144,14 +1179,15 @@ export default function VideoSessionClient({
       })
 
       if (response.ok) {
-        window.location.href = dashboardUrl
+        // Show completion modal instead of direct redirect
+        await fetchAndShowCompletionModal()
       } else {
         console.error('Failed to end session')
       }
     } catch (error) {
       console.error('Error ending session:', error)
     }
-  }, [sessionId, dashboardUrl])
+  }, [sessionId, fetchAndShowCompletionModal])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setUploadingFile(true)
@@ -1820,6 +1856,25 @@ export default function VideoSessionClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Session Completion Modal */}
+      {showCompletionModal && completionSessionData && (
+        <SessionCompletionModal
+          isOpen={showCompletionModal}
+          sessionData={completionSessionData}
+          onClose={() => setShowCompletionModal(false)}
+          onDownloadPDF={() => {
+            // Phase 2: PDF generation will be implemented here
+            console.log('[VIDEO] Download PDF clicked - Phase 2')
+          }}
+          onViewDashboard={() => {
+            window.location.href = dashboardUrl
+          }}
+          onViewDetails={() => {
+            window.location.href = `/customer/sessions`
+          }}
+        />
       )}
     </div>
   )
