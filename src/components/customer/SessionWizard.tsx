@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import VehiclePrompt from './VehiclePrompt'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
+import CarBrandLogo from '@/components/ui/CarBrandLogo'
 
 /**
  * Session Wizard Component
@@ -208,10 +209,9 @@ export default function SessionWizard({
                     selectedVehicle === vehicle.id ? 'bg-orange-500/20' : 'bg-slate-700/50'
                   }`}
                 >
-                  <Car
-                    className={`h-5 w-5 ${
-                      selectedVehicle === vehicle.id ? 'text-orange-400' : 'text-slate-400'
-                    }`}
+                  <CarBrandLogo
+                    brand={vehicle.make}
+                    size="sm"
                   />
                 </div>
                 <div className="flex-1 min-w-0">

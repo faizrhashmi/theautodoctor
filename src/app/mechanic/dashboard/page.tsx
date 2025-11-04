@@ -11,6 +11,7 @@ import { PresenceChip } from '@/components/ui/PresenceChip'
 import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
 import { createClient } from '@/lib/supabase'
 import { RequestPreviewModal } from '@/components/mechanic/RequestPreviewModal'
+import RecentSessions from '@/components/dashboard/RecentSessions'
 
 interface ActiveSession {
   id: string
@@ -851,6 +852,11 @@ export default function MechanicDashboardPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* Recent Sessions */}
+        <div className="mt-8">
+          <RecentSessions userRole="mechanic" limit={3} />
         </div>
       </div>
 

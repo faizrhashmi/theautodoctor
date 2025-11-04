@@ -45,6 +45,7 @@ import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import ThemeSettingsModal from '@/components/customer/ThemeSettingsModal'
 import { useAccentColor } from '@/components/providers/ClientThemeProvider'
+import RecentSessions from '@/components/dashboard/RecentSessions'
 
 // ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
@@ -1026,13 +1027,7 @@ export default function CustomerDashboardPage() {
             ))}
           </div>
         </div>
-      ) : (
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6 sm:p-8 text-center">
-          <Car className="w-12 h-12 sm:w-16 sm:h-16 text-slate-600 mx-auto mb-3 sm:mb-4" />
-          <p className="text-slate-400 text-base sm:text-lg">No sessions yet</p>
-          <p className="text-xs sm:text-sm text-slate-500 mt-2">Select a plan above and start your first session to see your history here</p>
-        </div>
-      )}
+      ) : null}
     </>
   )
 
@@ -1355,6 +1350,11 @@ export default function CustomerDashboardPage() {
 
         {/* Tab Content */}
         {renderTabContent()}
+
+        {/* Recent Sessions */}
+        <div className="mt-8">
+          <RecentSessions userRole="customer" limit={3} />
+        </div>
       </div>
 
       {/* Mechanic Availability Modal */}

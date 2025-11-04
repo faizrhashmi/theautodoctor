@@ -159,7 +159,7 @@ export default function ContactForm() {
     >
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="name" className="text-sm font-medium text-slate-800">
+          <label htmlFor="name" className="text-sm font-medium text-slate-200">
             Name
           </label>
           <input
@@ -167,21 +167,21 @@ export default function ContactForm() {
             name="name"
             type="text"
             autoComplete="name"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
-              fieldErrors.name ? 'border-red-500' : 'border-slate-200'
+            className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/50 text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+              fieldErrors.name ? 'border-red-500' : 'border-slate-600'
             }`}
             aria-invalid={Boolean(fieldErrors.name)}
             aria-describedby={fieldErrors.name ? 'contact-error-name' : undefined}
           />
           {fieldErrors.name && (
-            <p id="contact-error-name" className="text-xs text-red-500">
+            <p id="contact-error-name" className="text-xs text-red-400">
               {fieldErrors.name}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-slate-800">
+          <label htmlFor="email" className="text-sm font-medium text-slate-200">
             Email
           </label>
           <input
@@ -189,14 +189,14 @@ export default function ContactForm() {
             name="email"
             type="email"
             autoComplete="email"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
-              fieldErrors.email ? 'border-red-500' : 'border-slate-200'
+            className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/50 text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+              fieldErrors.email ? 'border-red-500' : 'border-slate-600'
             }`}
             aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? 'contact-error-email' : undefined}
           />
           {fieldErrors.email && (
-            <p id="contact-error-email" className="text-xs text-red-500">
+            <p id="contact-error-email" className="text-xs text-red-400">
               {fieldErrors.email}
             </p>
           )}
@@ -205,51 +205,51 @@ export default function ContactForm() {
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="reason" className="text-sm font-medium text-slate-800">
+          <label htmlFor="reason" className="text-sm font-medium text-slate-200">
             Reason
           </label>
           <select
             id="reason"
             name="reason"
             defaultValue=""
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
-              fieldErrors.reason ? 'border-red-500' : 'border-slate-200'
+            className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+              fieldErrors.reason ? 'border-red-500' : 'border-slate-600'
             }`}
             aria-invalid={Boolean(fieldErrors.reason)}
             aria-describedby={fieldErrors.reason ? 'contact-error-reason' : undefined}
           >
-            <option value="" disabled>
+            <option value="" disabled className="text-slate-400">
               Select an option
             </option>
             {REASONS.map((reason) => (
-              <option key={reason.value} value={reason.value}>
+              <option key={reason.value} value={reason.value} className="bg-slate-900 text-white">
                 {reason.label}
               </option>
             ))}
           </select>
           {fieldErrors.reason && (
-            <p id="contact-error-reason" className="text-xs text-red-500">
+            <p id="contact-error-reason" className="text-xs text-red-400">
               {fieldErrors.reason}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="subject" className="text-sm font-medium text-slate-800">
+          <label htmlFor="subject" className="text-sm font-medium text-slate-200">
             Subject
           </label>
           <input
             id="subject"
             name="subject"
             type="text"
-            className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
-              fieldErrors.subject ? 'border-red-500' : 'border-slate-200'
+            className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/50 text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+              fieldErrors.subject ? 'border-red-500' : 'border-slate-600'
             }`}
             aria-invalid={Boolean(fieldErrors.subject)}
             aria-describedby={fieldErrors.subject ? 'contact-error-subject' : undefined}
           />
           {fieldErrors.subject && (
-            <p id="contact-error-subject" className="text-xs text-red-500">
+            <p id="contact-error-subject" className="text-xs text-red-400">
               {fieldErrors.subject}
             </p>
           )}
@@ -257,32 +257,32 @@ export default function ContactForm() {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="message" className="text-sm font-medium text-slate-800">
+        <label htmlFor="message" className="text-sm font-medium text-slate-200">
           Message
         </label>
         <textarea
           id="message"
           name="message"
           rows={6}
-          className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-blue-100 ${
-            fieldErrors.message ? 'border-red-500' : 'border-slate-200'
+          className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/50 text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 ${
+            fieldErrors.message ? 'border-red-500' : 'border-slate-600'
           }`}
           aria-invalid={Boolean(fieldErrors.message)}
           aria-describedby={fieldErrors.message ? 'contact-error-message' : undefined}
         />
         {fieldErrors.message && (
-          <p id="contact-error-message" className="text-xs text-red-500">
+          <p id="contact-error-message" className="text-xs text-red-400">
             {fieldErrors.message}
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <span className="text-sm font-medium text-slate-800">Attachments (optional)</span>
+        <span className="text-sm font-medium text-slate-200">Attachments (optional)</span>
         <label
           htmlFor="attachment"
-          className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm transition focus-within:ring-2 focus-within:ring-blue-100 ${
-            fieldErrors.attachment ? 'border-red-500 bg-red-50/30 text-red-600' : 'border-slate-200 bg-white text-slate-600'
+          className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition focus-within:ring-2 focus-within:ring-orange-500/20 ${
+            fieldErrors.attachment ? 'border-red-500 bg-red-500/10 text-red-400' : 'border-slate-600 bg-slate-900/30 text-slate-300'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -297,10 +297,10 @@ export default function ContactForm() {
             onChange={handleFileChange}
             className="hidden"
           />
-          <span className="text-xs text-slate-400">PNG, JPG or PDF · 10 MB max</span>
+          <span className="text-xs text-slate-500">PNG, JPG or PDF · 10 MB max</span>
         </label>
         {fieldErrors.attachment && (
-          <p className="text-xs text-red-500">{fieldErrors.attachment}</p>
+          <p className="text-xs text-red-400">{fieldErrors.attachment}</p>
         )}
       </div>
 
@@ -308,8 +308,8 @@ export default function ContactForm() {
         <div
           className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
             isSuccess
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-red-200 bg-red-50 text-red-700'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-red-500/30 bg-red-500/10 text-red-400'
           }`}
           role={isSuccess ? 'status' : 'alert'}
         >
@@ -320,7 +320,7 @@ export default function ContactForm() {
 
       <button
         type="submit"
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-5 py-3 text-sm font-semibold text-white shadow transition hover:bg-orange-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:bg-orange-400"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-600 hover:to-orange-700 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         disabled={isSubmitting}
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
