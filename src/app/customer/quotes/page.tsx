@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { FileText, Clock, CheckCircle, XCircle, AlertCircle, DollarSign, Wrench } from 'lucide-react'
+import { FileText, Clock, CheckCircle, XCircle, AlertCircle, DollarSign, Wrench, Plus, ClipboardList } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { apiRouteFor } from '@/lib/routes'
 
@@ -21,36 +21,68 @@ interface Quote {
   customer_response_at: string | null
 }
 
+interface RFQQuote {
+  id: string
+  title: string
+  issue_category: string
+  vehicle_make: string
+  vehicle_model: string
+  vehicle_year: number
+  budget_min?: number
+  budget_max?: number
+  bid_count: number
+  status: string
+  created_at: string
+  bid_deadline: string
+  hours_remaining: number
+  is_expired: boolean
+  has_accepted_bid: boolean
+}
+
 export default function CustomerQuotesPage() {
   // ✅ Auth guard - ensures user is authenticated as customer
   const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
 
   const [quotes, setQuotes] = useState<Quote[]>([])
+  const [rfqQuotes, setRfqQuotes] = useState<RFQQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [quoteType, setQuoteType] = useState<'repair' | 'rfq'>('repair')
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all')
   const [responding, setResponding] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
-      fetchQuotes()
+      fetchAllQuotes()
     }
   }, [user])
 
-  async function fetchQuotes() {
+  async function fetchAllQuotes() {
     try {
-      const response = await fetch(apiRouteFor.quotes())
-      console.log('[QUOTES] Response status:', response.status)
+      // Fetch repair quotes
+      const repairResponse = await fetch(apiRouteFor.quotes())
+      console.log('[QUOTES] Repair quotes response:', repairResponse.status)
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('[QUOTES] Error response:', errorData)
-        throw new Error(`Failed to fetch quotes: ${response.status} - ${errorData.error}`)
+      if (repairResponse.ok) {
+        const repairData = await repairResponse.json()
+        console.log('[QUOTES] Received', repairData.quotes?.length || 0, 'repair quotes')
+        setQuotes(repairData.quotes || [])
       }
 
-      const data = await response.json()
-      console.log('[QUOTES] Success, received', data.quotes?.length || 0, 'quotes')
-      setQuotes(data.quotes || [])
+      // Fetch RFQ quotes
+      try {
+        const rfqResponse = await fetch('/api/rfq/my-rfqs')
+        console.log('[QUOTES] RFQ quotes response:', rfqResponse.status)
+
+        if (rfqResponse.ok) {
+          const rfqData = await rfqResponse.json()
+          console.log('[QUOTES] Received', rfqData.rfqs?.length || 0, 'RFQ quotes')
+          setRfqQuotes(rfqData.rfqs || [])
+        }
+      } catch (rfqErr) {
+        // RFQ feature might not be enabled, just log and continue
+        console.log('[QUOTES] RFQ fetch skipped or failed:', rfqErr)
+      }
     } catch (err) {
       console.error('[QUOTES] Fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load quotes')
@@ -132,13 +164,67 @@ export default function CustomerQuotesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">My Quotes</h1>
-          <p className="text-sm sm:text-base text-slate-400 mt-1">Review and respond to repair quotes from mechanics</p>
+        {/* Header with CTA */}
+        <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">My Quotes</h1>
+            <p className="text-sm sm:text-base text-slate-400 mt-1">Review repair quotes and workshop RFQs</p>
+          </div>
+          <Link
+            href="/customer/rfq/create"
+            className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-700 transition-all shadow-lg whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">Request Workshop Quotes</span>
+            <span className="sm:hidden">New RFQ</span>
+          </Link>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="mb-4 sm:mb-6 flex items-center gap-2 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0">
+        {/* Quote Type Tabs */}
+        <div className="mb-6 flex items-center gap-3 border-b border-slate-700">
+          <button
+            onClick={() => setQuoteType('repair')}
+            className={`px-4 py-3 text-sm font-semibold transition-all relative ${
+              quoteType === 'repair'
+                ? 'text-orange-400'
+                : 'text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Repair Quotes</span>
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-slate-800 text-xs">
+                {quotes.length}
+              </span>
+            </div>
+            {quoteType === 'repair' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-400"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setQuoteType('rfq')}
+            className={`px-4 py-3 text-sm font-semibold transition-all relative ${
+              quoteType === 'rfq'
+                ? 'text-teal-400'
+                : 'text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              <span>RFQ Quotes</span>
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-slate-800 text-xs">
+                {rfqQuotes.length}
+              </span>
+            </div>
+            {quoteType === 'rfq' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400"></div>
+            )}
+          </button>
+        </div>
+
+        {/* Filter Tabs - only for repair quotes */}
+        {quoteType === 'repair' && (
+          <div className="mb-4 sm:mb-6 flex items-center gap-2 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0">
           <button
             onClick={() => setFilter('all')}
             className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
@@ -180,9 +266,10 @@ export default function CustomerQuotesPage() {
             Declined ({quotes.filter(q => q.status === 'declined').length})
           </button>
         </div>
+        )}
 
-        {/* Quotes List */}
-        {filteredQuotes.length > 0 ? (
+        {/* Repair Quotes List */}
+        {quoteType === 'repair' && filteredQuotes.length > 0 && (
           <div className="space-y-3 sm:space-y-4">
             {filteredQuotes.map((quote) => {
               const isExpired = quote.valid_until && new Date(quote.valid_until) < new Date()
@@ -293,14 +380,17 @@ export default function CustomerQuotesPage() {
               )
             })}
           </div>
-        ) : (
+        )}
+
+        {/* Empty state for repair quotes */}
+        {quoteType === 'repair' && filteredQuotes.length === 0 && (
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-12 text-center">
             <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400 text-lg mb-2">No {filter !== 'all' ? filter : ''} quotes found</p>
+            <p className="text-slate-400 text-lg mb-2">No {filter !== 'all' ? filter : ''} repair quotes found</p>
             <p className="text-sm text-slate-500 mb-6">
               {filter === 'all'
                 ? "You haven't received any repair quotes yet"
-                : `You have no ${filter} quotes`
+                : `You have no ${filter} repair quotes`
               }
             </p>
             <Link
@@ -308,6 +398,104 @@ export default function CustomerQuotesPage() {
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all"
             >
               Start a Diagnostic Session
+            </Link>
+          </div>
+        )}
+
+        {/* RFQ Quotes List */}
+        {quoteType === 'rfq' && rfqQuotes.length > 0 && (
+          <div className="space-y-3 sm:space-y-4">
+            {rfqQuotes.map((rfq) => {
+              const statusColor = rfq.has_accepted_bid
+                ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                : rfq.is_expired
+                ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                : rfq.bid_count > 0
+                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+
+              const statusText = rfq.has_accepted_bid
+                ? 'Bid Accepted'
+                : rfq.is_expired
+                ? 'Expired'
+                : rfq.bid_count > 0
+                ? `${rfq.bid_count} Bids`
+                : 'Awaiting Bids'
+
+              return (
+                <Link
+                  key={rfq.id}
+                  href={`/customer/rfq/${rfq.id}/bids`}
+                  className="block bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6 hover:border-teal-500/50 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700">
+                        <ClipboardList className="h-5 w-5 text-teal-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold text-white">
+                            {rfq.title}
+                          </h3>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                            {statusText}
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-400 space-y-1">
+                          <p>
+                            <span className="font-medium">Vehicle:</span> {rfq.vehicle_year} {rfq.vehicle_make} {rfq.vehicle_model}
+                          </p>
+                          <p>
+                            <span className="font-medium">Category:</span> {rfq.issue_category}
+                          </p>
+                          <p>
+                            <span className="font-medium">Created:</span> {new Date(rfq.created_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          {!rfq.is_expired && rfq.hours_remaining > 0 && (
+                            <p className="flex items-center gap-1 text-yellow-400">
+                              <Clock className="h-3 w-3" />
+                              {rfq.hours_remaining} hours remaining
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {rfq.budget_min && rfq.budget_max && (
+                        <>
+                          <p className="text-sm text-slate-400 mb-1">Budget Range</p>
+                          <p className="text-xl font-bold text-white">
+                            ${rfq.budget_min} - ${rfq.budget_max}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Empty state for RFQ quotes */}
+        {quoteType === 'rfq' && rfqQuotes.length === 0 && (
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-12 text-center">
+            <ClipboardList className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <p className="text-slate-400 text-lg mb-2">No workshop RFQs found</p>
+            <p className="text-sm text-slate-500 mb-6">
+              Request quotes from multiple workshops for your repair needs
+            </p>
+            <Link
+              href="/customer/rfq/create"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-700 transition-all"
+            >
+              <Plus className="h-5 w-5" />
+              Create RFQ
             </Link>
           </div>
         )}

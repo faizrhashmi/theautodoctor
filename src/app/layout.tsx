@@ -12,6 +12,7 @@ import ClientNavbar from '@/components/layout/ClientNavbar';
 import ConditionalMainWrapper from '@/components/layout/ConditionalMainWrapper';
 import ConditionalFooter from '@/components/layout/ConditionalFooter';
 import { SessionMonitor } from '@/components/auth/AuthValidator';
+import { ClientThemeProvider } from '@/components/providers/ClientThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,18 +27,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* Global session monitoring - validates auth and handles stale sessions */}
-        <SessionMonitor />
+        <ClientThemeProvider>
+          {/* Global session monitoring - validates auth and handles stale sessions */}
+          <SessionMonitor />
 
-        {/* Client-side Navbar with user state awareness */}
-        <ClientNavbar />
+          {/* Client-side Navbar with user state awareness */}
+          <ClientNavbar />
 
-        {/* Conditional wrapper - adds pt-16 for public pages, nothing for authenticated pages */}
-        <ConditionalMainWrapper>{children}</ConditionalMainWrapper>
+          {/* Conditional wrapper - adds pt-16 for public pages, nothing for authenticated pages */}
+          <ConditionalMainWrapper>{children}</ConditionalMainWrapper>
 
-        {/* Conditional footer - shows on public pages, hides on dashboards/chat/video for immersive experience */}
-        <ConditionalFooter />
-        {/* <ChatBubble /> */} {/* Hidden temporarily - needs real backend integration */}
+          {/* Conditional footer - shows on public pages, hides on dashboards/chat/video for immersive experience */}
+          <ConditionalFooter />
+          {/* <ChatBubble /> */} {/* Hidden temporarily - needs real backend integration */}
+        </ClientThemeProvider>
       </body>
     </html>
   );

@@ -43,6 +43,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ProgressTracker } from '@/components/ui/ProgressTracker'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import ThemeSettingsModal from '@/components/customer/ThemeSettingsModal'
+import { useAccentColor } from '@/components/providers/ClientThemeProvider'
 
 // ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
@@ -183,6 +185,7 @@ export default function CustomerDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionLauncherRef = useRef<HTMLDivElement>(null)
+  const accent = useAccentColor()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
@@ -215,6 +218,9 @@ export default function CustomerDashboardPage() {
   const [favoriteRoutingType, setFavoriteRoutingType] = useState<'broadcast' | 'priority_broadcast'>('broadcast')
   const [favoriteMechanicId, setFavoriteMechanicId] = useState<string | null>(null)
   const [favoriteMechanicName, setFavoriteMechanicName] = useState<string | null>(null)
+
+  // Theme settings state
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false)
 
   const fetchDashboardData = async () => {
     if (!user) return
@@ -479,7 +485,10 @@ export default function CustomerDashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <div
+            className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto"
+            style={{ borderBottomColor: accent.primary }}
+          ></div>
           <p className="mt-4 text-slate-300">
             {authLoading ? 'Verifying authentication...' : 'Loading dashboard...'}
           </p>
@@ -737,18 +746,8 @@ export default function CustomerDashboardPage() {
             className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-lg p-3 sm:p-4 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20 transition-all group"
           >
             <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-            <div className="text-xs sm:text-sm font-medium text-white">Quotes</div>
-            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">View estimates</div>
-          </Link>
-
-          {/* Phase 2.4: RFQ Quick Action - Always shown (always-on feature) */}
-          <Link
-            href="/customer/rfq/my-rfqs"
-            className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border border-teal-500/30 rounded-lg p-3 sm:p-4 hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/20 transition-all group"
-          >
-            <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-teal-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-            <div className="text-xs sm:text-sm font-medium text-white">My RFQs</div>
-            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Request quotes</div>
+            <div className="text-xs sm:text-sm font-medium text-white">Quotes & Estimates</div>
+            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">View all quotes</div>
           </Link>
 
           <Link
@@ -1296,7 +1295,10 @@ export default function CustomerDashboardPage() {
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Export</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+            <button
+              onClick={() => setIsThemeModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 sm:px-4 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+            >
               <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Settings</span>
             </button>
@@ -1310,9 +1312,10 @@ export default function CustomerDashboardPage() {
               onClick={() => setActiveTab('overview')}
               className={`pb-3 sm:pb-4 px-1 sm:px-2 font-medium transition-colors border-b-2 whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'overview'
-                  ? 'text-orange-400 border-orange-400'
+                  ? ''
                   : 'text-slate-400 border-transparent hover:text-slate-300'
               }`}
+              style={activeTab === 'overview' ? { color: accent.primary, borderBottomColor: accent.primary } : {}}
             >
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1323,9 +1326,10 @@ export default function CustomerDashboardPage() {
               onClick={() => setActiveTab('analytics')}
               className={`pb-3 sm:pb-4 px-1 sm:px-2 font-medium transition-colors border-b-2 whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'analytics'
-                  ? 'text-orange-400 border-orange-400'
+                  ? ''
                   : 'text-slate-400 border-transparent hover:text-slate-300'
               }`}
+              style={activeTab === 'analytics' ? { color: accent.primary, borderBottomColor: accent.primary } : {}}
             >
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1336,9 +1340,10 @@ export default function CustomerDashboardPage() {
               onClick={() => setActiveTab('activity')}
               className={`pb-3 sm:pb-4 px-1 sm:px-2 font-medium transition-colors border-b-2 whitespace-nowrap text-sm sm:text-base ${
                 activeTab === 'activity'
-                  ? 'text-orange-400 border-orange-400'
+                  ? ''
                   : 'text-slate-400 border-transparent hover:text-slate-300'
               }`}
+              style={activeTab === 'activity' ? { color: accent.primary, borderBottomColor: accent.primary } : {}}
             >
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1420,6 +1425,14 @@ export default function CustomerDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Theme Settings Modal */}
+      <ThemeSettingsModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+        currentAccentColor={accent.colorName}
+        onSave={(color) => accent.setAccentColor(color)}
+      />
     </div>
   )
 }

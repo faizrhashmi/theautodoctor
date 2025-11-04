@@ -38,6 +38,11 @@ const NAV_ITEMS = [
     icon: Video,
   },
   {
+    label: 'Quotes',
+    href: '/mechanic/quotes',
+    icon: FileText,
+  },
+  {
     label: 'CRM',
     href: '/mechanic/crm',
     icon: Users,

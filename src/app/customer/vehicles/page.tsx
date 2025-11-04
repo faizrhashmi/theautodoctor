@@ -21,6 +21,8 @@ function VehiclesPageContent() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [decodingVin, setDecodingVin] = useState(false)
+  const [vinDecodeError, setVinDecodeError] = useState<string | null>(null)
   const [vehicle, setVehicle] = useState({
     make: '',
     model: '',
@@ -183,6 +185,53 @@ function VehiclesPageContent() {
     })
     setEditingId(null)
     setShowForm(true)
+    setVinDecodeError(null)
+  }
+
+  async function handleDecodeVin() {
+    const vin = vehicle.vin.trim().toUpperCase()
+
+    if (!vin) {
+      setVinDecodeError('Please enter a VIN first')
+      return
+    }
+
+    if (vin.length !== 17) {
+      setVinDecodeError('VIN must be exactly 17 characters')
+      return
+    }
+
+    setDecodingVin(true)
+    setVinDecodeError(null)
+
+    try {
+      const response = await fetch(`/api/vin-decode?vin=${encodeURIComponent(vin)}`)
+      const result = await response.json()
+
+      if (!result.success) {
+        setVinDecodeError(result.error || 'Failed to decode VIN')
+        return
+      }
+
+      const { data } = result
+
+      // Auto-populate fields with decoded data
+      setVehicle((prev) => ({
+        ...prev,
+        vin: vin, // Keep uppercase VIN
+        year: data.year || prev.year,
+        make: data.make || prev.make,
+        model: data.model || prev.model,
+      }))
+
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: any) {
+      console.error('VIN decode error:', err)
+      setVinDecodeError(err.message || 'Failed to decode VIN')
+    } finally {
+      setDecodingVin(false)
+    }
   }
 
   return (
@@ -310,17 +359,40 @@ function VehiclesPageContent() {
                   />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-200">
                     VIN <span className="text-slate-400">(optional)</span>
                   </label>
-                  <input
-                    type="text"
-                    value={vehicle.vin}
-                    onChange={(e) => setVehicle({ ...vehicle, vin: e.target.value })}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
-                    placeholder="17 characters"
-                  />
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={17}
+                      value={vehicle.vin}
+                      onChange={(e) => {
+                        const upperVin = e.target.value.toUpperCase()
+                        setVehicle({ ...vehicle, vin: upperVin })
+                        setVinDecodeError(null)
+                      }}
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                      placeholder="Enter 17-character VIN"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDecodeVin}
+                      disabled={decodingVin || !vehicle.vin || vehicle.vin.length !== 17}
+                      className="rounded-xl bg-orange-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {decodingVin ? 'Decoding...' : 'Decode VIN'}
+                    </button>
+                  </div>
+                  {vinDecodeError && (
+                    <p className="mt-2 text-sm text-rose-400">{vinDecodeError}</p>
+                  )}
+                  {vehicle.vin.length > 0 && vehicle.vin.length !== 17 && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      {vehicle.vin.length}/17 characters
+                    </p>
+                  )}
                 </div>
 
                 <div>

@@ -105,6 +105,7 @@ export async function PUT(req: NextRequest) {
       'preferred_contact_time',
       'maintenance_reminders_enabled',
       'reminder_frequency_days',
+      'accent_color',
     ]
 
     const updates: any = {}

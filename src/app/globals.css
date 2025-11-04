@@ -35,6 +35,10 @@
 /* Base styles */
 :root {
   color-scheme: light;
+
+  /* Accent colors - Default: orange */
+  --accent-primary: #f97316;
+  --accent-secondary: #fb923c;
 }
 
 html, body {
@@ -43,6 +47,43 @@ html, body {
 
 body {
   @apply bg-white text-gray-900 antialiased;
+}
+
+/* Accent color utility classes */
+.accent-bg {
+  background-color: var(--accent-primary) !important;
+}
+
+.accent-bg-secondary {
+  background-color: var(--accent-secondary) !important;
+}
+
+.accent-text {
+  color: var(--accent-primary) !important;
+}
+
+.accent-text-secondary {
+  color: var(--accent-secondary) !important;
+}
+
+.accent-border {
+  border-color: var(--accent-primary) !important;
+}
+
+.accent-gradient {
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary)) !important;
+}
+
+.accent-shadow {
+  box-shadow: 0 0 20px var(--accent-primary);
+}
+
+.hover\:accent-text:hover {
+  color: var(--accent-primary) !important;
+}
+
+.hover\:accent-border:hover {
+  border-color: var(--accent-primary) !important;
 }
 
 /* Better focus rings */

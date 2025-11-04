@@ -17,8 +17,7 @@ import {
   ChevronRight,
   Settings,
   Bell,
-  Heart,
-  ClipboardList
+  Heart
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
@@ -41,14 +40,7 @@ const NAV_ITEMS = [
     label: 'Quotes',
     href: '/customer/quotes',
     icon: FileText,
-    description: 'View estimates'
-  },
-  {
-    label: 'My RFQs',
-    href: '/customer/rfq/my-rfqs',
-    icon: ClipboardList,
-    description: 'Request quotes from workshops',
-    featureGated: 'rfq'
+    description: 'All quotes & estimates'
   },
   {
     label: 'Vehicles',

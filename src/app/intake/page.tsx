@@ -101,6 +101,8 @@ export default function IntakePage() {
   const [userVehicles, setUserVehicles] = useState<any[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
   const [loadingProfile, setLoadingProfile] = useState(true)
+  const [vehiclePreSelected, setVehiclePreSelected] = useState(false)
+  const [contactPreFilled, setContactPreFilled] = useState(false)
   const [activeSessionModal, setActiveSessionModal] = useState<{
     sessionId: string
     sessionType: string
@@ -132,7 +134,7 @@ export default function IntakePage() {
         console.log('[Intake] Loading profile for authenticated user:', user.id)
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, phone, vehicle_info')
+            .select('full_name, phone, city, vehicle_info')
             .eq('id', user.id)
             .single()
 
@@ -143,8 +145,13 @@ export default function IntakePage() {
               name: profile.full_name || prev.name,
               email: user.email || prev.email,
               phone: profile.phone || prev.phone,
-              city: (user.user_metadata?.city as string) || prev.city,
+              city: profile.city || (user.user_metadata?.city as string) || prev.city,
             }))
+
+            // Mark contact as pre-filled if we have all required info
+            if (profile.full_name && user.email && profile.phone && (profile.city || user.user_metadata?.city)) {
+              setContactPreFilled(true)
+            }
 
             // Save vehicle info if available (legacy)
             if (profile.vehicle_info && typeof profile.vehicle_info === 'object') {
@@ -162,10 +169,32 @@ export default function IntakePage() {
 
           if (!vehiclesError && vehicles && vehicles.length > 0) {
             setUserVehicles(vehicles)
-            // Auto-select primary vehicle if available
-            const primaryVehicle = vehicles.find(v => v.is_primary)
-            if (primaryVehicle) {
-              setSelectedVehicleId(primaryVehicle.id)
+
+            // Check for vehicle_id in URL params (pre-selected from dashboard)
+            const vehicleIdFromUrl = searchParams.get('vehicle_id')
+            if (vehicleIdFromUrl) {
+              const preSelectedVehicle = vehicles.find(v => v.id === vehicleIdFromUrl)
+              if (preSelectedVehicle) {
+                // Auto-load this vehicle into the form
+                setForm(prev => ({
+                  ...prev,
+                  year: preSelectedVehicle.year || prev.year,
+                  make: preSelectedVehicle.make || prev.make,
+                  model: preSelectedVehicle.model || prev.model,
+                  vin: preSelectedVehicle.vin || prev.vin,
+                  odometer: preSelectedVehicle.mileage || prev.odometer,
+                  plate: preSelectedVehicle.plate || prev.plate,
+                }))
+                setSelectedVehicleId(preSelectedVehicle.id)
+                setVehiclePreSelected(true)
+                console.log('[Intake] Vehicle pre-selected from URL:', preSelectedVehicle)
+              }
+            } else {
+              // Auto-select primary vehicle if available (original behavior)
+              const primaryVehicle = vehicles.find(v => v.is_primary)
+              if (primaryVehicle) {
+                setSelectedVehicleId(primaryVehicle.id)
+              }
             }
           }
       } catch (err) {
@@ -457,7 +486,7 @@ export default function IntakePage() {
           <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-lg">
             <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
               <div className="flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Step 2 of 3</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200"></p>
                 <h1 className="mt-2 sm:mt-3 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
                 <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-300">
                   Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
@@ -505,84 +534,141 @@ export default function IntakePage() {
             </label>
           </Section>
 
-          {/* Contact Details */}
-          <Section title="Contact details">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <Input
-                label="Full name"
-                value={form.name}
-                onChange={(value) => setForm((prev) => ({ ...prev, name: value }))}
-                error={errors.name}
-                required
-                inputRef={(el) => {
-                  if (errors.name && !firstErrorRef.current) firstErrorRef.current = el
-                }}
-              />
-              <Input
-                label="Email"
-                type="email"
-                value={form.email}
-                onChange={(value) => setForm((prev) => ({ ...prev, email: value }))}
-                error={errors.email}
-                required
-                inputRef={(el) => {
-                  if (errors.email && !firstErrorRef.current) firstErrorRef.current = el
-                }}
-              />
-              <Input
-                label="Phone"
-                value={form.phone}
-                onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))}
-                error={errors.phone}
-                required
-                inputRef={(el) => {
-                  if (errors.phone && !firstErrorRef.current) firstErrorRef.current = el
-                }}
-              />
-              <Input
-                label="City / Town"
-                value={form.city}
-                onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
-                error={errors.city}
-                required
-                inputRef={(el) => {
-                  if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
-                }}
-              />
-            </div>
-          </Section>
-
-          {/* Vehicle Information */}
-          <Section title={isUrgent ? "Vehicle information (optional)" : "Vehicle information"}>
-            {userVehicles.length > 0 && !loadingProfile && (
-              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
-                <label className="block">
-                  <span className="text-sm font-semibold text-orange-200">Select from your saved vehicles</span>
-                  <select
-                    value={selectedVehicleId}
-                    onChange={(e) => setSelectedVehicleId(e.target.value)}
-                    className="mt-2 block w-full rounded-lg border border-orange-400/30 bg-slate-900/60 px-3 sm:px-4 py-3 sm:py-3.5 text-sm sm:text-base text-white focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60 touch-manipulation"
-                  >
-                    <option value="">Choose a vehicle...</option>
-                    {userVehicles.map((vehicle) => (
-                      <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.nickname ? `${vehicle.nickname} - ` : ''}{vehicle.year} {vehicle.make} {vehicle.model}
-                        {vehicle.is_primary ? ' (Primary)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {selectedVehicleId && (
+          {/* Contact Details - Show as locked card if pre-filled */}
+          {contactPreFilled ? (
+            <div className="rounded-2xl border border-green-400/30 bg-green-500/10 p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-400/30">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-green-200 mb-2">Contact Information Confirmed</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-300">
+                    <p><span className="text-slate-500">Name:</span> {form.name}</p>
+                    <p><span className="text-slate-500">Email:</span> {form.email}</p>
+                    <p><span className="text-slate-500">Phone:</span> {form.phone}</p>
+                    <p><span className="text-slate-500">City:</span> {form.city}</p>
+                  </div>
                   <button
                     type="button"
-                    onClick={loadSelectedVehicle}
-                    className="mt-3 w-full sm:w-auto rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 active:bg-orange-700 touch-manipulation"
+                    onClick={() => setContactPreFilled(false)}
+                    className="mt-3 text-xs font-semibold text-green-400 hover:text-green-300 underline underline-offset-2"
                   >
-                    Use this vehicle
+                    Edit contact details
                   </button>
-                )}
+                </div>
               </div>
-            )}
+            </div>
+          ) : (
+            <Section title="Contact details">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <Input
+                  label="Full name"
+                  value={form.name}
+                  onChange={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                  error={errors.name}
+                  required
+                  inputRef={(el) => {
+                    if (errors.name && !firstErrorRef.current) firstErrorRef.current = el
+                  }}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={form.email}
+                  onChange={(value) => setForm((prev) => ({ ...prev, email: value }))}
+                  error={errors.email}
+                  required
+                  inputRef={(el) => {
+                    if (errors.email && !firstErrorRef.current) firstErrorRef.current = el
+                  }}
+                />
+                <Input
+                  label="Phone"
+                  value={form.phone}
+                  onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))}
+                  error={errors.phone}
+                  required
+                  inputRef={(el) => {
+                    if (errors.phone && !firstErrorRef.current) firstErrorRef.current = el
+                  }}
+                />
+                <Input
+                  label="City / Town"
+                  value={form.city}
+                  onChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
+                  error={errors.city}
+                  required
+                  inputRef={(el) => {
+                    if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
+                  }}
+                />
+              </div>
+            </Section>
+          )}
+
+          {/* Vehicle Information - Show as locked card if pre-selected */}
+          {vehiclePreSelected ? (
+            <div className="rounded-2xl border border-green-400/30 bg-green-500/10 p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-400/30">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-green-200 mb-2">Vehicle Selected</p>
+                  <div className="text-lg font-bold text-white mb-2">
+                    {form.year} {form.make} {form.model}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-300">
+                    {form.vin && <p><span className="text-slate-500">VIN:</span> {form.vin}</p>}
+                    {form.odometer && <p><span className="text-slate-500">Mileage:</span> {form.odometer}</p>}
+                    {form.plate && <p><span className="text-slate-500">Plate:</span> {form.plate}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setVehiclePreSelected(false)}
+                    className="mt-3 text-xs font-semibold text-green-400 hover:text-green-300 underline underline-offset-2"
+                  >
+                    Change vehicle
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Section title={isUrgent ? "Vehicle information (optional)" : "Vehicle information"}>
+              {userVehicles.length > 0 && !loadingProfile && (
+                <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
+                  <label className="block">
+                    <span className="text-sm font-semibold text-orange-200">Select from your saved vehicles</span>
+                    <select
+                      value={selectedVehicleId}
+                      onChange={(e) => setSelectedVehicleId(e.target.value)}
+                      className="mt-2 block w-full rounded-lg border border-orange-400/30 bg-slate-900/60 px-3 sm:px-4 py-3 sm:py-3.5 text-sm sm:text-base text-white focus:border-orange-300 focus:outline-none focus:ring-2 focus:ring-orange-400/60 touch-manipulation"
+                    >
+                      <option value="">Choose a vehicle...</option>
+                      {userVehicles.map((vehicle) => (
+                        <option key={vehicle.id} value={vehicle.id}>
+                          {vehicle.nickname ? `${vehicle.nickname} - ` : ''}{vehicle.year} {vehicle.make} {vehicle.model}
+                          {vehicle.is_primary ? ' (Primary)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {selectedVehicleId && (
+                    <button
+                      type="button"
+                      onClick={loadSelectedVehicle}
+                      className="mt-3 w-full sm:w-auto rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 active:bg-orange-700 touch-manipulation"
+                    >
+                      Use this vehicle
+                    </button>
+                  )}
+                </div>
+              )}
             {savedVehicle && !loadingProfile && userVehicles.length === 0 && (
               <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
                 <p className="text-sm font-semibold text-orange-200">
@@ -645,6 +731,7 @@ export default function IntakePage() {
               <Input label="Plate (optional)" value={form.plate} onChange={(value) => setForm((prev) => ({ ...prev, plate: value }))} />
             </div>
           </Section>
+          )}
 
           {/* Concern Section */}
           <Section title="What's going on?">
