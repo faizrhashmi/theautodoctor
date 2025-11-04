@@ -56,21 +56,25 @@ export function useFeatureFlag(flag: FeatureFlagKey): boolean {
 /**
  * RFQ-specific hook
  *
- * Convenience hook for checking if RFQ marketplace is enabled
+ * Phase 2.4: RFQ is now always enabled (always-on feature)
  *
- * @returns true if RFQ marketplace is enabled
+ * @returns true (RFQ marketplace is always enabled)
+ *
+ * @deprecated This hook now always returns true. RFQ is an always-on feature.
+ * You can remove conditional checks using this hook.
  *
  * @example
  * ```tsx
- * const isRfqEnabled = useRfqEnabled()
+ * const isRfqEnabled = useRfqEnabled() // Always true
  *
  * return (
  *   <div>
- *     {isRfqEnabled && <RfqMarketplaceButton />}
+ *     <RfqMarketplaceButton />
  *   </div>
  * )
  * ```
  */
 export function useRfqEnabled(): boolean {
-  return useFeatureFlag('ENABLE_WORKSHOP_RFQ')
+  // Phase 2.4: RFQ is now always-on, no feature flag needed
+  return true
 }

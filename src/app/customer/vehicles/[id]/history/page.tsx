@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, FileText, Wrench, AlertCircle } from 'lucide-react'
+import { routeFor } from '@/lib/routes'
 import { AuthGuard } from '@/components/AuthGuard'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import type { Vehicle } from '@/types/supabase'
@@ -142,7 +143,7 @@ function VehicleHistoryPageContent() {
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
             <h1 className="text-lg font-semibold text-white">Vehicle History</h1>
             <Link
-              href="/customer/vehicles"
+              href={routeFor.customerVehicles()}
               className="text-sm font-medium text-slate-300 transition hover:text-white"
             >
               Back to Vehicles
@@ -154,7 +155,7 @@ function VehicleHistoryPageContent() {
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-rose-400" />
             <p className="text-lg text-rose-300">{error || 'Vehicle not found'}</p>
             <Link
-              href="/customer/vehicles"
+              href={routeFor.customerVehicles()}
               className="mt-4 inline-block rounded-lg bg-orange-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-orange-700"
             >
               Back to Vehicles
@@ -171,7 +172,7 @@ function VehicleHistoryPageContent() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Link
-              href="/customer/vehicles"
+              href={routeFor.customerVehicles()}
               className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -179,7 +180,7 @@ function VehicleHistoryPageContent() {
             <h1 className="text-lg font-semibold text-white">Service History</h1>
           </div>
           <Link
-            href="/customer/dashboard"
+            href={routeFor.customerDashboard()}
             className="text-sm font-medium text-slate-300 transition hover:text-white"
           >
             Dashboard

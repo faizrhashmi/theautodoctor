@@ -37,11 +37,12 @@ import {
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
 import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import OnboardingChecklist from '@/components/customer/OnboardingChecklist'
+import VehiclePrompt from '@/components/customer/VehiclePrompt'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ProgressTracker } from '@/components/ui/ProgressTracker'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
-import { useRfqEnabled } from '@/hooks/useFeatureFlags'
 
 // ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
@@ -177,7 +178,7 @@ interface ActivityTimeline {
 export default function CustomerDashboardPage() {
   // ✅ Auth guard - ensures user is authenticated as customer
   const { loading: authLoading, user } = useAuthGuard({ requiredRole: 'customer' })
-  const isRfqEnabled = useRfqEnabled()
+  // Phase 2.4: RFQ is now always-on, no need for feature flag check
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -205,6 +206,10 @@ export default function CustomerDashboardPage() {
   const [selectedFavorite, setSelectedFavorite] = useState<any>(null)
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false)
   const [mechanicAvailability, setMechanicAvailability] = useState<{isOnline: boolean, lastSeen?: string} | null>(null)
+
+  // Phase 2.3: Vehicle prompting state
+  const [hasVehicles, setHasVehicles] = useState<boolean | null>(null)
+  const [vehiclePromptDismissed, setVehiclePromptDismissed] = useState(false)
 
   // Phase 2: Favorites Priority Flow - store favorite context for SessionLauncher
   const [favoriteRoutingType, setFavoriteRoutingType] = useState<'broadcast' | 'priority_broadcast'>('broadcast')
@@ -337,11 +342,27 @@ export default function CustomerDashboardPage() {
     }
   }
 
+  // Phase 2.3: Fetch vehicle count
+  const fetchVehicleCount = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/customer/vehicles')
+      if (response.ok) {
+        const data = await response.json()
+        setHasVehicles((data.vehicles || []).length > 0)
+      }
+    } catch (error) {
+      console.error('[Dashboard] Error fetching vehicles:', error)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
 
     fetchDashboardData()
     fetchFavorites()
+    fetchVehicleCount()
 
     // Refresh availability every 30 seconds
     const interval = setInterval(async () => {
@@ -553,6 +574,11 @@ export default function CustomerDashboardPage() {
         </>
       )}
 
+      {/* Phase 2.1: Onboarding Checklist - Shows for new customers */}
+      {activeSessions.length === 0 && (
+        <OnboardingChecklist />
+      )}
+
       {/* ✅ P0 FIX: Credit Balance Widget */}
       {stats?.subscription.has_active && (
         <div className="mb-6 sm:mb-8 rounded-2xl border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 p-4 sm:p-6 shadow-2xl backdrop-blur">
@@ -644,6 +670,15 @@ export default function CustomerDashboardPage() {
         </div>
       )}
 
+      {/* Phase 2.3: Vehicle Prompt - Shows when customer has no vehicles */}
+      {activeSessions.length === 0 && hasVehicles === false && !vehiclePromptDismissed && (
+        <VehiclePrompt
+          variant="dashboard"
+          onDismiss={() => setVehiclePromptDismissed(true)}
+          onVehicleAdded={fetchVehicleCount}
+        />
+      )}
+
       {/* Unified Session Launcher - Account-Type Aware */}
       {/* Only show if no active sessions */}
       {activeSessions.length === 0 && (
@@ -706,17 +741,15 @@ export default function CustomerDashboardPage() {
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">View estimates</div>
           </Link>
 
-          {/* RFQ Quick Action - Only shown when feature is enabled */}
-          {isRfqEnabled && (
-            <Link
-              href="/customer/rfq/my-rfqs"
-              className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border border-teal-500/30 rounded-lg p-3 sm:p-4 hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/20 transition-all group"
-            >
-              <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-teal-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-              <div className="text-xs sm:text-sm font-medium text-white">My RFQs</div>
-              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Request quotes</div>
-            </Link>
-          )}
+          {/* Phase 2.4: RFQ Quick Action - Always shown (always-on feature) */}
+          <Link
+            href="/customer/rfq/my-rfqs"
+            className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border border-teal-500/30 rounded-lg p-3 sm:p-4 hover:border-teal-400 hover:shadow-lg hover:shadow-teal-500/20 transition-all group"
+          >
+            <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-teal-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <div className="text-xs sm:text-sm font-medium text-white">My RFQs</div>
+            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Request quotes</div>
+          </Link>
 
           <Link
             href="/customer/vehicles"

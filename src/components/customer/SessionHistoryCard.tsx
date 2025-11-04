@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Menu, Transition } from '@headlessui/react'
 import { MoreVertical, Trash2, Eye, ArrowRight, Video, MessageSquare, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { routeFor } from '@/lib/routes'
 
 interface SessionHistoryCardProps {
   session: {
@@ -154,7 +155,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                       <Menu.Item>
                         {({ active }) => (
                           <Link
-                            href={`/sessions/${session.id}/report`}
+                            href={routeFor.sessionReport(session.id)}
                             className={`${
                               active ? 'bg-white/10' : ''
                             } group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white`}
@@ -170,7 +171,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                       <Menu.Item>
                         {({ active }) => (
                           <Link
-                            href={session.type === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+                            href={session.type === 'chat' ? routeFor.chat(session.id) : routeFor.video(session.id)}
                             className={`${
                               active ? 'bg-white/10' : ''
                             } group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white`}
@@ -216,7 +217,7 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
 
           {(isActive || isPending) && (
             <Link
-              href={session.type === 'chat' ? `/chat/${session.id}` : `/video/${session.id}`}
+              href={session.type === 'chat' ? routeFor.chat(session.id) : routeFor.video(session.id)}
               className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:from-orange-700 hover:to-orange-800 hover:shadow-orange-500/50"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

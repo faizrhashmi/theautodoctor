@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2, Wrench, CreditCard, Heart } from 'lucide-react'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
+import SessionWizard from './SessionWizard'
 
 interface PlanTier {
   id: string
@@ -62,6 +63,8 @@ interface SessionLauncherProps {
   preferredMechanicId?: string | null
   preferredMechanicName?: string | null
   routingType?: 'broadcast' | 'priority_broadcast'
+  // Phase 2.2: Wizard Mode
+  useWizard?: boolean // If true, use simplified wizard flow
 }
 
 export default function SessionLauncher({
@@ -74,6 +77,7 @@ export default function SessionLauncher({
   preferredMechanicId = null,
   preferredMechanicName = null,
   routingType = 'broadcast',
+  useWizard = true, // Phase 2.2: Default to wizard mode for simplified UX
 }: SessionLauncherProps) {
   // Fetch plans from API
   const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = useServicePlans()
@@ -192,6 +196,18 @@ export default function SessionLauncher({
 
   // Render different UI based on account type
   const renderB2CCustomer = () => {
+    // Phase 2.2: Use wizard mode if enabled
+    if (useWizard) {
+      return (
+        <SessionWizard
+          hasUsedFreeSession={hasUsedFreeSession}
+          availableMechanics={availableMechanics}
+          preferredMechanicId={preferredMechanicId}
+          routingType={routingType}
+        />
+      )
+    }
+
     const isNewCustomer = hasUsedFreeSession === false
     const defaultPlan = PLAN_TIERS.find(p => p.slug === selectedPlan || p.id === selectedPlan)
     const creditCost = getCreditCost()

@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CustomerRfqGate } from '@/components/guards/FeatureGate'
 import { z } from 'zod'
 import type { SessionSummary } from '@/types/sessionSummary'
+import { apiRouteFor } from '@/lib/routes'
 
 // ============================================================================
 // Validation Schema
@@ -89,7 +90,7 @@ export default function CreateRfqPage() {
 
   async function fetchVehicles() {
     try {
-      const response = await fetch('/api/customer/vehicles')
+      const response = await fetch(apiRouteFor.customerVehicles())
       if (response.ok) {
         const data = await response.json()
         setVehicles(data.vehicles || [])
@@ -104,7 +105,7 @@ export default function CreateRfqPage() {
   async function prefillFromSession(sessionId: string) {
     setPrefilling(true)
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/summary`)
+      const response = await fetch(apiRouteFor.sessionSummary(sessionId))
       if (response.ok) {
         const data = await response.json()
         const summary: SessionSummary | null = data.auto_summary
@@ -191,7 +192,7 @@ export default function CreateRfqPage() {
     setErrors({})
 
     try {
-      const response = await fetch('/api/rfq/customer/create', {
+      const response = await fetch(apiRouteFor.rfqCreate(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

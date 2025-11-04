@@ -8,6 +8,7 @@ import { ConcernSelect } from '@/components/intake/ConcernSelect'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 import type { ConcernCategory, SubCategory } from '@/lib/concernCategories'
+import { routeFor } from '@/lib/routes'
 
 type Errors = Partial<
   Record<
@@ -64,7 +65,7 @@ export default function IntakePage() {
 
   // SIMPLE AUTH - Same as dashboard
   const { user, loading: authLoading, isAuthenticated } = useAuthGuard({
-    redirectTo: `/signup?mode=login`,
+    redirectTo: routeFor.login(),
     requiredRole: 'customer'
   })
 

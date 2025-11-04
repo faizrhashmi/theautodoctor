@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { FileText, Clock, CheckCircle, XCircle, AlertCircle, DollarSign, Wrench } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { apiRouteFor } from '@/lib/routes'
 
 interface Quote {
   id: string
@@ -38,15 +39,21 @@ export default function CustomerQuotesPage() {
 
   async function fetchQuotes() {
     try {
-      const response = await fetch('/api/customer/quotes')
+      const response = await fetch(apiRouteFor.quotes())
+      console.log('[QUOTES] Response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Failed to fetch quotes')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[QUOTES] Error response:', errorData)
+        throw new Error(`Failed to fetch quotes: ${response.status} - ${errorData.error}`)
       }
+
       const data = await response.json()
+      console.log('[QUOTES] Success, received', data.quotes?.length || 0, 'quotes')
       setQuotes(data.quotes || [])
     } catch (err) {
-      console.error('Quotes error:', err)
-      setError('Failed to load quotes')
+      console.error('[QUOTES] Fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load quotes')
     } finally {
       setLoading(false)
     }
@@ -55,7 +62,7 @@ export default function CustomerQuotesPage() {
   async function respondToQuote(quoteId: string, action: 'accept' | 'decline') {
     setResponding(quoteId)
     try {
-      const response = await fetch(`/api/quotes/${quoteId}/respond`, {
+      const response = await fetch(apiRouteFor.quoteRespond(quoteId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),

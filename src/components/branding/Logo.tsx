@@ -1,6 +1,6 @@
 'use client'
 
-import { Car, Wrench, Zap } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 interface LogoProps {
@@ -17,9 +17,9 @@ export default function Logo({
   variant = 'default'
 }: LogoProps) {
   const sizes = {
-    sm: { container: 'h-8 w-8', icon: 'h-4 w-4', text: 'text-base' },
-    md: { container: 'h-10 w-10', icon: 'h-5 w-5', text: 'text-xl' },
-    lg: { container: 'h-14 w-14', icon: 'h-7 w-7', text: 'text-2xl' },
+    sm: { container: 'h-12 w-12', imageSize: 48, text: 'text-base' },
+    md: { container: 'h-14 w-14', imageSize: 56, text: 'text-xl' },
+    lg: { container: 'h-18 w-18', imageSize: 72, text: 'text-2xl' },
   }
 
   const currentSize = sizes[size]
@@ -32,16 +32,21 @@ export default function Logo({
 
   const logoContent = (
     <div className="flex items-center gap-2 sm:gap-3 group">
-      {/* Icon Container with Gradient */}
-      <div className={`flex ${currentSize.container} items-center justify-center rounded-xl bg-gradient-to-br ${gradients[variant]} shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 relative overflow-hidden`}>
-        {/* Animated shine effect */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      {/* Logo Image Container with Premium Glow Effect */}
+      <div className={`relative flex items-center justify-center ${currentSize.container}`}>
+        {/* Ambient glow effect - represents connection and energy */}
+        <div className={`absolute inset-0 rounded-full bg-gradient-to-r from-orange-500/20 via-orange-400/20 to-amber-500/20 blur-xl opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500`} />
 
-        {/* Stacked Icons for depth */}
-        <div className="relative">
-          <Car className={`${currentSize.icon} text-white relative z-10`} />
-          <Wrench className={`${currentSize.icon} text-white/30 absolute top-0 left-0 translate-x-1 translate-y-1`} />
-          <Zap className={`${currentSize.icon} text-white/40 absolute -top-0.5 -right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+        {/* Logo Image - Full Size */}
+        <div className="relative w-full h-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+          <Image
+            src="/app-logo.png"
+            alt="AskAutoDoctor Logo"
+            width={currentSize.imageSize}
+            height={currentSize.imageSize}
+            className="object-contain"
+            priority
+          />
         </div>
       </div>
 

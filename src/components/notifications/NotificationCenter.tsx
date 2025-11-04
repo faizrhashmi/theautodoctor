@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { routeFor, apiRouteFor } from '@/lib/routes'
 
 interface Notification {
   id: string
@@ -28,7 +29,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/notifications/feed?limit=50')
+      const response = await fetch(apiRouteFor.notificationsFeed(50))
       if (response.ok) {
         const data = await response.json()
         setNotifications(data.notifications || [])
@@ -47,7 +48,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
     setMarkingRead(prev => new Set(prev).add(notificationId))
 
     try {
-      const response = await fetch('/api/notifications/mark-read', {
+      const response = await fetch(apiRouteFor.notificationsMarkRead(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [notificationId] })
@@ -75,7 +76,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('/api/notifications/mark-read', {
+      const response = await fetch(apiRouteFor.notificationsMarkRead(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAll: true })
@@ -95,7 +96,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   const clearReadNotifications = async () => {
     setClearingRead(true)
     try {
-      const response = await fetch('/api/notifications/clear-read', {
+      const response = await fetch(apiRouteFor.notificationsClearRead(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
@@ -112,8 +113,37 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
     }
   }
 
+  // Track notification click (non-blocking, fire-and-forget)
+  const trackNotificationClick = (notification: Notification) => {
+    try {
+      const trackingData = {
+        notification_id: notification.id,
+        notification_type: notification.type,
+        clicked_at: new Date().toISOString(),
+        was_unread: !notification.read_at,
+        payload_keys: Object.keys(notification.payload || {}),
+      }
+
+      // Console logging for observability (can be upgraded to API endpoint later)
+      console.log('[NotificationClick]', JSON.stringify(trackingData))
+
+      // Future: Send to analytics endpoint
+      // fetch('/api/analytics/notification-click', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(trackingData)
+      // }).catch(() => {}) // Fail silently, don't block navigation
+    } catch (error) {
+      // Fail silently - tracking should never block user navigation
+      console.warn('[NotificationClick] Tracking failed:', error)
+    }
+  }
+
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
+    // Track the click (non-blocking)
+    trackNotificationClick(notification)
+
     // Mark as read if unread
     if (!notification.read_at) {
       await markAsRead(notification.id)
@@ -126,66 +156,137 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
       case 'request_created':
         // Mechanic-only: new session request received
         if (payload.request_id) {
-          router.push(`/mechanic/dashboard?request=${payload.request_id}`)
+          router.push(routeFor.mechanicDashboard({ request: payload.request_id }))
         }
         break
 
       case 'request_submitted':
         // Customer-only: their session request was submitted
-        router.push('/customer/sessions')
+        router.push(routeFor.customerSessions())
         break
 
       case 'request_accepted':
         // Either role: session request was accepted
         if (payload.request_id) {
-          router.push(`/mechanic/dashboard?request=${payload.request_id}`)
+          router.push(routeFor.mechanicDashboard({ request: payload.request_id }))
         }
         break
 
       case 'session_started':
         if (payload.session_id) {
           const sessionType = payload.session_type || 'chat'
-          router.push(`/${sessionType}/${payload.session_id}`)
+          router.push(sessionType === 'chat' ? routeFor.chat(payload.session_id) : routeFor.video(payload.session_id))
         }
         break
 
       case 'session_completed':
+        // Phase 3.1: Go to session details if available
+        if (payload.session_id) {
+          router.push(`/sessions/${payload.session_id}/summary`)
+        } else {
+          router.push(routeFor.customerSessions())
+        }
+        break
+
       case 'summary_ready':
-        // Go to session history to view report
-        router.push('/customer/sessions')
+        // Phase 3.1: Go directly to session summary
+        if (payload.session_id) {
+          router.push(`/sessions/${payload.session_id}/summary`)
+        } else {
+          router.push(routeFor.customerSessions())
+        }
         break
 
       case 'message_received':
         if (payload.session_id) {
-          router.push(`/chat/${payload.session_id}`)
+          router.push(routeFor.chat(payload.session_id))
         }
         break
 
       case 'quote_received':
         if (payload.quote_id) {
-          router.push(`/customer/quotes/${payload.quote_id}`)
+          router.push(routeFor.quote(payload.quote_id))
         } else if (payload.diagnostic_session_id) {
-          router.push(`/customer/quotes`)
+          router.push(routeFor.quotes())
         }
         break
 
       case 'payment_received':
         // Navigate to workshop analytics for diagnostic payments, mechanic earnings otherwise
         if (payload.type === 'diagnostic_payment') {
-          router.push('/workshop/analytics')
+          router.push(routeFor.workshopAnalytics())
         } else {
-          router.push('/mechanic/earnings')
+          router.push(routeFor.mechanicEarnings())
         }
         break
 
       case 'session_cancelled':
         if (payload.session_id) {
-          router.push(`/sessions/${payload.session_id}`)
+          router.push(routeFor.session(payload.session_id))
         }
         break
 
       case 'request_rejected':
-        router.push('/customer/sessions')
+        router.push(routeFor.customerSessions())
+        break
+
+      // Phase 3.2: Repair job notifications
+      case 'repair_job_created':
+        if (payload.repair_job_id) {
+          router.push(`/customer/repairs/${payload.repair_job_id}`)
+        } else {
+          router.push('/customer/repairs')
+        }
+        break
+
+      case 'repair_job_update':
+      case 'repair_status_changed':
+        if (payload.repair_job_id) {
+          router.push(`/customer/repairs/${payload.repair_job_id}`)
+        } else {
+          router.push('/customer/repairs')
+        }
+        break
+
+      case 'repair_ready_for_pickup':
+        if (payload.repair_job_id) {
+          router.push(`/customer/repairs/${payload.repair_job_id}`)
+        } else {
+          router.push('/customer/repairs')
+        }
+        break
+
+      case 'repair_parts_ordered':
+      case 'repair_parts_received':
+        if (payload.repair_job_id) {
+          router.push(`/customer/repairs/${payload.repair_job_id}`)
+        }
+        break
+
+      case 'repair_waiting_approval':
+        // High priority - needs customer action
+        if (payload.repair_job_id) {
+          router.push(`/customer/repairs/${payload.repair_job_id}/approve`)
+        } else {
+          router.push('/customer/repairs')
+        }
+        break
+
+      // Phase 3: RFQ notifications
+      case 'rfq_bid_received':
+        if (payload.rfq_id) {
+          router.push(`/customer/rfq/${payload.rfq_id}/bids`)
+        } else {
+          router.push('/customer/rfq/my-rfqs')
+        }
+        break
+
+      case 'rfq_accepted':
+        if (payload.rfq_id) {
+          router.push(`/customer/rfq/${payload.rfq_id}/accepted`)
+        } else {
+          router.push('/customer/rfq/my-rfqs')
+        }
         break
 
       default:

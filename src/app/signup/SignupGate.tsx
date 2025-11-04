@@ -7,8 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import WaiverModal from "@/components/customer/WaiverModal";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
-
-type Mode = "signup" | "login";
+import { routeFor } from "@/lib/routes";
 
 type SignupFormState = {
   firstName: string;
@@ -65,9 +64,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   const supabase = createClient();
   const searchParams = useSearchParams();
 
-  // Read mode from URL, default to "signup" (not "login")
-  const initialMode = searchParams.get('mode') === 'login' ? 'login' : 'signup';
-  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [form, setForm] = useState<SignupFormState>(EMPTY_FORM);
@@ -144,7 +140,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
   }, [origin, redirectTo]);
 
   const requiredFieldsFilled = useMemo(() => {
-    if (mode === "login") return true;
     return !!(
       form.firstName.trim() &&
       form.lastName.trim() &&
@@ -156,10 +151,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       email.trim() &&
       password
     );
-  }, [mode, form, email, password]);
+  }, [form, email, password]);
 
   const formIsValid = useMemo(() => {
-    if (mode === "login") return true;
     if (!form.firstName.trim() || !hasOnlyLetters(form.firstName)) return false;
     if (!form.lastName.trim() || !hasOnlyLetters(form.lastName)) return false;
     if (!form.phone.trim()) return false;
@@ -171,14 +165,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     if (!isValidPassword(password)) return false;
     if (!waiverAccepted) return false;
     return true;
-  }, [mode, form, email, password, waiverAccepted]);
-
-  useEffect(() => {
-    setError(null);
-    setMessage(null);
-    setPublicAvailability(null);
-    setFieldErrors({});
-  }, [mode]);
+  }, [form, email, password, waiverAccepted]);
 
   const validateField = (name: string, value: string) => {
     const errors: Record<string, string> = { ...fieldErrors };
@@ -295,69 +282,6 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     console.log("Signup successful! User should check email.");
   }
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    console.log('[handleLogin] Starting login attempt for:', email);
-
-    try {
-      // Call server-side API for validation and authentication
-      console.log('[handleLogin] Calling server-side login API...');
-
-      const loginRes = await fetch('/api/customer/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-        console.error('[handleLogin] Login API error:', loginData.error);
-        throw new Error(loginData.error || 'Login failed. Please try again.');
-      }
-
-      if (!loginData.access_token || !loginData.refresh_token) {
-        throw new Error('Failed to receive authentication tokens.');
-      }
-
-      console.log('[handleLogin] Login API successful, setting session...');
-
-      // Set session cookies
-      const setRes = await fetch('/api/auth/set-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          access_token: loginData.access_token,
-          refresh_token: loginData.refresh_token
-        }),
-      });
-
-      if (!setRes.ok) {
-        const text = await setRes.text();
-        console.error('[handleLogin] Failed to set server session:', text);
-        throw new Error('Failed to establish session. Please try again.');
-      }
-
-      console.log('[handleLogin] Login successful, redirecting...');
-      if (redirectTo) {
-        window.location.href = redirectTo;
-      } else {
-        window.location.href = '/customer/dashboard';
-      }
-    } catch (error: any) {
-      console.error('[handleLogin] Error caught:', error);
-      const errorMessage = error?.message || 'Login failed. Please check your credentials and try again.';
-      console.error('[handleLogin] Setting error:', errorMessage);
-      setError(errorMessage);
-      setLoading(false);
-    }
-  }
-
-
   async function handlePublicAvailability() {
     setCheckingAvailability(true);
     setPublicAvailability(null);
@@ -379,35 +303,32 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
   return (
     <div className="w-full max-w-md mx-auto px-4 sm:px-0">
-      {/* Mode Toggle - At the top */}
+      {/* "Already have an account?" link */}
       <div className="mb-4 text-center">
-        <button
-          type="button"
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="text-sm text-slate-400 hover:text-orange-400 transition"
-        >
-          {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
-        </button>
+        <p className="text-sm text-slate-400">
+          Already have an account?{' '}
+          <Link href={routeFor.login()} className="font-semibold text-orange-400 hover:text-orange-300 transition">
+            Sign in
+          </Link>
+        </p>
       </div>
 
       {/* Header Section */}
       <div className="mb-6 text-center">
         <h1 className="bg-gradient-to-r from-white via-orange-100 to-white bg-clip-text text-3xl sm:text-4xl font-black text-transparent">
-          {mode === "login" ? "Welcome Back" : "Get Started"}
+          Get Started
         </h1>
-        {mode === "signup" && (
-          <p className="mt-2 text-sm text-orange-400 font-semibold">
-            FREE 5-minute trial
-          </p>
-        )}
+        <p className="mt-2 text-sm text-orange-400 font-semibold">
+          FREE 5-minute trial
+        </p>
       </div>
 
       {/* Main Card */}
       <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/10 to-white/5 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-        {/* Social Auth Buttons - Show for both modes */}
+        {/* Social Auth Buttons */}
         <div className="mb-6">
           <SocialAuthButtons
-            mode={mode}
+            mode="signup"
             redirectTo={redirectTo || undefined}
             onError={(err) => setError(err)}
           />
@@ -419,10 +340,8 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
 
-      <form onSubmit={mode === "signup" ? handleSignup : handleLogin} className="space-y-5">
-        {mode === "signup" && (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={handleSignup} className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-semibold text-slate-200">
                   First name <span className="text-rose-400">*</span>
@@ -554,12 +473,10 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                 className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
               />
             </div>
-          </>
-        )}
 
         <div>
           <label className="block text-sm font-semibold text-slate-200">
-            Email {mode === "signup" && <span className="text-rose-400">*</span>}
+            Email <span className="text-rose-400">*</span>
           </label>
           <input
             type="email"
@@ -573,7 +490,7 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
         <div>
           <label className="block text-sm font-semibold text-slate-200">
-            Password {mode === "signup" && <span className="text-rose-400">*</span>}
+            Password <span className="text-rose-400">*</span>
           </label>
           <input
             type="password"
@@ -581,37 +498,22 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              if (mode === "signup") {
-                validateField("password", e.target.value);
-              }
+              validateField("password", e.target.value);
             }}
-            minLength={mode === "signup" ? 8 : 6}
-            placeholder={mode === "signup" ? "Minimum 8 characters" : "Enter password"}
+            minLength={8}
+            placeholder="Minimum 8 characters"
             className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
           />
-          {mode === "signup" && (
-            <>
-              {fieldErrors.password && (
-                <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.password}</p>
-              )}
-              {!fieldErrors.password && password && (
-                <p className="mt-1.5 text-xs text-emerald-400">✓ Password meets requirements</p>
-              )}
-            </>
+          {fieldErrors.password && (
+            <p className="mt-1.5 text-xs text-rose-400">{fieldErrors.password}</p>
+          )}
+          {!fieldErrors.password && password && (
+            <p className="mt-1.5 text-xs text-emerald-400">✓ Password meets requirements</p>
           )}
         </div>
 
-        {mode === "login" && (
-          <div className="flex justify-end text-sm">
-            <Link href="/forgot-password" className="font-semibold text-orange-200 transition hover:text-white">
-              Forgot password?
-            </Link>
-          </div>
-        )}
-
-        {mode === "signup" && (
-          <div
-            className={`rounded-2xl border p-6 transition-all duration-300 ${
+        <div
+          className={`rounded-2xl border p-6 transition-all duration-300 ${
               requiredFieldsFilled
                 ? "border-orange-400/40 bg-gradient-to-br from-orange-500/15 to-red-500/10 shadow-lg shadow-orange-500/10"
                 : "border-white/10 bg-white/5 opacity-60"
@@ -655,11 +557,10 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
               </div>
             </div>
           </div>
-        )}
 
         <button
           type="submit"
-          disabled={loading || (mode === "signup" && !formIsValid)}
+          disabled={loading || !formIsValid}
           className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 px-4 py-4 text-base font-bold text-white shadow-2xl shadow-orange-500/50 transition-all hover:shadow-orange-500/60 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
         >
           {loading ? (
@@ -670,23 +571,19 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
               </svg>
               Processing...
             </span>
-          ) : mode === "signup" ? (
-            "Create Account"
           ) : (
-            "Sign In"
+            "Create Account"
           )}
         </button>
       </form>
 
-      {mode === "signup" && (
-        <button
-          onClick={handlePublicAvailability}
-          disabled={checkingAvailability}
-          className="mt-6 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-white/15 hover:border-white/30 disabled:opacity-60"
-        >
-          {checkingAvailability ? "Checking..." : "See mechanics online"}
-        </button>
-      )}
+      <button
+        onClick={handlePublicAvailability}
+        disabled={checkingAvailability}
+        className="mt-6 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-white/15 hover:border-white/30 disabled:opacity-60"
+      >
+        {checkingAvailability ? "Checking..." : "See mechanics online"}
+      </button>
 
       {publicAvailability && (
         <div className="mt-4 rounded-2xl border border-orange-400/30 bg-gradient-to-br from-orange-500/20 to-red-500/10 p-4 shadow-lg shadow-orange-500/10">
@@ -742,11 +639,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
         </div>
       )}
 
-      {mode === "signup" && (
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Check your email to verify before booking
-        </p>
-      )}
+      <p className="mt-4 text-center text-xs text-slate-400">
+        Check your email to verify before booking
+      </p>
 
       <WaiverModal
         isOpen={showWaiver}

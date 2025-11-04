@@ -253,6 +253,7 @@ export async function generateVideoSessionSummary(
 
 /**
  * Persist summary to database
+ * Phase 3.1: Now sends enhanced summary email after save
  */
 export async function saveSummary(
   payload: CreateSummaryPayload
@@ -280,24 +281,86 @@ export async function saveSummary(
 
     console.log(`[SUMMARY] ✓ Summary saved for session ${payload.session_id}`)
 
-    // Create notification for customer
+    // Fetch session details for notifications and email
     const { data: session } = await supabaseAdmin
       .from('sessions')
-      .select('customer_user_id')
+      .select('customer_user_id, mechanic_id')
       .eq('id', payload.session_id)
       .single()
 
-    if (session?.customer_user_id) {
-      await supabaseAdmin.from('notifications').insert({
-        user_id: session.customer_user_id,
-        type: 'summary_ready',
-        payload: {
-          session_id: payload.session_id,
-          session_type: payload.session_type,
-          issue_count: payload.identified_issues?.length || 0,
-        },
-      })
-      console.log(`[SUMMARY] ✓ Notification created for customer`)
+    if (!session?.customer_user_id) {
+      console.warn('[SUMMARY] No customer found for session')
+      return true // Still return success for summary save
+    }
+
+    // Create notification for customer
+    await supabaseAdmin.from('notifications').insert({
+      user_id: session.customer_user_id,
+      type: 'summary_ready',
+      payload: {
+        session_id: payload.session_id,
+        session_type: payload.session_type,
+        issue_count: payload.identified_issues?.length || 0,
+      },
+    })
+    console.log(`[SUMMARY] ✓ Notification created for customer`)
+
+    // Phase 3.1: Send enhanced summary email
+    try {
+      // Fetch customer profile
+      const { data: customerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', session.customer_user_id)
+        .single()
+
+      // Fetch mechanic info
+      let mechanicName = 'Your Mechanic'
+      if (session.mechanic_id) {
+        const { data: mechanicProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('full_name')
+          .eq('id', session.mechanic_id)
+          .single()
+
+        if (mechanicProfile?.full_name) {
+          mechanicName = mechanicProfile.full_name
+        } else {
+          // Try mechanics table as fallback
+          const { data: mechanic } = await supabaseAdmin
+            .from('mechanics')
+            .select('name')
+            .eq('id', session.mechanic_id)
+            .single()
+
+          if (mechanic?.name) {
+            mechanicName = mechanic.name
+          }
+        }
+      }
+
+      if (customerProfile?.email) {
+        const { sendSummaryDeliveredEmail } = await import('@/lib/email/templates')
+
+        await sendSummaryDeliveredEmail({
+          sessionId: payload.session_id,
+          customerEmail: customerProfile.email,
+          customerName: customerProfile.full_name || 'Customer',
+          mechanicName,
+          summary: {
+            customer_report: payload.customer_report,
+            identified_issues: payload.identified_issues,
+            media_file_ids: payload.media_file_ids,
+            session_type: payload.session_type,
+          },
+        })
+        console.log(`[SUMMARY] ✓ Summary email sent to ${customerProfile.email}`)
+      } else {
+        console.warn('[SUMMARY] No customer email found - skipping summary email')
+      }
+    } catch (emailError) {
+      // Don't fail summary save if email fails
+      console.error('[SUMMARY] Failed to send summary email:', emailError)
     }
 
     return true

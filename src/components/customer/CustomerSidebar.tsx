@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
-import { useRfqEnabled } from '@/hooks/useFeatureFlags'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const NAV_ITEMS = [
@@ -76,7 +75,7 @@ export default function CustomerSidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [firstName, setFirstName] = useState<string>('')
   const [userId, setUserId] = useState<string | null>(null)
-  const isRfqEnabled = useRfqEnabled()
+  // Phase 2.4: RFQ is now always-on
 
   // Fetch customer name and userId
   useEffect(() => {
@@ -163,11 +162,8 @@ export default function CustomerSidebar() {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {NAV_ITEMS.filter(item => {
-              // Filter out RFQ items if feature is disabled
-              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
-              return true
-            }).map((item) => {
+            {NAV_ITEMS.map((item) => {
+              // Phase 2.4: RFQ is always-on, no filtering needed
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 

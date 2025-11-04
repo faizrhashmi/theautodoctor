@@ -88,36 +88,39 @@ export default function CustomerQuoteViewPage() {
     loadQuote()
   }, [quoteId, user])
 
-  // Approve quote
+  // Approve quote - Phase 1.3: Redirect to payment
   async function approveQuote() {
-    if (!confirm('Are you sure you want to approve this quote? This will authorize the workshop to begin work.')) {
+    if (!confirm('Approve this quote and proceed to payment?')) {
       return
     }
 
     setSubmitting(true)
 
     try {
-      const response = await fetch(`/api/quotes/${quoteId}/respond`, {
-        method: 'PATCH',
+      // Call payment checkout API to create Stripe session
+      const response = await fetch(`/api/quotes/${quoteId}/payment/checkout`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          response: 'approved',
-          notes: customerNotes
-        })
       })
 
       if (response.ok) {
-        alert('Quote approved! The workshop will be notified and will begin work.')
-        // Reload quote to show updated status
-        window.location.reload()
+        const data = await response.json()
+
+        if (data.checkoutUrl) {
+          // Redirect to Stripe checkout
+          window.location.href = data.checkoutUrl
+        } else {
+          alert('Failed to create payment session')
+          setSubmitting(false)
+        }
       } else {
         const error = await response.json()
-        alert(`Failed to approve quote: ${error.error}`)
+        alert(`Failed to start payment: ${error.error}`)
+        setSubmitting(false)
       }
     } catch (error) {
-      console.error('Error approving quote:', error)
-      alert('Failed to approve quote')
-    } finally {
+      console.error('Error starting payment:', error)
+      alert('Failed to start payment')
       setSubmitting(false)
     }
   }

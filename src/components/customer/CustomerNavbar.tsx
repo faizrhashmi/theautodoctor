@@ -5,22 +5,22 @@ import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Calendar, FileText, Car, MessageSquare, User, Clock, LogOut, ClipboardList } from 'lucide-react'
 import { createClient, clearBrowserClient } from '@/lib/supabase'
 import Logo from '@/components/branding/Logo'
-import { useRfqEnabled } from '@/hooks/useFeatureFlags'
+import { routeFor } from '@/lib/routes'
 
 const NAV_ITEMS = [
   {
     label: 'Dashboard',
-    href: '/customer/dashboard',
+    href: routeFor.customerDashboard(),
     icon: LayoutDashboard,
   },
   {
     label: 'Sessions',
-    href: '/customer/sessions',
+    href: routeFor.customerSessions(),
     icon: Clock,
   },
   {
     label: 'Quotes',
-    href: '/customer/quotes',
+    href: routeFor.quotes(),
     icon: FileText,
   },
   {
@@ -31,7 +31,7 @@ const NAV_ITEMS = [
   },
   {
     label: 'Vehicles',
-    href: '/customer/vehicles',
+    href: routeFor.customerVehicles(),
     icon: Car,
   },
   {
@@ -41,7 +41,7 @@ const NAV_ITEMS = [
   },
   {
     label: 'Profile',
-    href: '/customer/profile',
+    href: routeFor.customerProfile(),
     icon: User,
   },
 ]
@@ -50,7 +50,7 @@ export default function CustomerNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const isRfqEnabled = useRfqEnabled()
+  // Phase 2.4: RFQ is now always-on
 
   async function handleSignOut() {
     try {
@@ -61,11 +61,11 @@ export default function CustomerNavbar() {
       })
 
       // Force hard redirect to clear any cached state
-      window.location.href = '/'
+      window.location.href = routeFor.home()
     } catch (error) {
       console.error('Sign out error:', error)
       // Still redirect even if error
-      window.location.href = '/'
+      window.location.href = routeFor.home()
     }
   }
 
@@ -78,11 +78,8 @@ export default function CustomerNavbar() {
 
           {/* Navigation Links - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.filter(item => {
-              // Filter out RFQ items if feature is disabled
-              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
-              return true
-            }).map((item) => {
+            {NAV_ITEMS.map((item) => {
+              // Phase 2.4: RFQ is always-on, no filtering needed
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 
@@ -116,7 +113,7 @@ export default function CustomerNavbar() {
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2">
             <Link
-              href="/customer/profile"
+              href={routeFor.customerProfile()}
               className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
             >
               <User className="h-5 w-5" />
@@ -134,11 +131,8 @@ export default function CustomerNavbar() {
         {/* Navigation Links - Mobile */}
         <div className="md:hidden pb-3">
           <div className="flex items-center gap-2 overflow-x-auto">
-            {NAV_ITEMS.filter(item => {
-              // Filter out RFQ items if feature is disabled
-              if (item.featureGated === 'rfq' && !isRfqEnabled) return false
-              return true
-            }).map((item) => {
+            {NAV_ITEMS.map((item) => {
+              // Phase 2.4: RFQ is always-on, no filtering needed
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
               const Icon = item.icon
 

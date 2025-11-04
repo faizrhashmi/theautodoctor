@@ -7,6 +7,7 @@ import { Home, DollarSign, BookOpen, Wrench, Menu, X, Building2 } from 'lucide-r
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
+import { routeFor } from '@/lib/routes'
 
 const NAV_ITEMS = [
   { label: 'How It Works', href: '/how-it-works', icon: Home },
@@ -61,15 +62,15 @@ export default function ClientNavbar() {
       if (session?.user) {
         const role = await determineUserRole(session.user.id)
         if (role === 'customer') {
-          router.push('/customer/dashboard')
+          router.push(routeFor.customerDashboard())
           return
         }
       }
 
-      router.push('/signup?mode=login')
+      router.push(routeFor.login())
     } catch (error) {
       console.error('Customer login check error:', error)
-      router.push('/signup?mode=login')
+      router.push(routeFor.login())
     }
   }
 
@@ -81,7 +82,7 @@ export default function ClientNavbar() {
       if (session?.user) {
         const role = await determineUserRole(session.user.id)
         if (role === 'mechanic') {
-          router.push('/mechanic/dashboard')
+          router.push(routeFor.mechanicDashboard())
           return
         }
       }
@@ -101,7 +102,7 @@ export default function ClientNavbar() {
       if (session?.user) {
         const role = await determineUserRole(session.user.id)
         if (role === 'workshop') {
-          router.push('/workshop/dashboard')
+          router.push(routeFor.workshopDashboard())
           return
         }
       }

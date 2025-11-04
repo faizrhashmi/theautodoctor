@@ -5,6 +5,7 @@ import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2, Mes
 import { PRICING, type PlanKey } from '@/config/pricing'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
 import type { SessionSummary, IdentifiedIssue } from '@/types/sessionSummary'
+import { routeFor, apiRouteFor } from '@/lib/routes'
 
 interface SessionData {
   id: string
@@ -125,7 +126,7 @@ export function SessionCompletionModal({
     const fetchSummary = async () => {
       setLoadingSummary(true)
       try {
-        const response = await fetch(`/api/sessions/${sessionData.id}/summary`)
+        const response = await fetch(apiRouteFor.sessionSummary(sessionData.id))
         if (response.ok) {
           const data = await response.json()
           if (data.auto_summary) {
@@ -499,7 +500,7 @@ export function SessionCompletionModal({
                 {/* View All Sessions */}
                 <button
                   onClick={() => {
-                    window.location.href = '/mechanic/sessions'
+                    window.location.href = routeFor.mechanicSessions()
                   }}
                   className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
                 >
@@ -532,7 +533,7 @@ export function SessionCompletionModal({
                 {/* Ask Follow-up Question */}
                 <button
                   onClick={() => {
-                    window.location.href = `/customer/sessions?action=follow-up&sessionId=${sessionData.id}`
+                    window.location.href = `${routeFor.customerSessions()}?action=follow-up&sessionId=${sessionData.id}`
                   }}
                   className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-blue-500/50 hover:bg-blue-500/20"
                 >
@@ -549,12 +550,10 @@ export function SessionCompletionModal({
                 <button
                   onClick={() => {
                     // Prefill RFQ with summary data if available
-                    const params = new URLSearchParams()
-                    params.set('session_id', sessionData.id)
-                    if (summary?.identified_issues && summary.identified_issues.length > 0) {
-                      params.set('prefill', 'true')
-                    }
-                    window.location.href = `/customer/rfq/create?${params.toString()}`
+                    window.location.href = routeFor.rfqCreate({
+                      session_id: sessionData.id,
+                      prefill: !!(summary?.identified_issues && summary.identified_issues.length > 0)
+                    })
                   }}
                   className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
                 >
@@ -576,7 +575,7 @@ export function SessionCompletionModal({
                 {sessionData.mechanic_id && (
                   <button
                     onClick={() => {
-                      window.location.href = `/book?mechanic=${sessionData.mechanic_id}`
+                      window.location.href = routeFor.book({ mechanic: sessionData.mechanic_id! })
                     }}
                     className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-green-500/50 hover:bg-green-500/20"
                   >

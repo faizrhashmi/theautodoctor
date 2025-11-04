@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Key, Bell, CreditCard } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Key, Bell, CreditCard, TrendingUp } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { apiRouteFor } from '@/lib/routes'
 
 interface ProfileData {
   full_name: string
@@ -25,10 +26,14 @@ export default function CustomerProfilePage() {
     phone: '',
     city: '',
   })
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
+  const [restoringOnboarding, setRestoringOnboarding] = useState(false)
 
   useEffect(() => {
     if (user) {
       fetchProfile()
+      fetchOnboardingStatus()
     }
   }, [user])
 
@@ -77,6 +82,49 @@ export default function CustomerProfilePage() {
       setError('Failed to update profile. Please try again.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function fetchOnboardingStatus() {
+    try {
+      const response = await fetch(apiRouteFor.onboardingProgress())
+      if (!response.ok) {
+        throw new Error('Failed to fetch onboarding status')
+      }
+      const data = await response.json()
+      setOnboardingDismissed(data.dismissed || false)
+    } catch (err) {
+      console.error('[Profile] Error fetching onboarding status:', err)
+      // Silently fail - don't show error to user
+    } finally {
+      setCheckingOnboarding(false)
+    }
+  }
+
+  async function handleRestoreOnboarding() {
+    setRestoringOnboarding(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch(apiRouteFor.onboardingProgress(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore' }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to restore onboarding')
+      }
+
+      setOnboardingDismissed(false)
+      setSuccess('Onboarding guide restored! It will appear on your dashboard.')
+      setTimeout(() => setSuccess(null), 5000)
+    } catch (err) {
+      console.error('[Profile] Error restoring onboarding:', err)
+      setError('Failed to restore onboarding guide. Please try again.')
+    } finally {
+      setRestoringOnboarding(false)
     }
   }
 
@@ -281,6 +329,42 @@ export default function CustomerProfilePage() {
                   <input type="checkbox" className="sr-only peer" defaultChecked />
                   <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Preferences & Onboarding */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-blue-500/20">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-white">Preferences</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-white">Onboarding Guide</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {onboardingDismissed
+                      ? 'Show step-by-step getting started checklist on dashboard'
+                      : 'Getting started checklist is currently visible on your dashboard'
+                    }
+                  </p>
+                </div>
+                {!checkingOnboarding && onboardingDismissed && (
+                  <button
+                    onClick={handleRestoreOnboarding}
+                    disabled={restoringOnboarding}
+                    className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition-colors border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {restoringOnboarding ? 'Restoring...' : 'Restore Guide'}
+                  </button>
+                )}
+                {!checkingOnboarding && !onboardingDismissed && (
+                  <span className="text-xs text-green-400 font-medium">Active</span>
+                )}
               </div>
             </div>
           </div>

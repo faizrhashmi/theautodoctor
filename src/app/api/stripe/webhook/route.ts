@@ -60,6 +60,18 @@ async function markEventProcessed(event: Stripe.Event): Promise<void> {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log('[webhook:checkout] Metadata:', session.metadata)
 
+  // Phase 1.3: Handle quote payment checkout
+  if (session.metadata?.type === 'quote_payment') {
+    console.log('[webhook:checkout] Quote payment detected - will be processed in payment_intent.succeeded')
+    return
+  }
+
+  // Phase 1.4: Handle RFQ bid payment checkout
+  if (session.metadata?.type === 'rfq_bid_payment') {
+    console.log('[webhook:checkout] RFQ bid payment detected - will be processed in payment_intent.succeeded')
+    return
+  }
+
   // Task 4: Handle session extension checkout separately
   if (session.metadata?.mode === 'extension') {
     console.log('[webhook:checkout] Extension mode detected - will be processed in payment_intent.succeeded')
@@ -251,6 +263,264 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     return // Extension handled, skip normal session activation logic
   }
 
+  // Phase 1.3: Handle quote payment
+  if (paymentIntent.metadata?.type === 'quote_payment') {
+    const quoteId = paymentIntent.metadata?.quote_id
+    const customerId = paymentIntent.metadata?.customer_id
+    const workshopId = paymentIntent.metadata?.workshop_id || null
+    const mechanicId = paymentIntent.metadata?.mechanic_id || null
+    const platformFee = parseFloat(paymentIntent.metadata?.platform_fee || '0')
+    const providerAmount = parseFloat(paymentIntent.metadata?.provider_amount || '0')
+
+    if (!quoteId || !customerId) {
+      console.error('[webhook:quote-payment] Missing quote_id or customer_id in metadata')
+      return
+    }
+
+    console.log(`[webhook:quote-payment] Processing payment for quote ${quoteId}`)
+
+    // Idempotent: Check if repair_payment already exists
+    const { data: existingPayment } = await supabaseAdmin
+      .from('repair_payments')
+      .select('id, escrow_status')
+      .eq('quote_id', quoteId)
+      .eq('stripe_payment_intent_id', paymentIntent.id)
+      .maybeSingle()
+
+    if (existingPayment) {
+      console.log(`[webhook:quote-payment] Payment already processed: ${existingPayment.id}`)
+      return
+    }
+
+    // Create repair_payment record with escrow
+    const { error: paymentError } = await supabaseAdmin
+      .from('repair_payments')
+      .insert({
+        quote_id: quoteId,
+        customer_id: customerId,
+        workshop_id: workshopId,
+        mechanic_id: mechanicId,
+        amount: paymentIntent.amount / 100, // Convert cents to dollars
+        platform_fee: platformFee,
+        provider_amount: providerAmount,
+        escrow_status: 'held',
+        stripe_payment_intent_id: paymentIntent.id,
+        held_at: new Date().toISOString(),
+      })
+
+    if (paymentError) {
+      console.error('[webhook:quote-payment] Error creating repair_payment:', paymentError)
+      // Continue anyway to update quote status
+    } else {
+      console.log('[webhook:quote-payment] ✓ Created repair_payment with escrow')
+    }
+
+    // Update quote status to approved
+    const { error: quoteError } = await supabaseAdmin
+      .from('repair_quotes')
+      .update({
+        status: 'approved',
+        customer_response: 'approved',
+        customer_responded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', quoteId)
+
+    if (quoteError) {
+      console.error('[webhook:quote-payment] Error updating quote status:', quoteError)
+    } else {
+      console.log('[webhook:quote-payment] ✓ Quote approved:', quoteId)
+    }
+
+    // Notify workshop/mechanic of approved quote with payment
+    try {
+      if (workshopId) {
+        // Get workshop owner/admins
+        const { data: workshopMembers } = await supabaseAdmin
+          .from('organization_members')
+          .select('user_id, role')
+          .eq('organization_id', workshopId)
+          .in('role', ['owner', 'admin'])
+
+        if (workshopMembers && workshopMembers.length > 0) {
+          const notifications = workshopMembers.map((member) => ({
+            user_id: member.user_id,
+            type: 'quote_approved',
+            payload: {
+              quote_id: quoteId,
+              payment_intent_id: paymentIntent.id,
+              amount: paymentIntent.amount / 100,
+              currency: paymentIntent.currency,
+              escrow_status: 'held',
+            },
+          }))
+
+          await supabaseAdmin.from('notifications').insert(notifications)
+          console.log(
+            `[webhook:quote-payment] ✓ Notified ${workshopMembers.length} workshop member(s)`
+          )
+        }
+      } else if (mechanicId) {
+        // Get mechanic's user_id
+        const { data: mechanic } = await supabaseAdmin
+          .from('mechanics')
+          .select('user_id')
+          .eq('id', mechanicId)
+          .maybeSingle()
+
+        if (mechanic?.user_id) {
+          await supabaseAdmin.from('notifications').insert({
+            user_id: mechanic.user_id,
+            type: 'quote_approved',
+            payload: {
+              quote_id: quoteId,
+              payment_intent_id: paymentIntent.id,
+              amount: paymentIntent.amount / 100,
+              currency: paymentIntent.currency,
+              escrow_status: 'held',
+            },
+          })
+          console.log('[webhook:quote-payment] ✓ Notified mechanic:', mechanic.user_id)
+        }
+      }
+    } catch (notifError) {
+      console.warn('[webhook:quote-payment] Failed to create notifications:', notifError)
+    }
+
+    return // Quote payment handled
+  }
+
+  // Phase 1.4: Handle RFQ bid payment
+  if (paymentIntent.metadata?.type === 'rfq_bid_payment') {
+    const rfqId = paymentIntent.metadata?.rfq_id
+    const bidId = paymentIntent.metadata?.bid_id
+    const customerId = paymentIntent.metadata?.customer_id
+    const workshopId = paymentIntent.metadata?.workshop_id || null
+    const platformFee = parseFloat(paymentIntent.metadata?.platform_fee || '0')
+    const providerAmount = parseFloat(paymentIntent.metadata?.provider_amount || '0')
+
+    if (!rfqId || !bidId || !customerId || !workshopId) {
+      console.error('[webhook:rfq-bid-payment] Missing required metadata')
+      return
+    }
+
+    console.log(`[webhook:rfq-bid-payment] Processing payment for RFQ ${rfqId}, bid ${bidId}`)
+
+    // Idempotent: Check if repair_payment already exists
+    const { data: existingPayment } = await supabaseAdmin
+      .from('repair_payments')
+      .select('id, escrow_status')
+      .eq('quote_id', bidId) // Using quote_id field to store bid_id
+      .eq('stripe_payment_intent_id', paymentIntent.id)
+      .maybeSingle()
+
+    if (existingPayment) {
+      console.log(`[webhook:rfq-bid-payment] Payment already processed: ${existingPayment.id}`)
+      return
+    }
+
+    // Create repair_payment record with escrow
+    const { error: paymentError } = await supabaseAdmin
+      .from('repair_payments')
+      .insert({
+        quote_id: bidId, // Using quote_id field to store bid_id
+        customer_id: customerId,
+        workshop_id: workshopId,
+        mechanic_id: null,
+        amount: paymentIntent.amount / 100, // Convert cents to dollars
+        platform_fee: platformFee,
+        provider_amount: providerAmount,
+        escrow_status: 'held',
+        stripe_payment_intent_id: paymentIntent.id,
+        held_at: new Date().toISOString(),
+      })
+
+    if (paymentError) {
+      console.error('[webhook:rfq-bid-payment] Error creating repair_payment:', paymentError)
+      // Continue anyway to accept bid
+    } else {
+      console.log('[webhook:rfq-bid-payment] ✓ Created repair_payment with escrow')
+    }
+
+    // Accept the bid using the database function
+    const { data: result, error: acceptError } = await supabaseAdmin.rpc('accept_workshop_rfq_bid', {
+      p_rfq_id: rfqId,
+      p_bid_id: bidId,
+      p_customer_id: customerId,
+    })
+
+    if (acceptError) {
+      console.error('[webhook:rfq-bid-payment] Error accepting bid:', acceptError)
+    } else {
+      console.log('[webhook:rfq-bid-payment] ✓ Bid accepted:', bidId)
+    }
+
+    // Notify workshop of accepted bid with payment
+    try {
+      // Get workshop owner/admins
+      const { data: workshopMembers } = await supabaseAdmin
+        .from('organization_members')
+        .select('user_id, role')
+        .eq('organization_id', workshopId)
+        .in('role', ['owner', 'admin'])
+
+      if (workshopMembers && workshopMembers.length > 0) {
+        const notifications = workshopMembers.map((member) => ({
+          user_id: member.user_id,
+          type: 'rfq_bid_accepted',
+          payload: {
+            rfq_id: rfqId,
+            bid_id: bidId,
+            payment_intent_id: paymentIntent.id,
+            amount: paymentIntent.amount / 100,
+            currency: paymentIntent.currency,
+            escrow_status: 'held',
+          },
+        }))
+
+        await supabaseAdmin.from('notifications').insert(notifications)
+        console.log(
+          `[webhook:rfq-bid-payment] ✓ Notified ${workshopMembers.length} workshop member(s)`
+        )
+      }
+
+      // Notify referring mechanic if there is one
+      const { data: rfq } = await supabaseAdmin
+        .from('workshop_rfq_marketplace')
+        .select('escalating_mechanic_id')
+        .eq('id', rfqId)
+        .maybeSingle()
+
+      if (rfq?.escalating_mechanic_id) {
+        const { data: mechanic } = await supabaseAdmin
+          .from('mechanics')
+          .select('user_id')
+          .eq('id', rfq.escalating_mechanic_id)
+          .maybeSingle()
+
+        if (mechanic?.user_id) {
+          await supabaseAdmin.from('notifications').insert({
+            user_id: mechanic.user_id,
+            type: 'rfq_referral_earned',
+            payload: {
+              rfq_id: rfqId,
+              bid_id: bidId,
+              workshop_id: workshopId,
+              amount: paymentIntent.amount / 100,
+              referral_fee_percent: 5.0, // 5% referral fee
+              referral_fee_amount: (paymentIntent.amount / 100) * 0.05,
+            },
+          })
+          console.log('[webhook:rfq-bid-payment] ✓ Notified referring mechanic:', mechanic.user_id)
+        }
+      }
+    } catch (notifError) {
+      console.warn('[webhook:rfq-bid-payment] Failed to create notifications:', notifError)
+    }
+
+    return // RFQ bid payment handled
+  }
+
   // CRITICAL: Only set session to 'live' after payment succeeds
   const sessionId = paymentIntent.metadata?.session_id
 
@@ -365,7 +635,123 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     return
   }
 
-  // Get payment intent to find session
+  // Phase 1.5: Check if this is a repair payment (quote or RFQ bid)
+  const { data: repairPayment } = await supabaseAdmin
+    .from('repair_payments')
+    .select('id, quote_id, customer_id, workshop_id, mechanic_id, amount, escrow_status')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .maybeSingle()
+
+  if (repairPayment) {
+    console.log('[webhook:refund] Refund for repair payment:', repairPayment.id)
+
+    // Store refund record
+    if (charge.refunds?.data?.[0]) {
+      const refund = charge.refunds.data[0]
+
+      const { error: refundError } = await supabaseAdmin.from('refunds').insert({
+        id: refund.id,
+        payment_intent_id: paymentIntentId,
+        session_id: null, // No session for repair payments
+        amount_cents: refund.amount,
+        currency: refund.currency,
+        reason: (refund.reason as any) || 'requested_by_customer',
+        status: refund.status === 'succeeded' ? 'succeeded' : 'pending',
+        metadata: refund.metadata as any,
+        notes: refund.metadata?.refund_notes || null,
+        created_at: new Date(refund.created * 1000).toISOString(),
+      })
+
+      if (refundError) {
+        console.error('[webhook:refund] Error storing refund:', refundError)
+      }
+    }
+
+    // Update repair_payment escrow status
+    const isFullRefund = charge.amount_refunded === charge.amount
+    const { error: paymentError } = await supabaseAdmin
+      .from('repair_payments')
+      .update({
+        escrow_status: isFullRefund ? 'refunded' : 'partially_refunded',
+        stripe_refund_id: charge.refunds?.data?.[0]?.id || null,
+        refunded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', repairPayment.id)
+
+    if (paymentError) {
+      console.error('[webhook:refund] Error updating repair_payment:', paymentError)
+    }
+
+    // Notify customer and provider
+    try {
+      // Notify customer
+      await supabaseAdmin.from('notifications').insert({
+        user_id: repairPayment.customer_id,
+        type: 'payment_refunded',
+        payload: {
+          payment_id: repairPayment.id,
+          quote_id: repairPayment.quote_id,
+          amount: charge.amount_refunded / 100,
+          currency: charge.currency,
+          refund_type: isFullRefund ? 'full' : 'partial',
+        },
+      })
+
+      // Notify workshop/mechanic
+      if (repairPayment.workshop_id) {
+        const { data: workshopMembers } = await supabaseAdmin
+          .from('organization_members')
+          .select('user_id, role')
+          .eq('organization_id', repairPayment.workshop_id)
+          .in('role', ['owner', 'admin'])
+
+        if (workshopMembers && workshopMembers.length > 0) {
+          const notifications = workshopMembers.map((member) => ({
+            user_id: member.user_id,
+            type: 'payment_refunded',
+            payload: {
+              payment_id: repairPayment.id,
+              quote_id: repairPayment.quote_id,
+              amount: charge.amount_refunded / 100,
+              currency: charge.currency,
+              refund_type: isFullRefund ? 'full' : 'partial',
+            },
+          }))
+          await supabaseAdmin.from('notifications').insert(notifications)
+        }
+      } else if (repairPayment.mechanic_id) {
+        const { data: mechanic } = await supabaseAdmin
+          .from('mechanics')
+          .select('user_id')
+          .eq('id', repairPayment.mechanic_id)
+          .maybeSingle()
+
+        if (mechanic?.user_id) {
+          await supabaseAdmin.from('notifications').insert({
+            user_id: mechanic.user_id,
+            type: 'payment_refunded',
+            payload: {
+              payment_id: repairPayment.id,
+              quote_id: repairPayment.quote_id,
+              amount: charge.amount_refunded / 100,
+              currency: charge.currency,
+              refund_type: isFullRefund ? 'full' : 'partial',
+            },
+          })
+        }
+      }
+    } catch (notifError) {
+      console.warn('[webhook:refund] Failed to create notifications:', notifError)
+    }
+
+    // Audit log
+    console.log(`✓ Audit: ${charge.id} | charge.refunded | repair_payment:${repairPayment.id} | customer:${repairPayment.customer_id} | $${charge.amount_refunded / 100} ${charge.currency}`)
+    console.log('[webhook:refund] ✓ Refund processed for repair payment:', repairPayment.id)
+    return
+  }
+
+  // Original session refund handling
   const { data: paymentIntent } = await supabaseAdmin
     .from('payment_intents')
     .select('session_id, customer_id')
@@ -373,7 +759,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     .maybeSingle()
 
   if (!paymentIntent?.session_id) {
-    console.warn('[webhook:refund] No session linked to payment intent')
+    console.warn('[webhook:refund] No session or repair payment linked to payment intent')
     return
   }
 
@@ -413,6 +799,8 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   // Mark session as refunded (will be done by trigger in migration)
+  // Audit log
+  console.log(`✓ Audit: ${charge.id} | charge.refunded | session:${paymentIntent.session_id} | customer:${paymentIntent.customer_id} | $${charge.amount_refunded / 100} ${charge.currency}`)
   console.log('[webhook:refund] ✓ Refund processed for session:', paymentIntent.session_id)
 }
 
@@ -479,6 +867,9 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
   if (refundError) {
     console.error('[webhook:dispute] Error storing dispute refund:', refundError)
   }
+
+  // Audit log
+  console.log(`⚠️  Audit: ${dispute.id} | dispute.created | charge:${chargeId} | session:${paymentIntent.session_id} | $${dispute.amount / 100} ${dispute.currency}`)
 }
 
 // ============================================================================

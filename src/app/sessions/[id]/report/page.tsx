@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import type { SessionSummary, IdentifiedIssue } from '@/types/sessionSummary'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
+import { routeFor, apiRouteFor } from '@/lib/routes'
 
 interface SessionDetails {
   id: string
@@ -48,7 +49,7 @@ export default function SessionReportPage() {
         setLoading(true)
 
         // Fetch session details
-        const sessionRes = await fetch(`/api/sessions/${sessionId}`)
+        const sessionRes = await fetch(apiRouteFor.session(sessionId))
         if (!sessionRes.ok) {
           throw new Error('Failed to fetch session details')
         }
@@ -56,7 +57,7 @@ export default function SessionReportPage() {
         setSession(sessionData)
 
         // Fetch summary
-        const summaryRes = await fetch(`/api/sessions/${sessionId}/summary`)
+        const summaryRes = await fetch(apiRouteFor.sessionSummary(sessionId))
         if (summaryRes.ok) {
           const summaryData = await summaryRes.json()
           if (summaryData.auto_summary) {
@@ -366,12 +367,10 @@ export default function SessionReportPage() {
           <div className="mt-4 pt-4 border-t border-slate-700">
             <button
               onClick={() => {
-                const params = new URLSearchParams()
-                params.set('session_id', sessionId)
-                if (summary?.identified_issues && summary.identified_issues.length > 0) {
-                  params.set('prefill', 'true')
-                }
-                router.push(`/customer/rfq/create?${params.toString()}`)
+                router.push(routeFor.rfqCreate({
+                  session_id: sessionId,
+                  prefill: !!(summary?.identified_issues && summary.identified_issues.length > 0)
+                }))
               }}
               className="w-full sm:w-auto px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition font-medium"
             >

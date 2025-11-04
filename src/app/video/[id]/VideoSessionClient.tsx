@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
 import DOMPurify from 'isomorphic-dompurify'
 import { SessionCompletionModal } from '@/components/session/SessionCompletionModal'
+import { routeFor } from '@/lib/routes'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -1852,7 +1853,7 @@ export default function VideoSessionClient({
               if (confirm('Are you sure you want to sign out? This will end your session.')) {
                 const supabase = createClient()
                 await supabase.auth.signOut()
-                window.location.href = _userRole === 'mechanic' ? '/mechanic/login' : '/signup?mode=login'
+                window.location.href = _userRole === 'mechanic' ? routeFor.mechanicLogin() : routeFor.login()
               }
             }}
             className="rounded-lg border border-white/10 bg-slate-900/80 px-2 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-slate-700 hover:border-white/20 sm:px-3 sm:py-2 sm:text-sm"

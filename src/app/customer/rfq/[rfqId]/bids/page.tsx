@@ -102,21 +102,27 @@ export default function BidComparisonPage() {
     if (!selectedBid) return
 
     try {
-      const response = await fetch(`/api/rfq/${rfqId}/accept`, {
+      // Phase 1.4: Redirect to payment instead of directly accepting
+      const response = await fetch(`/api/rfq/${rfqId}/bids/${selectedBid}/payment/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bid_id: selectedBid })
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to accept bid')
+        throw new Error(errorData.error || 'Failed to start payment')
       }
 
-      const result = await response.json()
-      router.push(`/customer/rfq/${rfqId}/accepted?bid_id=${selectedBid}`)
+      const data = await response.json()
+
+      if (data.checkoutUrl) {
+        // Redirect to Stripe checkout
+        window.location.href = data.checkoutUrl
+      } else {
+        throw new Error('Failed to create payment session')
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept bid')
+      setError(err instanceof Error ? err.message : 'Failed to start payment')
       setShowConfirmDialog(false)
     }
   }
