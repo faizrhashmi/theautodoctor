@@ -580,6 +580,20 @@ export async function POST(
     },
   })
 
+  // Generate session summary (async, non-blocking)
+  if (session.started_at && durationMinutes > 0) {
+    const { createSessionSummary } = await import('@/lib/session/summaryGenerator')
+    createSessionSummary(sessionId, session.type as 'chat' | 'video')
+      .then((success) => {
+        if (success) {
+          console.log(`[end session] ✓ Summary generated for session ${sessionId}`)
+        }
+      })
+      .catch((err) => {
+        console.error('[end session] Summary generation failed:', err)
+      })
+  }
+
   // Track session completion in CRM
   if (session.customer_user_id) {
     void trackInteraction({

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2, MessageSquare, Wrench, Calendar } from 'lucide-react'
+import { X, Star, Download, LayoutDashboard, FileText, CheckCircle, Loader2, MessageSquare, Wrench, Calendar, AlertCircle, Image as ImageIcon } from 'lucide-react'
 import { PRICING, type PlanKey } from '@/config/pricing'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
+import type { SessionSummary, IdentifiedIssue } from '@/types/sessionSummary'
 
 interface SessionData {
   id: string
@@ -45,6 +46,8 @@ export function SessionCompletionModal({
   const [ratingSubmitted, setRatingSubmitted] = useState(!!sessionData.rating)
   const [downloadingPDF, setDownloadingPDF] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<SessionSummary | null>(null)
+  const [loadingSummary, setLoadingSummary] = useState(true)
 
   // Calculate duration
   const duration = sessionData.duration_minutes ||
@@ -115,6 +118,30 @@ export function SessionCompletionModal({
     }
   }
 
+  // Fetch summary on mount
+  useEffect(() => {
+    if (!isOpen || !sessionData.id) return
+
+    const fetchSummary = async () => {
+      setLoadingSummary(true)
+      try {
+        const response = await fetch(`/api/sessions/${sessionData.id}/summary`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.auto_summary) {
+            setSummary(data.auto_summary)
+          }
+        }
+      } catch (error) {
+        console.error('[SessionCompletionModal] Failed to fetch summary:', error)
+      } finally {
+        setLoadingSummary(false)
+      }
+    }
+
+    fetchSummary()
+  }, [isOpen, sessionData.id])
+
   // Format date/time (en-CA)
   const formatDateTime = (dateString: string | null) => {
     if (!dateString) return 'N/A'
@@ -123,6 +150,22 @@ export function SessionCompletionModal({
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(date)
+  }
+
+  // Get severity badge color
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'urgent':
+        return 'bg-red-500/20 text-red-400 border-red-500/30'
+      case 'high':
+        return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+      case 'medium':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'low':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      default:
+        return 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+    }
   }
 
   if (!isOpen) return null
@@ -296,6 +339,105 @@ export function SessionCompletionModal({
             </div>
           )}
 
+          {/* Summary Section - What We Found */}
+          {!loadingSummary && summary && (summary.customer_report || (summary.identified_issues && summary.identified_issues.length > 0)) && (
+            <div className="mb-4 sm:mb-6 rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                <h3 className="text-sm sm:text-base font-semibold text-white">
+                  What We Found
+                </h3>
+              </div>
+
+              {/* Customer Report */}
+              {summary.customer_report && (
+                <div className="mb-3 rounded-lg bg-slate-800/50 p-2 sm:p-3">
+                  <p className="text-xs sm:text-sm text-slate-300 whitespace-pre-wrap">
+                    {summary.customer_report}
+                  </p>
+                </div>
+              )}
+
+              {/* Identified Issues */}
+              {summary.identified_issues && summary.identified_issues.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-slate-400">
+                    Issues Identified ({summary.identified_issues.length}):
+                  </p>
+                  <div className="space-y-2">
+                    {summary.identified_issues.map((issue: IdentifiedIssue, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/30 p-2 sm:p-3"
+                      >
+                        <AlertCircle className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <p className="text-xs sm:text-sm font-medium text-white">
+                              {issue.issue}
+                            </p>
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase ${getSeverityColor(issue.severity)}`}>
+                              {issue.severity}
+                            </span>
+                          </div>
+                          {issue.description && (
+                            <p className="text-xs text-slate-400 mb-1">
+                              {issue.description}
+                            </p>
+                          )}
+                          {issue.est_cost_range && (
+                            <p className="text-xs text-green-400 font-medium">
+                              Est. Cost: {issue.est_cost_range}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Media Files */}
+              {summary.media_files && summary.media_files.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-slate-400">
+                    Attached Media ({summary.media_files.length}):
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {summary.media_files.slice(0, 6).map((file: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="relative aspect-video rounded-lg border border-slate-700 bg-slate-800/50 overflow-hidden group"
+                      >
+                        {file.file_type?.startsWith('image/') ? (
+                          <img
+                            src={file.url || file.file_url}
+                            alt={file.file_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <ImageIcon className="h-6 w-6 text-slate-500" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                          <p className="text-xs text-white text-center px-2 truncate">
+                            {file.file_name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {summary.media_files.length > 6 && (
+                    <p className="text-xs text-slate-500 text-center">
+                      +{summary.media_files.length - 6} more in full report
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="space-y-2 sm:space-y-3">
             <button
@@ -406,7 +548,13 @@ export function SessionCompletionModal({
                 {/* Get Workshop Quotes */}
                 <button
                   onClick={() => {
-                    window.location.href = '/customer/quotes'
+                    // Prefill RFQ with summary data if available
+                    const params = new URLSearchParams()
+                    params.set('session_id', sessionData.id)
+                    if (summary?.identified_issues && summary.identified_issues.length > 0) {
+                      params.set('prefill', 'true')
+                    }
+                    window.location.href = `/customer/rfq/create?${params.toString()}`
                   }}
                   className="flex w-full items-center gap-2 sm:gap-3 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs sm:text-sm transition hover:border-purple-500/50 hover:bg-purple-500/20"
                 >
@@ -414,8 +562,13 @@ export function SessionCompletionModal({
                     <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white text-xs sm:text-sm">Get Workshop Quotes</p>
-                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Find local shops to fix your vehicle</p>
+                    <p className="font-medium text-white text-xs sm:text-sm">
+                      Request Workshop Quotes
+                      {summary?.identified_issues && summary.identified_issues.length > 0 && (
+                        <span className="ml-1 text-[10px] text-purple-300">(Pre-filled)</span>
+                      )}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">Get competitive bids from local shops</p>
                   </div>
                 </button>
 

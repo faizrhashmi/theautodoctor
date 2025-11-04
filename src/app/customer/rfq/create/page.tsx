@@ -12,9 +12,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CustomerRfqGate } from '@/components/guards/FeatureGate'
 import { z } from 'zod'
+import type { SessionSummary } from '@/types/sessionSummary'
 
 // ============================================================================
 // Validation Schema
@@ -58,11 +59,13 @@ interface Vehicle {
 
 export default function CreateRfqPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loadingVehicles, setLoadingVehicles] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showPreview, setShowPreview] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [prefilling, setPrefilling] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState<Partial<CreateRfqFormData>>({
@@ -71,10 +74,18 @@ export default function CreateRfqPage() {
     customer_consent: false,
   })
 
-  // Load customer's vehicles
+  // Load customer's vehicles and prefill from session if requested
   useEffect(() => {
     fetchVehicles()
-  }, [])
+
+    // Check for prefill parameters
+    const sessionId = searchParams.get('session_id')
+    const shouldPrefill = searchParams.get('prefill') === 'true'
+
+    if (sessionId && shouldPrefill) {
+      prefillFromSession(sessionId)
+    }
+  }, [searchParams])
 
   async function fetchVehicles() {
     try {
@@ -87,6 +98,60 @@ export default function CreateRfqPage() {
       console.error('Failed to load vehicles:', err)
     } finally {
       setLoadingVehicles(false)
+    }
+  }
+
+  async function prefillFromSession(sessionId: string) {
+    setPrefilling(true)
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/summary`)
+      if (response.ok) {
+        const data = await response.json()
+        const summary: SessionSummary | null = data.auto_summary
+
+        if (summary && summary.identified_issues && summary.identified_issues.length > 0) {
+          // Generate title from first issue
+          const firstIssue = summary.identified_issues[0]
+          const title = `${firstIssue.issue} - Repair Request`
+
+          // Generate description from all issues
+          let description = 'Issues identified during diagnostic session:\n\n'
+          summary.identified_issues.forEach((issue, idx) => {
+            description += `${idx + 1}. ${issue.issue} (${issue.severity.toUpperCase()})\n`
+            if (issue.description) {
+              description += `   ${issue.description}\n`
+            }
+            if (issue.est_cost_range) {
+              description += `   Estimated Cost: ${issue.est_cost_range}\n`
+            }
+            description += '\n'
+          })
+
+          if (summary.customer_report) {
+            description += `\nAdditional Details:\n${summary.customer_report}`
+          }
+
+          // Determine urgency from highest severity
+          let urgency: 'low' | 'normal' | 'high' | 'urgent' = 'normal'
+          const hasUrgent = summary.identified_issues.some(i => i.severity === 'urgent')
+          const hasHigh = summary.identified_issues.some(i => i.severity === 'high')
+          if (hasUrgent) urgency = 'urgent'
+          else if (hasHigh) urgency = 'high'
+
+          setFormData(prev => ({
+            ...prev,
+            title: title.slice(0, 100), // Respect max length
+            description: description.slice(0, 1000), // Respect max length
+            urgency
+          }))
+
+          console.log('[RFQ Create] Prefilled from session summary')
+        }
+      }
+    } catch (err) {
+      console.error('[RFQ Create] Failed to prefill from session:', err)
+    } finally {
+      setPrefilling(false)
     }
   }
 

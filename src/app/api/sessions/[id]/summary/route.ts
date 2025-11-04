@@ -188,10 +188,10 @@ export async function GET(
   console.log(`[GET /sessions/${sessionId}/summary] ${participant.role} accessing summary for session ${participant.sessionId}`)
 
   try {
-    // Get session with summary
+    // Get session with manual summary
     const { data: session, error } = await supabaseAdmin
       .from('sessions')
-      .select('summary_data, summary_submitted_at, mechanic_id, customer_user_id')
+      .select('summary_data, summary_submitted_at, mechanic_id, customer_user_id, type')
       .eq('id', sessionId)
       .single()
 
@@ -199,14 +199,59 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
-    if (!(session as any).summary_submitted_at) {
-      return NextResponse.json({ error: 'Summary not yet submitted' }, { status: 404 })
+    // Get auto-generated summary from session_summaries table
+    const { data: autoSummary } = await supabaseAdmin
+      .from('session_summaries')
+      .select('*')
+      .eq('session_id', sessionId)
+      .single()
+
+    // Fetch associated media files for auto-summary
+    let mediaFiles = []
+    if (autoSummary?.media_file_ids && autoSummary.media_file_ids.length > 0) {
+      const { data: files } = await supabaseAdmin
+        .from('session_files')
+        .select('id, file_name, file_url, file_type, storage_path, uploaded_at')
+        .in('id', autoSummary.media_file_ids)
+
+      if (files) {
+        // Generate signed URLs for files
+        mediaFiles = await Promise.all(
+          files.map(async (file: any) => {
+            const { data: urlData } = await supabaseAdmin.storage
+              .from('session-files')
+              .createSignedUrl(file.storage_path, 3600 * 24 * 7) // 7 days
+
+            return {
+              ...file,
+              url: urlData?.signedUrl || file.file_url
+            }
+          })
+        )
+      }
     }
 
-    return NextResponse.json({
-      summary: (session as any).summary_data,
-      submitted_at: (session as any).summary_submitted_at,
-    })
+    // Return both manual and auto summaries
+    const response: any = {
+      has_manual_summary: !!(session as any).summary_submitted_at,
+      has_auto_summary: !!autoSummary
+    }
+
+    if ((session as any).summary_submitted_at) {
+      response.manual_summary = {
+        data: (session as any).summary_data,
+        submitted_at: (session as any).summary_submitted_at
+      }
+    }
+
+    if (autoSummary) {
+      response.auto_summary = {
+        ...autoSummary,
+        media_files: mediaFiles
+      }
+    }
+
+    return NextResponse.json(response)
   } catch (error: any) {
     console.error('[Get Summary] Error:', error)
     return NextResponse.json(

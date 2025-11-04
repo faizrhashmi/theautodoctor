@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { PRICING, type PlanKey } from '@/config/pricing'
+import type { SessionSummary, IdentifiedIssue } from '@/types/sessionSummary'
 
 interface SessionReportData {
   id: string
@@ -46,6 +47,8 @@ export async function buildSessionPdf(
 
   // Fetch session data
   let sessionData: SessionReportData | null = null
+  let autoSummary: SessionSummary | null = null
+
   try {
     const response = await fetch(`/api/customer/sessions`)
     if (!response.ok) throw new Error('Failed to fetch session data')
@@ -55,6 +58,20 @@ export async function buildSessionPdf(
 
     if (!sessionData) {
       throw new Error('Session not found')
+    }
+
+    // Fetch auto-generated summary
+    try {
+      const summaryRes = await fetch(`/api/sessions/${sessionId}/summary`)
+      if (summaryRes.ok) {
+        const summaryData = await summaryRes.json()
+        if (summaryData.auto_summary) {
+          autoSummary = summaryData.auto_summary
+        }
+      }
+    } catch (err) {
+      console.error('[PDF Generator] Error fetching auto-summary:', err)
+      // Continue without auto-summary
     }
   } catch (error) {
     console.error('[PDF Generator] Error fetching session:', error)
@@ -232,6 +249,111 @@ export async function buildSessionPdf(
   })
 
   yPos = (doc as any).lastAutoTable.finalY + 10
+
+  // ============================================================================
+  // AUTO-GENERATED SUMMARY (if available)
+  // ============================================================================
+  if (includeSummary && autoSummary) {
+    // Check if we need a new page
+    if (yPos > pageHeight - 60) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    doc.setFontSize(14)
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Session Findings', margin, yPos)
+    yPos += 6
+
+    doc.setFontSize(9)
+    doc.setTextColor(100, 116, 139)
+    doc.setFont('helvetica', 'italic')
+    doc.text(`Generated: ${formatDateTime(autoSummary.created_at)}`, margin, yPos)
+    yPos += 8
+
+    // Customer Report
+    if (autoSummary.customer_report) {
+      doc.setFontSize(11)
+      doc.setTextColor(15, 23, 42)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Summary:', margin, yPos)
+      yPos += 5
+
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+      const reportLines = doc.splitTextToSize(autoSummary.customer_report, pageWidth - 2 * margin)
+      doc.text(reportLines, margin, yPos)
+      yPos += reportLines.length * 5 + 8
+    }
+
+    // Identified Issues
+    if (autoSummary.identified_issues && autoSummary.identified_issues.length > 0) {
+      // Check if we need a new page
+      if (yPos > pageHeight - 40) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.setFontSize(11)
+      doc.setTextColor(15, 23, 42)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Issues Identified (${autoSummary.identified_issues.length}):`, margin, yPos)
+      yPos += 6
+
+      // Create table data for issues
+      const issuesTableData = autoSummary.identified_issues.map((issue: IdentifiedIssue) => {
+        const severity = issue.severity.toUpperCase()
+        const costRange = issue.est_cost_range || 'N/A'
+        return [
+          issue.issue,
+          severity,
+          costRange,
+          issue.description || ''
+        ]
+      })
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Issue', 'Severity', 'Est. Cost', 'Description']],
+        body: issuesTableData,
+        theme: 'striped',
+        styles: {
+          fontSize: 9,
+          cellPadding: 2,
+          textColor: [15, 23, 42],
+        },
+        headStyles: {
+          fillColor: [239, 68, 68], // Red for issues
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 25, fontStyle: 'bold' },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 'auto' },
+        },
+        margin: { left: margin, right: margin },
+      })
+
+      yPos = (doc as any).lastAutoTable.finalY + 8
+    }
+
+    // Media Files Count
+    if (autoSummary.media_file_ids && autoSummary.media_file_ids.length > 0) {
+      if (yPos > pageHeight - 20) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      doc.setFontSize(10)
+      doc.setTextColor(100, 116, 139)
+      doc.setFont('helvetica', 'italic')
+      doc.text(`📷 ${autoSummary.media_file_ids.length} media file(s) attached to this session`, margin, yPos)
+      yPos += 10
+    }
+  }
 
   // ============================================================================
   // MECHANIC SUMMARY (if available)

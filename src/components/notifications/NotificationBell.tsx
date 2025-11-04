@@ -16,7 +16,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   // Play notification sound (throttled per poll cycle)
   const playNotificationSound = useCallback(() => {
     try {
-      const audio = new Audio('/sounds/notification.mp3')
+      const audio = new Audio('/sounds/message-pop.mp3')
       audio.volume = 0.7
       audio.play().catch(() => {
         // Fail silently if sound can't play (muted tab, file missing, etc.)

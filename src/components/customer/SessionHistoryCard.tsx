@@ -3,7 +3,7 @@
 import { useState, Fragment } from 'react'
 import Link from 'next/link'
 import { Menu, Transition } from '@headlessui/react'
-import { MoreVertical, Trash2, Eye, ArrowRight, Video, MessageSquare } from 'lucide-react'
+import { MoreVertical, Trash2, Eye, ArrowRight, Video, MessageSquare, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface SessionHistoryCardProps {
@@ -149,6 +149,22 @@ export default function SessionHistoryCard({ session, onViewDetails, onDelete }:
                         </button>
                       )}
                     </Menu.Item>
+
+                    {isCompleted && (
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            href={`/sessions/${session.id}/report`}
+                            className={`${
+                              active ? 'bg-white/10' : ''
+                            } group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white`}
+                          >
+                            <FileText className="h-4 w-4 text-blue-400" />
+                            View Full Report
+                          </Link>
+                        )}
+                      </Menu.Item>
+                    )}
 
                     {(isActive || isPending) && (
                       <Menu.Item>

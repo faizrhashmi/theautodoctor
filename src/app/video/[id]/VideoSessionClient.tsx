@@ -1114,14 +1114,15 @@ export default function VideoSessionClient({
           console.log('[VIDEO SECURITY L3] 🔄 Session status changed:', payload)
           const newStatus = payload.new?.status
 
-          if (newStatus === 'cancelled') {
-            // Cancelled sessions redirect immediately (admin/external cancellation)
-            console.log('[VIDEO SECURITY L3] ⚠️ Session cancelled externally, redirecting...')
-            alert('Session has been cancelled.')
-            window.location.href = dashboardUrl
-          } else if (newStatus === 'completed') {
-            // Completed sessions show modal (normal ending flow)
-            console.log('[VIDEO SECURITY L3] ✅ Session completed, showing modal...')
+          if (newStatus === 'cancelled' || newStatus === 'completed') {
+            // Show completion modal for both completed and cancelled sessions
+            // This handles both normal user-initiated ends (which may result in 'cancelled'
+            // if session wasn't in 'live' status) and admin/external cancellations
+            console.log(`[VIDEO SECURITY L3] ✅ Session ${newStatus}, showing modal...`)
+
+            // Disconnect from LiveKit room immediately
+            setIsRoomConnected(false)
+
             await fetchAndShowCompletionModal()
           }
         }

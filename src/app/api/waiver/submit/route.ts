@@ -181,20 +181,20 @@ export async function POST(req: NextRequest) {
               } else {
                 console.log('[waiver] ✅ Created session_request:', newRequest.id)
 
-                // Create notification for customer
+                // Create notification for customer (request_submitted, not request_created)
                 try {
                   await supabaseAdmin
                     .from('notifications')
                     .insert({
                       user_id: existingSession.customer_user_id,
-                      type: 'request_created',
+                      type: 'request_submitted',
                       payload: {
                         request_id: newRequest.id,
                         session_type: existingSession.type,
                         plan_code: plan
                       }
                     })
-                  console.log('[waiver] ✓ Created request_created notification for customer')
+                  console.log('[waiver] ✓ Created request_submitted notification for customer')
                 } catch (notifError) {
                   console.warn('[waiver] Failed to create notification:', notifError)
                 }

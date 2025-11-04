@@ -143,11 +143,16 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
         break
 
       case 'session_started':
-      case 'session_completed':
         if (payload.session_id) {
           const sessionType = payload.session_type || 'chat'
           router.push(`/${sessionType}/${payload.session_id}`)
         }
+        break
+
+      case 'session_completed':
+      case 'summary_ready':
+        // Go to session history to view report
+        router.push('/customer/sessions')
         break
 
       case 'message_received':
@@ -342,6 +347,8 @@ function NotificationItem({
         return { icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-purple-400', bg: 'bg-purple-500/10' }
       case 'session_completed':
         return { icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: 'text-indigo-400', bg: 'bg-indigo-500/10' }
+      case 'summary_ready':
+        return { icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-green-400', bg: 'bg-green-500/10' }
       case 'message_received':
         return { icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', color: 'text-cyan-400', bg: 'bg-cyan-500/10' }
       case 'quote_received':
@@ -382,6 +389,9 @@ function NotificationItem({
         return 'Session has started'
       case 'session_completed':
         return `Session completed by ${payload.ended_by || 'participant'}`
+      case 'summary_ready':
+        const issueCount = payload.issue_count || 0
+        return `Session report ready${issueCount > 0 ? ` - ${issueCount} issue${issueCount > 1 ? 's' : ''} identified` : ''}`
       case 'message_received':
         return payload.preview ? payload.preview : 'New message received'
       case 'quote_received':

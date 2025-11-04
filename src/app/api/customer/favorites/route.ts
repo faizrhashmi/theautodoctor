@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         added_at,
         mechanics!customer_favorites_mechanic_id_fkey (
           id,
-          full_name,
+          name,
           email
         ),
         organizations!customer_favorites_workshop_id_fkey (
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
         id: fav.id,
         provider_id: isMechanic ? fav.mechanic_id : fav.workshop_id,
         provider_name: isMechanic
-          ? fav.mechanics?.full_name || 'Unknown Mechanic'
+          ? fav.mechanics?.name || 'Unknown Mechanic'
           : fav.organizations?.name || 'Unknown Workshop',
         provider_type: isMechanic ? 'independent' : 'workshop',
         total_services: fav.total_services,
