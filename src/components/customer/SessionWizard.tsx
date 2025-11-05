@@ -14,9 +14,14 @@ import {
   Check,
   Loader2,
   ChevronRight,
+  Plus,
+  X,
 } from 'lucide-react'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
 import CarBrandLogo from '@/components/ui/CarBrandLogo'
+import SmartYearSelector from '@/components/intake/SmartYearSelector'
+import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
+import { createClient } from '@/lib/supabase'
 
 // Lazy load VehiclePrompt component
 const VehiclePrompt = lazy(() => import('./VehiclePrompt'))
@@ -82,6 +87,17 @@ export default function SessionWizard({
 
   // Optimistic submit state
   const [submitSuccess, setSubmitSuccess] = useState(false)
+
+  // Add vehicle modal state
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false)
+  const [addingVehicle, setAddingVehicle] = useState(false)
+  const [newVehicle, setNewVehicle] = useState({
+    year: '',
+    make: '',
+    model: '',
+    vin: '',
+  })
+  const supabase = createClient()
 
   const isNewCustomer = hasUsedFreeSession === false
   const totalSteps = vehicles.length > 0 ? 3 : 2 // Skip vehicle step if no vehicles
@@ -162,6 +178,50 @@ export default function SessionWizard({
     setSelectedMechanicType(type)
   }, [])
 
+  const handleAddVehicle = useCallback(async () => {
+    if (!newVehicle.year || !newVehicle.make || !newVehicle.model) {
+      return
+    }
+
+    setAddingVehicle(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: insertedVehicle, error } = await supabase
+        .from('vehicles')
+        .insert({
+          user_id: user.id,
+          year: newVehicle.year,
+          make: newVehicle.make,
+          brand: newVehicle.make,
+          model: newVehicle.model,
+          vin: newVehicle.vin || null,
+          is_primary: vehicles.length === 0,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Refresh vehicles list
+      await fetchVehicles()
+
+      // Auto-select the newly added vehicle
+      if (insertedVehicle) {
+        setSelectedVehicle(insertedVehicle.id)
+      }
+
+      // Close modal and reset form
+      setShowAddVehicleModal(false)
+      setNewVehicle({ year: '', make: '', model: '', vin: '' })
+    } catch (error) {
+      console.error('[SessionWizard] Error adding vehicle:', error)
+    } finally {
+      setAddingVehicle(false)
+    }
+  }, [newVehicle, vehicles.length, supabase, fetchVehicles])
+
   // Optimistic submit with immediate UI feedback
   const handleLaunchSession = useCallback(() => {
     // Show optimistic success state immediately
@@ -228,43 +288,56 @@ export default function SessionWizard({
           />
         </Suspense>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-          {vehicles.map((vehicle) => (
-            <button
-              key={vehicle.id}
-              onClick={() => handleVehicleSelect(vehicle.id)}
-              className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
-                selectedVehicle === vehicle.id
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-              }`}
-            >
-              <div className="flex items-start gap-2 sm:gap-3 min-w-0">
-                <div
-                  className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-                    selectedVehicle === vehicle.id ? 'bg-orange-500/20' : 'bg-slate-700/50'
-                  }`}
-                >
-                  <CarBrandLogo
-                    brand={vehicle.make}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <h4 className="text-white font-bold text-xs sm:text-sm truncate">
-                      {vehicle.year} {vehicle.make} {vehicle.model}
-                    </h4>
-                    {selectedVehicle === vehicle.id && (
-                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
-                    )}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+            {vehicles.map((vehicle) => (
+              <button
+                key={vehicle.id}
+                onClick={() => handleVehicleSelect(vehicle.id)}
+                className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
+                  selectedVehicle === vehicle.id
+                    ? 'border-orange-500 bg-orange-500/10'
+                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex items-start gap-2 sm:gap-3 min-w-0">
+                  <div
+                    className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
+                      selectedVehicle === vehicle.id ? 'bg-orange-500/20' : 'bg-slate-700/50'
+                    }`}
+                  >
+                    <CarBrandLogo
+                      brand={vehicle.make}
+                      size="sm"
+                    />
                   </div>
-                  <p className="text-xs text-slate-400">{vehicle.brand}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h4 className="text-white font-bold text-xs sm:text-sm truncate">
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </h4>
+                      {selectedVehicle === vehicle.id && (
+                        <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400">{vehicle.brand}</p>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Add New Vehicle Button */}
+          <button
+            onClick={() => setShowAddVehicleModal(true)}
+            className="mt-3 w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/30 hover:border-orange-500/50 hover:bg-slate-800/50 transition-all text-center"
+          >
+            <div className="flex items-center justify-center gap-2 text-slate-400 hover:text-orange-400 transition-colors">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs sm:text-sm font-medium">Add Another Vehicle</span>
+            </div>
+          </button>
+        </>
       )}
     </div>
   )
@@ -572,6 +645,101 @@ export default function SessionWizard({
           </div>
         )}
       </div>
+
+      {/* Add Vehicle Modal */}
+      {showAddVehicleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700">
+              <h3 className="text-lg sm:text-xl font-bold text-white">Add Vehicle</h3>
+              <button
+                onClick={() => setShowAddVehicleModal(false)}
+                className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 space-y-4">
+              <p className="text-sm text-slate-400">Add your vehicle details to continue with your session.</p>
+
+              {/* Year Selector */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Year *</label>
+                <SmartYearSelector
+                  value={newVehicle.year}
+                  onChange={(year) => setNewVehicle(prev => ({ ...prev, year }))}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
+                />
+              </div>
+
+              {/* Make/Brand Selector */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Make/Brand *</label>
+                <SmartBrandSelector
+                  value={newVehicle.make}
+                  onChange={(make) => setNewVehicle(prev => ({ ...prev, make }))}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
+                />
+              </div>
+
+              {/* Model Input */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Model *</label>
+                <input
+                  type="text"
+                  value={newVehicle.model}
+                  onChange={(e) => setNewVehicle(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder="e.g., Camry, F-150, Model 3"
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
+                />
+              </div>
+
+              {/* VIN Input (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  VIN <span className="text-slate-500 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newVehicle.vin}
+                  onChange={(e) => setNewVehicle(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))}
+                  placeholder="17-character VIN"
+                  maxLength={17}
+                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex gap-3 p-4 sm:p-6 border-t border-slate-700">
+              <button
+                onClick={() => setShowAddVehicleModal(false)}
+                disabled={addingVehicle}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddVehicle}
+                disabled={addingVehicle || !newVehicle.year || !newVehicle.make || !newVehicle.model}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {addingVehicle ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Vehicle'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
