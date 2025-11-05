@@ -172,7 +172,7 @@ export default function CustomerQuotesPage() {
           </div>
           <Link
             href="/customer/rfq/create"
-            className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-700 transition-all shadow-lg whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all shadow-lg whitespace-nowrap"
           >
             <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
             <span className="hidden sm:inline">Request Workshop Quotes</span>
@@ -205,7 +205,7 @@ export default function CustomerQuotesPage() {
             onClick={() => setQuoteType('rfq')}
             className={`px-4 py-3 text-sm font-semibold transition-all relative ${
               quoteType === 'rfq'
-                ? 'text-teal-400'
+                ? 'text-orange-400'
                 : 'text-slate-400 hover:text-slate-300'
             }`}
           >
@@ -217,7 +217,7 @@ export default function CustomerQuotesPage() {
               </span>
             </div>
             {quoteType === 'rfq' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-400"></div>
             )}
           </button>
         </div>
@@ -347,7 +347,7 @@ export default function CustomerQuotesPage() {
                       <button
                         onClick={() => respondToQuote(quote.id, 'accept')}
                         disabled={responding === quote.id}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm sm:text-base font-semibold hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg text-sm sm:text-base font-semibold hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                         {responding === quote.id ? 'Processing...' : 'Accept Quote'}
@@ -426,12 +426,12 @@ export default function CustomerQuotesPage() {
                 <Link
                   key={rfq.id}
                   href={`/customer/rfq/${rfq.id}/bids`}
-                  className="block bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-teal-500/50 transition-all"
+                  className="block bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 transition-all"
                 >
                   <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-3 sm:gap-4 flex-1">
                       <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700 shrink-0">
-                        <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-teal-400" />
+                        <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -492,7 +492,7 @@ export default function CustomerQuotesPage() {
             </p>
             <Link
               href="/customer/rfq/create"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-700 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all"
             >
               <Plus className="h-5 w-5" />
               Create RFQ
