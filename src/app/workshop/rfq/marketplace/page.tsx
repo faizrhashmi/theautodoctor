@@ -147,7 +147,7 @@ export default function RfqMarketplacePage() {
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-orange-500 hover:text-orange-400"
+                    className="text-sm text-purple-500 hover:text-purple-400"
                   >
                     Clear All
                   </button>
@@ -171,7 +171,7 @@ export default function RfqMarketplacePage() {
                   id="category-filter"
                   value={filters.category}
                   onChange={(e) => updateFilter('category', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">All Categories</option>
                   {SERVICE_CATEGORIES.map(cat => (
@@ -189,7 +189,7 @@ export default function RfqMarketplacePage() {
                   id="urgency-filter"
                   value={filters.urgency}
                   onChange={(e) => updateFilter('urgency', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">All Urgencies</option>
                   {URGENCY_LEVELS.map(level => (
@@ -209,7 +209,7 @@ export default function RfqMarketplacePage() {
                   placeholder="Any"
                   value={filters.max_budget}
                   onChange={(e) => updateFilter('max_budget', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -220,7 +220,7 @@ export default function RfqMarketplacePage() {
                     type="checkbox"
                     checked={filters.hide_already_bid}
                     onChange={(e) => updateFilter('hide_already_bid', e.target.checked)}
-                    className="w-5 h-5 bg-slate-800 border-2 border-slate-700 rounded checked:bg-orange-500 checked:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                    className="w-5 h-5 bg-slate-800 border-2 border-slate-700 rounded checked:bg-purple-500 checked:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                   />
                   <span className="ml-2 text-sm text-slate-300">
                     Hide already bid
@@ -233,7 +233,7 @@ export default function RfqMarketplacePage() {
           {/* Loading State */}
           {loading && (
             <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
             </div>
           )}
 
@@ -243,7 +243,7 @@ export default function RfqMarketplacePage() {
               <p className="text-red-400">{error}</p>
               <button
                 onClick={fetchRfqs}
-                className="mt-4 text-sm text-orange-500 hover:text-orange-400"
+                className="mt-4 text-sm text-purple-500 hover:text-purple-400"
               >
                 Try Again
               </button>
@@ -277,7 +277,7 @@ export default function RfqMarketplacePage() {
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-orange-500 hover:text-orange-400"
+                  className="text-purple-500 hover:text-purple-400"
                 >
                   Clear Filters
                 </button>
@@ -292,12 +292,12 @@ export default function RfqMarketplacePage() {
                 <Link
                   key={rfq.id}
                   href={`/workshop/rfq/marketplace/${rfq.id}`}
-                  className="block bg-slate-900 border border-slate-800 rounded-lg p-6 hover:border-orange-500/50 transition-all hover:shadow-lg group"
+                  className="block bg-slate-900 border border-slate-800 rounded-lg p-6 hover:border-purple-500/50 transition-all hover:shadow-lg group"
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-white group-hover:text-orange-500 transition-colors line-clamp-2">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition-colors line-clamp-2">
                         {rfq.title}
                       </h3>
                       <p className="text-sm text-slate-400 mt-1">
@@ -367,7 +367,7 @@ export default function RfqMarketplacePage() {
                       </span>
                     </div>
 
-                    <span className="text-sm text-orange-500 group-hover:underline flex items-center gap-1">
+                    <span className="text-sm text-purple-400 group-hover:underline flex items-center gap-1">
                       View Details
                       <svg
                         className="w-4 h-4"

@@ -129,7 +129,7 @@ export default function WorkshopQuotesPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
           <p className="mt-4 text-slate-400">Loading quotes...</p>
         </div>
       </div>
@@ -184,7 +184,7 @@ export default function WorkshopQuotesPage() {
               label="Pending Value"
               value={`$${stats.pendingValue.toFixed(2)}`}
               subtext="In pipeline"
-              color="orange"
+              color="purple"
             />
           </div>
         )}
@@ -198,7 +198,7 @@ export default function WorkshopQuotesPage() {
                 onClick={() => setFilterStatus(status)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                   filterStatus === status
-                    ? 'bg-orange-500 text-white'
+                    ? 'bg-purple-500 text-white'
                     : 'border border-white/10 bg-slate-800/40 text-slate-300 hover:bg-slate-700/40'
                 }`}
               >
@@ -214,7 +214,7 @@ export default function WorkshopQuotesPage() {
               placeholder="Search quotes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-slate-800/40 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 sm:w-64"
+              className="w-full rounded-lg border border-white/10 bg-slate-800/40 py-2 pl-10 pr-4 text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 sm:w-64"
             />
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function WorkshopQuotesPage() {
               return (
                 <div
                   key={quote.id}
-                  className="rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 transition hover:border-orange-500/30"
+                  className="rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 transition hover:border-purple-500/30"
                 >
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     {/* Left Section - Quote Info */}
@@ -339,7 +339,7 @@ export default function WorkshopQuotesPage() {
                           </div>
                           <div className="flex justify-between border-t border-white/10 pt-3">
                             <span className="font-semibold text-white">Customer Total</span>
-                            <span className="text-lg font-bold text-orange-400">${quote.customer_total?.toFixed(2)}</span>
+                            <span className="text-lg font-bold text-white">${quote.customer_total?.toFixed(2)}</span>
                           </div>
                           <div className="rounded-lg bg-green-500/20 p-3">
                             <div className="flex justify-between">
@@ -353,7 +353,7 @@ export default function WorkshopQuotesPage() {
                         <div className="mt-6 space-y-2">
                           <Link
                             href={`/workshop/quotes/${quote.id}`}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-600"
                           >
                             <Eye className="h-4 w-4" />
                             View Details
@@ -392,13 +392,13 @@ function StatCard({
   label: string
   value: string | number
   subtext: string
-  color: 'blue' | 'yellow' | 'green' | 'orange'
+  color: 'blue' | 'yellow' | 'green' | 'purple'
 }) {
   const colorClasses = {
     blue: 'from-blue-500 to-blue-600',
     yellow: 'from-yellow-500 to-yellow-600',
     green: 'from-green-500 to-green-600',
-    orange: 'from-orange-500 to-orange-600',
+    purple: 'from-purple-500 to-purple-600',
   }
 
   return (

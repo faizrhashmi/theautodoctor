@@ -124,7 +124,7 @@ export default function WorkshopDashboardPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"></div>
           <p className="mt-4 text-slate-400">Loading dashboard...</p>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function WorkshopDashboardPage() {
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
                 <Building2 className="h-7 w-7 text-white" />
               </div>
               <div>
@@ -219,7 +219,7 @@ export default function WorkshopDashboardPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
                 activeTab === tab.id
-                  ? 'border-orange-500 text-orange-400'
+                  ? 'border-purple-500 text-purple-400'
                   : 'border-transparent text-slate-400 hover:text-white'
               }`}
             >
@@ -267,7 +267,7 @@ export default function WorkshopDashboardPage() {
                   label="Workshop Revenue"
                   value={`$${stats.workshopRevenue.toFixed(2)}`}
                   subtext={`$${stats.totalRevenue.toFixed(2)} total platform`}
-                  color="orange"
+                  color="green"
                 />
               </div>
 
@@ -277,9 +277,9 @@ export default function WorkshopDashboardPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <button
                     onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 text-left transition hover:bg-orange-500/20"
+                    className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 text-left transition hover:bg-purple-500/20"
                   >
-                    <UserPlus className="h-6 w-6 text-orange-400" />
+                    <UserPlus className="h-6 w-6 text-purple-400" />
                     <div>
                       <p className="font-semibold text-white">Invite Mechanic</p>
                       <p className="text-sm text-slate-400">Send invitation code</p>
@@ -324,7 +324,7 @@ export default function WorkshopDashboardPage() {
                   <h3 className="text-lg font-semibold text-white">Recent Mechanics</h3>
                   <button
                     onClick={() => setActiveTab('mechanics')}
-                    className="text-sm font-medium text-orange-400 hover:underline"
+                    className="text-sm font-medium text-purple-400 hover:underline"
                   >
                     View All
                   </button>
@@ -335,7 +335,7 @@ export default function WorkshopDashboardPage() {
                     <p className="mt-2 text-sm text-slate-400">No mechanics yet</p>
                     <button
                       onClick={() => setShowInviteModal(true)}
-                      className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                      className="mt-4 rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600"
                     >
                       Invite Your First Mechanic
                     </button>
@@ -379,7 +379,7 @@ export default function WorkshopDashboardPage() {
                   </h3>
                   <button
                     onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                    className="flex items-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600"
                   >
                     <UserPlus className="h-4 w-4" />
                     Invite Mechanic
@@ -454,7 +454,7 @@ export default function WorkshopDashboardPage() {
                   </h3>
                   <button
                     onClick={() => setShowInviteModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                    className="flex items-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600"
                   >
                     <UserPlus className="h-4 w-4" />
                     New Invite
@@ -563,7 +563,7 @@ export default function WorkshopDashboardPage() {
                       {organization.coverage_postal_codes.map((code, idx) => (
                         <span
                           key={idx}
-                          className="rounded-full bg-orange-500/20 px-3 py-1 text-sm font-medium text-orange-300"
+                          className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-medium text-purple-300"
                         >
                           {code}
                         </span>
