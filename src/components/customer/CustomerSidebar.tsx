@@ -148,7 +148,7 @@ export default function CustomerSidebar() {
               <p className="text-sm text-slate-300 font-medium">
                 {firstName ? `Hi ${firstName}` : 'Customer Portal'}
               </p>
-              {userId && <NotificationBell userId={userId} />}
+              {userId && <NotificationBell userId={userId} userRole="customer" />}
             </div>
           </div>
 

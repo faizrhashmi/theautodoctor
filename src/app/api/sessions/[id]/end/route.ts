@@ -104,299 +104,47 @@ export async function POST(
   const isMechanic = participant.role === 'mechanic'
 
   const now = new Date().toISOString()
-  const acceptHeader = req.headers.get('accept')
-  const contentType = req.headers.get('content-type')
 
-  // FSM VALIDATION: Check if transition to 'completed' is valid
-  const currentStatus = session.status as SessionStatus
+  // Use the new semantic function to intelligently end the session
+  console.log(`[end session] Calling end_session_with_semantics for session ${sessionId}`)
 
-  // Idempotent: If already completed, return success
-  if (currentStatus === 'completed') {
-    return NextResponse.json({
-      success: true,
-      message: 'Session already completed',
-      session: {
-        id: sessionId,
-        status: 'completed',
-        ended_at: session.ended_at || now,
-      },
-    })
-  }
-
-  // Check if we can transition to completed
-  if (!canTransition(currentStatus, 'completed')) {
-    // Try transitioning to cancelled instead if completed is not allowed
-    if (canTransition(currentStatus, 'cancelled')) {
-      console.log(`[end session] Cannot transition ${currentStatus} -> completed, using cancelled instead`)
-
-      // Update correct table for cancellation
-      const { error: cancelError } = sessionTable === 'sessions'
-        ? await supabaseAdmin
-            .from('sessions')
-            .update({
-              status: 'cancelled',
-              ended_at: now,
-              updated_at: now,
-              metadata: {
-                ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
-                cancelled_via_end: {
-                  original_status: currentStatus,
-                  ended_at: now,
-                  ended_by: isCustomer ? 'customer' : 'mechanic',
-                },
-              },
-            })
-            .eq('id', sessionId)
-        : await supabaseAdmin
-            .from('diagnostic_sessions')
-            .update({
-              status: 'cancelled',
-              ended_at: now,
-              updated_at: now,
-            })
-            .eq('id', sessionId)
-
-      if (cancelError) {
-        console.error('Failed to cancel session', cancelError)
-        return NextResponse.json({ error: cancelError.message }, { status: 500 })
-      }
-
-      await logInfo('session.cancelled', `Session ${sessionId} cancelled (via end request)`, {
-        sessionId,
-        customerId: session.customer_user_id,
-        mechanicId: session.mechanic_id,
-        metadata: { original_status: currentStatus, ended_by: isCustomer ? 'customer' : 'mechanic' },
-      })
-
-      // Broadcast session ended event
-      // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
-      try {
-        const channelName = session.type === 'chat'
-          ? `session-${sessionId}`
-          : `session:${sessionId}`
-
-        await supabaseAdmin.channel(channelName).send({
-          type: 'broadcast',
-          event: 'session:ended',
-          payload: {
-            sessionId,
-            status: 'cancelled',
-            ended_at: now,
-            endedBy: isCustomer ? 'customer' : 'mechanic',
-          },
-        })
-        console.log(`[end session] Broadcast sent to ${channelName}`)
-
-        // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
-        await supabaseAdmin.channel('active-sessions-updates').send({
-          type: 'broadcast',
-          event: 'session_completed',
-          payload: {
-            session_id: sessionId,
-            status: 'cancelled',
-            ended_at: now,
-          },
-        })
-        console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel`)
-      } catch (broadcastError) {
-        console.error('[end session] Failed to broadcast session:ended', broadcastError)
-      }
-
-      // Always return JSON for API calls (fetch from frontend)
-      // Only redirect if coming from a form submission
-      return NextResponse.json({
-        success: true,
-        message: 'Session cancelled successfully',
-        session: { id: sessionId, status: 'cancelled', ended_at: now },
-      })
-    }
-
-    return NextResponse.json(
-      {
-        error: 'Invalid state transition',
-        current: currentStatus,
-        requested: 'completed',
-        message: `Cannot end session in ${currentStatus} status`,
-      },
-      { status: 409 }
-    )
-  }
-
-  console.log(`[end session] Ending session ${sessionId} with status: ${session.status}`)
-
-  // If session was never started (pending/waiting), mark as completed with no-show metadata
-  const shouldMarkNoShow = !session.started_at && ['pending', 'waiting'].includes(currentStatus)
-  const durationMinutes = calculateDuration(session.started_at, now) ?? 0
-
-  // If session should be marked as no-show (never started), mark as completed
-  if (shouldMarkNoShow) {
-    console.log(`[end session] Session ${sessionId} never started - marking as completed (no-show)`)
-
-    // Mark session as completed (not cancelled) so it shows in mechanic history
-    const noShowUpdate = {
-      status: 'completed',
-      ended_at: now,
-      updated_at: now,
-      duration_minutes: 0,
-      metadata: {
-        ...(typeof session.metadata === 'object' && session.metadata !== null ? session.metadata : {}),
-        no_show: {
-          ended_at: now,
-          reason: 'Session ended before starting (customer/mechanic no-show)',
-          ended_by: isCustomer ? 'customer' : 'mechanic',
-        },
-      },
-    }
-
-    const { error: updateError } = sessionTable === 'sessions'
-      ? await supabaseAdmin.from('sessions').update(noShowUpdate).eq('id', sessionId)
-      : await supabaseAdmin.from('diagnostic_sessions').update({
-          status: 'completed',
-          ended_at: now,
-          updated_at: now,
-          duration_minutes: 0,
-          metadata: noShowUpdate.metadata,
-        }).eq('id', sessionId)
-
-    if (updateError) {
-      console.error('Failed to end no-show session', updateError)
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
-
-    // Log no-show completion
-    await logInfo('session.completed', `Session ${sessionId} completed (no-show)`, {
-      sessionId,
-      customerId: session.customer_user_id,
-      mechanicId: session.mechanic_id,
-      metadata: {
-        no_show: true,
-        ended_by: isCustomer ? 'customer' : 'mechanic',
-      },
+  const { data: semanticResult, error: semanticError } = await supabaseAdmin
+    .rpc('end_session_with_semantics', {
+      p_actor_role: participant.role,
+      p_reason: 'user_ended',
+      p_session_id: sessionId
     })
 
-    // CRITICAL FIX: Create notifications for no-show scenario
-    const noShowNotifications = []
-
-    if (session.customer_user_id) {
-      noShowNotifications.push({
-        user_id: session.customer_user_id,
-        type: 'session_cancelled',
-        payload: {
-          session_id: sessionId,
-          session_type: session.type,
-          reason: 'Session ended before starting (no-show)',
-          ended_by: isCustomer ? 'customer' : 'mechanic'
-        }
-      })
-    }
-
-    if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
-      noShowNotifications.push({
-        user_id: session.mechanic_id,
-        type: 'session_cancelled',
-        payload: {
-          session_id: sessionId,
-          session_type: session.type,
-          reason: 'Session ended before starting (no-show)',
-          ended_by: isMechanic ? 'mechanic' : 'customer'
-        }
-      })
-    }
-
-    if (noShowNotifications.length > 0) {
-      const { error: notificationError } = await supabaseAdmin
-        .from('notifications')
-        .insert(noShowNotifications)
-
-      if (notificationError) {
-        console.error('[end session] Failed to create no-show notifications:', notificationError)
-      } else {
-        console.log(`[end session] ✓ Created ${noShowNotifications.length} notification(s) for no-show`)
-      }
-    }
-
-    // Broadcast session ended event
-    // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
-    try {
-      const channelName = session.type === 'chat'
-        ? `session-${sessionId}`
-        : `session:${sessionId}`
-
-      await supabaseAdmin.channel(channelName).send({
-        type: 'broadcast',
-        event: 'session:ended',
-        payload: {
-          sessionId,
-          status: 'completed',
-          ended_at: now,
-          no_show: true,
-          endedBy: isCustomer ? 'customer' : 'mechanic',
-        },
-      })
-      console.log(`[end session] Broadcast sent to ${channelName}`)
-
-      // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
-      await supabaseAdmin.channel('active-sessions-updates').send({
-        type: 'broadcast',
-        event: 'session_completed',
-        payload: {
-          session_id: sessionId,
-          status: 'completed',
-          ended_at: now,
-          no_show: true,
-        },
-      })
-      console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel (no-show)`)
-    } catch (broadcastError) {
-      console.error('[end session] Failed to broadcast session:ended', broadcastError)
-    }
-
-    // Mark any associated session request as cancelled (no-show)
-    // CRITICAL FIX: Match by parent_session_id first, then fallback to customer_id + mechanic_id
-    if (session.customer_user_id) {
-      // First try: Match by parent_session_id
-      const { data: cancelledBySessionId } = await supabaseAdmin
-        .from('session_requests')
-        .update({
-          status: 'cancelled',
-        })
-        .eq('parent_session_id', sessionId)
-        .in('status', ['pending', 'accepted', 'unattended'])
-        .select()
-
-      if (cancelledBySessionId && cancelledBySessionId.length > 0) {
-        console.log(`[end session] Cancelled session_request ${cancelledBySessionId[0].id} (no-show, via parent_session_id)`)
-      } else {
-        // FALLBACK: Match by customer_id and mechanic_id
-        const { data: cancelledByMatch } = await supabaseAdmin
-          .from('session_requests')
-          .update({
-            status: 'cancelled',
-          })
-          .eq('customer_id', session.customer_user_id)
-          .eq('mechanic_id', session.mechanic_id)
-          .in('status', ['pending', 'accepted', 'unattended'])
-          .select()
-
-        if (cancelledByMatch && cancelledByMatch.length > 0) {
-          console.log(`[end session] Cancelled ${cancelledByMatch.length} session_request(s) (no-show, via customer + mechanic match)`)
-        }
-      }
-    }
-
-    const responseData = {
-      success: true,
-      message: 'Session ended successfully',
-      session: {
-        id: sessionId,
-        status: 'completed',
-        ended_at: now,
-      },
-    }
-
-    // Always return JSON for API calls
-    return NextResponse.json(responseData)
+  if (semanticError) {
+    console.error('[end session] Semantic function error:', semanticError)
+    return NextResponse.json({ error: 'Failed to end session', details: semanticError.message }, { status: 500 })
   }
+
+  // Extract result from JSONB response
+  const result = semanticResult as { final_status: string; started: boolean; duration_seconds: number; message: string }
+  const { final_status, started, duration_seconds, message } = result || {}
+
+  console.log(`[end session] Semantic result:`, {
+    final_status,
+    started,
+    duration_seconds,
+    message
+  })
+
+  // Refresh session data after semantic update
+  const { data: updatedSession } = sessionTable === 'sessions'
+    ? await supabaseAdmin
+        .from('sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single()
+    : await supabaseAdmin
+        .from('diagnostic_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single()
+
+  const durationMinutes = Math.max(1, Math.round((duration_seconds || 0) / 60))
 
   // Calculate mechanic earnings (only for sessions that actually happened)
   const planKey = session.plan as PlanKey
@@ -412,8 +160,8 @@ export async function POST(
     calculated_at: now,
   }
 
-  // Attempt Stripe transfer if mechanic has connected account AND session was actually started
-  if (session.mechanic_id && mechanicEarningsCents > 0 && session.started_at) {
+  // Attempt Stripe transfer if mechanic has connected account AND session was completed (not cancelled)
+  if (session.mechanic_id && mechanicEarningsCents > 0 && final_status === 'completed' && started) {
     try {
       // First try mechanics table (custom auth system)
       const { data: mechanic } = await supabaseAdmin
@@ -488,7 +236,7 @@ export async function POST(
   // =====================================================
   // NEW: Record earnings using workshop-aware revenue splits
   // =====================================================
-  if (session.started_at && planPrice > 0) {
+  if (final_status === 'completed' && started && planPrice > 0) {
     try {
       console.log(`[end session] Recording earnings for session ${sessionId}: $${(planPrice / 100).toFixed(2)}`)
 
@@ -530,12 +278,9 @@ export async function POST(
   }
   // =====================================================
 
-  // Update session with completion data (use correct table)
-  const existingMetadata = (session.metadata || {}) as Record<string, any>
-  const updateData: any = {
-    status: 'completed',
-    ended_at: now,
-    duration_minutes: durationMinutes,
+  // Update session metadata with payout information (status already set by semantic function)
+  const existingMetadata = (updatedSession?.metadata || {}) as Record<string, any>
+  const metadataUpdate = {
     updated_at: now,
     metadata: {
       ...existingMetadata,
@@ -543,45 +288,61 @@ export async function POST(
     },
   }
 
-  // Update the correct table
-  const { error: updateError } = sessionTable === 'sessions'
+  // Update only metadata (status already set by semantic function)
+  const { error: metadataError } = sessionTable === 'sessions'
     ? await supabaseAdmin
         .from('sessions')
-        .update(updateData)
+        .update(metadataUpdate)
         .eq('id', sessionId)
     : await supabaseAdmin
         .from('diagnostic_sessions')
-        .update({
-          status: 'completed',
-          ended_at: now,
-          duration_minutes: durationMinutes,
-          updated_at: now,
-          // diagnostic_sessions stores metadata differently
-          ...existingMetadata,
-        })
+        .update(metadataUpdate)
         .eq('id', sessionId)
 
-  if (updateError) {
-    console.error(`Failed to update ${sessionTable}`, updateError)
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  if (metadataError) {
+    console.warn(`[end session] Failed to update payout metadata:`, metadataError)
+    // Don't fail the request - this is non-critical
   }
 
-  console.log(`[end session] Updated ${sessionTable} with completion data`)
+  console.log(`[end session] Session ${sessionId} ended with status: ${final_status}`)
 
-  // Log session completion
-  await logInfo('session.completed', `Session ${sessionId} completed`, {
+  // Log session end with correct semantic status
+  const logEvent = final_status === 'completed' ? 'session.completed' : 'session.cancelled'
+  const logMessage = final_status === 'completed'
+    ? `Session ${sessionId} completed (${duration_seconds}s)`
+    : `Session ${sessionId} cancelled (pre-start or insufficient duration)`
+
+  await logInfo(logEvent, logMessage, {
     sessionId,
     customerId: session.customer_user_id,
     mechanicId: session.mechanic_id,
     metadata: {
+      final_status,
+      started,
+      duration_seconds,
       duration_minutes: durationMinutes,
       payout_status: payoutMetadata.status,
       ended_by: isCustomer ? 'customer' : 'mechanic',
     },
   })
 
-  // Generate session summary (async, non-blocking)
-  if (session.started_at && durationMinutes > 0) {
+  // Additional event already logged by semantic function, but log payout info
+  await supabaseAdmin.from('session_events').insert({
+    session_id: sessionId,
+    event_type: 'ended', // Using 'ended' as event type
+    user_id: session.mechanic_id,
+    mechanic_id: session.mechanic_id,
+    metadata: {
+      payout_processed: true,
+      payout_status: payoutMetadata.status,
+      amount_cents: mechanicEarningsCents,
+      final_status,
+      duration_minutes: durationMinutes
+    }
+  })
+
+  // Generate session summary (async, non-blocking) - only for completed sessions
+  if (final_status === 'completed' && started && durationMinutes > 0) {
     const { createSessionSummary } = await import('@/lib/session/summaryGenerator')
     createSessionSummary(sessionId, session.type as 'chat' | 'video')
       .then((success) => {
@@ -613,18 +374,21 @@ export async function POST(
     void generateUpsellsForSession(session.id)
   }
 
-  // CRITICAL FIX: Create notifications for both participants
+  // CRITICAL FIX: Create notifications for both participants with correct semantic type
   const notifications = []
+  const notificationType = final_status === 'completed' ? 'session_completed' : 'session_cancelled'
 
   if (session.customer_user_id) {
     notifications.push({
       user_id: session.customer_user_id,
-      type: 'session_completed',
+      type: notificationType,
       payload: {
         session_id: sessionId,
         session_type: session.type,
         ended_by: isCustomer ? 'customer' : 'mechanic',
-        duration_minutes: durationMinutes
+        duration_minutes: durationMinutes,
+        final_status,
+        started
       }
     })
   }
@@ -632,12 +396,14 @@ export async function POST(
   if (session.mechanic_id && session.mechanic_id !== session.customer_user_id) {
     notifications.push({
       user_id: session.mechanic_id,
-      type: 'session_completed',
+      type: notificationType,
       payload: {
         session_id: sessionId,
         session_type: session.type,
         ended_by: isMechanic ? 'mechanic' : 'customer',
-        duration_minutes: durationMinutes
+        duration_minutes: durationMinutes,
+        final_status,
+        started
       }
     })
   }
@@ -655,7 +421,7 @@ export async function POST(
     }
   }
 
-  // Broadcast session ended event
+  // Broadcast session ended event with correct semantic status
   // IMPORTANT: Chat uses 'session-{id}', Video uses 'session:{id}'
   try {
     const channelName = session.type === 'chat'
@@ -667,27 +433,30 @@ export async function POST(
       event: 'session:ended',
       payload: {
         sessionId,
-        status: 'completed',
+        status: final_status,
         ended_at: now,
         duration_minutes: durationMinutes,
+        duration_seconds,
+        started,
         endedBy: isCustomer ? 'customer' : 'mechanic',
       },
     })
-    console.log(`[end session] Broadcast sent to ${channelName}`)
+    console.log(`[end session] Broadcast sent to ${channelName} with status: ${final_status}`)
 
     // ✅ CRITICAL FIX: Also broadcast to active-sessions-updates channel
     // This ensures ActiveSessionsManager immediately removes the session from display
     await supabaseAdmin.channel('active-sessions-updates').send({
       type: 'broadcast',
-      event: 'session_completed',
+      event: 'session_completed', // Event name stays same for UI compatibility
       payload: {
         session_id: sessionId,
-        status: 'completed',
+        status: final_status,
         ended_at: now,
         duration_minutes: durationMinutes,
+        started,
       },
     })
-    console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel`)
+    console.log(`[end session] ✓ Broadcast sent to active-sessions-updates channel with status: ${final_status}`)
   } catch (broadcastError) {
     console.error('[end session] Failed to broadcast session:ended', broadcastError)
   }
@@ -749,16 +518,16 @@ export async function POST(
     // Don't fail the request if email fails
   }
 
-  // CRITICAL FIX: Mark the session_request as completed using parent_session_id
-  // This removes it from the mechanic's "new requests" list and tracks successful completion
-  // Use parent_session_id for precise matching (avoids marking multiple requests)
+  // CRITICAL FIX: Mark the session_request with the correct semantic status
+  // completed if session started and was billable, cancelled if pre-start or too short
   if (session.mechanic_id && session.customer_user_id) {
+    const requestStatus = final_status === 'completed' ? 'completed' : 'cancelled'
+
     // First try: Match by parent_session_id (most precise)
     const { data: updatedRequest, error: updateError } = await supabaseAdmin
       .from('session_requests')
       .update({
-        status: 'completed',
-        // Note: updated_at column doesn't exist in session_requests table
+        status: requestStatus,
       })
       .eq('parent_session_id', sessionId)
       .select()
@@ -766,7 +535,7 @@ export async function POST(
     if (updateError) {
       console.error(`[end session] Failed to update session_request:`, updateError)
     } else if (updatedRequest && updatedRequest.length > 0) {
-      console.log(`[end session] Marked session_request ${updatedRequest[0].id} as completed (via parent_session_id)`)
+      console.log(`[end session] Marked session_request ${updatedRequest[0].id} as ${requestStatus} (via parent_session_id)`)
     } else {
       // FALLBACK: If parent_session_id didn't match (null or not set), try matching by customer + mechanic + status
       console.warn(`[end session] No session_request found with parent_session_id ${sessionId}, trying fallback...`)
@@ -774,7 +543,7 @@ export async function POST(
       const { data: fallbackRequest, error: fallbackError } = await supabaseAdmin
         .from('session_requests')
         .update({
-          status: 'completed',
+          status: requestStatus,
         })
         .eq('customer_id', session.customer_user_id)
         .eq('mechanic_id', session.mechanic_id)
@@ -786,22 +555,35 @@ export async function POST(
       if (fallbackError) {
         console.error(`[end session] Fallback update failed:`, fallbackError)
       } else if (fallbackRequest && fallbackRequest.length > 0) {
-        console.log(`[end session] ✓ Marked session_request ${fallbackRequest[0].id} as completed (via fallback)`)
+        console.log(`[end session] ✓ Marked session_request ${fallbackRequest[0].id} as ${requestStatus} (via fallback)`)
       } else {
         console.warn(`[end session] No matching session_request found for customer ${session.customer_user_id} and mechanic ${session.mechanic_id}`)
       }
     }
   }
+  // Build response with correct semantic status
+  const responseMessage = final_status === 'completed'
+    ? 'Session completed successfully'
+    : 'Session cancelled (did not start or insufficient duration)'
+
   const responseData = {
     success: true,
-    message: 'Session ended successfully',
+    message: responseMessage,
     session: {
       id: sessionId,
-      status: 'completed',
+      status: final_status,
       ended_at: now,
       duration_minutes: durationMinutes,
+      duration_seconds,
+      started,
     },
-    payout: payoutMetadata,
+    payout: final_status === 'completed' ? payoutMetadata : { status: 'no_payout', message: 'Session cancelled before completion' },
+    semantic_result: {
+      final_status,
+      started,
+      duration_seconds,
+      message
+    }
   }
 
   // Always return JSON for API calls

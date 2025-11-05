@@ -123,9 +123,10 @@ export function SessionFileManager({
           throw new Error('You must be signed in to upload files.')
         }
 
-        // Extract regex to avoid Turbo mode parsing it as Tailwind class
-        const dateCharsRegex = /[-:TZ.]/g
-        const timestamp = new Date().toISOString().replace(dateCharsRegex, '')
+        // Use string methods to avoid Turbopack parsing regex as Tailwind class
+        const timestamp = new Date().toISOString()
+          .replaceAll('-', '').replaceAll(':', '').replaceAll('.', '')
+          .replace('T', '').replace('Z', '')
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const storagePath = `${sessionId}/${timestamp}-${sanitizedName}`
 

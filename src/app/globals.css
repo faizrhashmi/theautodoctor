@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '@fortawesome/fontawesome-free/css/all.min.css';
-@import '../vendor/react-big-calendar/lib/css/react-big-calendar.css';
-@import 'react-big-calendar/lib/css/react-big-calendar.css';
-
-
 /* Custom animations */
 @keyframes gradient {
   0% { background-position: 0% 50%; }

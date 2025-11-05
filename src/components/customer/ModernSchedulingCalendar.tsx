@@ -36,6 +36,14 @@ type ModernSchedulingCalendarProps = {
   }>
   plan?: PlanKey | null
   onSessionCreated?: () => void
+  activeSession?: {
+    id: string
+    status: string
+    type: string
+    scheduled_start?: string
+    scheduled_end?: string
+    created_at: string
+  } | null
 }
 
 const PLAN_LABELS: Record<PlanKey, string> = {
@@ -72,6 +80,7 @@ export default function ModernSchedulingCalendar({
   initialEvents,
   plan,
   onSessionCreated,
+  activeSession,
 }: ModernSchedulingCalendarProps) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -324,6 +333,24 @@ export default function ModernSchedulingCalendar({
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* Active Session Warning */}
+      {activeSession && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 backdrop-blur-sm p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-orange-300 mb-1">
+                Active Session in Progress
+              </p>
+              <p className="text-xs text-orange-200">
+                You have an active {activeSession.type} session ({activeSession.status}).
+                You can schedule future appointments, but ensure they don't overlap with your current session.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Calendar Card */}
       <div className="rounded-2xl border border-white/10 bg-slate-800/50 backdrop-blur-sm shadow-xl overflow-hidden">
         {/* Month Navigation */}

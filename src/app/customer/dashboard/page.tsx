@@ -36,7 +36,7 @@ import {
   Building2
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
-import ActiveSessionsManager from '@/components/customer/ActiveSessionsManager'
+import SessionCard from '@/components/sessions/SessionCard'
 import OnboardingChecklist from '@/components/customer/OnboardingChecklist'
 import VehiclePrompt from '@/components/customer/VehiclePrompt'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -230,10 +230,10 @@ export default function CustomerDashboardPage() {
       console.log('[CustomerDashboard] Fetching dashboard data...')
       setRefreshing(true)
       
-      const [statsResponse, availabilityResponse, activeSessionsResponse] = await Promise.all([
+      const [statsResponse, availabilityResponse, activeSessionResponse] = await Promise.all([
         fetch(`/api/customer/dashboard/stats?t=${Date.now()}`), // Cache busting
         fetch('/api/mechanics/available-count'),
-        fetch(`/api/customer/active-sessions?t=${Date.now()}`, {  // ✅ CRITICAL FIX: Cache busting + no-cache headers
+        fetch(`/api/customer/sessions/active?t=${Date.now()}`, {  // ✅ NEW: Unified sessions API
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -241,7 +241,7 @@ export default function CustomerDashboardPage() {
         })
       ])
 
-      console.log('[CustomerDashboard] Active sessions response status:', activeSessionsResponse.status)
+      console.log('[CustomerDashboard] Active session response status:', activeSessionResponse.status)
 
       if (!statsResponse.ok) {
         throw new Error(`Failed to fetch dashboard data: ${statsResponse.status}`)
@@ -265,15 +265,16 @@ export default function CustomerDashboardPage() {
         console.warn('[CustomerDashboard] Failed to fetch availability data')
       }
 
-      if (activeSessionsResponse.ok) {
-        const activeData = await activeSessionsResponse.json()
-        console.log('[CustomerDashboard] Active sessions data:', activeData)
-        const sessions = activeData.sessions || []
+      if (activeSessionResponse.ok) {
+        const activeData = await activeSessionResponse.json()
+        console.log('[CustomerDashboard] Active session data:', activeData)
+        // New API returns { active: boolean, session: {...} | null }
+        const sessions = activeData.active && activeData.session ? [activeData.session] : []
         setActiveSessions(sessions)
         console.log('[CustomerDashboard] Set active sessions count:', sessions.length)
       } else {
-        const errorText = await activeSessionsResponse.text()
-        console.error('[CustomerDashboard] Failed to fetch active sessions:', activeSessionsResponse.status, errorText)
+        const errorText = await activeSessionResponse.text()
+        console.error('[CustomerDashboard] Failed to fetch active session:', activeSessionResponse.status, errorText)
         setActiveSessions([]) // Reset active sessions on error
       }
     } catch (err) {
@@ -579,7 +580,59 @@ export default function CustomerDashboardPage() {
             />
           </div>
           <div className="mb-6 sm:mb-8">
-            <ActiveSessionsManager sessions={activeSessions} />
+            {activeSessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                sessionId={session.id}
+                type={session.type}
+                status={session.status as any}
+                plan={session.plan}
+                createdAt={session.createdAt}
+                startedAt={session.startedAt}
+                partnerName={session.mechanicName}
+                partnerRole="mechanic"
+                userRole="customer"
+                cta={{
+                  action: session.status === 'live' ? 'Return to Session' : 'Join Session',
+                  route: `/${session.type}/${session.id}`
+                }}
+                onEnd={async () => {
+                  try {
+                    const res = await fetch(`/api/customer/sessions/${session.id}/end`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: 'Customer ended session' })
+                    })
+                    if (res.ok) {
+                      await fetchDashboardData()
+                    } else {
+                      alert('Failed to end session')
+                    }
+                  } catch (error) {
+                    console.error('End session error:', error)
+                    alert('Failed to end session')
+                  }
+                }}
+                onCancel={async () => {
+                  if (!confirm('Are you sure you want to cancel this session?')) return
+                  try {
+                    const res = await fetch(`/api/customer/sessions/${session.id}/end`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ reason: 'Customer cancelled session' })
+                    })
+                    if (res.ok) {
+                      await fetchDashboardData()
+                    } else {
+                      alert('Failed to cancel session')
+                    }
+                  } catch (error) {
+                    console.error('Cancel session error:', error)
+                    alert('Failed to cancel session')
+                  }
+                }}
+              />
+            ))}
           </div>
         </>
       )}
@@ -721,26 +774,15 @@ export default function CustomerDashboardPage() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {/* Schedule - Disabled when active session exists */}
-          {activeSessions.length > 0 ? (
-            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 opacity-50 cursor-not-allowed relative">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3" />
-              <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
-              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-lg">
-                <span className="text-xs text-orange-400 font-medium px-2 text-center">Complete active session first</span>
-              </div>
-            </div>
-          ) : (
-            <Link
-              href="/customer/schedule"
-              className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
-            >
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
-              <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
-              <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
-            </Link>
-          )}
+          {/* Schedule - Always enabled, but calendar prevents time conflicts */}
+          <Link
+            href="/customer/schedule"
+            className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
+          >
+            <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
+            <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
+          </Link>
 
           <Link
             href="/customer/quotes"
@@ -1267,8 +1309,9 @@ export default function CustomerDashboardPage() {
   )
 
   return (
-    <div className="min-h-screen py-4 sm:py-6 lg:py-8 pt-16 sm:pt-20 lg:pt-8">
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+    <>
+      <div className="min-h-screen py-4 sm:py-6 lg:py-8 pt-16 sm:pt-20 lg:pt-8">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         {/* Header with Actions */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div className="w-full sm:w-auto">
@@ -1433,6 +1476,7 @@ export default function CustomerDashboardPage() {
         currentAccentColor={accent.colorName}
         onSave={(color) => accent.setAccentColor(color)}
       />
-    </div>
+      </div>
+    </>
   )
 }

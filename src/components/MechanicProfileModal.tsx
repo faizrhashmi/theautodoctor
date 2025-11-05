@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Award, Wrench, Star, Shield, Briefcase, CheckCircle, Loader2 } from 'lucide-react'
+import { X, Award, Wrench, Star, Shield, Briefcase, CheckCircle, Loader2, GripVertical } from 'lucide-react'
 
 interface MechanicProfile {
   id: string
@@ -33,6 +33,7 @@ export default function MechanicProfileModal({
   const [profile, setProfile] = useState<MechanicProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const constraintsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen && mechanicId) {
@@ -87,35 +88,44 @@ export default function MechanicProfileModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div ref={constraintsRef} className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
           />
 
-          {/* Modal Container */}
+          {/* Modal Container - Draggable */}
           <motion.div
+            drag
+            dragConstraints={constraintsRef}
+            dragElastic={0.1}
+            dragMomentum={false}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg mx-auto z-10"
+            className="relative w-full max-w-lg mx-auto z-10 touch-none"
           >
             <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-slate-700 rounded-2xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="relative px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-500/10 to-slate-900/50">
+              {/* Header - Drag Handle */}
+              <div className="relative px-5 py-4 border-b border-slate-700 bg-gradient-to-r from-orange-500/10 to-slate-900/50 cursor-move active:cursor-grabbing">
+                {/* Drag indicator */}
+                <div className="absolute left-1/2 top-2 -translate-x-1/2 flex gap-1">
+                  <div className="w-8 h-1 rounded-full bg-slate-600/50"></div>
+                </div>
+
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 p-2 hover:bg-slate-800/50 rounded-lg transition-colors touch-manipulation z-10"
+                  className="absolute top-3 right-3 p-2 hover:bg-slate-800/50 rounded-lg transition-colors touch-manipulation z-10 cursor-pointer"
                   aria-label="Close"
                 >
                   <X className="w-5 h-5 text-slate-300" />
                 </button>
 
-                <div className="flex items-center gap-3 pr-10">
+                <div className="flex items-center gap-3 pr-10 pt-2">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20 border-2 border-orange-500/30">
                     <Wrench className="h-7 w-7 text-orange-400" />
                   </div>

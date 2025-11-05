@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     // No need to look up mechanics table - query by Supabase Auth user ID
     console.log('[MECHANIC SESSIONS] Querying sessions where mechanic_id =', mechanic.id)
 
-    // Fetch all sessions for this mechanic (using Supabase Auth user ID directly)
+    // Fetch all sessions for this mechanic (including fields needed for SessionCompletionModal)
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('sessions')
       .select(`
@@ -28,10 +28,12 @@ export async function GET(req: NextRequest) {
         status,
         plan,
         created_at,
+        started_at,
         ended_at,
-        metadata,
         customer_user_id,
-        mechanic_id
+        mechanic_id,
+        rating,
+        metadata
       `)
       .eq('mechanic_id', mechanic.id)  // Use Supabase Auth user ID directly
       .order('created_at', { ascending: false })
@@ -51,30 +53,46 @@ export async function GET(req: NextRequest) {
     // Map customer names to sessions
     const customersMap = new Map(customers?.map(c => [c.id, c.full_name]) || [])
 
-    // Determine price based on plan
+    // Determine price based on plan (in cents for SessionCompletionModal)
     const priceMap: Record<string, number> = {
       free: 0,
       trial: 0,
-      quick: 9.99,
-      chat10: 9.99,
-      standard: 29.99,
-      video15: 29.99,
-      diagnostic: 49.99,
+      quick: 999,        // $9.99 in cents
+      chat10: 999,
+      standard: 2999,    // $29.99 in cents
+      video15: 2999,
+      diagnostic: 4999,  // $49.99 in cents
     }
 
-    // Format sessions with customer names and pricing
+    // Format sessions with all fields needed for SessionCompletionModal
     const formattedSessions = sessions?.map(session => {
       const customerName = customersMap.get(session.customer_user_id) || 'Unknown Customer'
+
+      // Calculate duration in minutes if session has started and ended
+      let durationMinutes = null
+      if (session.started_at && session.ended_at) {
+        const startTime = new Date(session.started_at).getTime()
+        const endTime = new Date(session.ended_at).getTime()
+        durationMinutes = Math.round((endTime - startTime) / 60000)
+      }
 
       return {
         id: session.id,
         type: session.type,
         status: session.status,
+        customer_user_id: session.customer_user_id,
+        mechanic_id: session.mechanic_id,
         customer_name: customerName,
+        mechanic_name: mechanic.user_metadata?.full_name || mechanic.email,
         plan: session.plan || 'free',
         created_at: session.created_at,
-        completed_at: session.ended_at,
-        price: priceMap[session.plan || 'free'] || 0,
+        started_at: session.started_at,
+        ended_at: session.ended_at,
+        completed_at: session.ended_at, // Keep for backward compatibility
+        duration_minutes: durationMinutes,
+        base_price: priceMap[session.plan || 'free'] || 0,
+        price: (priceMap[session.plan || 'free'] || 0) / 100, // Keep for backward compatibility (in dollars)
+        rating: session.rating,
         metadata: session.metadata,
       }
     }) || []

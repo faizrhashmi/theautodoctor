@@ -128,7 +128,7 @@ export default function WorkshopSidebar() {
             <Logo size="md" showText={true} href="/workshop/dashboard" variant="workshop" />
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-slate-500">Workshop Portal</p>
-              {workshopUserId && <NotificationBell userId={workshopUserId} />}
+              {workshopUserId && <NotificationBell userId={workshopUserId} userRole="workshop" />}
             </div>
           </div>
 

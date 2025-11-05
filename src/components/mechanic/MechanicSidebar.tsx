@@ -168,7 +168,7 @@ export default function MechanicSidebar() {
               <p className="text-xs text-slate-400">
                 {mechanicFirstName ? `Hi ${mechanicFirstName}` : 'Mechanic Portal'}
               </p>
-              {mechanicUserId && <NotificationBell userId={mechanicUserId} />}
+              {mechanicUserId && <NotificationBell userId={mechanicUserId} userRole="mechanic" />}
             </div>
           </div>
 

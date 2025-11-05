@@ -14,8 +14,8 @@ import {
   Settings,
   ArrowRight
 } from 'lucide-react'
-import MechanicActiveSessionsManager from '@/components/mechanic/MechanicActiveSessionsManager'
 import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
+import SessionCard from '@/components/sessions/SessionCard'
 
 interface DashboardStats {
   pending_sessions: number
@@ -209,10 +209,38 @@ export default function VirtualMechanicDashboard() {
           </div>
         )}
 
-        {/* Active Sessions Manager - Shows active session and enforces one-session-at-a-time rule */}
+        {/* Active Sessions - Shows active session using SessionCard */}
         {activeSessions.length > 0 && (
-          <div className="mb-8">
-            <MechanicActiveSessionsManager sessions={activeSessions} />
+          <div className="mb-8 bg-green-500/10 backdrop-blur-sm border border-green-500/30 rounded-lg shadow p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <CheckCircle2 className="h-6 w-6 text-green-400" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Active Session</h2>
+                <p className="text-sm text-green-300 mt-1">
+                  You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {activeSessions.map((session) => (
+                <SessionCard
+                  key={session.id}
+                  sessionId={session.id}
+                  type={session.type}
+                  status={session.status as any}
+                  plan={session.plan}
+                  createdAt={session.createdAt}
+                  startedAt={session.startedAt}
+                  partnerName={session.customerName}
+                  partnerRole="customer"
+                  userRole="mechanic"
+                  cta={{
+                    action: session.status === 'live' ? 'Return to Session' : 'Join Session',
+                    route: `/${session.type}/${session.id}`
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
 

@@ -5,9 +5,10 @@ import { NotificationCenter } from './NotificationCenter'
 
 interface NotificationBellProps {
   userId: string
+  userRole?: 'customer' | 'mechanic' | 'workshop'
 }
 
-export function NotificationBell({ userId }: NotificationBellProps) {
+export function NotificationBell({ userId, userRole = 'customer' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [previousUnreadCount, setPreviousUnreadCount] = useState(0)
@@ -105,6 +106,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         isOpen={isOpen}
         onClose={handleClose}
         userId={userId}
+        userRole={userRole}
       />
     </>
   )

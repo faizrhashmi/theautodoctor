@@ -24,18 +24,14 @@ export default async function CustomerSchedulePage() {
     redirect('/signup?redirect=/customer/schedule')
   }
 
-  // Check for active sessions - enforce business rule: only one session at a time
+  // Check for active sessions to pass to calendar for time conflict validation
+  // Note: We allow scheduling during active sessions, but prevent time conflicts
   const { data: activeSessions } = await supabase
     .from('sessions')
-    .select('id, status')
+    .select('id, status, type, scheduled_start, scheduled_end, created_at')
     .eq('customer_user_id', user.id)
-    .in('status', ['pending', 'live', 'waiting', 'scheduled'])
+    .in('status', ['pending', 'live', 'waiting'])
     .limit(1)
-
-  // If customer has an active session, redirect to dashboard
-  if (activeSessions && activeSessions.length > 0) {
-    redirect('/customer/dashboard?message=active_session_exists')
-  }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -89,7 +85,11 @@ export default async function CustomerSchedulePage() {
 
         <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div>
-            <ModernSchedulingCalendar initialEvents={scheduledEvents} plan={plan} />
+            <ModernSchedulingCalendar
+              initialEvents={scheduledEvents}
+              plan={plan}
+              activeSession={activeSessions && activeSessions.length > 0 ? activeSessions[0] : null}
+            />
           </div>
           <aside className="space-y-4 sm:space-y-6">
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6 shadow-sm backdrop-blur-sm">

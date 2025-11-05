@@ -4,14 +4,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
-import MechanicActiveSessionsManager from '@/components/mechanic/MechanicActiveSessionsManager'
 import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
 import { createClient } from '@/lib/supabase'
-import { RequestPreviewModal } from '@/components/mechanic/RequestPreviewModal'
 import RecentSessions from '@/components/dashboard/RecentSessions'
+import SessionCard from '@/components/sessions/SessionCard'
+import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
 
 interface ActiveSession {
   id: string
@@ -55,6 +55,25 @@ interface PendingRequest {
   workshop_id: string | null
 }
 
+interface QueueItem {
+  assignmentId: string
+  sessionId: string
+  sessionType: 'chat' | 'video' | 'diagnostic'
+  sessionStatus: string
+  plan?: string
+  createdAt: string
+  customer: {
+    name?: string | null
+  }
+  vehicle?: {
+    year?: string
+    make?: string
+    model?: string
+  } | null
+  concern?: string
+  urgent?: boolean
+}
+
 export default function MechanicDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -67,13 +86,13 @@ export default function MechanicDashboardPage() {
   const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
+  const [queue, setQueue] = useState<QueueItem[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingRecentSessions, setLoadingRecentSessions] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [acceptingRequest, setAcceptingRequest] = useState<string | null>(null)
-  const [previewRequestId, setPreviewRequestId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   
@@ -199,27 +218,26 @@ export default function MechanicDashboardPage() {
     const fetchPendingRequests = async () => {
       setLoadingRequests(true)
       try {
-        console.log('[MechanicDashboard] Fetching pending requests...')
-        const response = await fetch('/api/mechanics/requests?status=pending')
-        
+        console.log('[MechanicDashboard] Fetching mechanic queue...')
+        const response = await fetch('/api/mechanic/queue')
+
         if (response.ok) {
           const data = await response.json()
-          const requests = data.requests || []
-          setPendingRequests(requests)
-          console.log('[MechanicDashboard] Fetched pending requests:', requests.length)
-          console.log('[MechanicDashboard] Request details:', requests)
+          const queueItems = data.queue || []
+          setQueue(queueItems)
+          console.log('[MechanicDashboard] Fetched queue items:', queueItems.length)
+          console.log('[MechanicDashboard] Queue details:', queueItems)
         } else {
-          console.error('[MechanicDashboard] Failed to fetch requests:', response.status, response.statusText)
-          // Try to get error details
+          console.error('[MechanicDashboard] Failed to fetch queue:', response.status, response.statusText)
           try {
             const errorData = await response.json()
-            console.error('[MechanicDashboard] Request error details:', errorData)
+            console.error('[MechanicDashboard] Queue error details:', errorData)
           } catch (e) {
             console.error('[MechanicDashboard] Could not parse error response')
           }
         }
       } catch (err) {
-        console.error('[MechanicDashboard] Failed to fetch pending requests:', err)
+        console.error('[MechanicDashboard] Failed to fetch queue:', err)
       } finally {
         setLoadingRequests(false)
       }
@@ -230,32 +248,29 @@ export default function MechanicDashboardPage() {
     }
   }, [isAuthenticated, checkingTier])
 
-  // Handler to accept a request
-  const handleAcceptRequest = async (requestId: string) => {
+  // Handler to accept an assignment
+  const handleAcceptAssignment = async (assignmentId: string, sessionType: string) => {
     if (activeSessions.length > 0) {
       alert('You already have an active session. Please complete it before accepting new requests.')
       return
     }
 
-    setAcceptingRequest(requestId)
+    setAcceptingRequest(assignmentId)
     try {
-      console.log('[MechanicDashboard] Accepting request:', requestId)
-      const response = await fetch('/api/mechanic/accept', {
+      console.log('[MechanicDashboard] Accepting assignment:', assignmentId)
+      const response = await fetch(`/api/mechanic/assignments/${assignmentId}/accept`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId }),
+        headers: { 'Content-Type': 'application/json' }
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Success - remove from pending and redirect to session
-        setPendingRequests(prev => prev.filter(r => r.id !== requestId))
-        console.log('[MechanicDashboard] Request accepted successfully:', data)
-        alert('Request accepted! Redirecting to session...')
+        // Success - remove from queue and redirect to session
+        setQueue(prev => prev.filter(q => q.assignmentId !== assignmentId))
+        console.log('[MechanicDashboard] Assignment accepted successfully:', data)
 
         // Route based on session type
-        const sessionType = data.session?.type || 'diagnostic'
         const routes: Record<string, string> = {
           chat: '/chat',
           video: '/video',
@@ -264,12 +279,12 @@ export default function MechanicDashboardPage() {
         const route = routes[sessionType] || '/diagnostic'
         window.location.href = `${route}/${data.sessionId}`
       } else {
-        console.error('[MechanicDashboard] Failed to accept request:', data)
-        alert(data.error || 'Failed to accept request')
+        console.error('[MechanicDashboard] Failed to accept assignment:', data)
+        alert(data.error || 'Failed to accept assignment')
       }
     } catch (err) {
-      console.error('[MechanicDashboard] Failed to accept request:', err)
-      alert('Failed to accept request. Please try again.')
+      console.error('[MechanicDashboard] Failed to accept assignment:', err)
+      alert('Failed to accept assignment. Please try again.')
     } finally {
       setAcceptingRequest(null)
     }
@@ -327,16 +342,16 @@ export default function MechanicDashboardPage() {
     const refetchData = async () => {
       console.log('[MechanicDashboard] 🔄 Real-time update detected, refetching all data...')
 
-      // Refetch pending requests
+      // Refetch queue
       try {
-        const requestsResponse = await fetch('/api/mechanics/requests?status=pending')
-        if (requestsResponse.ok) {
-          const requestsData = await requestsResponse.json()
-          setPendingRequests(requestsData.requests || [])
-          console.log('[MechanicDashboard] ✓ Refetched pending requests:', requestsData.requests?.length || 0)
+        const queueResponse = await fetch('/api/mechanic/queue')
+        if (queueResponse.ok) {
+          const queueData = await queueResponse.json()
+          setQueue(queueData.queue || [])
+          console.log('[MechanicDashboard] ✓ Refetched queue:', queueData.queue?.length || 0)
         }
       } catch (err) {
-        console.error('[MechanicDashboard] Failed to refetch pending requests:', err)
+        console.error('[MechanicDashboard] Failed to refetch queue:', err)
       }
 
       // Refetch active sessions
@@ -392,10 +407,10 @@ export default function MechanicDashboardPage() {
         {
           event: '*',
           schema: 'public',
-          table: 'session_requests',
+          table: 'session_assignments',
         },
         (payload) => {
-          console.log('[MechanicDashboard] Session request change detected:', payload)
+          console.log('[MechanicDashboard] Session assignment change detected:', payload)
           refetchData()
         }
       )
@@ -467,8 +482,9 @@ export default function MechanicDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 pt-20 lg:pt-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <>
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 pt-20 lg:pt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
@@ -529,169 +545,39 @@ export default function MechanicDashboardPage() {
             <div className="h-6 bg-slate-700 rounded w-48 mb-4"></div>
             <div className="h-4 bg-slate-700 rounded w-64"></div>
           </div>
-        ) : pendingRequests.length > 0 ? (
+        ) : queue.length > 0 ? (
           <div className="mb-6 sm:mb-8 bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="h-6 w-6 text-blue-400 animate-pulse" />
               <div>
-                <h2 className="text-xl font-bold text-white">New Service Requests</h2>
+                <h2 className="text-xl font-bold text-white">Available Sessions</h2>
                 <p className="text-sm text-blue-300 mt-1">
-                  {pendingRequests.length} customer{pendingRequests.length > 1 ? 's are' : ' is'} waiting for help
+                  {queue.length} session{queue.length > 1 ? 's' : ''} waiting for a mechanic
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-lg border border-blue-500/30 bg-slate-900/50 hover:border-blue-500/50 transition-all overflow-hidden"
-                >
-                  {/* Header Section */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-800/50 border-b border-blue-500/20">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-500/40">
-                        <User className="h-5 w-5 text-blue-400" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-white truncate">
-                            {request.customer_name || 'Customer'}
-                          </h3>
-                          {request.intake?.urgent && (
-                            <span className="px-2 py-0.5 text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30 rounded">
-                              URGENT
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-400">
-                          <span className="capitalize">{request.session_type || 'diagnostic'} session</span>
-                          <span className="text-slate-600">•</span>
-                          <span>{new Date(request.created_at).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 sm:mt-0 flex items-center gap-2">
-                      <button
-                        onClick={() => setPreviewRequestId(request.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors whitespace-nowrap border border-slate-600"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View Details
-                      </button>
-                      <button
-                        onClick={() => handleAcceptRequest(request.id)}
-                        disabled={acceptingRequest === request.id || activeSessions.length > 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                      >
-                        {acceptingRequest === request.id ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                            Accepting...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCheck className="h-4 w-4" />
-                            Accept Request
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Vehicle & Concern Details Section */}
-                  {request.intake && (
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Vehicle Information */}
-                      {(request.intake.year || request.intake.make || request.intake.model) && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-blue-400 uppercase tracking-wide flex items-center gap-2">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            Vehicle Details
-                          </h4>
-                          <div className="bg-slate-800/50 rounded-lg p-3 space-y-1.5">
-                            {(request.intake.year || request.intake.make || request.intake.model) && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-sm">Vehicle:</span>
-                                <span className="text-white font-medium">
-                                  {request.intake.year} {request.intake.make} {request.intake.model}
-                                </span>
-                              </div>
-                            )}
-                            {request.intake.vin && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-sm">VIN:</span>
-                                <span className="text-white font-mono text-xs">{request.intake.vin}</span>
-                              </div>
-                            )}
-                            {request.intake.plate && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-sm">Plate:</span>
-                                <span className="text-white font-mono text-xs">{request.intake.plate}</span>
-                              </div>
-                            )}
-                            {request.intake.odometer && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400 text-sm">Mileage:</span>
-                                <span className="text-white">{Number(request.intake.odometer).toLocaleString()} km</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Customer Concern */}
-                      {request.intake.concern && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-orange-400 uppercase tracking-wide flex items-center gap-2">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            Customer Concern
-                          </h4>
-                          <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-3">
-                            <p className="text-white text-sm leading-relaxed">{request.intake.concern}</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Uploaded Files */}
-                      {request.files && request.files.length > 0 && (
-                        <div className="space-y-2 md:col-span-2">
-                          <h4 className="text-sm font-semibold text-purple-400 uppercase tracking-wide flex items-center gap-2">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                            Uploaded Files ({request.files.length})
-                          </h4>
-                          <div className="bg-slate-800/50 rounded-lg p-3 flex flex-wrap gap-2">
-                            {request.files.map((file: any, idx: number) => (
-                              <a
-                                key={idx}
-                                href={file.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-500/20 transition-colors text-sm"
-                              >
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                </svg>
-                                {file.file_name}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+              {queue.map((item) => (
+                <SessionCard
+                  key={item.assignmentId}
+                  sessionId={item.sessionId}
+                  type={item.sessionType}
+                  status={item.sessionStatus as any}
+                  plan={item.plan}
+                  createdAt={item.createdAt}
+                  partnerName={item.customer.name}
+                  partnerRole="customer"
+                  vehicle={item.vehicle}
+                  concern={item.concern}
+                  userRole="mechanic"
+                  cta={{
+                    action: 'Accept Request',
+                    onClick: async () => {
+                      await handleAcceptAssignment(item.assignmentId, item.sessionType)
+                    }
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -705,10 +591,38 @@ export default function MechanicDashboardPage() {
           </div>
         )}
 
-        {/* Active Sessions Manager - Shows active session and enforces one-session-at-a-time */}
+        {/* Active Sessions - Shows active session using SessionCard */}
         {activeSessions.length > 0 && (
-          <div className="mb-6 sm:mb-8">
-            <MechanicActiveSessionsManager sessions={activeSessions} />
+          <div className="mb-6 sm:mb-8 bg-green-500/10 backdrop-blur-sm border border-green-500/30 rounded-lg shadow p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <CheckCircle className="h-6 w-6 text-green-400" />
+              <div>
+                <h2 className="text-xl font-bold text-white">Active Session</h2>
+                <p className="text-sm text-green-300 mt-1">
+                  You have {activeSessions.length} active session{activeSessions.length > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {activeSessions.map((session) => (
+                <SessionCard
+                  key={session.id}
+                  sessionId={session.id}
+                  type={session.type}
+                  status={session.status as any}
+                  plan={session.plan}
+                  createdAt={session.createdAt}
+                  startedAt={session.startedAt}
+                  partnerName={session.customerName}
+                  partnerRole="customer"
+                  userRole="mechanic"
+                  cta={{
+                    action: session.status === 'live' ? 'Return to Session' : 'Join Session',
+                    route: `/${session.type}/${session.id}`
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
 
@@ -853,19 +767,8 @@ export default function MechanicDashboardPage() {
             </div>
           )}
         </div>
-
-        {/* Recent Sessions */}
-        <div className="mt-8">
-          <RecentSessions userRole="mechanic" limit={3} />
-        </div>
       </div>
-
-      {/* Request Preview Modal */}
-      <RequestPreviewModal
-        requestId={previewRequestId}
-        isOpen={!!previewRequestId}
-        onClose={() => setPreviewRequestId(null)}
-      />
-    </div>
+      </div>
+    </>
   )
 }

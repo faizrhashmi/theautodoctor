@@ -9,6 +9,12 @@ const path = require('path')
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    // 🚀 SPEED: Optimize server actions
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    // 🚀 SPEED: Use optimized package imports
+    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion', 'react-hot-toast'],
     // Enable Turbopack for faster development (Next.js 14+)
     turbo: {
       rules: {
@@ -20,14 +26,11 @@ const nextConfig = {
     },
   },
 
-  // 🚀 PERFORMANCE: Optimize icon imports (CRITICAL FIX)
-  // This transforms barrel imports into direct imports automatically
-  // Before: import { Mail, User } from 'lucide-react'
-  // After: import Mail from 'lucide-react/dist/esm/icons/mail'
+  // 🚀 PERFORMANCE: Optimize imports
+  // Note: Turbopack has issues with lucide-react modularization, so we use optimizePackageImports instead
   modularizeImports: {
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
-      skipDefaultConversion: true,
+    'date-fns': {
+      transform: 'date-fns/{{member}}',
     },
   },
 
@@ -67,19 +70,53 @@ const nextConfig = {
     ],
   },
 
+  // 🚀 SPEED: On-demand entries for faster dev server
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 60 * 1000, // 1 minute (reduced from default 60s)
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2, // Reduced from default 5 to free memory faster
+  },
+
   webpack: (config, { dev, isServer }) => {
     config.resolve.alias['@'] = path.resolve(__dirname, 'src')
 
     if (dev) {
-      // SPEED: Reduce webpack stats output
+      // 🚀 SPEED: Reduce webpack stats output
       config.stats = 'errors-warnings'
 
-      // SPEED: Faster incremental builds
+      // 🚀 SPEED: Faster incremental builds with optimized cache
       config.cache = {
         type: 'filesystem',
         buildDependencies: {
           config: [__filename],
         },
+        // More aggressive caching
+        compression: 'gzip',
+      }
+
+      // 🚀 SPEED: Faster module resolution
+      config.resolve.symlinks = false
+
+      // 🚀 SPEED: Skip expensive source map generation in dev
+      config.devtool = 'eval-cheap-module-source-map'
+
+      // 🚀 SPEED: Optimize module concatenation
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+      }
+
+      // 🚀 SPEED: Faster file system checks
+      if (!isServer) {
+        config.watchOptions = {
+          ...config.watchOptions,
+          ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+          aggregateTimeout: 300,
+          poll: false,
+        }
       }
     }
 

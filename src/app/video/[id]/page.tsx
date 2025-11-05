@@ -4,6 +4,7 @@ import { getSupabaseServer } from '@/lib/supabaseServer'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PRICING, type PlanKey } from '@/config/pricing'
 import { generateLiveKitToken } from '@/lib/livekit'
+import { checkAndExpireSession } from '@/lib/sessionExpiration'
 import VideoSessionClient from './VideoSessionClient'
 
 export const dynamic = 'force-dynamic'
@@ -74,6 +75,16 @@ export default async function VideoSessionPage({ params }: PageProps) {
     notFound()
   }
 
+  // ⏱️ AUTO-EXPIRE: Check if session has expired based on plan duration
+  // This catches expired sessions even if the cron job hasn't run yet
+  const { expired, session: checkedSession } = await checkAndExpireSession(sessionId)
+  if (expired && checkedSession) {
+    // Session was just expired, use the updated session data
+    session.status = checkedSession.status
+    session.ended_at = checkedSession.ended_at
+    session.metadata = checkedSession.metadata
+  }
+
   // CRITICAL: Determine role based on session assignment, NOT just cookie presence
   // This prevents role confusion when both cookies exist (testing on same browser)
   let currentUserId: string
@@ -126,6 +137,37 @@ export default async function VideoSessionPage({ params }: PageProps) {
   const planKey = (session.plan as PlanKey) ?? 'video15'
   const planName = PRICING[planKey]?.name ?? 'Video Consultation'
 
+  // Fetch mechanic name and user_id if assigned
+  let mechanicName: string | null = null
+  let mechanicUserId: string | null = null
+  if (session.mechanic_id) {
+    const { data: mechanicData } = await supabaseAdmin
+      .from('mechanics')
+      .select('name, user_id')
+      .eq('id', session.mechanic_id)
+      .maybeSingle()
+    mechanicName = mechanicData?.name || null
+    mechanicUserId = mechanicData?.user_id || null
+  }
+
+  // Fetch customer name
+  let customerName: string | null = null
+  if (session.customer_user_id) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', session.customer_user_id)
+      .maybeSingle()
+
+    if (profile?.full_name) {
+      customerName = profile.full_name
+    } else if (user?.user_metadata?.name) {
+      customerName = user.user_metadata.name
+    } else if (user?.email) {
+      customerName = user.email.split('@')[0] || null
+    }
+  }
+
   // Generate LiveKit token with correct role metadata (server-side)
   const roomName = `session-${sessionId}`
   const identity = userRole === 'mechanic' ? `mechanic-${currentUserId}` : `customer-${currentUserId}`
@@ -165,8 +207,10 @@ export default async function VideoSessionPage({ params }: PageProps) {
       serverUrl={serverUrl}
       status={session.status ?? 'pending'}
       startedAt={session.started_at || session.created_at}
-      mechanicId={session.mechanic_id}
+      mechanicId={mechanicUserId}
       customerId={session.customer_user_id}
+      mechanicName={mechanicName}
+      customerName={customerName}
       dashboardUrl={dashboardUrl}
     />
   )

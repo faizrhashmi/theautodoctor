@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Car,
@@ -14,10 +14,13 @@ import {
   Check,
   Loader2,
   ChevronRight,
+  Zap,
 } from 'lucide-react'
-import VehiclePrompt from './VehiclePrompt'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
 import CarBrandLogo from '@/components/ui/CarBrandLogo'
+
+// Lazy load VehiclePrompt component
+const VehiclePrompt = lazy(() => import('./VehiclePrompt'))
 
 /**
  * Session Wizard Component
@@ -44,6 +47,13 @@ interface SessionWizardProps {
   preferredMechanicId?: string | null
   routingType?: 'broadcast' | 'priority_broadcast'
   onClose?: () => void
+}
+
+interface DecodedVINData {
+  year?: number
+  make?: string
+  model?: string
+  body?: string
 }
 
 type SessionType = 'quick' | 'video' | 'diagnostic' | string
@@ -75,16 +85,31 @@ export default function SessionWizard({
   const [selectedMechanicType, setSelectedMechanicType] = useState<MechanicType>('standard')
   const [launching, setLaunching] = useState(false)
 
+  // Add ref for wizard container to maintain focus
+  const wizardRef = useRef<HTMLDivElement>(null)
+
+  // VIN decoding state
+  const [vinInput, setVinInput] = useState('')
+  const [decodingVin, setDecodingVin] = useState(false)
+  const [vinCache, setVinCache] = useState<Record<string, DecodedVINData>>({})
+  const [showVinDecoder, setShowVinDecoder] = useState(false)
+  const [decodedVinData, setDecodedVinData] = useState<DecodedVINData | null>(null)
+
+  // Optimistic submit state
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const isNewCustomer = hasUsedFreeSession === false
   const totalSteps = vehicles.length > 0 ? 3 : 2 // Skip vehicle step if no vehicles
 
-  // Filter for PAYG (one-time purchase) plans only
-  // Subscription plans will be shown when 'subscriptions' feature flag is enabled
-  const availablePlans = plans.filter(plan => {
-    // For now, only show one-time purchase plans
-    // When plan_type is null, assume it's a legacy PAYG plan
-    return !plan.planType || plan.planType === 'one_time' || plan.planType === 'payg'
-  })
+  // Memoize filtered plans to prevent unnecessary recalculations
+  const availablePlans = useMemo(() => {
+    return plans.filter(plan => {
+      // For now, only show one-time purchase plans
+      // When plan_type is null, assume it's a legacy PAYG plan
+      return !plan.planType || plan.planType === 'one_time' || plan.planType === 'payg'
+    })
+  }, [plans])
 
   useEffect(() => {
     fetchVehicles()
@@ -98,6 +123,13 @@ export default function SessionWizard({
       setSelectedSessionType(defaultPlan.slug)
     }
   }, [availablePlans.length])
+
+  // Maintain focus on wizard when transitioning between steps
+  useEffect(() => {
+    if (wizardRef.current) {
+      wizardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [currentStep])
 
   const fetchVehicles = async () => {
     try {
@@ -118,23 +150,90 @@ export default function SessionWizard({
     }
   }
 
-  const handleNext = () => {
+  // Lazy VIN lookup - only decode when user clicks the button
+  const decodeVin = useCallback(async (vin: string) => {
+    if (!vin || vin.length < 3) {
+      setSubmitError('VIN must be at least 3 characters')
+      return
+    }
+
+    // Check cache first
+    if (vinCache[vin]) {
+      setDecodedVinData(vinCache[vin])
+      setSubmitError(null)
+      return
+    }
+
+    setDecodingVin(true)
+    setSubmitError(null)
+
+    try {
+      // Call VIN decoding API
+      // Note: You may need to create this endpoint or use a third-party VIN decoder
+      const response = await fetch('/api/vehicles/decode-vin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vin }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const decodedData: DecodedVINData = {
+          year: data.year,
+          make: data.make,
+          model: data.model,
+          body: data.body,
+        }
+
+        // Cache the result
+        setVinCache(prev => ({ ...prev, [vin]: decodedData }))
+        setDecodedVinData(decodedData)
+      } else {
+        setSubmitError('Could not decode VIN. Please check and try again.')
+        setDecodedVinData(null)
+      }
+    } catch (error) {
+      console.error('[SessionWizard] Error decoding VIN:', error)
+      setSubmitError('Error decoding VIN. Please try again.')
+      setDecodedVinData(null)
+    } finally {
+      setDecodingVin(false)
+    }
+  }, [vinCache])
+
+  // Memoized event handlers to prevent unnecessary re-renders
+  const handleNext = useCallback(() => {
     // Skip vehicle step if no vehicles
     if (currentStep === 1 && vehicles.length === 0) {
       setCurrentStep(2)
     } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
-  }
+  }, [currentStep, totalSteps, vehicles.length])
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
-  }
+  }, [currentStep])
 
-  const handleLaunchSession = () => {
+  const handleVehicleSelect = useCallback((vehicleId: string) => {
+    setSelectedVehicle(vehicleId)
+  }, [])
+
+  const handleSessionTypeSelect = useCallback((slug: string) => {
+    setSelectedSessionType(slug)
+  }, [])
+
+  const handleMechanicTypeSelect = useCallback((type: MechanicType) => {
+    setSelectedMechanicType(type)
+  }, [])
+
+  // Optimistic submit with immediate UI feedback
+  const handleLaunchSession = useCallback(() => {
+    // Show optimistic success state immediately
     setLaunching(true)
+    setSubmitSuccess(true)
 
     // Build intake URL with params
     const params = new URLSearchParams()
@@ -160,15 +259,21 @@ export default function SessionWizard({
       params.set('routing_type', 'priority_broadcast')
     }
 
-    router.push(`/intake?${params.toString()}`)
-  }
+    // Handle navigation asynchronously
+    const navigationUrl = `/intake?${params.toString()}`
 
-  const canProceed = () => {
+    // Use a small delay to ensure UI updates are visible
+    setTimeout(() => {
+      router.push(navigationUrl)
+    }, 300)
+  }, [selectedSessionType, selectedMechanicType, selectedVehicle, availableMechanics, preferredMechanicId, routingType, router])
+
+  const canProceed = useCallback(() => {
     if (currentStep === 1 && vehicles.length > 0) {
       return selectedVehicle !== null
     }
     return true
-  }
+  }, [currentStep, selectedVehicle, vehicles.length])
 
   // Render vehicle selection step
   const renderVehicleStep = () => (
@@ -182,31 +287,29 @@ export default function SessionWizard({
         </p>
       </div>
 
-      {loadingVehicles ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-        </div>
-      ) : vehicles.length === 0 ? (
-        <VehiclePrompt
-          variant="session-start"
-          onVehicleAdded={fetchVehicles}
-        />
+      {vehicles.length === 0 ? (
+        <Suspense fallback={<div className="flex items-center justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-blue-400" /></div>}>
+          <VehiclePrompt
+            variant="session-start"
+            onVehicleAdded={fetchVehicles}
+          />
+        </Suspense>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {vehicles.map((vehicle) => (
             <button
               key={vehicle.id}
-              onClick={() => setSelectedVehicle(vehicle.id)}
+              onClick={() => handleVehicleSelect(vehicle.id)}
               className={`p-4 rounded-xl border-2 transition-all text-left ${
                 selectedVehicle === vehicle.id
-                  ? 'border-orange-500 bg-orange-500/10'
+                  ? 'border-blue-500 bg-blue-500/10'
                   : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
               }`}
             >
               <div className="flex items-start gap-3">
                 <div
                   className={`p-2 rounded-lg ${
-                    selectedVehicle === vehicle.id ? 'bg-orange-500/20' : 'bg-slate-700/50'
+                    selectedVehicle === vehicle.id ? 'bg-blue-500/20' : 'bg-slate-700/50'
                   }`}
                 >
                   <CarBrandLogo
@@ -220,7 +323,7 @@ export default function SessionWizard({
                       {vehicle.year} {vehicle.make} {vehicle.model}
                     </h4>
                     {selectedVehicle === vehicle.id && (
-                      <Check className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                      <Check className="h-4 w-4 text-blue-400 flex-shrink-0" />
                     )}
                   </div>
                   <p className="text-xs text-slate-400">{vehicle.brand}</p>
@@ -233,7 +336,7 @@ export default function SessionWizard({
     </div>
   )
 
-  // Render session type step
+  // Render session type step with VIN decoder
   const renderSessionTypeStep = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
@@ -247,11 +350,54 @@ export default function SessionWizard({
         </p>
       </div>
 
-      {loadingPlans ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+      {/* VIN Decoder Section */}
+      <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="h-4 w-4 text-blue-400" />
+          <h4 className="text-sm font-semibold text-white">Optional: Decode VIN</h4>
         </div>
-      ) : availablePlans.length === 0 ? (
+        <p className="text-xs text-slate-400 mb-3">
+          Help us identify your vehicle details for faster diagnosis
+        </p>
+        {!showVinDecoder ? (
+          <button
+            onClick={() => setShowVinDecoder(true)}
+            className="w-full px-3 py-2 text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors"
+          >
+            Decode VIN
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={vinInput}
+                onChange={(e) => setVinInput(e.target.value.toUpperCase())}
+                placeholder="Enter VIN (e.g., 1HGBH41JXMN109186)"
+                maxLength={17}
+                className="flex-1 px-3 py-2 text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+              />
+              <button
+                onClick={() => decodeVin(vinInput)}
+                disabled={decodingVin || !vinInput}
+                className="px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+              >
+                {decodingVin ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Decode'}
+              </button>
+            </div>
+            {submitError && (
+              <p className="text-xs text-red-400">{submitError}</p>
+            )}
+            {decodedVinData && (
+              <div className="text-xs text-green-400 p-2 bg-green-500/10 rounded">
+                <p className="font-semibold">Decoded: {decodedVinData.year} {decodedVinData.make} {decodedVinData.model}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {availablePlans.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-slate-400">No plans available at this time.</p>
         </div>
@@ -266,21 +412,21 @@ export default function SessionWizard({
             return (
               <button
                 key={plan.id}
-                onClick={() => setSelectedSessionType(plan.slug)}
+                onClick={() => handleSessionTypeSelect(plan.slug)}
                 className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
                   isSelected
-                    ? 'border-orange-500 bg-orange-500/10'
+                    ? 'border-blue-500 bg-blue-500/10'
                     : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`p-2 rounded-lg ${
-                      isSelected ? 'bg-orange-500/20' : 'bg-slate-700/50'
+                      isSelected ? 'bg-blue-500/20' : 'bg-slate-700/50'
                     }`}
                   >
                     <IconComponent
-                      className={`h-5 w-5 ${isSelected ? 'text-orange-400' : 'text-slate-400'}`}
+                      className={`h-5 w-5 ${isSelected ? 'text-blue-400' : 'text-slate-400'}`}
                     />
                   </div>
                   <div className="flex-1">
@@ -292,7 +438,7 @@ export default function SessionWizard({
                         ) : (
                           <span className="text-sm font-bold text-white">{plan.price}</span>
                         )}
-                        {isSelected && <Check className="h-4 w-4 text-orange-400" />}
+                        {isSelected && <Check className="h-4 w-4 text-blue-400" />}
                       </div>
                     </div>
                     <p className="text-xs text-slate-400 mb-2">{plan.description}</p>
@@ -307,7 +453,7 @@ export default function SessionWizard({
                       ))}
                     </div>
                     {isRecommended && (
-                      <div className="mt-2 text-xs font-medium text-orange-400">
+                      <div className="mt-2 text-xs font-medium text-blue-400">
                         ⭐ Recommended
                       </div>
                     )}
@@ -336,22 +482,22 @@ export default function SessionWizard({
       <div className="space-y-3">
         {/* Standard Mechanic */}
         <button
-          onClick={() => setSelectedMechanicType('standard')}
+          onClick={() => handleMechanicTypeSelect('standard')}
           className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'standard'
-              ? 'border-orange-500 bg-orange-500/10'
+              ? 'border-blue-500 bg-blue-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
           <div className="flex items-start gap-3">
             <div
               className={`p-2 rounded-lg ${
-                selectedMechanicType === 'standard' ? 'bg-orange-500/20' : 'bg-slate-700/50'
+                selectedMechanicType === 'standard' ? 'bg-blue-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Wrench
                 className={`h-5 w-5 ${
-                  selectedMechanicType === 'standard' ? 'text-orange-400' : 'text-slate-400'
+                  selectedMechanicType === 'standard' ? 'text-blue-400' : 'text-slate-400'
                 }`}
               />
             </div>
@@ -359,7 +505,7 @@ export default function SessionWizard({
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-white font-bold text-base">Standard Mechanic</h4>
                 {selectedMechanicType === 'standard' && (
-                  <Check className="h-4 w-4 text-orange-400" />
+                  <Check className="h-4 w-4 text-blue-400" />
                 )}
               </div>
               <p className="text-xs text-slate-400 mb-2">
@@ -372,22 +518,22 @@ export default function SessionWizard({
 
         {/* Brand Specialist */}
         <button
-          onClick={() => setSelectedMechanicType('specialist')}
+          onClick={() => handleMechanicTypeSelect('specialist')}
           className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'specialist'
-              ? 'border-orange-500 bg-orange-500/10'
+              ? 'border-blue-500 bg-blue-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
           <div className="flex items-start gap-3">
             <div
               className={`p-2 rounded-lg ${
-                selectedMechanicType === 'specialist' ? 'bg-orange-500/20' : 'bg-slate-700/50'
+                selectedMechanicType === 'specialist' ? 'bg-blue-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Star
                 className={`h-5 w-5 ${
-                  selectedMechanicType === 'specialist' ? 'text-orange-400' : 'text-slate-400'
+                  selectedMechanicType === 'specialist' ? 'text-blue-400' : 'text-slate-400'
                 }`}
               />
             </div>
@@ -395,7 +541,7 @@ export default function SessionWizard({
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-white font-bold text-base">Brand Specialist</h4>
                 {selectedMechanicType === 'specialist' && (
-                  <Check className="h-4 w-4 text-orange-400" />
+                  <Check className="h-4 w-4 text-blue-400" />
                 )}
               </div>
               <p className="text-xs text-slate-400 mb-2">
@@ -430,8 +576,24 @@ export default function SessionWizard({
     }
   }
 
+  // Show loading skeleton while fetching initial data
+  if (loadingVehicles || loadingPlans) {
+    return (
+      <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <p className="text-sm text-slate-400">Preparing your session wizard...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-6">
+    <div
+      ref={wizardRef}
+      className={`bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6 transition-all ${
+      submitSuccess ? 'border-green-500/50 bg-gradient-to-r from-green-600/20 via-emerald-600/20 to-green-600/20' : ''
+    }`}>
       {/* Progress Indicator */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
@@ -453,7 +615,7 @@ export default function SessionWizard({
               key={idx}
               className={`h-2 flex-1 rounded-full transition-all ${
                 idx < currentStep
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700'
                   : 'bg-slate-700'
               }`}
             />
@@ -464,9 +626,20 @@ export default function SessionWizard({
       {/* Step Content */}
       <div className="mb-6">{renderCurrentStep()}</div>
 
+      {/* Optimistic Success Message */}
+      {submitSuccess && (
+        <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center gap-3">
+          <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-green-300">Session launching...</p>
+            <p className="text-xs text-green-300/75">Setting up your session now</p>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Buttons */}
       <div className="flex gap-3">
-        {currentStep > 1 && (
+        {currentStep > 1 && !submitSuccess && (
           <button
             onClick={handleBack}
             disabled={launching}
@@ -477,20 +650,20 @@ export default function SessionWizard({
           </button>
         )}
 
-        {currentStep < totalSteps ? (
+        {currentStep < totalSteps && !submitSuccess ? (
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
             <ChevronRight className="h-4 w-4" />
           </button>
-        ) : (
+        ) : !submitSuccess ? (
           <button
             onClick={handleLaunchSession}
             disabled={launching}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold transition-all disabled:opacity-50"
           >
             {launching ? (
               <>
@@ -504,6 +677,11 @@ export default function SessionWizard({
               </>
             )}
           </button>
+        ) : (
+          <div className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold">
+            <Check className="h-5 w-5" />
+            Ready to go!
+          </div>
         )}
       </div>
     </div>

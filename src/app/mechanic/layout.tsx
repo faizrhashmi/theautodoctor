@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import MechanicSidebar from '@/components/mechanic/MechanicSidebar'
 import { useActivityTimeout } from '@/hooks/useActivityTimeout'
+import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
 
 // Routes that should NOT show the sidebar
 const NO_SIDEBAR_ROUTES = [
@@ -92,6 +93,7 @@ export default function MechanicLayout({
     <div className="flex min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <MechanicSidebar />
       <main className="flex-1 lg:ml-64 transition-all duration-300">
+        <ActiveSessionBanner userRole="mechanic" />
         {children}
       </main>
     </div>

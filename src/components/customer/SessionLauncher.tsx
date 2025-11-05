@@ -95,6 +95,10 @@ export default function SessionLauncher({
   const [creditPricing, setCreditPricing] = useState<CreditPricing[]>([])
   const [loadingSubscription, setLoadingSubscription] = useState(false)
 
+  // Active Session State - prevents duplicate session creation
+  const [activeSession, setActiveSession] = useState<any | null>(null)
+  const [loadingActiveSession, setLoadingActiveSession] = useState(true)
+
   // Determine default plan based on account type
   useEffect(() => {
     if (isB2CCustomer) {
@@ -166,6 +170,35 @@ export default function SessionLauncher({
     fetchSubscriptionData()
   }, [isB2CCustomer])
 
+  // Check for active session - prevents duplicate session creation
+  useEffect(() => {
+    async function fetchActiveSession() {
+      setLoadingActiveSession(true)
+      try {
+        const response = await fetch('/api/customer/sessions/active')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.active) {
+            setActiveSession(data.session)
+          } else {
+            // No active session
+            setActiveSession(null)
+          }
+        } else if (response.status === 404) {
+          // No active session - this is fine
+          setActiveSession(null)
+        }
+      } catch (error) {
+        console.error('Failed to check for active session:', error)
+        // On error, assume no active session to not block user
+        setActiveSession(null)
+      } finally {
+        setLoadingActiveSession(false)
+      }
+    }
+    fetchActiveSession()
+  }, [])
+
   // Helper function to get session type from plan slug
   const getSessionType = (planSlug: string): string => {
     // Map plan slugs to session types
@@ -196,6 +229,56 @@ export default function SessionLauncher({
 
   // Render different UI based on account type
   const renderB2CCustomer = () => {
+    // Show loading state while checking for active session
+    if (loadingActiveSession) {
+      return (
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-slate-400 mb-3" />
+          <p className="text-slate-400 text-sm">Checking for active sessions...</p>
+        </div>
+      )
+    }
+
+    // If there's an active session, show message and prevent new session creation
+    if (activeSession) {
+      const sessionRoute =
+        activeSession.type === 'chat' ? `/chat/${activeSession.id}` :
+        activeSession.type === 'video' ? `/video/${activeSession.id}` :
+        `/diagnostic/${activeSession.id}`
+
+      return (
+        <div className="bg-gradient-to-br from-slate-800/90 via-slate-850/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-xl">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center ring-2 ring-blue-500/20">
+                <AlertCircle className="h-6 w-6 text-blue-400" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                You have an active session
+              </h3>
+              <p className="text-slate-300 text-sm mb-4">
+                You already have a {activeSession.type} session in progress ({activeSession.status} status).
+                Please complete or end your current session before starting a new one.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  href={sessionRoute}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Return to Active Session
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     // Phase 2.2: Use wizard mode if enabled
     if (useWizard) {
       return (
@@ -216,9 +299,9 @@ export default function SessionLauncher({
     // Loading state
     if (loadingPlans) {
       return (
-        <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-6">
+        <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
           <div className="flex items-center justify-center gap-3 py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
             <span className="text-slate-300">Loading service plans...</span>
           </div>
         </div>
@@ -228,15 +311,15 @@ export default function SessionLauncher({
     // Error state
     if (plansError || PLAN_TIERS.length === 0) {
       return (
-        <div className="bg-gradient-to-r from-red-600/20 via-orange-600/20 to-red-600/20 backdrop-blur-sm rounded-2xl border border-red-500/30 p-6">
+        <div className="bg-gradient-to-r from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
           <div className="flex items-center justify-center gap-3 py-12 text-center">
             <div>
-              <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+              <AlertCircle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
               <p className="text-slate-300 mb-2">Unable to load service plans</p>
               <p className="text-sm text-slate-400">{plansError || 'No plans available'}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
+                className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Retry
               </button>
@@ -247,7 +330,7 @@ export default function SessionLauncher({
     }
 
     return (
-      <div className="bg-gradient-to-r from-orange-600/20 via-red-600/20 to-orange-600/20 backdrop-blur-sm rounded-2xl border border-orange-500/30 p-4 sm:p-6">
+      <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-4 sm:p-6">
         {/* Header with availability */}
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
           {availableMechanics > 0 ? (
@@ -262,8 +345,8 @@ export default function SessionLauncher({
                 </div>
               )}
               {!isNewCustomer && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full border border-orange-400/30">
-                  <span className="text-xs font-bold text-orange-300 uppercase tracking-wider">⚡ EXPRESS SERVICE</span>
+                <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full border border-blue-400/30">
+                  <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">⚡ EXPRESS SERVICE</span>
                 </div>
               )}
             </>
@@ -347,7 +430,7 @@ export default function SessionLauncher({
             <Link
               ref={startButtonRef}
               href={`/intake?plan=${selectedPlan}${specialistMode ? '&specialist=true' : ''}${availableMechanics > 0 ? '&urgent=true' : ''}${canUseCredits ? '&use_credits=true' : ''}${preferredMechanicId ? `&preferred_mechanic_id=${preferredMechanicId}` : ''}${routingType === 'priority_broadcast' ? '&routing_type=priority_broadcast' : ''}`}
-              className="flex-1 inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl font-bold text-base sm:text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+              className="flex-1 inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-base sm:text-lg transition-all shadow-lg hover:shadow-xl hover:scale-105"
             >
               {canUseCredits ? (
                 <CreditCard className="h-5 w-5" />
@@ -389,18 +472,18 @@ export default function SessionLauncher({
                     onClick={() => setSpecialistMode(false)}
                     className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all text-left ${
                       !specialistMode
-                        ? 'border-orange-500 bg-orange-500/10'
+                        ? 'border-blue-500 bg-blue-500/10'
                         : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
                     }`}
                   >
                     <div className="flex items-start gap-2.5 sm:gap-3">
-                      <div className={`p-2 rounded-lg ${!specialistMode ? 'bg-orange-500/20' : 'bg-slate-700/50'}`}>
-                        <Wrench className={`h-4 w-4 sm:h-5 sm:w-5 ${!specialistMode ? 'text-orange-400' : 'text-slate-400'}`} />
+                      <div className={`p-2 rounded-lg ${!specialistMode ? 'bg-blue-500/20' : 'bg-slate-700/50'}`}>
+                        <Wrench className={`h-4 w-4 sm:h-5 sm:w-5 ${!specialistMode ? 'text-blue-400' : 'text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
                           <h4 className="text-white font-bold text-sm sm:text-base">Standard Mechanic</h4>
-                          {!specialistMode && <Check className="h-4 w-4 text-orange-400 shrink-0" />}
+                          {!specialistMode && <Check className="h-4 w-4 text-blue-400 shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-400 mb-1">General automotive expertise</p>
                         <p className="text-xs sm:text-sm font-semibold text-white">From $9.99</p>
@@ -413,18 +496,18 @@ export default function SessionLauncher({
                     onClick={() => setSpecialistMode(true)}
                     className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all text-left ${
                       specialistMode
-                        ? 'border-orange-500 bg-orange-500/10'
+                        ? 'border-blue-500 bg-blue-500/10'
                         : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
                     }`}
                   >
                     <div className="flex items-start gap-2.5 sm:gap-3">
-                      <div className={`p-2 rounded-lg ${specialistMode ? 'bg-orange-500/20' : 'bg-slate-700/50'}`}>
-                        <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${specialistMode ? 'text-orange-400' : 'text-slate-400'}`} />
+                      <div className={`p-2 rounded-lg ${specialistMode ? 'bg-blue-500/20' : 'bg-slate-700/50'}`}>
+                        <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${specialistMode ? 'text-blue-400' : 'text-slate-400'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
                           <h4 className="text-white font-bold text-sm sm:text-base">Brand Specialist</h4>
-                          {specialistMode && <Check className="h-4 w-4 text-orange-400 shrink-0" />}
+                          {specialistMode && <Check className="h-4 w-4 text-blue-400 shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-400 mb-1">BMW • Tesla • Mercedes • +17 more</p>
                         <p className="text-xs sm:text-sm font-semibold text-white">From $29.99</p>
@@ -464,7 +547,7 @@ export default function SessionLauncher({
                       }}
                       className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
                         isSelected
-                          ? 'border-orange-500 bg-orange-500/10'
+                          ? 'border-blue-500 bg-blue-500/10'
                           : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
                       }`}
                     >
@@ -482,7 +565,7 @@ export default function SessionLauncher({
                             ) : (
                               <span className="text-lg sm:text-xl font-bold text-white">{tier.price}</span>
                             )}
-                            {isSelected && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />}
+                            {isSelected && <Check className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />}
                           </div>
                           {subscription && tierCreditCost !== null && (
                             <span className="text-xs text-slate-500 line-through">{tier.price}</span>
@@ -677,6 +760,56 @@ export default function SessionLauncher({
           <Building2 className="h-5 w-5" />
           <span>Start Company Session</span>
         </Link>
+      </div>
+    )
+  }
+
+  // Show loading state while checking for active session
+  if (loadingActiveSession) {
+    return (
+      <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-slate-400 mb-3" />
+        <p className="text-slate-400 text-sm">Checking for active sessions...</p>
+      </div>
+    )
+  }
+
+  // If there's an active session, show message and prevent new session creation
+  if (activeSession) {
+    const sessionRoute =
+      activeSession.type === 'chat' ? `/chat/${activeSession.id}` :
+      activeSession.type === 'video' ? `/video/${activeSession.id}` :
+      `/diagnostic/${activeSession.id}`
+
+    return (
+      <div className="bg-gradient-to-br from-slate-800/90 via-slate-850/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-xl">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center ring-2 ring-blue-500/20">
+              <AlertCircle className="h-6 w-6 text-blue-400" />
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              You have an active session
+            </h3>
+            <p className="text-slate-300 text-sm mb-4">
+              You already have a {activeSession.type} session in progress ({activeSession.status} status).
+              Please complete or end your current session before starting a new one.
+            </p>
+            <div className="flex gap-3">
+              <Link
+                href={sessionRoute}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Return to Active Session
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

@@ -10,17 +10,22 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
-import { Track, ConnectionQuality } from 'livekit-client'
+import { Track } from 'livekit-client'
 import {
   Clock, UserPlus, AlertCircle, Video, VideoOff, Mic, MicOff,
   Monitor, MonitorOff, PhoneOff, Upload, X, FileText, Download,
-  Maximize2, Minimize2, SwitchCamera, Flashlight, Camera, Wifi, WifiOff,
-  MessageCircle, Send, LogOut, Menu, Eye, EyeOff
+  Maximize2, Minimize2, SwitchCamera, Flashlight, Camera,
+  MessageCircle, Send, LogOut, Eye, EyeOff, Info,
+  Settings, Sun, Activity, BarChart3, Pencil, FileEdit, Save,
+  ArrowRight, Circle, Eraser, Paintbrush, MousePointer, Repeat2
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { createClient } from '@/lib/supabase'
 import { DevicePreflight } from '@/components/video/DevicePreflight'
 import { type PlanKey, getPlanDuration, hasPlanCapability } from '@/config/pricing'
 import { routeFor } from '@/lib/routes'
+import { getOrCreateSessionFingerprint } from '@/lib/deviceFingerprint'
+import MechanicProfileModal from '@/components/MechanicProfileModal'
 
 const TIME_EXTENSIONS = [
   { duration: 15, price: 1499, label: '15 minutes - $14.99' },
@@ -40,36 +45,9 @@ interface VideoSessionClientProps {
   startedAt: string | null
   mechanicId: string | null
   customerId: string | null
+  mechanicName: string | null
+  customerName: string | null
   dashboardUrl: string
-}
-
-// Connection Quality Indicator Component
-function ConnectionQualityBadge() {
-  const { connectionQuality } = useLocalParticipant()
-
-  const getQualityInfo = (quality: ConnectionQuality) => {
-    switch (quality) {
-      case ConnectionQuality.Excellent:
-        return { label: 'Excellent', color: 'bg-green-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
-      case ConnectionQuality.Good:
-        return { label: 'Good', color: 'bg-green-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
-      case ConnectionQuality.Poor:
-        return { label: 'Poor', color: 'bg-orange-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
-      case ConnectionQuality.Lost:
-        return { label: 'Reconnecting', color: 'bg-red-500', icon: <WifiOff className="h-3 w-3 sm:h-4 sm:w-4" /> }
-      default:
-        return { label: 'Unknown', color: 'bg-slate-500', icon: <Wifi className="h-3 w-3 sm:h-4 sm:w-4" /> }
-    }
-  }
-
-  const quality = getQualityInfo(connectionQuality)
-
-  return (
-    <div className={`flex items-center gap-1.5 rounded-full ${quality.color} px-2 py-1 text-white sm:gap-2 sm:px-3 sm:py-1.5`}>
-      {quality.icon}
-      <span className="text-[10px] font-medium sm:text-xs">{quality.label}</span>
-    </div>
-  )
 }
 
 function ParticipantMonitor({
@@ -174,25 +152,138 @@ function SessionTimer({
   durationMinutes,
   onTimeWarning,
   onTimeUp,
+  isPaused = false,
+  sessionId,
 }: {
   startTime: Date
   durationMinutes: number
   onTimeWarning: (minutesLeft: number) => void
   onTimeUp: () => void
+  isPaused?: boolean
+  sessionId: string
 }) {
-  const [timeLeft, setTimeLeft] = useState<number>(durationMinutes * 60)
+  // Server-authoritative timer state
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0)
+  const [serverOffset, setServerOffset] = useState<number>(0) // RTT/2 adjustment
+  const [lastSync, setLastSync] = useState<Date>(new Date())
   const [hasWarned5, setHasWarned5] = useState(false)
   const [hasWarned1, setHasWarned1] = useState(false)
 
+  // Server clock params
+  const [serverClockParams, setServerClockParams] = useState<{
+    started_at: string | null
+    is_paused: boolean
+    total_paused_ms: number
+    last_state_change_at: string | null
+  } | null>(null)
+
+  // Fetch server clock on mount and periodically
+  const fetchServerClock = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const fetchStart = Date.now()
+
+      const { data, error } = await supabase.rpc('session_clock_get', {
+        p_session_id: sessionId
+      })
+
+      const fetchEnd = Date.now()
+      const rtt = fetchEnd - fetchStart
+      const newOffset = rtt / 2 // Estimate server time offset
+
+      if (error) {
+        console.warn('[SERVER TIMER] RPC not available, using fallback timer:', error.message)
+        // Fallback: Use local clock with startTime prop
+        setServerClockParams({
+          started_at: startTime.toISOString(),
+          is_paused: isPaused,
+          total_paused_ms: 0,
+          last_state_change_at: null
+        })
+        return
+      }
+
+      if (data && data.length > 0) {
+        const clock = data[0]
+        setServerClockParams({
+          started_at: clock.started_at,
+          is_paused: clock.is_paused,
+          total_paused_ms: clock.total_paused_ms,
+          last_state_change_at: clock.last_state_change_at
+        })
+        setServerOffset(newOffset)
+        setLastSync(new Date())
+
+        console.log('[SERVER TIMER] Clock synced:', {
+          started_at: clock.started_at,
+          is_paused: clock.is_paused,
+          total_paused_ms: clock.total_paused_ms,
+          rtt,
+          offset: newOffset
+        })
+      }
+    } catch (err) {
+      console.warn('[SERVER TIMER] RPC error, using fallback timer:', err)
+      // Fallback: Use local clock with startTime prop
+      setServerClockParams({
+        started_at: startTime.toISOString(),
+        is_paused: isPaused,
+        total_paused_ms: 0,
+        last_state_change_at: null
+      })
+    }
+  }, [sessionId, startTime, isPaused])
+
+  // Initial fetch and periodic resync every 20 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date()
-      const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000)
-      const remaining = Math.max(0, durationMinutes * 60 - elapsed)
+    fetchServerClock()
+    const resyncInterval = setInterval(fetchServerClock, 20000)
+    return () => clearInterval(resyncInterval)
+  }, [fetchServerClock])
 
-      setTimeLeft(remaining)
+  // Compute elapsed time from server params every second
+  useEffect(() => {
+    if (!serverClockParams?.started_at) {
+      return // Timer not started yet
+    }
 
+    const computeInterval = setInterval(() => {
+      const now = Date.now() + serverOffset // Adjust for network delay
+      const startedAt = new Date(serverClockParams.started_at!).getTime()
+      const totalPausedMs = serverClockParams.total_paused_ms
+
+      // If currently paused, freeze at last state change time
+      if (serverClockParams.is_paused && serverClockParams.last_state_change_at) {
+        const pausedAt = new Date(serverClockParams.last_state_change_at).getTime()
+        const frozenElapsed = Math.floor((pausedAt - startedAt - totalPausedMs) / 1000)
+        setElapsedSeconds(Math.max(0, frozenElapsed))
+      } else {
+        // Derive elapsed from server-authoritative params
+        const rawElapsed = now - startedAt
+        const netElapsed = rawElapsed - totalPausedMs
+        const elapsedSec = Math.floor(netElapsed / 1000)
+
+        setElapsedSeconds(prev => {
+          const diff = Math.abs(elapsedSec - prev)
+
+          // Drift correction: snap if >1.5s, ease otherwise
+          if (diff > 1.5) {
+            console.log(`[SERVER TIMER] Snap correction: ${prev}s → ${elapsedSec}s (drift: ${diff}s)`)
+            return Math.max(0, elapsedSec)
+          } else if (diff > 0.1) {
+            // Ease towards server time
+            const eased = prev + Math.sign(elapsedSec - prev) * 0.5
+            return Math.max(0, Math.floor(eased))
+          }
+
+          return Math.max(0, elapsedSec)
+        })
+      }
+
+      // Check warnings and time up
+      const remaining = Math.max(0, durationMinutes * 60 - elapsedSeconds)
       const minutesLeft = Math.floor(remaining / 60)
+
       if (minutesLeft === 5 && !hasWarned5) {
         setHasWarned5(true)
         onTimeWarning(5)
@@ -201,15 +292,24 @@ function SessionTimer({
         setHasWarned1(true)
         onTimeWarning(1)
       }
-
       if (remaining === 0) {
         onTimeUp()
       }
     }, 1000)
 
-    return () => clearInterval(interval)
-  }, [startTime, durationMinutes, hasWarned5, hasWarned1, onTimeWarning, onTimeUp])
+    return () => clearInterval(computeInterval)
+  }, [serverClockParams, serverOffset, durationMinutes, elapsedSeconds, hasWarned5, hasWarned1, onTimeWarning, onTimeUp])
 
+  // Resync on participant changes (passed as isPaused prop)
+  useEffect(() => {
+    if (serverClockParams) {
+      console.log('[SERVER TIMER] Participant change detected, resyncing...')
+      fetchServerClock()
+    }
+  }, [isPaused, fetchServerClock])
+
+  // Calculate time remaining
+  const timeLeft = Math.max(0, durationMinutes * 60 - elapsedSeconds)
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
 
@@ -218,6 +318,7 @@ function SessionTimer({
 
   return (
     <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
+      isPaused ? 'bg-gray-500/20 text-gray-300' :
       isDanger ? 'bg-red-500/20 text-red-200' :
       isWarning ? 'bg-amber-500/20 text-amber-200' :
       'bg-slate-800/80 text-slate-200'
@@ -225,6 +326,7 @@ function SessionTimer({
       <Clock className="h-4 w-4" />
       <span className="font-mono text-sm font-semibold">
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+        {isPaused && <span className="ml-2 text-xs">(PAUSED)</span>}
       </span>
     </div>
   )
@@ -241,6 +343,19 @@ function VideoControls({
   unreadCount,
   showPip,
   onTogglePip,
+  swapView,
+  onToggleSwapView,
+  videoQuality,
+  onVideoQualityChange,
+  showBrightnessControl,
+  onToggleBrightnessControl,
+  showAudioLevels,
+  onToggleAudioLevels,
+  showNetworkStats,
+  onToggleNetworkStats,
+  showAnnotations,
+  onToggleAnnotations,
+  userRole,
 }: {
   plan: string
   onEndSession: () => void
@@ -252,6 +367,19 @@ function VideoControls({
   unreadCount: number
   showPip: boolean
   onTogglePip: () => void
+  swapView: boolean
+  onToggleSwapView: () => void
+  videoQuality: 'auto' | 'high' | 'medium' | 'low'
+  onVideoQualityChange: (quality: 'auto' | 'high' | 'medium' | 'low') => void
+  showBrightnessControl: boolean
+  onToggleBrightnessControl: () => void
+  showAudioLevels: boolean
+  onToggleAudioLevels: () => void
+  showNetworkStats: boolean
+  onToggleNetworkStats: () => void
+  showAnnotations: boolean
+  onToggleAnnotations: () => void
+  userRole: string
 }) {
   const { isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled, localParticipant } = useLocalParticipant()
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -259,7 +387,9 @@ function VideoControls({
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0)
   const [isFlashlightOn, setIsFlashlightOn] = useState(false)
   const [torchSupported, setTorchSupported] = useState(false)
+  const [showQualityDropdown, setShowQualityDropdown] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const qualityDropdownRef = useRef<HTMLDivElement>(null)
 
   // Enumerate available cameras on mount
   useEffect(() => {
@@ -299,6 +429,20 @@ function VideoControls({
     }
     checkTorchSupport()
   }, [])
+
+  // Close quality dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (qualityDropdownRef.current && !qualityDropdownRef.current.contains(event.target as Node)) {
+        setShowQualityDropdown(false)
+      }
+    }
+
+    if (showQualityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showQualityDropdown])
 
   const toggleCamera = useCallback(async () => {
     try {
@@ -585,6 +729,19 @@ function VideoControls({
         {showPip ? <Eye className="h-4 w-4 sm:h-5 sm:w-5" /> : <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
 
+      {/* Swap View Toggle */}
+      <button
+        onClick={onToggleSwapView}
+        className={`rounded-lg p-2 transition sm:p-3 ${
+          swapView
+            ? 'bg-purple-500/80 text-white hover:bg-purple-600 ring-2 ring-purple-400/50'
+            : 'bg-slate-700/80 text-white hover:bg-slate-600'
+        }`}
+        title={swapView ? 'Show their video as main' : 'Show your video as main'}
+      >
+        <Repeat2 className="h-4 w-4 sm:h-5 sm:w-5" />
+      </button>
+
       {/* Fullscreen Toggle */}
       <button
         onClick={toggleFullscreen}
@@ -593,6 +750,110 @@ function VideoControls({
       >
         {isFullscreen ? <Minimize2 className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
+
+      {/* Video Quality Selector */}
+      <div className="relative" ref={qualityDropdownRef}>
+        <button
+          onClick={() => setShowQualityDropdown(!showQualityDropdown)}
+          className={`rounded-lg p-2 transition sm:p-3 ${
+            showQualityDropdown
+              ? 'bg-blue-500/80 text-white hover:bg-blue-600 ring-2 ring-blue-400/50'
+              : 'bg-slate-700/80 text-white hover:bg-slate-600'
+          }`}
+          title="Video quality"
+        >
+          <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+        </button>
+
+        {showQualityDropdown && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-40 rounded-lg border border-slate-600 bg-slate-800/95 p-2 shadow-xl backdrop-blur-sm">
+            <div className="mb-2 px-2 py-1 text-xs font-semibold text-slate-400">VIDEO QUALITY</div>
+            {(['auto', 'high', 'medium', 'low'] as const).map((quality) => (
+              <button
+                key={quality}
+                onClick={() => {
+                  onVideoQualityChange(quality)
+                  setShowQualityDropdown(false)
+                }}
+                className={`w-full rounded px-3 py-2 text-left text-sm transition ${
+                  videoQuality === quality
+                    ? 'bg-blue-500/20 text-blue-300 font-semibold'
+                    : 'text-slate-300 hover:bg-slate-700/50'
+                }`}
+              >
+                {quality === 'auto' && '🔄 Auto'}
+                {quality === 'high' && '⚡ High (720p)'}
+                {quality === 'medium' && '📊 Medium (480p)'}
+                {quality === 'low' && '📱 Low (360p)'}
+              </button>
+            ))}
+
+            <div className="my-2 border-t border-slate-600"></div>
+
+            <button
+              onClick={() => {
+                onToggleBrightnessControl()
+                setShowQualityDropdown(false)
+              }}
+              className={`w-full rounded px-3 py-2 text-left text-sm transition flex items-center gap-2 ${
+                showBrightnessControl
+                  ? 'bg-orange-500/20 text-orange-300 font-semibold'
+                  : 'text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              <Sun className="h-4 w-4" />
+              Brightness
+            </button>
+
+            <button
+              onClick={() => {
+                onToggleAudioLevels()
+                setShowQualityDropdown(false)
+              }}
+              className={`w-full rounded px-3 py-2 text-left text-sm transition flex items-center gap-2 ${
+                showAudioLevels
+                  ? 'bg-green-500/20 text-green-300 font-semibold'
+                  : 'text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              <Activity className="h-4 w-4" />
+              Audio Levels
+            </button>
+
+            <button
+              onClick={() => {
+                onToggleNetworkStats()
+                setShowQualityDropdown(false)
+              }}
+              className={`w-full rounded px-3 py-2 text-left text-sm transition flex items-center gap-2 ${
+                showNetworkStats
+                  ? 'bg-purple-500/20 text-purple-300 font-semibold'
+                  : 'text-slate-300 hover:bg-slate-700/50'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Network Stats
+            </button>
+
+            {userRole === 'mechanic' && (
+              <button
+                onClick={() => {
+                  onToggleAnnotations()
+                  setShowQualityDropdown(false)
+                }}
+                className={`w-full rounded px-3 py-2 text-left text-sm transition flex items-center gap-2 ${
+                  showAnnotations
+                    ? 'bg-red-500/20 text-red-300 font-semibold'
+                    : 'text-slate-300 hover:bg-slate-700/50'
+                }`}
+              >
+                <Pencil className="h-4 w-4" />
+                Drawing Tools
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* End Session */}
       <button
@@ -609,9 +870,11 @@ function VideoControls({
 function VideoView({
   userRole,
   showPip = true,
+  swapView = false,
 }: {
   userRole: 'mechanic' | 'customer'
   showPip?: boolean
+  swapView?: boolean
 }) {
   const cameraTracks = useTracks([Track.Source.Camera])
   const screenTracks = useTracks([Track.Source.ScreenShare])
@@ -620,10 +883,19 @@ function VideoView({
   const remoteCameraTrack = cameraTracks.find((t) => !t.participant.isLocal)
   const screenShareTrack = screenTracks.find((t) => t.publication.isSubscribed)
 
-  // Main video shows OTHER person's camera (or screen share), PIP shows your own camera
-  // If someone is screen sharing, screen share is main, your camera is PIP
-  const mainTrack = screenShareTrack || remoteCameraTrack
-  const pipTrack = screenShareTrack ? localCameraTrack : localCameraTrack
+  // Determine main and PiP tracks based on swapView state
+  let mainTrack, pipTrack
+
+  if (screenShareTrack) {
+    mainTrack = screenShareTrack
+    pipTrack = localCameraTrack
+  } else if (swapView) {
+    mainTrack = localCameraTrack
+    pipTrack = remoteCameraTrack
+  } else {
+    mainTrack = remoteCameraTrack
+    pipTrack = localCameraTrack
+  }
 
   console.log('[VideoView] Tracks detected:', {
     hasLocal: !!localCameraTrack,
@@ -684,12 +956,17 @@ export default function VideoSessionClient({
   startedAt: _startedAt,
   mechanicId: _mechanicId,
   customerId: _customerId,
+  mechanicName,
+  customerName,
   dashboardUrl,
 }: VideoSessionClientProps) {
   const [mechanicPresent, setMechanicPresent] = useState(false)
   const [customerPresent, setCustomerPresent] = useState(false)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null)
+  // Timer pause state - pauses when one party disconnects
+  const [isTimerPaused, setIsTimerPaused] = useState(false)
+  const [sessionEnded, setSessionEnded] = useState(false)
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [extendingSession, setExtendingSession] = useState(false)
@@ -708,6 +985,38 @@ export default function VideoSessionClient({
   const [unreadCount, setUnreadCount] = useState(0) // Unread message count
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const [showPip, setShowPip] = useState(true) // PIP visibility toggle
+  const [showProfileModal, setShowProfileModal] = useState(false) // Profile modal visibility
+  const [swapView, setSwapView] = useState(false) // Swap main/PiP views
+  const broadcastChannelRef = useRef<any>(null) // Store channel for broadcasting
+
+  // Device enforcement state
+  const [deviceKicked, setDeviceKicked] = useState(false)
+  const [deviceFingerprint, setDeviceFingerprint] = useState<string | null>(null)
+
+  // ⭐ NEW: Enhanced video session features
+  const [videoQuality, setVideoQuality] = useState<'auto' | 'high' | 'medium' | 'low'>('auto')
+  const [showAnnotations, setShowAnnotations] = useState(false)
+  const [annotationMode, setAnnotationMode] = useState<'draw' | 'arrow' | 'circle' | 'laser' | null>(null)
+  const [annotations, setAnnotations] = useState<Array<any>>([])
+  const [brightness, setBrightness] = useState(100) // 0-200, 100 = normal
+  const [contrast, setContrast] = useState(100) // 0-200, 100 = normal
+  const [showBrightnessControl, setShowBrightnessControl] = useState(false)
+  const [showAudioLevels, setShowAudioLevels] = useState(false)
+  const [localAudioLevel, setLocalAudioLevel] = useState(0) // 0-100
+  const [remoteAudioLevel, setRemoteAudioLevel] = useState(0) // 0-100
+  const [showNetworkStats, setShowNetworkStats] = useState(false)
+  const [networkStats, setNetworkStats] = useState<{
+    latency: number | null
+    jitter: number | null
+    packetLoss: number | null
+    bandwidth: number | null
+  }>({
+    latency: null,
+    jitter: null,
+    packetLoss: null,
+    bandwidth: null,
+  })
+  const [isRoomConnected, setIsRoomConnected] = useState(true)
 
   // ⚠️ TESTING ONLY - REMOVE BEFORE PRODUCTION
   // Check URL parameter to skip preflight checks (for same-laptop testing)
@@ -816,6 +1125,80 @@ export default function VideoSessionClient({
     }
   }, [sessionId, dashboardUrl, supabase, _status])
 
+  // 🔒 SECURITY LAYER 4: Single-device enforcement
+  // Generate device fingerprint on mount
+  useEffect(() => {
+    const fingerprint = getOrCreateSessionFingerprint()
+    setDeviceFingerprint(fingerprint)
+    console.log('[DIAGNOSTIC DEVICE] Device fingerprint:', fingerprint)
+  }, [])
+
+  // Subscribe to session_devices table for device conflicts
+  useEffect(() => {
+    if (!deviceFingerprint || !_userId) return
+
+    console.log('[DIAGNOSTIC DEVICE] Setting up device conflict monitor')
+
+    const deviceChannel = supabase
+      .channel(`session-devices:${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'session_devices',
+          filter: `session_id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          console.log('[DIAGNOSTIC DEVICE] 🔄 New device detected:', payload)
+          const newDevice = payload.new
+
+          // Check if this is a different device for the same user
+          if (newDevice.user_id === _userId && newDevice.device_fingerprint !== deviceFingerprint) {
+            console.log('[DIAGNOSTIC DEVICE] ⚠️ CONFLICT: Another device joined for this user!')
+            console.log('[DIAGNOSTIC DEVICE] Current device:', deviceFingerprint)
+            console.log('[DIAGNOSTIC DEVICE] New device:', newDevice.device_fingerprint)
+
+            // Disconnect from LiveKit room immediately
+            setIsRoomConnected(false)
+            setDeviceKicked(true)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'session_devices',
+          filter: `session_id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          console.log('[DIAGNOSTIC DEVICE] Device updated:', payload)
+          const updatedDevice = payload.new
+
+          // Check if another device was registered for same user (last_seen_at updated)
+          if (updatedDevice.user_id === _userId &&
+              updatedDevice.device_fingerprint !== deviceFingerprint &&
+              updatedDevice.last_seen_at) {
+            console.log('[DIAGNOSTIC DEVICE] ⚠️ CONFLICT: Another device is active for this user!')
+
+            // Disconnect from LiveKit room immediately
+            setIsRoomConnected(false)
+            setDeviceKicked(true)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[DIAGNOSTIC DEVICE] Device monitor subscription status:', status)
+      })
+
+    return () => {
+      console.log('[DIAGNOSTIC DEVICE] Cleaning up device monitor')
+      supabase.removeChannel(deviceChannel)
+    }
+  }, [sessionId, deviceFingerprint, _userId, supabase])
+
   // Listen for session:ended broadcasts from the other participant
   useEffect(() => {
     console.log('[VIDEO] Setting up session:ended broadcast listener')
@@ -829,6 +1212,14 @@ export default function VideoSessionClient({
       .on('broadcast', { event: 'session:ended' }, (payload) => {
         console.log('[VIDEO] Session ended by other participant:', payload)
         const { status, endedBy } = payload.payload
+
+        // Clear all annotations
+        setAnnotations([])
+        setShowAnnotations(false)
+        setAnnotationMode(null)
+
+        // Mark session as ended
+        setSessionEnded(true)
 
         // Determine who ended the session
         const endedByText = endedBy === 'mechanic' ? 'the mechanic' : 'the customer'
@@ -857,6 +1248,20 @@ export default function VideoSessionClient({
           window.location.href = dashboardUrl
         }, 2000)
       })
+      .on('broadcast', { event: 'annotation' }, (payload) => {
+        console.log('[VIDEO] 📡 Received annotation:', payload)
+        const { annotation, sender } = payload.payload
+
+        // Add annotation from other participant
+        if (sender !== _userId && annotation) {
+          setAnnotations(prev => [...prev, annotation])
+        }
+      })
+      .on('broadcast', { event: 'annotation:clear' }, (payload) => {
+        console.log('[VIDEO] 📡 Received clear annotations')
+        // Clear all annotations
+        setAnnotations([])
+      })
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[VIDEO] Session extended:', payload)
         const { extensionMinutes, newDuration } = payload.payload
@@ -873,20 +1278,50 @@ export default function VideoSessionClient({
         console.log('[VIDEO] Broadcast subscription status:', status)
       })
 
+    // Store channel in ref for broadcasting from other useEffects
+    broadcastChannelRef.current = channel
+
     return () => {
       console.log('[VIDEO] Cleaning up broadcast subscription')
       supabase.removeChannel(channel)
     }
-  }, [sessionId, dashboardUrl, supabase])
+  }, [sessionId, dashboardUrl, supabase, _userId])
 
-  // Task 6: Monitor for disconnections
+  // Task 6: Monitor for disconnections and pause/resume timer
   useEffect(() => {
     if (sessionStarted && (!mechanicPresent || !customerPresent)) {
       setShowReconnectBanner(true)
-    } else {
+
+      // Pause timer if session has started and one party disconnects
+      if (sessionStartTime && !isTimerPaused) {
+        console.log('[DIAGNOSTIC] One party disconnected - Pausing timer')
+        setIsTimerPaused(true)
+      }
+    } else if (sessionStarted && mechanicPresent && customerPresent) {
       setShowReconnectBanner(false)
+
+      // Resume timer if both parties are back
+      if (isTimerPaused) {
+        console.log('[DIAGNOSTIC] Both parties reconnected - Resuming timer')
+        setIsTimerPaused(false)
+      }
     }
-  }, [mechanicPresent, customerPresent, sessionStarted])
+  }, [mechanicPresent, customerPresent, sessionStarted, sessionStartTime, isTimerPaused])
+
+  // CRITICAL FIX: On page load/refresh, if session is 'live' but both parties aren't present, pause timer
+  // This handles the case where someone refreshes during an active session
+  useEffect(() => {
+    // Only run this check if session has a start time (i.e., was previously started)
+    if (sessionStartTime && sessionStarted) {
+      const bothPresent = mechanicPresent && customerPresent
+
+      // If not both present and timer is running, pause it
+      if (!bothPresent && !isTimerPaused) {
+        console.log('[DIAGNOSTIC] Page loaded with live session but not both parties present - Pausing timer')
+        setIsTimerPaused(true)
+      }
+    }
+  }, [sessionStartTime, sessionStarted, mechanicPresent, customerPresent, isTimerPaused])
 
   // Chat: Subscribe to realtime messages
   useEffect(() => {
@@ -950,22 +1385,35 @@ export default function VideoSessionClient({
   // Dual-join detection: Start session when BOTH participants join
   useEffect(() => {
     if (mechanicPresent && customerPresent && !sessionStarted) {
-      console.log('[VIDEO] Both participants present - Starting session!')
+      console.log('[DIAGNOSTIC] Both participants present - Starting session!')
       setBothJoinedNotification(true)
       setTimeout(() => setBothJoinedNotification(false), 5000)
 
       setSessionStarted(true)
-      setSessionStartTime(new Date())
 
+      // Call server to start session and get synchronized timestamp
       fetch(`/api/sessions/${sessionId}/start`, {
         method: 'POST',
       })
         .then((res) => res.json())
         .then((data) => {
-          console.log('[VIDEO] Session start API response:', data)
+          console.log('[DIAGNOSTIC] Session start API response:', data)
+
+          // Use server's synchronized timestamp so both clients have exact same start time
+          if (data.session?.started_at) {
+            const serverStartTime = new Date(data.session.started_at)
+            setSessionStartTime(serverStartTime)
+            console.log('[DIAGNOSTIC] Timer synchronized to server time:', serverStartTime.toISOString())
+          } else {
+            // Fallback to current time if server doesn't return timestamp
+            console.warn('[DIAGNOSTIC] No started_at in response, using local time')
+            setSessionStartTime(new Date())
+          }
         })
         .catch((err) => {
-          console.error('[VIDEO] Failed to call session start API:', err)
+          console.error('[DIAGNOSTIC] Failed to call session start API:', err)
+          // Fallback to current time on error
+          setSessionStartTime(new Date())
         })
     }
   }, [mechanicPresent, customerPresent, sessionStarted, sessionId])
@@ -990,6 +1438,15 @@ export default function VideoSessionClient({
       .then((res) => res.json())
       .then((data) => {
         console.log('[VIDEO] Session auto-ended:', data)
+
+        // Clear all annotations
+        setAnnotations([])
+        setShowAnnotations(false)
+        setAnnotationMode(null)
+
+        // Mark session as ended
+        setSessionEnded(true)
+
         alert('Your session time has ended. Redirecting to dashboard...')
         setTimeout(() => {
           window.location.href = dashboardUrl
@@ -1041,6 +1498,14 @@ export default function VideoSessionClient({
       })
 
       if (response.ok) {
+        // Clear all annotations
+        setAnnotations([])
+        setShowAnnotations(false)
+        setAnnotationMode(null)
+
+        // Mark session as ended
+        setSessionEnded(true)
+
         window.location.href = dashboardUrl
       } else {
         console.error('Failed to end session')
@@ -1117,6 +1582,286 @@ export default function VideoSessionClient({
     }
   }, [sessionId])
 
+  // Handle video quality change
+  const handleVideoQualityChange = useCallback(async (quality: 'auto' | 'high' | 'medium' | 'low') => {
+    try {
+      console.log('[VIDEO_QUALITY] Changing quality to:', quality)
+      setVideoQuality(quality)
+
+      // LiveKit doesn't have a direct setQuality API, but we can adjust by restarting the camera with new constraints
+      // For now, we'll just update the state - in a production app, you'd use LiveKit's adaptive streaming
+      // or manually adjust constraints when creating/updating tracks
+
+      // Note: LiveKit handles quality automatically based on network conditions
+      // This is more of a preference setting that could be used when initializing tracks
+      console.log('[VIDEO_QUALITY] Quality preference set to:', quality)
+
+    } catch (error) {
+      console.error('[VIDEO_QUALITY] Error changing quality:', error)
+    }
+  }, [])
+
+  // Annotation Canvas Drawing Logic
+  useEffect(() => {
+    if (!showAnnotations || !annotationMode) return
+
+    const canvas = document.getElementById('annotation-canvas') as HTMLCanvasElement
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Drawing state
+    let isDrawing = false
+    let startX = 0
+    let startY = 0
+    let currentPath: Array<{x: number; y: number}> = []
+
+    // Draw arrow helper - DEFINED FIRST
+    const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) => {
+      const headlen = 20
+      const angle = Math.atan2(toY - fromY, toX - fromX)
+
+      ctx.beginPath()
+      ctx.moveTo(fromX, fromY)
+      ctx.lineTo(toX, toY)
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.moveTo(toX, toY)
+      ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6))
+      ctx.moveTo(toX, toY)
+      ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6))
+      ctx.stroke()
+    }
+
+    // Redraw all existing annotations - DEFINED SECOND
+    const redrawAnnotations = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const canvasWidth = canvas.width
+      const canvasHeight = canvas.height
+
+      annotations.forEach((annotation: any) => {
+        ctx.strokeStyle = annotation.color || '#FF4444'
+        ctx.lineWidth = annotation.lineWidth || 3
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+
+        if (annotation.type === 'draw' && annotation.path) {
+          ctx.beginPath()
+          annotation.path.forEach((point: {x: number; y: number}, index: number) => {
+            // Denormalize coordinates from 0-1 range to current canvas size
+            const absoluteX = point.x * canvasWidth
+            const absoluteY = point.y * canvasHeight
+            if (index === 0) {
+              ctx.moveTo(absoluteX, absoluteY)
+            } else {
+              ctx.lineTo(absoluteX, absoluteY)
+            }
+          })
+          ctx.stroke()
+        } else if (annotation.type === 'arrow') {
+          // Denormalize arrow coordinates
+          const startX = annotation.startX * canvasWidth
+          const startY = annotation.startY * canvasHeight
+          const endX = annotation.endX * canvasWidth
+          const endY = annotation.endY * canvasHeight
+          drawArrow(ctx, startX, startY, endX, endY)
+        } else if (annotation.type === 'circle') {
+          // Denormalize circle coordinates
+          const startX = annotation.startX * canvasWidth
+          const startY = annotation.startY * canvasHeight
+          const endX = annotation.endX * canvasWidth
+          const endY = annotation.endY * canvasHeight
+          const radius = Math.sqrt(
+            Math.pow(endX - startX, 2) +
+            Math.pow(endY - startY, 2)
+          )
+          ctx.beginPath()
+          ctx.arc(startX, startY, radius, 0, 2 * Math.PI)
+          ctx.stroke()
+        }
+      })
+    }
+
+    // Set canvas size to match video container - NOW USES DEFINED FUNCTIONS
+    const resizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect()
+      canvas.width = rect.width
+      canvas.height = rect.height
+      redrawAnnotations()
+    }
+
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+
+    // Get coordinates from mouse or touch event
+    const getCoordinates = (e: MouseEvent | TouchEvent) => {
+      if (!e) {
+        console.error('[ANNOTATION] Event is undefined in getCoordinates')
+        return { x: 0, y: 0 }
+      }
+      const rect = canvas.getBoundingClientRect()
+      if ('touches' in e && e.touches && e.touches.length > 0) {
+        return {
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top
+        }
+      }
+      if ('clientX' in e && 'clientY' in e) {
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        }
+      }
+      console.error('[ANNOTATION] Event has no clientX/clientY or touches')
+      return { x: 0, y: 0 }
+    }
+
+    // Start drawing
+    const handleStart = (e: MouseEvent | TouchEvent) => {
+      if (!e) return
+      e.preventDefault()
+      const { x, y } = getCoordinates(e)
+      isDrawing = true
+      startX = x
+      startY = y
+      currentPath = [{x, y}]
+
+      ctx.strokeStyle = '#FF4444'
+      ctx.lineWidth = 3
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+    }
+
+    // Draw/Move
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!e || !annotationMode) return
+
+      const { x, y } = getCoordinates(e)
+
+      // Laser pointer mode - just show cursor
+      if (annotationMode === 'laser') {
+        redrawAnnotations()
+        ctx.fillStyle = '#FF0000'
+        ctx.beginPath()
+        ctx.arc(x, y, 8, 0, 2 * Math.PI)
+        ctx.fill()
+        return
+      }
+
+      if (!isDrawing) return
+      e.preventDefault()
+
+      if (annotationMode === 'draw') {
+        currentPath.push({x, y})
+        ctx.beginPath()
+        ctx.moveTo(currentPath[currentPath.length - 2].x, currentPath[currentPath.length - 2].y)
+        ctx.lineTo(x, y)
+        ctx.stroke()
+      } else if (annotationMode === 'arrow' || annotationMode === 'circle') {
+        redrawAnnotations()
+        if (annotationMode === 'arrow') {
+          drawArrow(ctx, startX, startY, x, y)
+        } else {
+          const radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2))
+          ctx.beginPath()
+          ctx.arc(startX, startY, radius, 0, 2 * Math.PI)
+          ctx.stroke()
+        }
+      }
+    }
+
+    // End drawing
+    const handleEnd = (e: MouseEvent | TouchEvent) => {
+      if (!e || !isDrawing) return
+      e.preventDefault()
+      isDrawing = false
+
+      const { x, y } = getCoordinates(e)
+
+      // Create annotation object with NORMALIZED coordinates (0-1 range for cross-device compatibility)
+      let newAnnotation: any = null
+      const canvasWidth = canvas.width
+      const canvasHeight = canvas.height
+
+      if (annotationMode === 'draw') {
+        // Normalize path coordinates
+        const normalizedPath = currentPath.map(point => ({
+          x: point.x / canvasWidth,
+          y: point.y / canvasHeight
+        }))
+        newAnnotation = {
+          type: 'draw',
+          path: normalizedPath,
+          color: '#FF4444',
+          lineWidth: 3
+        }
+      } else if (annotationMode === 'arrow') {
+        newAnnotation = {
+          type: 'arrow',
+          startX: startX / canvasWidth,
+          startY: startY / canvasHeight,
+          endX: x / canvasWidth,
+          endY: y / canvasHeight,
+          color: '#FF4444',
+          lineWidth: 3
+        }
+      } else if (annotationMode === 'circle') {
+        newAnnotation = {
+          type: 'circle',
+          startX: startX / canvasWidth,
+          startY: startY / canvasHeight,
+          endX: x / canvasWidth,
+          endY: y / canvasHeight,
+          color: '#FF4444',
+          lineWidth: 3
+        }
+      }
+
+      if (newAnnotation) {
+        // Save annotation locally
+        setAnnotations(prev => [...prev, newAnnotation])
+
+        // Broadcast annotation to other participant using the stored channel
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current
+            .send({
+              type: 'broadcast',
+              event: 'annotation',
+              payload: {
+                annotation: newAnnotation,
+                sender: _userId,
+              },
+            })
+            .catch((err: any) => console.error('[ANNOTATION] Broadcast error:', err))
+        } else {
+          console.error('[ANNOTATION] Broadcast channel not available yet')
+        }
+      }
+    }
+
+    // Add event listeners
+    canvas.addEventListener('mousedown', handleStart)
+    canvas.addEventListener('mousemove', handleMove)
+    canvas.addEventListener('mouseup', handleEnd)
+    canvas.addEventListener('mouseleave', handleEnd)
+    canvas.addEventListener('touchstart', handleStart)
+    canvas.addEventListener('touchmove', handleMove)
+    canvas.addEventListener('touchend', handleEnd)
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleStart)
+      canvas.removeEventListener('mousemove', handleMove)
+      canvas.removeEventListener('mouseup', handleEnd)
+      canvas.removeEventListener('mouseleave', handleEnd)
+      canvas.removeEventListener('touchstart', handleStart)
+      canvas.removeEventListener('touchmove', handleMove)
+      canvas.removeEventListener('touchend', handleEnd)
+      window.removeEventListener('resize', resizeCanvas)
+    }
+  }, [showAnnotations, annotationMode, annotations, _userId])
+
   // Chat: Send message
   const handleSendMessage = useCallback(async () => {
     if (!messageInput.trim()) return
@@ -1163,8 +1908,8 @@ export default function VideoSessionClient({
 
   return (
     <div className="relative h-screen w-full bg-slate-950">
-      {/* Waiting Room Overlay */}
-      {(!mechanicPresent || !customerPresent) && (
+      {/* Waiting Room Overlay - Only show BEFORE session starts */}
+      {!sessionStarted && (!mechanicPresent || !customerPresent) && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur">
           <div className="max-w-md space-y-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/20">
@@ -1178,13 +1923,15 @@ export default function VideoSessionClient({
                   ? 'Waiting for mechanic to join'
                   : 'Waiting for customer to join'}
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
-                {!mechanicPresent && !customerPresent
-                  ? 'Session will start when both participants join.'
-                  : !mechanicPresent
-                  ? 'A certified mechanic will join shortly.'
-                  : 'Waiting for the customer to enter the session.'}
-              </p>
+              {(!mechanicPresent || !customerPresent) && (
+                <p className="mt-2 text-sm text-slate-400">
+                  {!mechanicPresent && !customerPresent
+                    ? 'Session will start when both participants join.'
+                    : !mechanicPresent
+                    ? 'A certified mechanic will join shortly.'
+                    : ''}
+                </p>
+              )}
             </div>
             <div className="rounded-2xl border border-yellow-400/30 bg-yellow-500/10 p-4">
               <p className="text-sm text-yellow-200">
@@ -1222,20 +1969,34 @@ export default function VideoSessionClient({
         </div>
       )}
 
-      {/* Reconnect Banner */}
-      {showReconnectBanner && (
-        <div className="absolute inset-x-0 top-20 z-50 mx-4">
-          <div className="rounded-lg border border-amber-500/50 bg-amber-500/20 p-4 text-center backdrop-blur">
-            <p className="font-semibold text-amber-200">Connection Lost</p>
-            <p className="mt-1 text-sm text-amber-300">
-              {mechanicPresent ? 'Customer' : 'Mechanic'} disconnected. Waiting for reconnection...
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-3 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
-            >
-              Retry Connection
-            </button>
+      {/* Connection Status Bar - Positioned above bottom controls */}
+      {showReconnectBanner && !sessionEnded && sessionStarted && (
+        <div className="absolute inset-x-0 bottom-24 z-30 sm:bottom-28 md:bottom-24">
+          <div className="mx-auto max-w-4xl px-2 sm:px-4">
+            <div className="rounded-t-lg border border-orange-500/30 bg-gradient-to-r from-orange-950/95 via-orange-900/95 to-orange-950/95 backdrop-blur-md shadow-lg">
+              <div className="flex items-center justify-between px-3 py-2 sm:px-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-orange-400 flex-shrink-0"></div>
+                    <span className="text-xs font-medium text-orange-200 sm:text-sm">
+                      {_userRole === 'customer'
+                        ? 'Connection interrupted'
+                        : `${mechanicPresent ? 'Customer' : 'Mechanic'} disconnected`
+                      }
+                    </span>
+                  </div>
+                  <span className="hidden text-xs text-orange-300/80 sm:inline">
+                    {_userRole === 'customer' ? 'Reconnecting...' : 'Timer paused'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="rounded-md bg-orange-600/90 px-2 py-1 text-xs font-semibold text-white transition hover:bg-orange-600 sm:px-3"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1260,14 +2021,29 @@ export default function VideoSessionClient({
             ← <span className="hidden sm:inline">Dashboard</span>
           </a>
 
-          {/* ROLE INDICATOR - Shows exactly what role you are assigned */}
-          <div className={`rounded-full border-2 px-2 py-1 text-xs font-bold backdrop-blur sm:px-4 sm:py-2 sm:text-sm ${
-            _userRole === 'mechanic'
-              ? 'border-blue-400 bg-blue-500/20 text-blue-100'
-              : 'border-green-400 bg-green-500/20 text-green-100'
-          }`}>
-            {_userRole === 'mechanic' ? '🔧 Mechanic' : '👤 Customer'}
-          </div>
+          {/* PARTICIPANT NAME - Shows the other participant's name */}
+          {_userRole === 'customer' && mechanicName && _mechanicId ? (
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="rounded-full border-2 border-blue-400 bg-blue-500/20 px-2 py-1 text-xs font-bold text-blue-100 backdrop-blur transition hover:bg-blue-500/30 sm:px-4 sm:py-2 sm:text-sm flex items-center gap-1.5"
+              title="View mechanic profile"
+            >
+              🔧 {mechanicName}
+              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </button>
+          ) : _userRole === 'mechanic' && customerName ? (
+            <div className="rounded-full border-2 border-green-400 bg-green-500/20 px-2 py-1 text-xs font-bold text-green-100 backdrop-blur sm:px-4 sm:py-2 sm:text-sm">
+              👤 {customerName}
+            </div>
+          ) : (
+            <div className={`rounded-full border-2 px-2 py-1 text-xs font-bold backdrop-blur sm:px-4 sm:py-2 sm:text-sm ${
+              _userRole === 'mechanic'
+                ? 'border-blue-400 bg-blue-500/20 text-blue-100'
+                : 'border-green-400 bg-green-500/20 text-green-100'
+            }`}>
+              {_userRole === 'mechanic' ? '🔧 Mechanic' : '👤 Customer'}
+            </div>
+          )}
 
           {/* Debug info (only in development) */}
           {process.env.NODE_ENV === 'development' && (
@@ -1284,6 +2060,8 @@ export default function VideoSessionClient({
               durationMinutes={durationMinutes}
               onTimeWarning={handleTimeWarning}
               onTimeUp={handleTimeUp}
+              isPaused={isTimerPaused}
+              sessionId={sessionId}
             />
           )}
 
@@ -1318,7 +2096,7 @@ export default function VideoSessionClient({
       <LiveKitRoom
         serverUrl={serverUrl}
         token={token}
-        connect
+        connect={isRoomConnected}
         video
         audio
         className="h-full w-full"
@@ -1329,15 +2107,8 @@ export default function VideoSessionClient({
           onCustomerJoined={handleCustomerJoined}
           onCustomerLeft={handleCustomerLeft}
         />
-        <VideoView userRole={_userRole} showPip={showPip} />
+        <VideoView userRole={_userRole} showPip={showPip} swapView={swapView} />
         <RoomAudioRenderer />
-
-        {/* Connection Quality Indicator - Top Right */}
-        {sessionStarted && (
-          <div className="absolute right-2 top-2 z-40 sm:right-3 sm:top-3 md:right-4 md:top-4">
-            <ConnectionQualityBadge />
-          </div>
-        )}
 
         {/* Video Controls - Bottom Bar */}
         {sessionStarted && (
@@ -1358,11 +2129,150 @@ export default function VideoSessionClient({
                 unreadCount={unreadCount}
                 showPip={showPip}
                 onTogglePip={() => setShowPip(!showPip)}
+                swapView={swapView}
+                onToggleSwapView={() => setSwapView(!swapView)}
+                videoQuality={videoQuality}
+                onVideoQualityChange={handleVideoQualityChange}
+                showBrightnessControl={showBrightnessControl}
+                onToggleBrightnessControl={() => setShowBrightnessControl(!showBrightnessControl)}
+                showAudioLevels={showAudioLevels}
+                onToggleAudioLevels={() => setShowAudioLevels(!showAudioLevels)}
+                showNetworkStats={showNetworkStats}
+                onToggleNetworkStats={() => setShowNetworkStats(!showNetworkStats)}
+                showAnnotations={showAnnotations}
+                onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+                userRole={_userRole}
               />
             </div>
           </div>
         )}
       </LiveKitRoom>
+
+      {/* Annotation Canvas Overlay - Only for mechanics */}
+      {showAnnotations && _userRole === 'mechanic' && (
+        <div className="absolute inset-0 z-50 pointer-events-none">
+          {/* Drawing Toolbar - Floating on left side */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-auto">
+            <div className="flex flex-col gap-2 rounded-xl border-2 border-slate-600 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-sm">
+              <div className="mb-1 border-b border-slate-600 pb-2 text-center">
+                <p className="text-xs font-bold text-white">DRAW TOOLS</p>
+              </div>
+
+              {/* Freehand Draw */}
+              <button
+                onClick={() => setAnnotationMode(annotationMode === 'draw' ? null : 'draw')}
+                className={`rounded-lg p-2.5 transition ${
+                  annotationMode === 'draw'
+                    ? 'bg-blue-500 text-white ring-2 ring-blue-400'
+                    : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600 hover:text-white'
+                }`}
+                title="Freehand draw"
+              >
+                <Pencil className="h-5 w-5" />
+              </button>
+
+              {/* Arrow */}
+              <button
+                onClick={() => setAnnotationMode(annotationMode === 'arrow' ? null : 'arrow')}
+                className={`rounded-lg p-2.5 transition ${
+                  annotationMode === 'arrow'
+                    ? 'bg-green-500 text-white ring-2 ring-green-400'
+                    : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600 hover:text-white'
+                }`}
+                title="Draw arrow"
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
+
+              {/* Circle */}
+              <button
+                onClick={() => setAnnotationMode(annotationMode === 'circle' ? null : 'circle')}
+                className={`rounded-lg p-2.5 transition ${
+                  annotationMode === 'circle'
+                    ? 'bg-purple-500 text-white ring-2 ring-purple-400'
+                    : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600 hover:text-white'
+                }`}
+                title="Draw circle"
+              >
+                <Circle className="h-5 w-5" />
+              </button>
+
+              {/* Laser Pointer */}
+              <button
+                onClick={() => setAnnotationMode(annotationMode === 'laser' ? null : 'laser')}
+                className={`rounded-lg p-2.5 transition ${
+                  annotationMode === 'laser'
+                    ? 'bg-red-500 text-white ring-2 ring-red-400'
+                    : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600 hover:text-white'
+                }`}
+                title="Laser pointer"
+              >
+                <MousePointer className="h-5 w-5" />
+              </button>
+
+              <div className="border-t border-slate-600 my-1"></div>
+
+              {/* Clear All */}
+              <button
+                onClick={() => {
+                  setAnnotations([])
+                  setAnnotationMode(null)
+                  // Broadcast clear to customer using stored channel
+                  if (broadcastChannelRef.current) {
+                    broadcastChannelRef.current
+                      .send({
+                        type: 'broadcast',
+                        event: 'annotation:clear',
+                        payload: { sender: _userId },
+                      })
+                      .catch((err: any) => console.error('[ANNOTATION] Clear broadcast error:', err))
+                  }
+                }}
+                className="rounded-lg bg-red-500/80 p-2.5 text-white transition hover:bg-red-600"
+                title="Clear all annotations"
+              >
+                <Eraser className="h-5 w-5" />
+              </button>
+
+              {/* Close Drawing Mode */}
+              <button
+                onClick={() => {
+                  setShowAnnotations(false)
+                  setAnnotationMode(null)
+                  setAnnotations([])
+                }}
+                className="rounded-lg bg-slate-700/80 p-2.5 text-slate-300 transition hover:bg-slate-600 hover:text-white"
+                title="Exit drawing mode"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Canvas for drawing */}
+          <canvas
+            id="annotation-canvas"
+            className={`absolute inset-0 w-full h-full ${annotationMode ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+            style={{
+              touchAction: 'none',
+            }}
+          />
+
+          {/* Helper text */}
+          {annotationMode && (
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none">
+              <div className="rounded-lg border border-slate-600 bg-slate-900/90 px-4 py-2 backdrop-blur-sm">
+                <p className="text-sm text-slate-300">
+                  {annotationMode === 'draw' && '✏️ Draw on screen to highlight areas'}
+                  {annotationMode === 'arrow' && '➡️ Click and drag to draw an arrow'}
+                  {annotationMode === 'circle' && '⭕ Click and drag to draw a circle'}
+                  {annotationMode === 'laser' && '🔴 Move cursor to point at areas'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Shared Files Sidebar */}
       {sharedFiles.length > 0 && (
@@ -1547,6 +2457,40 @@ export default function VideoSessionClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Device Conflict Modal - Another device joined */}
+      {deviceKicked && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="max-w-md rounded-xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-full bg-red-500/20 p-3">
+                <AlertCircle className="h-6 w-6 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Session Ended</h2>
+            </div>
+            <p className="mb-6 text-slate-300">
+              This session was joined from another device. Only one device can be connected at a time for security reasons.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => window.location.href = dashboardUrl}
+                className="flex-1 rounded-lg bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mechanic Profile Modal */}
+      {_userRole === 'customer' && _mechanicId && (
+        <MechanicProfileModal
+          mechanicId={_mechanicId}
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+        />
       )}
     </div>
   )

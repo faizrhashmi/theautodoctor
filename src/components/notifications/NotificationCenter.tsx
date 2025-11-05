@@ -16,15 +16,52 @@ interface NotificationCenterProps {
   isOpen: boolean
   onClose: () => void
   userId: string
+  userRole?: 'customer' | 'mechanic' | 'workshop'
 }
 
-export function NotificationCenter({ isOpen, onClose, userId }: NotificationCenterProps) {
+export function NotificationCenter({ isOpen, onClose, userId, userRole = 'customer' }: NotificationCenterProps) {
   const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [markingRead, setMarkingRead] = useState<Set<string>>(new Set())
   const [clearingRead, setClearingRead] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+
+  // Define role-appropriate notification types
+  const mechanicOnlyTypes = ['request_created', 'payment_received']
+  const customerOnlyTypes = [
+    'request_submitted',
+    'summary_ready',
+    'quote_received',
+    'request_rejected',
+    'repair_job_created',
+    'repair_job_update',
+    'repair_status_changed',
+    'repair_ready_for_pickup',
+    'repair_parts_ordered',
+    'repair_parts_received',
+    'repair_waiting_approval',
+    'rfq_bid_received',
+    'rfq_accepted'
+  ]
+
+  // Filter notifications based on user role
+  const shouldShowNotification = (notification: Notification) => {
+    const notifType = notification.type
+
+    // Mechanics should not see customer-only notifications
+    if (userRole === 'mechanic' && customerOnlyTypes.includes(notifType)) {
+      return false
+    }
+
+    // Customers should not see mechanic-only notifications
+    if (userRole === 'customer' && mechanicOnlyTypes.includes(notifType)) {
+      return false
+    }
+
+    // Workshops can see all notifications for now (they may have special types later)
+    return true
+  }
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -306,8 +343,10 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
   // Don't render if closed
   if (!isOpen) return null
 
-  const unreadNotifications = notifications.filter(n => !n.read_at)
-  const readNotifications = notifications.filter(n => n.read_at)
+  // Apply role-based filtering before displaying
+  const filteredNotifications = notifications.filter(shouldShowNotification)
+  const unreadNotifications = filteredNotifications.filter(n => !n.read_at)
+  const readNotifications = filteredNotifications.filter(n => n.read_at)
 
   return (
     <>
@@ -369,7 +408,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-500 border-r-transparent" />
               <p className="mt-2 text-sm text-slate-400">Loading notifications...</p>
             </div>
-          ) : notifications.length === 0 ? (
+          ) : filteredNotifications.length === 0 ? (
             <div className="p-8 text-center">
               <svg className="mx-auto h-12 w-12 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -378,7 +417,7 @@ export function NotificationCenter({ isOpen, onClose, userId }: NotificationCent
             </div>
           ) : (
             <div className="divide-y divide-slate-800">
-              {notifications.map((notification) => (
+              {filteredNotifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}

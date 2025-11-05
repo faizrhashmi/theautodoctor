@@ -112,220 +112,147 @@ export async function POST(req: NextRequest) {
 
   // Handle credit-based sessions
   if (use_credits && user?.id) {
+    // 🚨 CREDIT-BASED SESSION FLOW: Use unified session factory
     if (!supabaseAdmin || !intakeId) {
       return bad('Server error: Admin client unavailable');
     }
 
-    // Determine session type from plan
-    let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat';
-    const planConfig = PRICING[plan as PlanKey];
-    const fulfillment = planConfig?.fulfillment || 'chat';
-    if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
-      sessionType = fulfillment;
-    }
+    try {
+      // Import session factory
+      const { createSessionRecord, getSessionTypeFromPlan } = await import('@/lib/sessionFactory');
 
-    // Get credit cost from pricing table
-    const { data: creditPricing, error: pricingError } = await supabaseAdmin
-      .from('credit_pricing')
-      .select('credit_cost')
-      .eq('session_type', sessionType)
-      .eq('is_specialist', is_specialist)
-      .or('effective_until.is.null,effective_until.gt.' + new Date().toISOString())
-      .order('effective_from', { ascending: false })
-      .limit(1)
-      .single();
+      // Determine session type from plan
+      const sessionType = getSessionTypeFromPlan(plan);
 
-    if (pricingError || !creditPricing) {
-      return bad('Unable to determine credit cost for this session');
-    }
+      // Get credit cost from pricing table
+      const { data: creditPricing, error: pricingError } = await supabaseAdmin
+        .from('credit_pricing')
+        .select('credit_cost')
+        .eq('session_type', sessionType)
+        .eq('is_specialist', is_specialist)
+        .or('effective_until.is.null,effective_until.gt.' + new Date().toISOString())
+        .order('effective_from', { ascending: false })
+        .limit(1)
+        .single();
 
-    const creditCost = creditPricing.credit_cost;
+      if (pricingError || !creditPricing) {
+        return bad('Unable to determine credit cost for this session');
+      }
 
-    // Check for existing active/pending sessions
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: activeSessions, error: checkError } = await supabaseAdmin
-      .from('sessions')
-      .select('id, status, type, created_at')
-      .eq('customer_user_id', user.id)
-      .in('status', ['pending', 'waiting', 'live', 'scheduled'])
-      .gte('created_at', twentyFourHoursAgo)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      const creditCost = creditPricing.credit_cost;
 
-    if (!checkError && activeSessions && activeSessions.length > 0) {
-      const activeSession = activeSessions[0]!;
-      return NextResponse.json({
-        error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
-        activeSessionId: activeSession.id,
-        activeSessionType: activeSession.type,
-        activeSessionStatus: activeSession.status,
-      }, { status: 409 });
-    }
-
-    // Create session first
-    const metadata: Record<string, Json> = {
-      intake_id: intakeId,
-      source: 'intake',
-      plan,
-      urgent,
-      payment_method: 'credits',
-      is_specialist,
-      credit_cost: creditCost,
-      // Phase 3: Favorites Priority Flow
-      ...(preferred_mechanic_id && { preferred_mechanic_id }),
-      ...(routing_type && { routing_type }),
-    };
-
-    const { data: sessionInsert, error: sessionError } = await supabaseAdmin
-      .from('sessions')
-      .insert({
+      // Create session using unified factory
+      const result = await createSessionRecord({
+        customerId: user.id,
+        customerEmail: user.email,
         type: sessionType,
-        status: 'pending',
         plan,
-        intake_id: intakeId,
-        customer_user_id: user.id,
-        metadata,
-        stripe_session_id: null, // No Stripe payment for credit sessions
-      })
-      .select('id')
-      .single();
+        intakeId,
+        paymentMethod: 'credits',
+        creditCost,
+        urgent,
+        isSpecialist: is_specialist,
+        preferredMechanicId: preferred_mechanic_id,
+        routingType: routing_type as any
+      });
 
-    if (sessionError) {
-      return NextResponse.json({ error: sessionError.message }, { status: 500 });
+      const sessionId = result.sessionId;
+
+      // Deduct credits using database function
+      const { error: deductError } = await supabaseAdmin.rpc('deduct_session_credits', {
+        p_customer_id: user.id,
+        p_session_id: sessionId,
+        p_session_type: sessionType,
+        p_is_specialist: is_specialist,
+        p_credit_cost: creditCost,
+      });
+
+      if (deductError) {
+        // Rollback: Delete the session if credit deduction failed
+        await supabaseAdmin.from('sessions').delete().eq('id', sessionId);
+
+        return NextResponse.json({
+          error: deductError.message.includes('Insufficient credits')
+            ? 'Insufficient credits. Please add more credits or choose a pay-as-you-go option.'
+            : 'Failed to deduct credits. Please try again.',
+        }, { status: 400 });
+      }
+
+      console.log(`[INTAKE] ✓ Credit-based session created via factory: ${sessionId}, deducted ${creditCost} credits`);
+
+      // Add credits_used parameter to redirect URL
+      const redirectUrl = `${result.redirectUrl}&credits_used=true`;
+
+      return NextResponse.json({ redirect: redirectUrl });
+
+    } catch (error: any) {
+      // Handle active session conflict (409)
+      if (error.code === 'ACTIVE_SESSION_EXISTS') {
+        return NextResponse.json({
+          error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
+          activeSessionId: error.activeSession.id,
+          activeSessionType: error.activeSession.type,
+          activeSessionStatus: error.activeSession.status,
+        }, { status: 409 });
+      }
+
+      // Other errors
+      console.error('[INTAKE] Credit-based session creation failed:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    const sessionId = sessionInsert.id;
-
-    // Deduct credits using database function
-    const { error: deductError } = await supabaseAdmin.rpc('deduct_session_credits', {
-      p_customer_id: user.id,
-      p_session_id: sessionId,
-      p_session_type: sessionType,
-      p_is_specialist: is_specialist,
-      p_credit_cost: creditCost,
-    });
-
-    if (deductError) {
-      // Delete the session if credit deduction failed
-      await supabaseAdmin.from('sessions').delete().eq('id', sessionId);
-
-      return NextResponse.json({
-        error: deductError.message.includes('Insufficient credits')
-          ? 'Insufficient credits. Please add more credits or choose a pay-as-you-go option.'
-          : 'Failed to deduct credits. Please try again.',
-      }, { status: 400 });
-    }
-
-    // Add customer as participant
-    await supabaseAdmin
-      .from('session_participants')
-      .upsert(
-        { session_id: sessionId, user_id: user.id, role: 'customer' },
-        { onConflict: 'session_id,user_id' },
-      );
-
-    console.log(`[INTAKE] Created credit-based session ${sessionId} for intake ${intakeId}, deducted ${creditCost} credits`);
-
-    // Redirect to waiver signing page
-    const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
-    waiverUrl.searchParams.set('plan', plan);
-    waiverUrl.searchParams.set('intake_id', intakeId);
-    waiverUrl.searchParams.set('session', sessionId);
-    waiverUrl.searchParams.set('credits_used', 'true');
-
-    return NextResponse.json({ redirect: `${waiverUrl.pathname}${waiverUrl.search}` });
   }
 
   if (plan === 'trial' || plan === 'free' || plan === 'trial-free') {
-    let sessionId: string | null = null;
-
-    if (supabaseAdmin && intakeId) {
-      // Check for existing active/pending sessions - Only ONE session allowed at a time!
-      if (user?.id) {
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-        const { data: activeSessions, error: checkError } = await supabaseAdmin
-          .from('sessions')
-          .select('id, status, type, created_at')
-          .eq('customer_user_id', user.id)
-          .in('status', ['pending', 'waiting', 'live', 'scheduled'])
-          .gte('created_at', twentyFourHoursAgo)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!checkError && activeSessions && activeSessions.length > 0) {
-          const activeSession = activeSessions[0]!;
-          return NextResponse.json({
-            error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
-            activeSessionId: activeSession.id,
-            activeSessionType: activeSession.type,
-            activeSessionStatus: activeSession.status,
-          }, { status: 409 });
-        }
-      }
-
-      const metadata: Record<string, Json> = {
-        intake_id: intakeId,
-        source: 'intake',
-        plan,
-        urgent,
-        // Phase 3: Favorites Priority Flow
-        ...(preferred_mechanic_id && { preferred_mechanic_id }),
-        ...(routing_type && { routing_type }),
-      };
-
-      const freeSessionKey = `free_${intakeId}_${randomUUID()}`;
-
-      // Determine session type from plan
-      let sessionType: 'chat' | 'video' | 'diagnostic' = 'chat';
-      const planConfig = PRICING[plan as PlanKey];
-      const fulfillment = planConfig?.fulfillment || 'chat';
-      if (fulfillment === 'chat' || fulfillment === 'video' || fulfillment === 'diagnostic') {
-        sessionType = fulfillment;
-      }
-
-      const { data: sessionInsert, error: sessionError } = await supabaseAdmin
-        .from('sessions')
-        .insert({
-          type: sessionType,
-          status: 'pending',
-          plan,
-          intake_id: intakeId,
-          customer_user_id: user?.id ?? null,
-          metadata,
-          stripe_session_id: freeSessionKey,
-        })
-        .select('id')
-        .single();
-
-      if (sessionError) {
-        return NextResponse.json({ error: sessionError.message }, { status: 500 });
-      }
-
-      sessionId = sessionInsert.id;
-      console.log(`[INTAKE] Created session ${sessionId} for intake ${intakeId}`);
-
-      if (user?.id) {
-        const { error: participantError } = await supabaseAdmin
-          .from('session_participants')
-          .upsert(
-            { session_id: sessionId, user_id: user.id, role: 'customer' },
-            { onConflict: 'session_id,user_id' },
-          );
-
-        if (participantError) {
-          return NextResponse.json({ error: participantError.message }, { status: 500 });
-        }
-      }
+    // 🚨 FREE SESSION FLOW: Use unified session factory
+    if (!user?.id || !intakeId) {
+      return bad('User authentication or intake ID required');
     }
 
-    // Redirect to waiver signing page
-    const waiverUrl = new URL('/intake/waiver', req.nextUrl.origin);
-    waiverUrl.searchParams.set('plan', plan);
-    if (intakeId) waiverUrl.searchParams.set('intake_id', intakeId);
-    if (sessionId) waiverUrl.searchParams.set('session', sessionId);
+    try {
+      // Import session factory (dynamic to avoid circular deps)
+      const { createSessionRecord, getSessionTypeFromPlan } = await import('@/lib/sessionFactory');
 
-    return NextResponse.json({ redirect: `${waiverUrl.pathname}${waiverUrl.search}` });
+      // Determine session type from plan
+      const sessionType = getSessionTypeFromPlan(plan);
+
+      // Generate free session key (for tracking)
+      const freeSessionKey = `free_${intakeId}_${randomUUID()}`;
+
+      // Create session using unified factory
+      const result = await createSessionRecord({
+        customerId: user.id,
+        customerEmail: user.email,
+        type: sessionType,
+        plan,
+        intakeId,
+        stripeSessionId: freeSessionKey,
+        paymentMethod: 'free',
+        urgent,
+        isSpecialist: is_specialist,
+        preferredMechanicId: preferred_mechanic_id,
+        routingType: routing_type as any
+      });
+
+      console.log(`[INTAKE] ✓ Free session created via factory: ${result.sessionId}`);
+
+      // Factory returns the redirect URL, use it directly
+      return NextResponse.json({ redirect: result.redirectUrl });
+
+    } catch (error: any) {
+      // Handle active session conflict (409)
+      if (error.code === 'ACTIVE_SESSION_EXISTS') {
+        return NextResponse.json({
+          error: 'You already have an active or pending session. Please complete or cancel your existing session before starting a new one.',
+          activeSessionId: error.activeSession.id,
+          activeSessionType: error.activeSession.type,
+          activeSessionStatus: error.activeSession.status,
+        }, { status: 409 });
+      }
+
+      // Other errors
+      console.error('[INTAKE] Free session creation failed:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   // Paid plans also redirect to waiver first, then waiver will redirect to checkout
