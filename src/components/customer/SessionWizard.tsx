@@ -14,7 +14,6 @@ import {
   Check,
   Loader2,
   ChevronRight,
-  Zap,
 } from 'lucide-react'
 import { useServicePlans } from '@/hooks/useCustomerPlan'
 import CarBrandLogo from '@/components/ui/CarBrandLogo'
@@ -49,13 +48,6 @@ interface SessionWizardProps {
   onClose?: () => void
 }
 
-interface DecodedVINData {
-  year?: number
-  make?: string
-  model?: string
-  body?: string
-}
-
 type SessionType = 'quick' | 'video' | 'diagnostic' | string
 type MechanicType = 'standard' | 'specialist'
 
@@ -88,16 +80,8 @@ export default function SessionWizard({
   // Add ref for wizard container to maintain focus
   const wizardRef = useRef<HTMLDivElement>(null)
 
-  // VIN decoding state
-  const [vinInput, setVinInput] = useState('')
-  const [decodingVin, setDecodingVin] = useState(false)
-  const [vinCache, setVinCache] = useState<Record<string, DecodedVINData>>({})
-  const [showVinDecoder, setShowVinDecoder] = useState(false)
-  const [decodedVinData, setDecodedVinData] = useState<DecodedVINData | null>(null)
-
   // Optimistic submit state
   const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const isNewCustomer = hasUsedFreeSession === false
   const totalSteps = vehicles.length > 0 ? 3 : 2 // Skip vehicle step if no vehicles
@@ -149,57 +133,6 @@ export default function SessionWizard({
       setLoadingVehicles(false)
     }
   }
-
-  // Lazy VIN lookup - only decode when user clicks the button
-  const decodeVin = useCallback(async (vin: string) => {
-    if (!vin || vin.length < 3) {
-      setSubmitError('VIN must be at least 3 characters')
-      return
-    }
-
-    // Check cache first
-    if (vinCache[vin]) {
-      setDecodedVinData(vinCache[vin])
-      setSubmitError(null)
-      return
-    }
-
-    setDecodingVin(true)
-    setSubmitError(null)
-
-    try {
-      // Call VIN decoding API
-      // Note: You may need to create this endpoint or use a third-party VIN decoder
-      const response = await fetch('/api/vehicles/decode-vin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vin }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const decodedData: DecodedVINData = {
-          year: data.year,
-          make: data.make,
-          model: data.model,
-          body: data.body,
-        }
-
-        // Cache the result
-        setVinCache(prev => ({ ...prev, [vin]: decodedData }))
-        setDecodedVinData(decodedData)
-      } else {
-        setSubmitError('Could not decode VIN. Please check and try again.')
-        setDecodedVinData(null)
-      }
-    } catch (error) {
-      console.error('[SessionWizard] Error decoding VIN:', error)
-      setSubmitError('Error decoding VIN. Please try again.')
-      setDecodedVinData(null)
-    } finally {
-      setDecodingVin(false)
-    }
-  }, [vinCache])
 
   // Memoized event handlers to prevent unnecessary re-renders
   const handleNext = useCallback(() => {
@@ -348,53 +281,6 @@ export default function SessionWizard({
             ? 'Your first session is FREE! Try our Standard Video session for best experience.'
             : 'Select the service level that fits your needs'}
         </p>
-      </div>
-
-      {/* VIN Decoder Section */}
-      <div className="p-3 sm:p-4 rounded-lg border border-orange-500/30 bg-orange-500/5">
-        <div className="flex items-center gap-2 mb-2 sm:mb-3">
-          <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400" />
-          <h4 className="text-xs sm:text-sm font-semibold text-white">Optional: Decode VIN</h4>
-        </div>
-        <p className="text-xs text-slate-400 mb-2 sm:mb-3">
-          Help us identify your vehicle details for faster diagnosis
-        </p>
-        {!showVinDecoder ? (
-          <button
-            onClick={() => setShowVinDecoder(true)}
-            className="w-full px-3 py-2 text-xs sm:text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg transition-colors"
-          >
-            Decode VIN
-          </button>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                value={vinInput}
-                onChange={(e) => setVinInput(e.target.value.toUpperCase())}
-                placeholder="Enter 17-digit VIN"
-                maxLength={17}
-                className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-orange-500 focus:outline-none break-words"
-              />
-              <button
-                onClick={() => decodeVin(vinInput)}
-                disabled={decodingVin || !vinInput}
-                className="px-3 py-2 text-xs sm:text-sm bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap"
-              >
-                {decodingVin ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : 'Decode'}
-              </button>
-            </div>
-            {submitError && (
-              <p className="text-xs text-red-400">{submitError}</p>
-            )}
-            {decodedVinData && (
-              <div className="text-xs text-green-400 p-2 bg-green-500/10 rounded break-words">
-                <p className="font-semibold break-words">Decoded: {decodedVinData.year} {decodedVinData.make} {decodedVinData.model}</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {availablePlans.length === 0 ? (
@@ -615,7 +501,7 @@ export default function SessionWizard({
               key={idx}
               className={`h-2 flex-1 rounded-full transition-all ${
                 idx < currentStep
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700'
+                  ? 'bg-gradient-to-r from-orange-500 to-red-600'
                   : 'bg-slate-700'
               }`}
             />
@@ -654,7 +540,7 @@ export default function SessionWizard({
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
             <ChevronRight className="h-4 w-4" />
@@ -663,7 +549,7 @@ export default function SessionWizard({
           <button
             onClick={handleLaunchSession}
             disabled={launching}
-            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50"
           >
             {launching ? (
               <>

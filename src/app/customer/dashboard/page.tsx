@@ -703,15 +703,15 @@ export default function CustomerDashboardPage() {
 
             {/* Progress Bar */}
             <div>
-              <div className="flex items-center justify-between text-xs text-blue-300 mb-2">
+              <div className="flex items-center justify-between text-xs text-orange-300 mb-2">
                 <span>Usage This Cycle</span>
                 <span>
                   {stats.subscription.credits_used} / {stats.subscription.credit_allocation}
                 </span>
               </div>
-              <div className="h-2 bg-blue-900/30 rounded-full overflow-hidden">
+              <div className="h-2 bg-orange-900/30 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-orange-500 to-red-600 transition-all duration-500"
                   style={{
                     width: `${Math.min(100, (stats.subscription.credits_used / Math.max(1, stats.subscription.credit_allocation)) * 100)}%`
                   }}
@@ -721,7 +721,7 @@ export default function CustomerDashboardPage() {
 
             {/* Renewal Date */}
             {stats.subscription.next_billing_date && (
-              <div className="text-xs text-blue-300 text-center pt-2 border-t border-blue-400/20">
+              <div className="text-xs text-orange-300 text-center pt-2 border-t border-orange-400/20">
                 Next renewal: {new Date(stats.subscription.next_billing_date).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',

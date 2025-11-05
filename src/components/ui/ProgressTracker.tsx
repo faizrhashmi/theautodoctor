@@ -26,7 +26,7 @@ export function ProgressTracker({ steps }: ProgressTrackerProps) {
                   step.completed
                     ? 'border-green-500 bg-green-500'
                     : step.current
-                    ? 'border-blue-500 bg-blue-500/20'
+                    ? 'border-orange-500 bg-orange-500/20'
                     : 'border-slate-600 bg-slate-800'
                 }`}
               >
@@ -35,7 +35,7 @@ export function ProgressTracker({ steps }: ProgressTrackerProps) {
                 ) : (
                   <span
                     className={`text-xs sm:text-sm font-semibold ${
-                      step.current ? 'text-blue-200' : 'text-slate-400'
+                      step.current ? 'text-orange-200' : 'text-slate-400'
                     }`}
                   >
                     {index + 1}
@@ -47,7 +47,7 @@ export function ProgressTracker({ steps }: ProgressTrackerProps) {
                   step.completed
                     ? 'text-green-400'
                     : step.current
-                    ? 'text-blue-400'
+                    ? 'text-orange-400'
                     : 'text-slate-500'
                 }`}
               >
