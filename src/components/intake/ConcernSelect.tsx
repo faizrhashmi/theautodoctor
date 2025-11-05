@@ -138,7 +138,6 @@ export function ConcernSelect({ value, onChange, error }: ConcernSelectProps) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search concerns..."
                   className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  autoFocus
                 />
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import {
   Car,
   MessageSquare,
@@ -646,100 +647,177 @@ export default function SessionWizard({
         )}
       </div>
 
-      {/* Add Vehicle Modal */}
-      {showAddVehicleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700">
-              <h3 className="text-lg sm:text-xl font-bold text-white">Add Vehicle</h3>
-              <button
-                onClick={() => setShowAddVehicleModal(false)}
-                className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 sm:p-6 space-y-4">
-              <p className="text-sm text-slate-400">Add your vehicle details to continue with your session.</p>
-
-              {/* Year Selector */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Year *</label>
-                <SmartYearSelector
-                  value={newVehicle.year}
-                  onChange={(year) => setNewVehicle(prev => ({ ...prev, year }))}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
-                />
-              </div>
-
-              {/* Make/Brand Selector */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Make/Brand *</label>
-                <SmartBrandSelector
-                  value={newVehicle.make}
-                  onChange={(make) => setNewVehicle(prev => ({ ...prev, make }))}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
-                />
-              </div>
-
-              {/* Model Input */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Model *</label>
-                <input
-                  type="text"
-                  value={newVehicle.model}
-                  onChange={(e) => setNewVehicle(prev => ({ ...prev, model: e.target.value }))}
-                  placeholder="e.g., Camry, F-150, Model 3"
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors"
-                />
-              </div>
-
-              {/* VIN Input (Optional) */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  VIN <span className="text-slate-500 font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newVehicle.vin}
-                  onChange={(e) => setNewVehicle(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))}
-                  placeholder="17-character VIN"
-                  maxLength={17}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-colors font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex gap-3 p-4 sm:p-6 border-t border-slate-700">
-              <button
-                onClick={() => setShowAddVehicleModal(false)}
-                disabled={addingVehicle}
-                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddVehicle}
-                disabled={addingVehicle || !newVehicle.year || !newVehicle.make || !newVehicle.model}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {addingVehicle ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Vehicle'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add Vehicle Modal (Rendered via Portal) */}
+      <AddVehicleModal
+        isOpen={showAddVehicleModal}
+        onClose={() => setShowAddVehicleModal(false)}
+        newVehicle={newVehicle}
+        setNewVehicle={setNewVehicle}
+        addingVehicle={addingVehicle}
+        onSubmit={handleAddVehicle}
+      />
     </div>
   )
+}
+
+// Add Vehicle Modal Component (Rendered via Portal for Independence)
+function AddVehicleModal({
+  isOpen,
+  onClose,
+  newVehicle,
+  setNewVehicle,
+  addingVehicle,
+  onSubmit,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  newVehicle: { year: string; make: string; model: string; vin: string }
+  setNewVehicle: React.Dispatch<React.SetStateAction<{ year: string; make: string; model: string; vin: string }>>
+  addingVehicle: boolean
+  onSubmit: () => void
+}) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  if (!mounted || !isOpen) return null
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      style={{ margin: 0 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700 sticky top-0 bg-slate-800 z-10">
+          <div>
+            <h3 className="text-lg sm:text-xl font-bold text-white">Add Vehicle</h3>
+            <p className="text-xs text-slate-400 mt-1">Quick add without leaving the wizard</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-700 transition-all hover:rotate-90 duration-200"
+            aria-label="Close modal"
+          >
+            <X className="h-5 w-5 text-slate-400" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Year Selector */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Year <span className="text-orange-400">*</span>
+            </label>
+            <SmartYearSelector
+              value={newVehicle.year}
+              onChange={(year) => setNewVehicle(prev => ({ ...prev, year }))}
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+
+          {/* Make/Brand Selector */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Make/Brand <span className="text-orange-400">*</span>
+            </label>
+            <SmartBrandSelector
+              value={newVehicle.make}
+              onChange={(make) => setNewVehicle(prev => ({ ...prev, make }))}
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+
+          {/* Model Input */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Model <span className="text-orange-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={newVehicle.model}
+              onChange={(e) => setNewVehicle(prev => ({ ...prev, model: e.target.value }))}
+              placeholder="e.g., Camry, F-150, Model 3"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+
+          {/* VIN Input (Optional) */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              VIN <span className="text-slate-500 font-normal text-xs">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              value={newVehicle.vin}
+              onChange={(e) => setNewVehicle(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))}
+              placeholder="17-character VIN"
+              maxLength={17}
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-mono"
+            />
+          </div>
+
+          {/* Helper Text */}
+          <div className="flex items-start gap-2 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+            <Car className="h-4 w-4 text-orange-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-orange-200">
+              This vehicle will be saved to your account and automatically selected for your session.
+            </p>
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="flex gap-3 p-4 sm:p-6 border-t border-slate-700 bg-slate-800/50 sticky bottom-0">
+          <button
+            onClick={onClose}
+            disabled={addingVehicle}
+            className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-all disabled:opacity-50 active:scale-95"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={addingVehicle || !newVehicle.year || !newVehicle.make || !newVehicle.model}
+            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95"
+          >
+            {addingVehicle ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Add Vehicle
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return createPortal(modalContent, document.body)
 }

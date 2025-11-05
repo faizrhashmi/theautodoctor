@@ -106,7 +106,14 @@ export async function POST(
     const providerAmount = bid.quote_amount - platformFeeAmount
 
     // Create Stripe checkout session
-    const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin
+    // Smart origin detection: production uses domain, dev supports both proxy and auto port
+    const origin = (() => {
+      const envUrl = process.env.NEXT_PUBLIC_APP_URL
+      const requestOrigin = req.nextUrl.origin
+      if (process.env.NODE_ENV === 'production') return requestOrigin
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) return envUrl
+      return requestOrigin
+    })()
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

@@ -50,7 +50,16 @@ async function determineUserRole(userId: string): Promise<'customer' | 'mechanic
 }
 
 export default function ClientNavbar() {
-  const pathname = usePathname()
+  // Safely get pathname - handle cases where router context might not be ready
+  let pathname: string | null = null
+  try {
+    pathname = usePathname()
+  } catch (error) {
+    // Router context not ready - this can happen during SSR or in edge cases
+    // Return null to hide navbar when we can't determine the path
+    return null
+  }
+
   const router = useRouter()
 
   // Smart login handlers that check for existing sessions

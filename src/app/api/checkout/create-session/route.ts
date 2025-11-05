@@ -22,7 +22,27 @@ export async function GET(req: NextRequest) {
   }
 
   const cfg = PRICING[key];
-  const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+  // Smart origin detection for all environments:
+  // - Production: Use request origin (actual domain)
+  // - Dev with proxy/tunnel: Use NEXT_PUBLIC_APP_URL (e.g., ngrok URL)
+  // - Dev without proxy: Use request origin (auto port detection)
+  const origin = (() => {
+    const envUrl = process.env.NEXT_PUBLIC_APP_URL
+    const requestOrigin = req.nextUrl.origin
+
+    // Production: always use request origin
+    if (process.env.NODE_ENV === 'production') {
+      return requestOrigin
+    }
+
+    // Dev: If NEXT_PUBLIC_APP_URL is set to non-localhost (proxy/tunnel), use it
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl
+    }
+
+    // Dev: Default to request origin for automatic port detection
+    return requestOrigin
+  })();
 
   if (!user) {
     const redirect = new URL('/start', origin);

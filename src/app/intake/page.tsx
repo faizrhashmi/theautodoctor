@@ -455,9 +455,9 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="w-full max-w-[1024px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 md:p-6 shadow-2xl backdrop-blur">
-        <div className="flex flex-col space-y-4 sm:space-y-6">
+    <main className="w-full max-w-[1024px] mx-auto px-3 sm:px-6 md:px-6 lg:px-8 py-4 sm:py-8 space-y-5 sm:space-y-8">
+      <div className="sm:rounded-2xl sm:border sm:border-white/10 bg-white/5 sm:bg-white/5 p-0 sm:p-6 md:p-6 sm:shadow-2xl sm:backdrop-blur">
+        <div className="flex flex-col space-y-5 sm:space-y-6">
           {/* Urgent Mode Banner */}
           {isUrgent && (
             <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
@@ -483,7 +483,7 @@ export default function IntakePage() {
           )}
 
           {/* Header Section */}
-          <header className="rounded-2xl border border-white/10 bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-lg">
+          <header className="rounded-xl sm:rounded-2xl border border-white/5 sm:border-white/10 bg-slate-950/30 sm:bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-sm sm:shadow-lg">
             <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
               <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200"></p>
@@ -511,32 +511,9 @@ export default function IntakePage() {
             </div>
           </header>
 
-          {/* Priority Checkbox */}
-          <Section title="Request Priority">
-            <label className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border border-white/10 bg-slate-900/40 hover:bg-slate-900/60 transition cursor-pointer touch-manipulation">
-              <input
-                type="checkbox"
-                checked={isUrgent}
-                onChange={(e) => setIsUrgent(e.target.checked)}
-                className="mt-1 h-5 w-5 sm:h-6 sm:w-6 rounded border-slate-600 bg-slate-800 text-red-500 focus:ring-2 focus:ring-red-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm sm:text-base font-semibold text-white">This is an urgent request</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500/20 border border-red-400/30 text-xs font-bold text-red-300">
-                    PRIORITY
-                  </span>
-                </div>
-                <p className="mt-1 text-xs sm:text-sm text-slate-400">
-                  Skip vehicle details and connect immediately with available mechanic. Perfect for emergency situations or quick questions.
-                </p>
-              </div>
-            </label>
-          </Section>
-
           {/* Contact Details - Show as locked card if pre-filled */}
           {contactPreFilled ? (
-            <div className="rounded-2xl border border-green-400/30 bg-green-500/10 p-4 sm:p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-green-400/20 sm:border-green-400/30 bg-green-500/10 p-4 sm:p-6">
               <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-400/30">
                   <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -611,7 +588,7 @@ export default function IntakePage() {
 
           {/* Vehicle Information - Show as locked card if pre-selected */}
           {vehiclePreSelected ? (
-            <div className="rounded-2xl border border-green-400/30 bg-green-500/10 p-4 sm:p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-green-400/20 sm:border-green-400/30 bg-green-500/10 p-4 sm:p-6">
               <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-400/30">
                   <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -641,7 +618,7 @@ export default function IntakePage() {
           ) : (
             <Section title={isUrgent ? "Vehicle information (optional)" : "Vehicle information"}>
               {userVehicles.length > 0 && !loadingProfile && (
-                <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
+                <div className="rounded-xl border border-orange-400/20 sm:border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
                   <label className="block">
                     <span className="text-sm font-semibold text-orange-200">Select from your saved vehicles</span>
                     <select
@@ -670,7 +647,7 @@ export default function IntakePage() {
                 </div>
               )}
             {savedVehicle && !loadingProfile && userVehicles.length === 0 && (
-              <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
+              <div className="rounded-xl border border-orange-400/20 sm:border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
                 <p className="text-sm font-semibold text-orange-200">
                   Saved vehicle: {savedVehicle.year} {savedVehicle.make} {savedVehicle.model}
                 </p>
@@ -757,7 +734,7 @@ export default function IntakePage() {
                   if (errors.concern && !firstErrorRef.current) firstErrorRef.current = el
                 }}
               />
-            <div className="rounded-2xl border border-white/10 bg-slate-950/30 p-4 sm:p-5">
+            <div className="rounded-xl sm:rounded-2xl border border-white/5 sm:border-white/10 bg-slate-950/20 sm:bg-slate-950/30 p-4 sm:p-5">
               <label className="text-sm font-semibold text-slate-200">Upload photos / videos (optional)</label>
               <input
                 multiple
@@ -769,12 +746,12 @@ export default function IntakePage() {
               {uploads.length > 0 && (
                 <div className="mt-4 space-y-3">
                   {uploads.map((u, idx) => (
-                    <div key={idx} className={`rounded-xl border p-3 sm:p-4 text-sm transition ${
+                    <div key={idx} className={`rounded-lg sm:rounded-xl border p-3 sm:p-4 text-sm transition ${
                       u.status === 'done'
-                        ? 'border-emerald-400/50 bg-emerald-500/10'
+                        ? 'border-emerald-400/30 sm:border-emerald-400/50 bg-emerald-500/10'
                         : u.status === 'error'
-                        ? 'border-rose-400/50 bg-rose-500/10'
-                        : 'border-white/10 bg-white/5'
+                        ? 'border-rose-400/30 sm:border-rose-400/50 bg-rose-500/10'
+                        : 'border-white/5 sm:border-white/10 bg-white/5'
                     }`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -839,14 +816,14 @@ export default function IntakePage() {
         </div>
 
         {error && (
-          <div className="mt-6 rounded-xl border border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-300">
+          <div className="mt-5 sm:mt-6 rounded-xl border border-rose-400/30 sm:border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-300">
             {error}
           </div>
         )}
 
         {/* Submit Section - Hidden on mobile (shown in sticky bar) */}
         <div className="hidden md:block mt-6">
-          <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-700 bg-slate-900/50">
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl sm:rounded-2xl border border-slate-700/50 sm:border-slate-700 bg-slate-900/40 sm:bg-slate-900/50">
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -919,7 +896,7 @@ export default function IntakePage() {
       {/* Active Session Modal */}
       {activeSessionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-6 sm:p-8 shadow-2xl">
+          <div className="w-full max-w-lg rounded-xl sm:rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950 p-6 sm:p-8 shadow-2xl">
             <div className="mb-6 flex items-start gap-4">
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-600">
                 <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -989,9 +966,9 @@ export default function IntakePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4 md:p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-white mb-4">{title}</h2>
-      <div className="space-y-4">{children}</div>
+    <section className="rounded-xl sm:rounded-2xl border border-slate-700/50 sm:border-slate-700 bg-slate-900/30 sm:bg-slate-900/50 p-4 sm:p-6 md:p-6 shadow-sm">
+      <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white mb-4 sm:mb-5">{title}</h2>
+      <div className="space-y-4 sm:space-y-5">{children}</div>
     </section>
   )
 }
@@ -1027,7 +1004,7 @@ function Input({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className={`mt-2 block w-full min-h-[44px] rounded-2xl border px-4 py-3 text-base text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+        className={`mt-2 block w-full min-h-[48px] sm:min-h-[52px] rounded-2xl border px-4 sm:px-5 py-3 sm:py-3.5 text-base sm:text-lg text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
           error
             ? 'border-red-500 bg-slate-900/50 focus:ring-red-500'
             : 'border-slate-700 bg-slate-900/50 focus:ring-indigo-500'
@@ -1069,8 +1046,8 @@ function Textarea({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         required={required}
-        rows={6}
-        className={`mt-2 block w-full rounded-2xl border px-4 py-3 text-base text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 min-h-[140px] transition-all ${
+        rows={8}
+        className={`mt-2 block w-full rounded-2xl border px-4 sm:px-5 py-4 text-base sm:text-lg text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 min-h-[200px] sm:min-h-[220px] transition-all ${
           error
             ? 'border-red-500 bg-slate-900/50 focus:ring-red-500'
             : 'border-slate-700 bg-slate-900/50 focus:ring-indigo-500'

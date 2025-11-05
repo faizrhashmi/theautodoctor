@@ -46,6 +46,9 @@ export interface SessionCardProps {
   // Concern/issue
   concern?: string
 
+  // Urgent flag
+  urgent?: boolean
+
   // Presence indicators
   presence?: {
     customerJoined?: boolean
@@ -118,6 +121,7 @@ export default function SessionCard({
   partnerRole,
   vehicle,
   concern,
+  urgent = false,
   presence,
   cta,
   userRole,
@@ -172,7 +176,11 @@ export default function SessionCard({
   const isActive = ['pending', 'waiting', 'live'].includes(status)
 
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-900/50 p-4 transition-all hover:border-orange-500/50 hover:bg-slate-900/70">
+    <div className={`rounded-lg border p-4 transition-all ${
+      urgent
+        ? 'border-red-500/50 bg-red-500/10 hover:border-red-500/70 hover:bg-red-500/20'
+        : 'border-slate-700 bg-slate-900/50 hover:border-orange-500/50 hover:bg-slate-900/70'
+    }`}>
       {/* Header: Type, Plan, Status */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -180,6 +188,12 @@ export default function SessionCard({
           {plan && (
             <span className="text-xs font-medium uppercase text-slate-400">
               {plan}
+            </span>
+          )}
+          {urgent && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white animate-pulse">
+              <AlertCircle className="w-3 h-3" />
+              URGENT
             </span>
           )}
         </div>

@@ -554,6 +554,7 @@ export default function MechanicDashboardPage() {
                   partnerRole="customer"
                   vehicle={item.vehicle}
                   concern={item.concern}
+                  urgent={item.urgent}
                   userRole="mechanic"
                   cta={{
                     action: 'Accept Request',
