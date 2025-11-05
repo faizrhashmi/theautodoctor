@@ -302,14 +302,14 @@ export default function SessionWizard({
               onClick={() => handleVehicleSelect(vehicle.id)}
               className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
                 selectedVehicle === vehicle.id
-                  ? 'border-blue-500 bg-blue-500/10'
+                  ? 'border-orange-500 bg-orange-500/10'
                   : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
               }`}
             >
               <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                 <div
                   className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-                    selectedVehicle === vehicle.id ? 'bg-blue-500/20' : 'bg-slate-700/50'
+                    selectedVehicle === vehicle.id ? 'bg-orange-500/20' : 'bg-slate-700/50'
                   }`}
                 >
                   <CarBrandLogo
@@ -323,7 +323,7 @@ export default function SessionWizard({
                       {vehicle.year} {vehicle.make} {vehicle.model}
                     </h4>
                     {selectedVehicle === vehicle.id && (
-                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
+                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
                     )}
                   </div>
                   <p className="text-xs text-slate-400">{vehicle.brand}</p>
@@ -351,9 +351,9 @@ export default function SessionWizard({
       </div>
 
       {/* VIN Decoder Section */}
-      <div className="p-3 sm:p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
+      <div className="p-3 sm:p-4 rounded-lg border border-orange-500/30 bg-orange-500/5">
         <div className="flex items-center gap-2 mb-2 sm:mb-3">
-          <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
+          <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400" />
           <h4 className="text-xs sm:text-sm font-semibold text-white">Optional: Decode VIN</h4>
         </div>
         <p className="text-xs text-slate-400 mb-2 sm:mb-3">
@@ -362,7 +362,7 @@ export default function SessionWizard({
         {!showVinDecoder ? (
           <button
             onClick={() => setShowVinDecoder(true)}
-            className="w-full px-3 py-2 text-xs sm:text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors"
+            className="w-full px-3 py-2 text-xs sm:text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 rounded-lg transition-colors"
           >
             Decode VIN
           </button>
@@ -375,12 +375,12 @@ export default function SessionWizard({
                 onChange={(e) => setVinInput(e.target.value.toUpperCase())}
                 placeholder="Enter 17-digit VIN"
                 maxLength={17}
-                className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none break-words"
+                className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-orange-500 focus:outline-none break-words"
               />
               <button
                 onClick={() => decodeVin(vinInput)}
                 disabled={decodingVin || !vinInput}
-                className="px-3 py-2 text-xs sm:text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap"
+                className="px-3 py-2 text-xs sm:text-sm bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap"
               >
                 {decodingVin ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : 'Decode'}
               </button>
@@ -415,18 +415,18 @@ export default function SessionWizard({
                 onClick={() => handleSessionTypeSelect(plan.slug)}
                 className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
                   isSelected
-                    ? 'border-blue-500 bg-blue-500/10'
+                    ? 'border-orange-500 bg-orange-500/10'
                     : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                 }`}
               >
                 <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                   <div
                     className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-                      isSelected ? 'bg-blue-500/20' : 'bg-slate-700/50'
+                      isSelected ? 'bg-orange-500/20' : 'bg-slate-700/50'
                     }`}
                   >
                     <IconComponent
-                      className={`h-4 w-4 sm:h-5 sm:w-5 ${isSelected ? 'text-blue-400' : 'text-slate-400'}`}
+                      className={`h-4 w-4 sm:h-5 sm:w-5 ${isSelected ? 'text-orange-400' : 'text-slate-400'}`}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -438,7 +438,7 @@ export default function SessionWizard({
                         ) : (
                           <span className="text-xs sm:text-sm font-bold text-white">{plan.price}</span>
                         )}
-                        {isSelected && <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />}
+                        {isSelected && <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400" />}
                       </div>
                     </div>
                     <p className="text-xs text-slate-400 mb-2 break-words">{plan.description}</p>
@@ -453,7 +453,7 @@ export default function SessionWizard({
                       ))}
                     </div>
                     {isRecommended && (
-                      <div className="mt-1.5 sm:mt-2 text-xs font-medium text-blue-400">
+                      <div className="mt-1.5 sm:mt-2 text-xs font-medium text-orange-400">
                         ⭐ Recommended
                       </div>
                     )}
@@ -485,19 +485,19 @@ export default function SessionWizard({
           onClick={() => handleMechanicTypeSelect('standard')}
           className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'standard'
-              ? 'border-blue-500 bg-blue-500/10'
+              ? 'border-orange-500 bg-orange-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
           <div className="flex items-start gap-2 sm:gap-3 min-w-0">
             <div
               className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-                selectedMechanicType === 'standard' ? 'bg-blue-500/20' : 'bg-slate-700/50'
+                selectedMechanicType === 'standard' ? 'bg-orange-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Wrench
                 className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  selectedMechanicType === 'standard' ? 'text-blue-400' : 'text-slate-400'
+                  selectedMechanicType === 'standard' ? 'text-orange-400' : 'text-slate-400'
                 }`}
               />
             </div>
@@ -505,7 +505,7 @@ export default function SessionWizard({
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-white font-bold text-sm sm:text-base">Standard Mechanic</h4>
                 {selectedMechanicType === 'standard' && (
-                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
                 )}
               </div>
               <p className="text-xs text-slate-400 mb-1.5 sm:mb-2">
@@ -521,19 +521,19 @@ export default function SessionWizard({
           onClick={() => handleMechanicTypeSelect('specialist')}
           className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'specialist'
-              ? 'border-blue-500 bg-blue-500/10'
+              ? 'border-orange-500 bg-orange-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
           <div className="flex items-start gap-2 sm:gap-3 min-w-0">
             <div
               className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
-                selectedMechanicType === 'specialist' ? 'bg-blue-500/20' : 'bg-slate-700/50'
+                selectedMechanicType === 'specialist' ? 'bg-orange-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Star
                 className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                  selectedMechanicType === 'specialist' ? 'text-blue-400' : 'text-slate-400'
+                  selectedMechanicType === 'specialist' ? 'text-orange-400' : 'text-slate-400'
                 }`}
               />
             </div>
@@ -541,7 +541,7 @@ export default function SessionWizard({
               <div className="flex items-center justify-between gap-2 mb-1">
                 <h4 className="text-white font-bold text-sm sm:text-base">Brand Specialist</h4>
                 {selectedMechanicType === 'specialist' && (
-                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
                 )}
               </div>
               <p className="text-xs text-slate-400 mb-1.5 sm:mb-2 break-words">
@@ -581,7 +581,7 @@ export default function SessionWizard({
     return (
       <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-700/50 p-4 sm:p-6">
         <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-3 sm:space-y-4">
-          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-400" />
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-orange-400" />
           <p className="text-xs sm:text-sm text-slate-400">Preparing your session wizard...</p>
         </div>
       </div>

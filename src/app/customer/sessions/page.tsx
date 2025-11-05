@@ -342,8 +342,8 @@ export default function CustomerSessionsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
-              <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
               </div>
               <div className="text-xs sm:text-sm text-slate-400 truncate">Total Sessions</div>
             </div>
@@ -352,8 +352,8 @@ export default function CustomerSessionsPage() {
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
-              <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg flex-shrink-0">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+              <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
+                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
               </div>
               <div className="text-xs sm:text-sm text-slate-400 truncate">Total Spent</div>
             </div>
@@ -362,8 +362,8 @@ export default function CustomerSessionsPage() {
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
-              <div className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-lg flex-shrink-0">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
+              <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
               </div>
               <div className="text-xs sm:text-sm text-slate-400 truncate">Avg Rating</div>
             </div>
@@ -372,8 +372,8 @@ export default function CustomerSessionsPage() {
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
             <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
-              <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+              <div className="p-1.5 sm:p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
               </div>
               <div className="text-xs sm:text-sm text-slate-400 truncate">Total Hours</div>
             </div>

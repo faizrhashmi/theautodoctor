@@ -777,43 +777,43 @@ export default function CustomerDashboardPage() {
           {/* Schedule - Always enabled, but calendar prevents time conflicts */}
           <Link
             href="/customer/schedule"
-            className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/30 rounded-lg p-3 sm:p-4 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
-            <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">Schedule</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Book appointment</div>
           </Link>
 
           <Link
             href="/customer/quotes"
-            className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-lg p-3 sm:p-4 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
-            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">Quotes & Estimates</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">View all quotes</div>
           </Link>
 
           <Link
             href="/customer/vehicles"
-            className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/30 rounded-lg p-3 sm:p-4 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
-            <Car className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <Car className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">Vehicles</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Manage fleet</div>
           </Link>
 
           <Link
             href="/customer/sessions"
-            className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/30 rounded-lg p-3 sm:p-4 hover:border-green-400 hover:shadow-lg hover:shadow-green-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
-            <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">History</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">Past sessions</div>
           </Link>
 
           <Link
             href="/customer/profile"
-            className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/30 rounded-lg p-3 sm:p-4 hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
             <User className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">Profile</div>
@@ -822,9 +822,9 @@ export default function CustomerDashboardPage() {
 
           <Link
             href="/customer/specialists"
-            className="bg-gradient-to-br from-yellow-500/10 to-orange-600/5 border border-yellow-500/30 rounded-lg p-3 sm:p-4 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20 transition-all group"
+            className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm border border-slate-700 rounded-lg p-3 sm:p-4 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group"
           >
-            <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
+            <Star className="w-6 h-6 sm:w-8 sm:h-8 text-orange-400 mb-2 sm:mb-3 group-hover:scale-110 transition-transform" />
             <div className="text-xs sm:text-sm font-medium text-white">Specialists</div>
             <div className="text-xs text-slate-400 mt-0.5 sm:mt-1 hidden sm:block">BMW • Tesla • +18</div>
           </Link>
