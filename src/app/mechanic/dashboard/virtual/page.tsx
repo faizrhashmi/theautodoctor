@@ -324,7 +324,7 @@ export default function VirtualMechanicDashboard() {
         {/* Earnings Summary */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {/* Weekly Earnings */}
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg p-6 text-white">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">This Week</h3>
               <TrendingUp className="w-6 h-6" />
@@ -338,7 +338,7 @@ export default function VirtualMechanicDashboard() {
           </div>
 
           {/* Monthly Earnings */}
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">This Month</h3>
               <Calendar className="w-6 h-6" />
