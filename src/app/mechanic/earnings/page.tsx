@@ -216,10 +216,10 @@ export default function MechanicEarningsPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-slate-400">Total Sessions</p>
-                  <Calendar className="w-5 h-5 text-purple-500" />
+                  <Calendar className="w-5 h-5 text-blue-500" />
                 </div>
                 <p className="text-3xl font-bold text-white">
                   {earningsData.summary.total_sessions}
@@ -229,10 +229,10 @@ export default function MechanicEarningsPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-blue-600">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-slate-400">Avg per Session</p>
-                  <DollarSign className="w-5 h-5 text-orange-500" />
+                  <DollarSign className="w-5 h-5 text-blue-600" />
                 </div>
                 <p className="text-3xl font-bold text-white">
                   ${earningsData.summary.total_sessions > 0
@@ -276,7 +276,7 @@ export default function MechanicEarningsPage() {
 
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Video className="w-8 h-8 text-purple-600" />
+                  <Video className="w-8 h-8 text-blue-600" />
                   <h3 className="text-lg font-semibold text-white">Video Sessions</h3>
                 </div>
                 <div className="space-y-2">
@@ -303,7 +303,7 @@ export default function MechanicEarningsPage() {
 
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <TrendingUp className="w-8 h-8 text-orange-600" />
+                  <TrendingUp className="w-8 h-8 text-blue-400" />
                   <h3 className="text-lg font-semibold text-white">Upgraded Sessions</h3>
                 </div>
                 <div className="space-y-2">
@@ -357,8 +357,8 @@ export default function MechanicEarningsPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               {session.session_type === 'chat' && <MessageCircle className="w-4 h-4 text-blue-600" />}
-                              {session.session_type === 'video' && <Video className="w-4 h-4 text-purple-600" />}
-                              {session.session_type === 'upgraded_from_chat' && <TrendingUp className="w-4 h-4 text-orange-600" />}
+                              {session.session_type === 'video' && <Video className="w-4 h-4 text-blue-600" />}
+                              {session.session_type === 'upgraded_from_chat' && <TrendingUp className="w-4 h-4 text-blue-400" />}
                               <span className="text-sm text-white capitalize">
                                 {session.session_type.replace('_', ' ')}
                               </span>
