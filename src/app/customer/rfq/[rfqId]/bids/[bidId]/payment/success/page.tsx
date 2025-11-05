@@ -140,9 +140,9 @@ export default function RfqBidPaymentSuccessPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4 text-sm text-slate-300">
+          <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-4 text-sm text-slate-300">
             <p>
-              <strong className="text-blue-400">Money-Back Protection:</strong> Your payment is held in escrow.
+              <strong className="text-orange-400">Money-Back Protection:</strong> Your payment is held in escrow.
               If the work isn't completed as agreed, you're protected.
             </p>
           </div>

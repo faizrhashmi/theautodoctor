@@ -130,7 +130,7 @@ export default function CheckoutSuccessPage() {
               >
                 Try again
               </button>
-              <a href="/signup" className="text-sm font-medium text-orange-600 hover:text-blue-700">
+              <a href="/signup" className="text-sm font-medium text-orange-600 hover:text-orange-700">
                 Back to start
               </a>
             </div>
