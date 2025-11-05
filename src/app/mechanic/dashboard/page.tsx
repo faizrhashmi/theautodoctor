@@ -631,7 +631,7 @@ export default function MechanicDashboardPage() {
               </div>
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
                 <div className="text-sm text-slate-400 mb-1">Active Quotes</div>
-                <div className="text-3xl font-bold text-orange-600">
+                <div className="text-3xl font-bold text-blue-400">
                   {stats?.active_quotes ?? 0}
                 </div>
               </div>
@@ -643,7 +643,7 @@ export default function MechanicDashboardPage() {
               </div>
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
                 <div className="text-sm text-slate-400 mb-1">Revenue This Month</div>
-                <div className="text-3xl font-bold text-purple-600">
+                <div className="text-3xl font-bold text-blue-600">
                   ${stats?.revenue_this_month?.toFixed(2) ?? '0.00'}
                 </div>
               </div>

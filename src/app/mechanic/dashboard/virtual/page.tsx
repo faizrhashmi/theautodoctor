@@ -247,10 +247,10 @@ export default function VirtualMechanicDashboard() {
         {/* Stats Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Pending Sessions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-blue-400">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-slate-400">Pending Requests</p>
-              <Clock className="w-5 h-5 text-orange-500" />
+              <Clock className="w-5 h-5 text-blue-400" />
             </div>
             <p className="text-3xl font-bold text-white">
               {stats?.pending_sessions || 0}
@@ -261,7 +261,7 @@ export default function VirtualMechanicDashboard() {
               className={`mt-3 text-sm font-medium flex items-center gap-1 py-2.5 ${
                 activeSessions.length > 0
                   ? 'text-slate-500 cursor-not-allowed'
-                  : 'text-orange-600 hover:text-orange-700'
+                  : 'text-blue-600 hover:text-blue-700'
               }`}
             >
               View requests
@@ -305,10 +305,10 @@ export default function VirtualMechanicDashboard() {
           </div>
 
           {/* Total Sessions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 border-l-4 border-blue-600">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-slate-400">Total Sessions</p>
-              <CheckCircle2 className="w-5 h-5 text-purple-500" />
+              <CheckCircle2 className="w-5 h-5 text-blue-600" />
             </div>
             <p className="text-3xl font-bold text-white">
               {stats?.total_sessions || 0}
@@ -364,10 +364,10 @@ export default function VirtualMechanicDashboard() {
             className={`bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl shadow-sm p-6 text-left transition-all ${
               activeSessions.length > 0
                 ? 'opacity-50 cursor-not-allowed'
-                : 'hover:bg-slate-700/50 hover:border-orange-500/50'
+                : 'hover:bg-slate-700/50 hover:border-blue-500/50'
             }`}
           >
-            <Clock className={`w-8 h-8 mb-3 ${activeSessions.length > 0 ? 'text-slate-600' : 'text-orange-500'}`} />
+            <Clock className={`w-8 h-8 mb-3 ${activeSessions.length > 0 ? 'text-slate-600' : 'text-blue-500'}`} />
             <h3 className="text-lg font-semibold text-white mb-1">
               View Pending Requests
             </h3>
@@ -429,7 +429,7 @@ export default function VirtualMechanicDashboard() {
                     {session.session_type === 'chat' ? (
                       <MessageCircle className="w-5 h-5 text-blue-600" />
                     ) : (
-                      <Video className="w-5 h-5 text-purple-600" />
+                      <Video className="w-5 h-5 text-blue-600" />
                     )}
                     <div>
                       <p className="font-medium text-white">{session.customer_name}</p>
