@@ -72,11 +72,11 @@ export default async function CustomerSchedulePage() {
               Choose a time that works for you. We&apos;ll confirm with the next available certified mechanic and email you the joining details.
             </p>
           </div>
-          <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300 shadow-sm backdrop-blur-sm w-full md:w-auto">
+          <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-sm text-orange-300 shadow-sm backdrop-blur-sm w-full md:w-auto">
             <p className="font-semibold text-white">Current plan</p>
             <p>{plan ? planLabel(plan) : 'No active plan selected'}</p>
             {!eligible && (
-              <p className="mt-1 text-xs text-blue-400">
+              <p className="mt-1 text-xs text-orange-400">
                 Upgrade to the Standard Video or Full Diagnostic package to unlock advance booking.
               </p>
             )}

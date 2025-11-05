@@ -491,16 +491,16 @@ export default function ModernSchedulingCalendar({
 
       {/* Existing Sessions */}
       {selectedDate && getSessionsForDate(selectedDate).length > 0 && (
-        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 backdrop-blur-sm p-4">
+        <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 backdrop-blur-sm p-4">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-blue-300">
+              <p className="text-sm font-medium text-orange-300">
                 Existing Sessions on This Date
               </p>
               <div className="mt-2 space-y-1">
                 {getSessionsForDate(selectedDate).map(session => (
-                  <p key={session.id} className="text-xs text-blue-200">
+                  <p key={session.id} className="text-xs text-orange-200">
                     {session.start.toLocaleTimeString('en-US', {
                       hour: 'numeric',
                       minute: '2-digit'
