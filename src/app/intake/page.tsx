@@ -697,7 +697,7 @@ export default function IntakePage() {
                 type="button"
                 onClick={decodeVin}
                 disabled={!form.vin || decoding}
-                className="sm:h-auto rounded-2xl bg-indigo-600 px-6 py-3 sm:py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation sm:self-end"
+                className="sm:h-auto rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 px-6 py-3 sm:py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-orange-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation sm:self-end"
               >
                 {decoding ? 'Decoding...' : 'Decode VIN'}
               </button>
@@ -865,7 +865,7 @@ export default function IntakePage() {
               className={`inline-flex items-center justify-center gap-2 rounded-2xl px-8 min-h-[44px] text-base font-semibold text-white shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
                 isUrgent
                   ? 'bg-red-600 hover:bg-red-500'
-                  : 'bg-green-600 hover:bg-green-500'
+                  : 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700'
               }`}
             >
               {isUrgent && (
@@ -902,7 +902,7 @@ export default function IntakePage() {
               className={`flex-1 inline-flex items-center justify-center gap-2 rounded-2xl px-6 min-h-[44px] text-base font-semibold text-white shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 touch-manipulation ${
                 isUrgent
                   ? 'bg-red-600'
-                  : 'bg-green-600'
+                  : 'bg-gradient-to-r from-orange-500 to-red-600'
               }`}
             >
               {isUrgent && (
