@@ -160,10 +160,10 @@ export default function WorkshopAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading analytics...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading analytics...</p>
         </div>
       </div>
     )
@@ -197,23 +197,23 @@ export default function WorkshopAnalyticsPage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20 lg:pl-64 lg:pt-0">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="border-b border-white/10 bg-slate-900/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <Link
                 href="/workshop/dashboard"
-                className="text-sm text-gray-600 hover:text-gray-900 mb-2 inline-block"
+                className="text-sm text-slate-400 hover:text-white mb-2 inline-block"
               >
                 ← Back to Dashboard
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-              <p className="text-sm text-gray-600 mt-1">Performance insights and trends</p>
+              <h1 className="text-3xl font-bold text-white">Analytics</h1>
+              <p className="text-sm text-slate-400 mt-1">Performance insights and trends</p>
             </div>
             <div className="flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-blue-600" />
+              <BarChart3 className="h-8 w-8 text-purple-400" />
             </div>
           </div>
         </div>
@@ -226,63 +226,63 @@ export default function WorkshopAnalyticsPage() {
             title="Workshop Revenue"
             value={`$${((currentMonth?.workshop_share_cents || 0) / 100).toFixed(2)}`}
             growth={revenueGrowth}
-            icon={<DollarSign className="h-6 w-6 text-green-600" />}
-            bgColor="bg-green-50"
+            icon={<DollarSign className="h-6 w-6 text-green-400" />}
+            bgColor="bg-green-500/20"
           />
 
           <MetricCard
             title="Total Sessions"
             value={currentMonth?.total_sessions || 0}
             growth={sessionsGrowth}
-            icon={<Calendar className="h-6 w-6 text-blue-600" />}
-            bgColor="bg-blue-50"
+            icon={<Calendar className="h-6 w-6 text-purple-400" />}
+            bgColor="bg-purple-500/20"
           />
 
           <MetricCard
             title="Active Mechanics"
             value={currentMonth?.active_mechanics_count || 0}
             growth={mechanicsGrowth}
-            icon={<Users className="h-6 w-6 text-purple-600" />}
-            bgColor="bg-purple-50"
+            icon={<Users className="h-6 w-6 text-purple-400" />}
+            bgColor="bg-purple-500/20"
           />
 
           <MetricCard
             title="Completion Rate"
             value={`${completionRate.toFixed(1)}%`}
             growth={0}
-            icon={<CheckCircle className="h-6 w-6 text-orange-600" />}
-            bgColor="bg-orange-50"
+            icon={<CheckCircle className="h-6 w-6 text-purple-400" />}
+            bgColor="bg-purple-500/20"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Revenue Breakdown */}
-          <div className="bg-white rounded-lg border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Breakdown</h2>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-white/10 p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Revenue Breakdown</h2>
             {currentMonth ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Platform Revenue</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-sm text-slate-400">Total Platform Revenue</span>
+                  <span className="font-semibold text-white">
                     ${((currentMonth.total_revenue_cents || 0) / 100).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Your Share</span>
-                  <span className="font-semibold text-green-600">
+                  <span className="text-sm text-slate-400">Your Share</span>
+                  <span className="font-semibold text-green-400">
                     ${((currentMonth.workshop_share_cents || 0) / 100).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Mechanic Share</span>
-                  <span className="font-semibold text-gray-600">
+                  <span className="text-sm text-slate-400">Mechanic Share</span>
+                  <span className="font-semibold text-slate-300">
                     ${((currentMonth.mechanic_share_cents || 0) / 100).toFixed(2)}
                   </span>
                 </div>
-                <div className="pt-4 border-t">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className="pt-4 border-t border-white/10">
+                  <div className="w-full bg-slate-700 rounded-full h-3">
                     <div
-                      className="bg-green-600 h-3 rounded-full"
+                      className="bg-green-500 h-3 rounded-full"
                       style={{
                         width: `${
                           currentMonth.total_revenue_cents > 0
@@ -294,64 +294,64 @@ export default function WorkshopAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     Your share of total revenue
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">No data available for current month</p>
+              <p className="text-sm text-slate-400">No data available for current month</p>
             )}
           </div>
 
           {/* Session Stats */}
-          <div className="bg-white rounded-lg border p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Session Statistics</h2>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-white/10 p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Session Statistics</h2>
             {currentMonth ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-green-900">
+                  <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-500/30">
+                    <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-white">
                       {currentMonth.completed_sessions}
                     </p>
-                    <p className="text-xs text-green-600 mt-1">Completed</p>
+                    <p className="text-xs text-green-300 mt-1">Completed</p>
                   </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-red-900">
+                  <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-500/30">
+                    <XCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-white">
                       {currentMonth.cancelled_sessions}
                     </p>
-                    <p className="text-xs text-red-600 mt-1">Cancelled</p>
+                    <p className="text-xs text-red-300 mt-1">Cancelled</p>
                   </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-yellow-900">
+                  <div className="text-center p-4 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                    <Clock className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-white">
                       {currentMonth.total_sessions -
                         currentMonth.completed_sessions -
                         currentMonth.cancelled_sessions}
                     </p>
-                    <p className="text-xs text-yellow-600 mt-1">Pending</p>
+                    <p className="text-xs text-yellow-300 mt-1">Pending</p>
                   </div>
                 </div>
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600">
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-sm text-slate-400">
                     Completion rate:{' '}
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-white">
                       {completionRate.toFixed(1)}%
                     </span>
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">No data available for current month</p>
+              <p className="text-sm text-slate-400">No data available for current month</p>
             )}
           </div>
         </div>
 
         {/* Top Performing Mechanics */}
-        <div className="bg-white rounded-lg border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-white/10 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-4">
             Top Performing Mechanics
           </h2>
           {topMechanics.length > 0 ? (
@@ -359,21 +359,21 @@ export default function WorkshopAnalyticsPage() {
               {topMechanics.map((mechanic, index) => (
                 <div
                   key={mechanic.mechanic_id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-white/5"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 font-bold rounded-full">
+                    <div className="flex items-center justify-center w-8 h-8 bg-purple-500/20 text-purple-400 font-bold rounded-full">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{mechanic.name}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="font-medium text-white">{mechanic.name}</p>
+                      <p className="text-sm text-slate-400">
                         {mechanic.sessions_count} sessions completed
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-white">
                       {mechanic.sessions_count} sessions
                     </p>
                   </div>
@@ -381,18 +381,18 @@ export default function WorkshopAnalyticsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-600">No mechanics data available</p>
+            <p className="text-sm text-slate-400">No mechanics data available</p>
           )}
         </div>
 
         {/* 6-Month Trend */}
-        <div className="bg-white rounded-lg border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">6-Month Trend</h2>
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-white/10 p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">6-Month Trend</h2>
           {last6Months.length > 0 ? (
             <div className="space-y-4">
               {last6Months.map((month) => (
                 <div key={month.metric_date} className="flex items-center gap-4">
-                  <div className="w-24 text-sm text-gray-600">
+                  <div className="w-24 text-sm text-slate-400">
                     {new Date(month.metric_date).toLocaleDateString('en-US', {
                       month: 'short',
                       year: 'numeric'
@@ -400,16 +400,16 @@ export default function WorkshopAnalyticsPage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-slate-400">
                         {month.total_sessions} sessions
                       </span>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-white">
                         ${((month.workshop_share_cents || 0) / 100).toFixed(2)}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-slate-700 rounded-full h-2">
                       <div
-                        className="bg-blue-600 h-2 rounded-full"
+                        className="bg-purple-500 h-2 rounded-full"
                         style={{
                           width: `${Math.min(
                             (month.total_sessions / 50) * 100,
@@ -423,7 +423,7 @@ export default function WorkshopAnalyticsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-600">No historical data available</p>
+            <p className="text-sm text-slate-400">No historical data available</p>
           )}
         </div>
       </div>
@@ -444,25 +444,25 @@ function MetricCard({ title, value, growth, icon, bgColor }: MetricCardProps) {
   const GrowthIcon = isPositive ? TrendingUp : TrendingDown
 
   return (
-    <div className="bg-white rounded-lg border p-6">
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-white/10 p-6">
       <div className="flex items-center justify-between mb-3">
         <div className={`p-3 ${bgColor} rounded-lg`}>{icon}</div>
       </div>
-      <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <h3 className="text-sm font-medium text-slate-400">{title}</h3>
+      <p className="text-2xl font-bold text-white mt-1">{value}</p>
       {growth !== 0 && (
         <div className="flex items-center gap-1 mt-2">
           <GrowthIcon
-            className={`h-4 w-4 ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+            className={`h-4 w-4 ${isPositive ? 'text-green-400' : 'text-red-400'}`}
           />
           <span
             className={`text-sm font-medium ${
-              isPositive ? 'text-green-600' : 'text-red-600'
+              isPositive ? 'text-green-400' : 'text-red-400'
             }`}
           >
             {Math.abs(growth).toFixed(1)}%
           </span>
-          <span className="text-sm text-gray-600">vs last month</span>
+          <span className="text-sm text-slate-400">vs last month</span>
         </div>
       )}
     </div>
