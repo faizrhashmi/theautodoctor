@@ -321,8 +321,8 @@ export default function CustomerSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
@@ -341,41 +341,41 @@ export default function CustomerSessionsPage() {
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
+              <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
                 <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
-              <div className="text-xs sm:text-sm text-slate-400">Total Sessions</div>
+              <div className="text-xs sm:text-sm text-slate-400 truncate">Total Sessions</div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_sessions}</div>
           </div>
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
+              <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg flex-shrink-0">
                 <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
               </div>
-              <div className="text-xs sm:text-sm text-slate-400">Total Spent</div>
+              <div className="text-xs sm:text-sm text-slate-400 truncate">Total Spent</div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-white">${analytics.total_spent.toFixed(2)}</div>
           </div>
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
+              <div className="p-1.5 sm:p-2 bg-yellow-500/20 rounded-lg flex-shrink-0">
                 <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
               </div>
-              <div className="text-xs sm:text-sm text-slate-400">Avg Rating</div>
+              <div className="text-xs sm:text-sm text-slate-400 truncate">Avg Rating</div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.avg_rating.toFixed(1)}</div>
           </div>
 
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 min-w-0">
+              <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
               </div>
-              <div className="text-xs sm:text-sm text-slate-400">Total Hours</div>
+              <div className="text-xs sm:text-sm text-slate-400 truncate">Total Hours</div>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-white">{analytics.total_hours.toFixed(1)}</div>
           </div>
@@ -386,7 +386,7 @@ export default function CustomerSessionsPage() {
           <div className="p-3 sm:p-4 border-b border-slate-700">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4">
               {/* Tabs */}
-              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto px-1 sm:px-0">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-2 lg:pb-0 w-full lg:w-auto px-1 sm:px-0">
                 {[
                   { key: 'all', label: 'All Sessions', count: sessions.length },
                   { key: 'active', label: 'Active', count: sessions.filter(s => ['live', 'waiting'].includes(s.status)).length },
@@ -536,13 +536,13 @@ export default function CustomerSessionsPage() {
                   return (
                     <div
                       key={session.id}
-                      className="rounded-2xl border border-slate-700 bg-slate-900/50 p-5 transition-all hover:border-orange-500/50 cursor-pointer"
+                      className="rounded-xl sm:rounded-2xl border border-slate-700 bg-slate-900/50 p-3 sm:p-4 lg:p-5 transition-all hover:border-orange-500/50 cursor-pointer"
                       onClick={() => setSelectedSession(session)}
                     >
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                            <div className="flex items-start gap-3">
+                      <div className="flex flex-col gap-3 sm:gap-4">
+                        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start sm:justify-between min-w-0">
+                          <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-start sm:gap-4 min-w-0">
+                            <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                               {isSelectable && (
                                 <div className="pt-1" onClick={(e) => e.stopPropagation()}>
                                   <input
@@ -553,22 +553,22 @@ export default function CustomerSessionsPage() {
                                   />
                                 </div>
                               )}
-                              <div className="flex items-start gap-3">
-                                <div className="rounded-xl border border-slate-700 bg-slate-800/70 p-3">
+                              <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+                                <div className="rounded-lg sm:rounded-xl border border-slate-700 bg-slate-800/70 p-2 sm:p-2.5 lg:p-3 flex-shrink-0">
                                   {getTypeIcon(session.type)}
                                 </div>
-                                <div className="space-y-2">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="text-lg font-semibold text-white">
+                                <div className="space-y-1.5 sm:space-y-2 min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <h3 className="text-base sm:text-lg font-semibold text-white truncate">
                                       {session.mechanic_name || 'Waiting for assignment'}
                                     </h3>
                                     {getStatusBadge(session.status)}
                                   </div>
                                   {session.issue && (
-                                    <p className="text-sm text-slate-400 line-clamp-2">{session.issue}</p>
+                                    <p className="text-sm text-slate-400 line-clamp-2 break-words">{session.issue}</p>
                                   )}
                                   {session.notes && (
-                                    <p className="text-xs text-slate-500 line-clamp-2">{session.notes}</p>
+                                    <p className="text-xs text-slate-500 line-clamp-2 break-words">{session.notes}</p>
                                   )}
                                   {session.rating && (
                                     <div className="flex items-center gap-1 pt-1">
@@ -587,7 +587,7 @@ export default function CustomerSessionsPage() {
                             </div>
                           </div>
 
-                          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+                          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end flex-shrink-0">
                             <div className="text-left sm:text-right">
                               <div className="text-2xl font-bold text-white">${session.price.toFixed(2)}</div>
                               <div className="text-xs text-slate-400 capitalize">{session.plan}</div>

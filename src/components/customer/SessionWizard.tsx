@@ -277,12 +277,12 @@ export default function SessionWizard({
 
   // Render vehicle selection step
   const renderVehicleStep = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-white mb-2">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="text-center mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
           Which vehicle needs attention?
         </h3>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-slate-400">
           Select the vehicle you'd like to discuss with a mechanic
         </p>
       </div>
@@ -295,20 +295,20 @@ export default function SessionWizard({
           />
         </Suspense>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           {vehicles.map((vehicle) => (
             <button
               key={vehicle.id}
               onClick={() => handleVehicleSelect(vehicle.id)}
-              className={`p-4 rounded-xl border-2 transition-all text-left ${
+              className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
                 selectedVehicle === vehicle.id
                   ? 'border-blue-500 bg-blue-500/10'
                   : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
               }`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                 <div
-                  className={`p-2 rounded-lg ${
+                  className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                     selectedVehicle === vehicle.id ? 'bg-blue-500/20' : 'bg-slate-700/50'
                   }`}
                 >
@@ -319,11 +319,11 @@ export default function SessionWizard({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <h4 className="text-white font-bold text-sm truncate">
+                    <h4 className="text-white font-bold text-xs sm:text-sm truncate">
                       {vehicle.year} {vehicle.make} {vehicle.model}
                     </h4>
                     {selectedVehicle === vehicle.id && (
-                      <Check className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                      <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
                     )}
                   </div>
                   <p className="text-xs text-slate-400">{vehicle.brand}</p>
@@ -338,12 +338,12 @@ export default function SessionWizard({
 
   // Render session type step with VIN decoder
   const renderSessionTypeStep = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-white mb-2">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="text-center mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
           Choose your session type
         </h3>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-slate-400">
           {isNewCustomer
             ? 'Your first session is FREE! Try our Standard Video session for best experience.'
             : 'Select the service level that fits your needs'}
@@ -351,46 +351,46 @@ export default function SessionWizard({
       </div>
 
       {/* VIN Decoder Section */}
-      <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="h-4 w-4 text-blue-400" />
-          <h4 className="text-sm font-semibold text-white">Optional: Decode VIN</h4>
+      <div className="p-3 sm:p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
+        <div className="flex items-center gap-2 mb-2 sm:mb-3">
+          <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
+          <h4 className="text-xs sm:text-sm font-semibold text-white">Optional: Decode VIN</h4>
         </div>
-        <p className="text-xs text-slate-400 mb-3">
+        <p className="text-xs text-slate-400 mb-2 sm:mb-3">
           Help us identify your vehicle details for faster diagnosis
         </p>
         {!showVinDecoder ? (
           <button
             onClick={() => setShowVinDecoder(true)}
-            className="w-full px-3 py-2 text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors"
+            className="w-full px-3 py-2 text-xs sm:text-sm bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors"
           >
             Decode VIN
           </button>
         ) : (
           <div className="space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={vinInput}
                 onChange={(e) => setVinInput(e.target.value.toUpperCase())}
-                placeholder="Enter VIN (e.g., 1HGBH41JXMN109186)"
+                placeholder="Enter 17-digit VIN"
                 maxLength={17}
-                className="flex-1 px-3 py-2 text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+                className="flex-1 min-w-0 px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-slate-700/50 text-white placeholder-slate-500 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none break-words"
               />
               <button
                 onClick={() => decodeVin(vinInput)}
                 disabled={decodingVin || !vinInput}
-                className="px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                className="px-3 py-2 text-xs sm:text-sm bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap"
               >
-                {decodingVin ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Decode'}
+                {decodingVin ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : 'Decode'}
               </button>
             </div>
             {submitError && (
               <p className="text-xs text-red-400">{submitError}</p>
             )}
             {decodedVinData && (
-              <div className="text-xs text-green-400 p-2 bg-green-500/10 rounded">
-                <p className="font-semibold">Decoded: {decodedVinData.year} {decodedVinData.make} {decodedVinData.model}</p>
+              <div className="text-xs text-green-400 p-2 bg-green-500/10 rounded break-words">
+                <p className="font-semibold break-words">Decoded: {decodedVinData.year} {decodedVinData.make} {decodedVinData.model}</p>
               </div>
             )}
           </div>
@@ -413,47 +413,47 @@ export default function SessionWizard({
               <button
                 key={plan.id}
                 onClick={() => handleSessionTypeSelect(plan.slug)}
-                className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
                   isSelected
                     ? 'border-blue-500 bg-blue-500/10'
                     : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                 }`}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                   <div
-                    className={`p-2 rounded-lg ${
+                    className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                       isSelected ? 'bg-blue-500/20' : 'bg-slate-700/50'
                     }`}
                   >
                     <IconComponent
-                      className={`h-5 w-5 ${isSelected ? 'text-blue-400' : 'text-slate-400'}`}
+                      className={`h-4 w-4 sm:h-5 sm:w-5 ${isSelected ? 'text-blue-400' : 'text-slate-400'}`}
                     />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <h4 className="text-white font-bold text-base">{plan.name}</h4>
-                      <div className="flex items-center gap-2">
+                      <h4 className="text-white font-bold text-sm sm:text-base">{plan.name}</h4>
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         {isNewCustomer ? (
-                          <span className="text-sm font-bold text-green-400">FREE</span>
+                          <span className="text-xs sm:text-sm font-bold text-green-400">FREE</span>
                         ) : (
-                          <span className="text-sm font-bold text-white">{plan.price}</span>
+                          <span className="text-xs sm:text-sm font-bold text-white">{plan.price}</span>
                         )}
-                        {isSelected && <Check className="h-4 w-4 text-blue-400" />}
+                        {isSelected && <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 mb-2">{plan.description}</p>
-                    <div className="flex flex-wrap gap-2">
+                    <p className="text-xs text-slate-400 mb-2 break-words">{plan.description}</p>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 min-w-0">
                       {plan.perks.slice(0, 3).map((perk, idx) => (
                         <span
                           key={idx}
-                          className="text-xs px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded"
+                          className="text-xs px-1.5 sm:px-2 py-0.5 bg-slate-700/50 text-slate-300 rounded break-words"
                         >
                           {perk}
                         </span>
                       ))}
                     </div>
                     {isRecommended && (
-                      <div className="mt-2 text-xs font-medium text-blue-400">
+                      <div className="mt-1.5 sm:mt-2 text-xs font-medium text-blue-400">
                         ⭐ Recommended
                       </div>
                     )}
@@ -469,12 +469,12 @@ export default function SessionWizard({
 
   // Render mechanic type step
   const renderMechanicTypeStep = () => (
-    <div className="space-y-4">
-      <div className="text-center mb-6">
-        <h3 className="text-xl font-bold text-white mb-2">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="text-center mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
           Standard or Specialist?
         </h3>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-slate-400">
           Choose the type of mechanic for your vehicle
         </p>
       </div>
@@ -483,35 +483,35 @@ export default function SessionWizard({
         {/* Standard Mechanic */}
         <button
           onClick={() => handleMechanicTypeSelect('standard')}
-          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'standard'
               ? 'border-blue-500 bg-blue-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2 sm:gap-3 min-w-0">
             <div
-              className={`p-2 rounded-lg ${
+              className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                 selectedMechanicType === 'standard' ? 'bg-blue-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Wrench
-                className={`h-5 w-5 ${
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${
                   selectedMechanicType === 'standard' ? 'text-blue-400' : 'text-slate-400'
                 }`}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <h4 className="text-white font-bold text-base">Standard Mechanic</h4>
+                <h4 className="text-white font-bold text-sm sm:text-base">Standard Mechanic</h4>
                 {selectedMechanicType === 'standard' && (
-                  <Check className="h-4 w-4 text-blue-400" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-slate-400 mb-2">
+              <p className="text-xs text-slate-400 mb-1.5 sm:mb-2">
                 Certified mechanics with general automotive expertise
               </p>
-              <p className="text-sm font-bold text-white">Standard pricing</p>
+              <p className="text-xs sm:text-sm font-bold text-white">Standard pricing</p>
             </div>
           </div>
         </button>
@@ -519,37 +519,37 @@ export default function SessionWizard({
         {/* Brand Specialist */}
         <button
           onClick={() => handleMechanicTypeSelect('specialist')}
-          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all text-left ${
             selectedMechanicType === 'specialist'
               ? 'border-blue-500 bg-blue-500/10'
               : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
           }`}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2 sm:gap-3 min-w-0">
             <div
-              className={`p-2 rounded-lg ${
+              className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                 selectedMechanicType === 'specialist' ? 'bg-blue-500/20' : 'bg-slate-700/50'
               }`}
             >
               <Star
-                className={`h-5 w-5 ${
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${
                   selectedMechanicType === 'specialist' ? 'text-blue-400' : 'text-slate-400'
                 }`}
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <h4 className="text-white font-bold text-base">Brand Specialist</h4>
+                <h4 className="text-white font-bold text-sm sm:text-base">Brand Specialist</h4>
                 {selectedMechanicType === 'specialist' && (
-                  <Check className="h-4 w-4 text-blue-400" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400 flex-shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-slate-400 mb-2">
+              <p className="text-xs text-slate-400 mb-1.5 sm:mb-2 break-words">
                 Experts specialized in your vehicle's make and model
               </p>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-white">+$10 premium</p>
-                <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-white whitespace-nowrap">+$10 premium</p>
+                <span className="text-xs px-1.5 sm:px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded min-w-0 break-words">
                   BMW • Tesla • +18 brands
                 </span>
               </div>
@@ -579,10 +579,10 @@ export default function SessionWizard({
   // Show loading skeleton while fetching initial data
   if (loadingVehicles || loadingPlans) {
     return (
-      <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-          <p className="text-sm text-slate-400">Preparing your session wizard...</p>
+      <div className="bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-700/50 p-4 sm:p-6">
+        <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-3 sm:space-y-4">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-400" />
+          <p className="text-xs sm:text-sm text-slate-400">Preparing your session wizard...</p>
         </div>
       </div>
     )
@@ -591,7 +591,7 @@ export default function SessionWizard({
   return (
     <div
       ref={wizardRef}
-      className={`bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6 transition-all ${
+      className={`w-full max-w-full overflow-hidden bg-gradient-to-br from-slate-800/50 via-slate-850/50 to-slate-900/50 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-slate-700/50 p-4 sm:p-6 transition-all ${
       submitSuccess ? 'border-green-500/50 bg-gradient-to-r from-green-600/20 via-emerald-600/20 to-green-600/20' : ''
     }`}>
       {/* Progress Indicator */}
@@ -638,15 +638,15 @@ export default function SessionWizard({
       )}
 
       {/* Navigation Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         {currentStep > 1 && !submitSuccess && (
           <button
             onClick={handleBack}
             disabled={launching}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm sm:text-base font-medium transition-colors disabled:opacity-50"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            <span className="hidden sm:inline">Back</span>
           </button>
         )}
 
@@ -654,7 +654,7 @@ export default function SessionWizard({
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
             <ChevronRight className="h-4 w-4" />
@@ -663,23 +663,25 @@ export default function SessionWizard({
           <button
             onClick={handleLaunchSession}
             disabled={launching}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm sm:text-base font-bold transition-all disabled:opacity-50"
           >
             {launching ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Launching...
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                <span className="hidden sm:inline">Launching...</span>
+                <span className="sm:hidden">Loading...</span>
               </>
             ) : (
               <>
-                {isNewCustomer ? 'Start FREE Session' : `Launch Session`}
-                <ArrowRight className="h-5 w-5" />
+                <span className="hidden sm:inline">{isNewCustomer ? 'Start FREE Session' : `Launch Session`}</span>
+                <span className="sm:hidden">{isNewCustomer ? 'Start FREE' : 'Launch'}</span>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </>
             )}
           </button>
         ) : (
-          <div className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold">
-            <Check className="h-5 w-5" />
+          <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm sm:text-base font-bold">
+            <Check className="h-4 w-4 sm:h-5 sm:w-5" />
             Ready to go!
           </div>
         )}

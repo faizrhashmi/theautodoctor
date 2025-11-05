@@ -33,16 +33,6 @@ interface DashboardStats {
   total_completed_sessions: number
 }
 
-interface RecentSession {
-  id: string
-  customer_name: string
-  session_type: string
-  status: string
-  plan: string
-  created_at: string
-  ended_at: string | null
-}
-
 interface PendingRequest {
   id: string
   customer_name: string
@@ -88,9 +78,7 @@ export default function MechanicDashboardPage() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
-  const [loadingRecentSessions, setLoadingRecentSessions] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [acceptingRequest, setAcceptingRequest] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -294,7 +282,6 @@ export default function MechanicDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       setLoadingStats(true)
-      setLoadingRecentSessions(true)
       setError(null)
 
       try {
@@ -307,7 +294,6 @@ export default function MechanicDashboardPage() {
 
         const data = await response.json()
         setStats(data.stats)
-        setRecentSessions(data.recent_sessions || [])
         setError(null)
         console.log('[MechanicDashboard] Stats loaded successfully')
       } catch (err) {
@@ -324,7 +310,6 @@ export default function MechanicDashboardPage() {
         }
       } finally {
         setLoadingStats(false)
-        setLoadingRecentSessions(false)
       }
     }
 
@@ -366,14 +351,13 @@ export default function MechanicDashboardPage() {
         console.error('[MechanicDashboard] Failed to refetch active sessions:', err)
       }
 
-      // Refetch stats and recent sessions
+      // Refetch stats
       try {
         const statsResponse = await fetch('/api/mechanic/dashboard/stats')
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           setStats(statsData.stats)
-          setRecentSessions(statsData.recent_sessions || [])
-          console.log('[MechanicDashboard] ✓ Refetched stats and recent sessions')
+          console.log('[MechanicDashboard] ✓ Refetched stats')
         }
       } catch (err) {
         console.error('[MechanicDashboard] Failed to refetch stats:', err)
@@ -483,7 +467,7 @@ export default function MechanicDashboardPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8 pt-20 lg:pt-8">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -668,104 +652,8 @@ export default function MechanicDashboardPage() {
         </div>
 
         {/* Recent Sessions */}
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Recent Sessions</h2>
-              <p className="text-sm text-slate-400 mt-1">Your latest completed and active sessions</p>
-            </div>
-            <Link
-              href="/mechanic/sessions"
-              className="inline-flex items-center justify-center rounded-lg border border-blue-500/40 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:border-blue-400 hover:text-blue-200 sm:px-5"
-            >
-              View All →
-            </Link>
-          </div>
-
-          {loadingRecentSessions ? (
-            // Loading skeletons for recent sessions
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-slate-700 bg-slate-900/50 animate-pulse">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="h-12 w-12 rounded-xl bg-slate-700"></div>
-                    <div className="flex-1">
-                      <div className="h-5 bg-slate-700 rounded w-32 mb-2"></div>
-                      <div className="h-4 bg-slate-700 rounded w-48"></div>
-                    </div>
-                  </div>
-                  <div className="flex w-full items-center justify-between gap-4 sm:w-auto">
-                    <div className="h-4 bg-slate-700 rounded w-20"></div>
-                    <div className="h-9 bg-slate-700 rounded w-24"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : recentSessions.length === 0 ? (
-            <div className="py-12 text-center">
-              <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400 text-lg mb-2">No recent sessions</p>
-              <p className="text-sm text-slate-500">Your completed sessions will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentSessions.map((session) => {
-                const sessionIcon = session.session_type === 'video' ? Video : session.session_type === 'chat' ? MessageSquare : FileText
-
-                return (
-                  <div
-                    key={session.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-slate-700 bg-slate-900/50 hover:border-blue-500/50 transition-all gap-4"
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/30">
-                        {(() => {
-                          const Icon = sessionIcon
-                          return <Icon className="h-5 w-5 text-blue-400" />
-                        })()}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="mb-2">
-                          <PresenceChip
-                            name={session.customer_name}
-                            status={session.status === 'live' || session.status === 'waiting' ? 'online' : 'offline'}
-                            size="sm"
-                            showName={true}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-sm text-slate-400 capitalize">{session.session_type}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(session.created_at).toLocaleDateString()}
-                          </span>
-                          {session.ended_at && (
-                            <span>
-                              Ended {new Date(session.ended_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                      <StatusBadge status={session.status as any} size="md" showIcon={true} />
-
-                      <Link
-                        href={`/mechanic/session/${session.id}`}
-                        className="w-full rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-center text-sm font-semibold text-blue-400 transition-colors hover:bg-blue-500/20 sm:w-auto"
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+        <div className="mt-8">
+          <RecentSessions userRole="mechanic" limit={3} />
         </div>
       </div>
       </div>

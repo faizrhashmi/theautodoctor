@@ -250,3 +250,87 @@ body {
   background-color: rgb(71 85 105) !important; /* slate-600 */
   color: rgb(251 146 60) !important; /* orange-400 */
 }
+
+/* Mobile-First Responsive Utilities */
+/* Ensure proper box-sizing for all elements */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Base responsive container settings */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px; /* Support down to iPhone SE */
+  position: relative;
+  width: 100%;
+}
+
+/* Ensure media elements never exceed container width */
+img,
+video,
+canvas,
+svg,
+picture {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Word breaking for long strings (VINs, tokens, etc.) */
+.break-words {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Hide scrollbar for horizontal scrolling containers (tab strips) */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Stack SessionWizard controls on very small screens */
+@media (max-width: 420px) {
+  /* Force session wizard to stack vertically */
+  .session-wizard-container {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Ensure buttons stack on tiny screens */
+  .session-wizard-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Make cards full width on tiny screens */
+  .session-card,
+  .vehicle-card,
+  .plan-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Reduce padding on tiny screens */
+  .wizard-step {
+    padding: 0.75rem;
+  }
+
+  /* Ensure text wraps on tiny screens */
+  h1, h2, h3, h4, h5, h6,
+  p, span, div {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}

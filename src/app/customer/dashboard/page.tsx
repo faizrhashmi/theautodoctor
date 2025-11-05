@@ -769,8 +769,8 @@ export default function CustomerDashboardPage() {
 
       {/* Quick Actions Section */}
       <div className="mb-6 sm:mb-8">
-        <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center gap-2">
-          <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
           Quick Actions
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -843,11 +843,11 @@ export default function CustomerDashboardPage() {
             className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                 </div>
-                <div className="text-xs sm:text-sm text-slate-400">Total Services</div>
+                <div className="text-xs sm:text-sm text-slate-400 truncate">Total Services</div>
               </div>
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
             </div>
@@ -867,11 +867,11 @@ export default function CustomerDashboardPage() {
             className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-green-500/20 rounded-lg flex-shrink-0">
                   <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                 </div>
-                <div className="text-xs sm:text-sm text-slate-400">Total Spent</div>
+                <div className="text-xs sm:text-sm text-slate-400 truncate">Total Spent</div>
               </div>
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
             </div>
@@ -887,11 +887,11 @@ export default function CustomerDashboardPage() {
             className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
                   <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                 </div>
-                <div className="text-xs sm:text-sm text-slate-400">Active Warranties</div>
+                <div className="text-xs sm:text-sm text-slate-400 truncate">Active Warranties</div>
               </div>
               <Check className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
             </div>
@@ -911,11 +911,11 @@ export default function CustomerDashboardPage() {
             className="bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-amber-500/20 rounded-lg flex-shrink-0">
                   <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                 </div>
-                <div className="text-xs sm:text-sm text-slate-400">Pending Quotes</div>
+                <div className="text-xs sm:text-sm text-slate-400 truncate">Pending Quotes</div>
               </div>
               {stats?.pending_quotes && stats.pending_quotes > 0 ? (
                 <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 animate-pulse" />
@@ -1030,8 +1030,8 @@ export default function CustomerDashboardPage() {
                 key={session.id}
                 className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-slate-900/50 rounded-lg border border-slate-700 hover:border-orange-500/50 transition-all group gap-3"
               >
-                <div className="flex-1 w-full sm:w-auto">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <div className="flex-1 w-full sm:w-auto min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 min-w-0">
                     <div className="flex-1 min-w-0">
                       <div className="mb-2">
                         <PresenceChip
@@ -1310,7 +1310,7 @@ export default function CustomerDashboardPage() {
 
   return (
     <>
-      <div className="min-h-screen py-4 sm:py-6 lg:py-8 pt-16 sm:pt-20 lg:pt-8">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-6 lg:py-8">
         <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         {/* Header with Actions */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
@@ -1345,7 +1345,7 @@ export default function CustomerDashboardPage() {
 
         {/* Tabbed Navigation */}
         <div className="mb-6 sm:mb-8 border-b border-slate-700">
-          <div className="flex gap-4 sm:gap-6 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <div className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('overview')}
               className={`pb-3 sm:pb-4 px-1 sm:px-2 font-medium transition-colors border-b-2 whitespace-nowrap text-sm sm:text-base ${
@@ -1402,26 +1402,26 @@ export default function CustomerDashboardPage() {
 
       {/* Mechanic Availability Modal */}
       {showAvailabilityModal && selectedFavorite && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg sm:rounded-xl p-4 sm:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
               Book with {selectedFavorite.provider_name}
             </h3>
 
             {/* Availability Status */}
             {mechanicAvailability?.isOnline ? (
-              <div className="flex items-center gap-2 text-green-400 mb-6 p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-                <span className="font-medium">Available Now</span>
+              <div className="flex items-center gap-2 text-green-400 mb-4 sm:mb-6 p-2.5 sm:p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-sm sm:text-base font-medium">Available Now</span>
               </div>
             ) : (
-              <div className="flex flex-col gap-1 text-slate-400 mb-6 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+              <div className="flex flex-col gap-1 text-slate-400 mb-4 sm:mb-6 p-2.5 sm:p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-slate-500 rounded-full" />
-                  <span className="font-medium">Currently Offline</span>
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-slate-500 rounded-full" />
+                  <span className="text-sm sm:text-base font-medium">Currently Offline</span>
                 </div>
                 {mechanicAvailability?.lastSeen && (
-                  <span className="text-sm text-slate-500 ml-5">
+                  <span className="text-xs sm:text-sm text-slate-500 ml-4 sm:ml-5">
                     Last seen {new Date(mechanicAvailability.lastSeen).toRelativeTimeString()}
                   </span>
                 )}
@@ -1429,21 +1429,23 @@ export default function CustomerDashboardPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <button
                 onClick={() => handleContinueWithFavorite('priority_broadcast')}
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all flex items-center justify-center gap-2"
               >
-                <Zap className="w-4 h-4" />
-                {mechanicAvailability?.isOnline
-                  ? `Continue with ${selectedFavorite.provider_name}`
-                  : `Notify & Wait for ${selectedFavorite.provider_name}`
-                }
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="truncate">
+                  {mechanicAvailability?.isOnline
+                    ? `Continue with ${selectedFavorite.provider_name}`
+                    : `Notify ${selectedFavorite.provider_name}`
+                  }
+                </span>
               </button>
 
               <button
                 onClick={() => handleContinueWithFavorite('broadcast')}
-                className="w-full border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white px-4 py-3 rounded-lg font-medium transition-all"
+                className="w-full border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-medium transition-all"
               >
                 Find Available Mechanic Now
               </button>
@@ -1453,13 +1455,13 @@ export default function CustomerDashboardPage() {
                   setShowAvailabilityModal(false)
                   setSelectedFavorite(null)
                 }}
-                className="w-full text-slate-400 hover:text-slate-300 px-4 py-2 rounded-lg text-sm transition-colors"
+                className="w-full text-slate-400 hover:text-slate-300 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition-colors"
               >
                 Cancel
               </button>
             </div>
 
-            <div className="mt-4 text-xs text-slate-500 text-center">
+            <div className="mt-3 sm:mt-4 text-xs text-slate-500 text-center">
               {mechanicAvailability?.isOnline
                 ? `${selectedFavorite.provider_name} will be notified immediately`
                 : `${selectedFavorite.provider_name} will get priority notification. If no response in 10 minutes, we'll find you another mechanic.`

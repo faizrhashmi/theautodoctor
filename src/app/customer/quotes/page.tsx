@@ -162,10 +162,10 @@ export default function CustomerQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Header with CTA */}
-        <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white">My Quotes</h1>
             <p className="text-sm sm:text-base text-slate-400 mt-1">Review repair quotes and workshop RFQs</p>
@@ -278,19 +278,19 @@ export default function CustomerQuotesPage() {
               return (
                 <div
                   key={quote.id}
-                  className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6 hover:border-orange-500/50 transition-all"
+                  className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-orange-500/50 transition-all"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700">
-                        <FileText className="h-5 w-5 text-orange-400" />
+                  <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700 shrink-0">
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-white break-words">
                             Quote from {quote.provider_name}
                           </h3>
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                          <span className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-medium capitalize ${
                             quote.status === 'accepted' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                             quote.status === 'declined' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
                             isExpired ? 'bg-slate-500/20 text-slate-400 border border-slate-500/30' :
@@ -300,7 +300,7 @@ export default function CustomerQuotesPage() {
                             {isExpired ? 'expired' : quote.status}
                           </span>
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-xs sm:text-sm text-slate-400 space-y-1">
                           <p className="capitalize">{quote.provider_type}</p>
                           <p>Created: {new Date(quote.created_at).toLocaleString('en-US', {
                             month: 'short',
@@ -321,14 +321,14 @@ export default function CustomerQuotesPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-white mb-1">${quote.total_cost.toFixed(2)}</p>
-                      <div className="space-y-1 text-xs text-slate-400">
-                        <p className="flex items-center justify-end gap-1">
+                    <div className="text-left sm:text-right">
+                      <p className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">${quote.total_cost.toFixed(2)}</p>
+                      <div className="space-y-0.5 sm:space-y-1 text-xs text-slate-400">
+                        <p className="flex items-center sm:justify-end gap-1">
                           <Wrench className="h-3 w-3" />
                           Labor: ${quote.labor_cost.toFixed(2)}
                         </p>
-                        <p className="flex items-center justify-end gap-1">
+                        <p className="flex items-center sm:justify-end gap-1">
                           <DollarSign className="h-3 w-3" />
                           Parts: ${quote.parts_cost.toFixed(2)}
                         </p>
@@ -343,21 +343,21 @@ export default function CustomerQuotesPage() {
                   )}
 
                   {isPending && (
-                    <div className="flex items-center gap-3 pt-4 border-t border-slate-700">
+                    <div className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-3 pt-4 border-t border-slate-700">
                       <button
                         onClick={() => respondToQuote(quote.id, 'accept')}
                         disabled={responding === quote.id}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm sm:text-base font-semibold hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <CheckCircle className="h-5 w-5" />
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                         {responding === quote.id ? 'Processing...' : 'Accept Quote'}
                       </button>
                       <button
                         onClick={() => respondToQuote(quote.id, 'decline')}
                         disabled={responding === quote.id}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-700/50 text-white rounded-lg font-semibold hover:bg-slate-700 transition-all border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-700/50 text-white rounded-lg text-sm sm:text-base font-semibold hover:bg-slate-700 transition-all border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <XCircle className="h-5 w-5" />
+                        <XCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                         Decline
                       </button>
                     </div>
@@ -426,23 +426,23 @@ export default function CustomerQuotesPage() {
                 <Link
                   key={rfq.id}
                   href={`/customer/rfq/${rfq.id}/bids`}
-                  className="block bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-6 hover:border-teal-500/50 transition-all"
+                  className="block bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6 hover:border-teal-500/50 transition-all"
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700">
-                        <ClipboardList className="h-5 w-5 text-teal-400" />
+                  <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                      <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-slate-900/50 border border-slate-700 shrink-0">
+                        <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5 text-teal-400" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-base sm:text-lg font-semibold text-white break-words">
                             {rfq.title}
                           </h3>
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
                             {statusText}
                           </span>
                         </div>
-                        <div className="text-sm text-slate-400 space-y-1">
+                        <div className="text-xs sm:text-sm text-slate-400 space-y-1">
                           <p>
                             <span className="font-medium">Vehicle:</span> {rfq.vehicle_year} {rfq.vehicle_make} {rfq.vehicle_model}
                           </p>
@@ -465,11 +465,11 @@ export default function CustomerQuotesPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       {rfq.budget_min && rfq.budget_max && (
                         <>
-                          <p className="text-sm text-slate-400 mb-1">Budget Range</p>
-                          <p className="text-xl font-bold text-white">
+                          <p className="text-xs sm:text-sm text-slate-400 mb-1">Budget Range</p>
+                          <p className="text-lg sm:text-xl font-bold text-white">
                             ${rfq.budget_min} - ${rfq.budget_max}
                           </p>
                         </>

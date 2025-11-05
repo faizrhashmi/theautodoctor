@@ -145,7 +145,7 @@ export default function VirtualMechanicDashboard() {
   }
 
   return (
-    <div className="min-h-screen pt-20 lg:pt-8">
+    <div className="min-h-screen pt-20 lg:pt-8 ">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

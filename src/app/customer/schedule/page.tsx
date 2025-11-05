@@ -62,7 +62,7 @@ export default async function CustomerSchedulePage() {
   const eligible = plan ? SCHEDULABLE_PLANS.includes(plan) : false
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-4 sm:py-6 lg:py-8 overflow-x-hidden">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:gap-4 pb-4 sm:pb-6 md:flex-row md:items-center md:justify-between">
           <div>

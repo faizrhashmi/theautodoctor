@@ -119,7 +119,7 @@ export default function MechanicReviewsPage() {
 
   if (loading && page === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10">
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10 overflow-x-hidden">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
@@ -130,7 +130,7 @@ export default function MechanicReviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 sm:px-6 py-6 sm:py-10 overflow-x-hidden">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

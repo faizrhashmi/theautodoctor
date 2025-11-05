@@ -235,9 +235,9 @@ function VehiclesPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 overflow-x-hidden">
       <header className="border-b border-white/10 bg-white/5 shadow-sm backdrop-blur">
-        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 sm:px-6 md:px-8">
           <h1 className="text-base sm:text-lg font-semibold text-white">My Vehicles</h1>
           <Link
             href="/customer/dashboard"
@@ -248,7 +248,7 @@ function VehiclesPageContent() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-4 sm:py-6 lg:py-8 ">
         {error && (
           <div className="mb-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-300">
             {error}
