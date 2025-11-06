@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user?.id ?? '')
       .single();
 
+    const debug = request.nextUrl.searchParams.get('debug') === '1';
+
     // Unassigned (public queue) — use user client for assignments, admin for sessions
     // assignments visible via RLS
     const { data: unassignedA } = await supabase
@@ -96,6 +98,45 @@ export async function GET(request: NextRequest) {
       mineA: mineA?.length ?? 0,
       mineS: mineS?.length ?? 0,
     });
+
+    // Debug mode - return internal counts and sample rows
+    if (debug) {
+      return NextResponse.json({
+        debug: {
+          userId: user?.id ?? null,
+          mechId: mech?.id ?? null,
+          // lengths seen by the USER client (RLS applied)
+          counts_user_client: {
+            unassignedA: unassignedA?.length ?? 0,
+            mineA: mineA?.length ?? 0,
+          },
+          // lengths seen by the ADMIN hydration (no RLS)
+          counts_admin_hydration: {
+            unassignedS: unassignedS?.length ?? 0,
+            mineS: mineS?.length ?? 0,
+          },
+          // final arrays that UI would receive
+          final_counts: {
+            unassigned: unassigned?.length ?? 0,
+            mine: mine?.length ?? 0,
+            total:
+              (unassigned?.length ?? 0) + (mine?.length ?? 0),
+          },
+          // first few samples to verify shape
+          samples: {
+            unassignedA_first: unassignedA?.[0] ?? null,
+            unassignedS_first: unassignedS?.[0] ?? null,
+            mineA_first: mineA?.[0] ?? null,
+            mineS_first: mineS?.[0] ?? null,
+            final_unassigned_first: unassigned?.[0] ?? null,
+            final_mine_first: mine?.[0] ?? null,
+          },
+        },
+        unassigned,
+        mine,
+        total: (unassigned?.length ?? 0) + (mine?.length ?? 0),
+      });
+    }
 
     // return combined list (adjust shape to what the UI expects)
     return NextResponse.json({
