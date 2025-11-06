@@ -18,7 +18,7 @@ import {
   Plus,
   X,
 } from 'lucide-react'
-import { useServicePlans } from '@/hooks/useCustomerPlan'
+import { usePlansContext } from '@/contexts/PlansContext'
 import CarBrandLogo from '@/components/ui/CarBrandLogo'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
@@ -52,6 +52,9 @@ interface SessionWizardProps {
   preferredMechanicId?: string | null
   routingType?: 'broadcast' | 'priority_broadcast'
   onClose?: () => void
+  // Performance: Accept plans from parent to avoid duplicate fetches
+  plans?: any[]
+  loadingPlans?: boolean
 }
 
 type SessionType = 'quick' | 'video' | 'diagnostic' | string
@@ -72,12 +75,20 @@ export default function SessionWizard({
   preferredMechanicId,
   routingType = 'broadcast',
   onClose,
+  plans: externalPlans,
+  loadingPlans: externalLoadingPlans,
 }: SessionWizardProps) {
   const router = useRouter()
-  const { plans, loading: loadingPlans } = useServicePlans()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [loadingVehicles, setLoadingVehicles] = useState(true)
+  // Use external plans if provided, otherwise use cached plans from context
+  const { plans: internalPlans, loading: internalLoadingPlans } = usePlansContext()
+  const plans = externalPlans || internalPlans
+  const loadingPlans = externalLoadingPlans !== undefined ? externalLoadingPlans : internalLoadingPlans
+
+  // Vehicles state - fetched internally
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loadingVehicles, setLoadingVehicles] = useState(true)
+
+  const [currentStep, setCurrentStep] = useState(1)
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null)
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('standard')
   const [selectedMechanicType, setSelectedMechanicType] = useState<MechanicType>('standard')
@@ -101,7 +112,7 @@ export default function SessionWizard({
   const supabase = createClient()
 
   const isNewCustomer = hasUsedFreeSession === false
-  const totalSteps = vehicles.length > 0 ? 3 : 2 // Skip vehicle step if no vehicles
+  const totalSteps = 3 // Always show all 3 steps: Vehicle → Plan → Specialist
 
   // Memoize filtered plans to prevent unnecessary recalculations
   const availablePlans = useMemo(() => {
@@ -112,6 +123,7 @@ export default function SessionWizard({
     })
   }, [plans])
 
+  // Fetch vehicles on mount
   useEffect(() => {
     fetchVehicles()
   }, [])
@@ -134,6 +146,7 @@ export default function SessionWizard({
 
   const fetchVehicles = async () => {
     try {
+      setLoadingVehicles(true)
       const response = await fetch('/api/customer/vehicles')
       if (response.ok) {
         const data = await response.json()
@@ -153,13 +166,10 @@ export default function SessionWizard({
 
   // Memoized event handlers to prevent unnecessary re-renders
   const handleNext = useCallback(() => {
-    // Skip vehicle step if no vehicles
-    if (currentStep === 1 && vehicles.length === 0) {
-      setCurrentStep(2)
-    } else if (currentStep < totalSteps) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
-  }, [currentStep, totalSteps, vehicles.length])
+  }, [currentStep, totalSteps])
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -521,10 +531,7 @@ export default function SessionWizard({
   )
 
   const renderCurrentStep = () => {
-    // Adjust step numbers if skipping vehicle step
-    const effectiveStep = vehicles.length === 0 ? currentStep + 1 : currentStep
-
-    switch (effectiveStep) {
+    switch (currentStep) {
       case 1:
         return renderVehicleStep()
       case 2:

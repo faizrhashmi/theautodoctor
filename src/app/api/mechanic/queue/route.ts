@@ -90,6 +90,19 @@ export async function GET(request: NextRequest) {
           if (!['chat', 'video', 'diagnostic'].includes(session.type)) return false
         }
 
+        // Apply workshop filtering - workshop mechanics should see:
+        // 1. Sessions assigned to their workshop (metadata.workshop_id matches)
+        // 2. General sessions (metadata.workshop_id is null/undefined)
+        if (mechanicProfile.workshop_id) {
+          const sessionWorkshopId = session.metadata?.workshop_id
+
+          // If session has a workshop_id, it must match the mechanic's workshop
+          // If session has no workshop_id, it's a general assignment - show it
+          if (sessionWorkshopId && sessionWorkshopId !== mechanicProfile.workshop_id) {
+            return false // This is for a different workshop
+          }
+        }
+
         return true
       })
 

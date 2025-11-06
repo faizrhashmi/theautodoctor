@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Zap, AlertCircle, Check, ChevronDown, ChevronUp, Building2, Users, Star, Loader2, Wrench, CreditCard, Heart } from 'lucide-react'
-import { useServicePlans } from '@/hooks/useCustomerPlan'
+import { usePlansContext } from '@/contexts/PlansContext'
 import SessionWizard from './SessionWizard'
 
 interface PlanTier {
@@ -84,8 +84,8 @@ export default function SessionLauncher({
   activeSession: externalActiveSession,
   loadingActiveSession: externalLoadingActiveSession,
 }: SessionLauncherProps) {
-  // Fetch plans from API
-  const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = useServicePlans()
+  // Use cached plans from context (eliminates duplicate API calls)
+  const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = usePlansContext()
 
   const [showCustomization, setShowCustomization] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string>('free')
@@ -148,15 +148,21 @@ export default function SessionLauncher({
     fetchWorkshops()
   }, [accountType, workshopId])
 
-  // Fetch subscription and credit pricing for B2C customers
+  // PERFORMANCE OPTIMIZATION: Fetch subscription and credit pricing in parallel
   useEffect(() => {
-    async function fetchSubscriptionData() {
+    async function fetchAllData() {
       if (!isB2CCustomer) return
 
       setLoadingSubscription(true)
+
       try {
-        // Fetch subscription
-        const subRes = await fetch('/api/customer/subscriptions')
+        // Fetch all data in parallel for maximum performance
+        const [subRes, pricingRes] = await Promise.all([
+          fetch('/api/customer/subscriptions'),
+          fetch('/api/credit-pricing')
+        ])
+
+        // Process subscription
         if (subRes.ok) {
           const subData = await subRes.json()
           if (subData.has_subscription) {
@@ -164,19 +170,18 @@ export default function SessionLauncher({
           }
         }
 
-        // Fetch credit pricing
-        const pricingRes = await fetch('/api/credit-pricing')
+        // Process credit pricing
         if (pricingRes.ok) {
           const pricingData = await pricingRes.json()
           setCreditPricing(pricingData.pricing || [])
         }
       } catch (error) {
-        console.error('Failed to fetch subscription data:', error)
+        console.error('Failed to fetch data:', error)
       } finally {
         setLoadingSubscription(false)
       }
     }
-    fetchSubscriptionData()
+    fetchAllData()
   }, [isB2CCustomer])
 
   // Check for active session - prevents duplicate session creation
@@ -302,6 +307,8 @@ export default function SessionLauncher({
           availableMechanics={availableMechanics}
           preferredMechanicId={preferredMechanicId}
           routingType={routingType}
+          plans={PLAN_TIERS}
+          loadingPlans={loadingPlans}
         />
       )
     }
