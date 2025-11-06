@@ -172,54 +172,38 @@ export async function POST(req: NextRequest) {
                 console.error('[waiver] ❌ Failed to create assignment:', createError)
               } else {
                 console.log('[waiver] ✅ Created assignment', newAssignment.id, 'with status:', newAssignment.status)
-                console.log('[waiver] postgres_changes should fire INSERT event with status: queued')
-              }
-            }
-          } catch (assignmentError) {
-            console.error('[waiver] Error creating assignment:', assignmentError)
-            // Don't fail waiver submission if this fails
-          }
 
-          // CRITICAL: Create session_request to notify mechanics (same as paid flow in fulfillment.ts)
-          if (existingSession.customer_user_id) {
-            try {
-              // Cancel any old pending requests
-              await supabaseAdmin
-                .from('session_requests')
-                .update({ status: 'cancelled' })
-                .eq('customer_id', existingSession.customer_user_id)
-                .eq('status', 'pending')
-                .is('mechanic_id', null)
+                // ✅ FIX: Broadcast the assignment to mechanics (replaces deprecated session_requests system)
+                try {
+                  const { broadcastSessionAssignment } = await import('@/lib/realtimeChannels')
 
-              // Get customer name
-              const { data: profile } = await supabaseAdmin
-                .from('profiles')
-                .select('full_name')
-                .eq('id', existingSession.customer_user_id)
-                .maybeSingle()
+                  // Fetch intake data for broadcast payload
+                  const { data: intake } = await supabaseAdmin
+                    .from('intakes')
+                    .select('name, year, make, model, vin, concern')
+                    .eq('id', intakeId)
+                    .single()
 
-              // Create session request (using only base columns - no optional fields)
-              const { data: newRequest, error: requestError } = await supabaseAdmin
-                .from('session_requests')
-                .insert({
-                  customer_id: existingSession.customer_user_id,
-                  session_type: existingSession.type,
-                  plan_code: plan,
-                  status: 'pending',
-                  customer_name: profile?.full_name || email || 'Customer',
-                  customer_email: email,
-                  routing_type: 'broadcast',
-                  parent_session_id: existingSession.id, // CRITICAL: Link request to existing session
-                })
-                .select()
-                .single()
+                  const vehicleSummary = intake?.vin
+                    ? `VIN: ${intake.vin}`
+                    : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
 
-              if (requestError) {
-                console.error('[waiver] Failed to create session_request:', requestError)
-              } else {
-                console.log('[waiver] ✅ Created session_request:', newRequest.id)
+                  await broadcastSessionAssignment('new_assignment', {
+                    assignmentId: newAssignment.id,
+                    sessionId: existingSession.id,
+                    customerName: intake?.name || email || 'Customer',
+                    vehicleSummary: vehicleSummary || 'Vehicle',
+                    concern: intake?.concern || '',
+                    urgent: false
+                  })
 
-                // Create notification for customer (request_submitted, not request_created)
+                  console.log('[waiver] ✅ Broadcasted assignment to mechanics')
+                } catch (broadcastError) {
+                  console.error('[waiver] Broadcast failed:', broadcastError)
+                  // Don't fail waiver if broadcast fails - postgres_changes is the fallback
+                }
+
+                // Create notification for customer
                 try {
                   await supabaseAdmin
                     .from('notifications')
@@ -227,7 +211,7 @@ export async function POST(req: NextRequest) {
                       user_id: existingSession.customer_user_id,
                       type: 'request_submitted',
                       payload: {
-                        request_id: newRequest.id,
+                        session_id: existingSession.id,
                         session_type: existingSession.type,
                         plan_code: plan
                       }
@@ -236,22 +220,11 @@ export async function POST(req: NextRequest) {
                 } catch (notifError) {
                   console.warn('[waiver] Failed to create notification:', notifError)
                 }
-
-                // CRITICAL: Add delay before broadcasting to allow database replication
-                // Supabase connection pooler needs time to propagate the write
-                // Without this delay, mechanics may not see the request immediately
-                await new Promise(resolve => setTimeout(resolve, 3000))
-                console.log('[waiver] ⏱️ Waited 3s for database replication')
-
-                // Broadcast to mechanics using persistent channel
-                const { broadcastSessionRequest } = await import('@/lib/realtimeChannels')
-                await broadcastSessionRequest('new_request', { request: newRequest })
-                console.log('[waiver] ✅ Broadcasted to mechanics')
               }
-            } catch (error) {
-              console.error('[waiver] Error creating session_request:', error)
-              // Don't fail waiver submission if this fails
             }
+          } catch (assignmentError) {
+            console.error('[waiver] Error creating assignment:', assignmentError)
+            // Don't fail waiver submission if this fails
           }
         } else {
           console.warn('[waiver] No session found for intake:', intakeId)
