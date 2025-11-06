@@ -79,6 +79,33 @@ interface QueueItem {
   urgent?: boolean
 }
 
+type QueueSession = {
+  id: string;
+  status: string;
+  plan: string | null;
+  type: 'chat' | 'video' | 'diagnostic' | string | null;
+  created_at: string;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  customer_id: string | null;
+};
+
+type QueueAssignment = {
+  id: string;
+  status: 'queued' | 'accepted' | 'joined' | 'in_progress' | 'ended' | 'cancelled';
+  mechanic_id: string | null;
+  session_id: string;
+  created_at: string;
+  updated_at: string | null;
+  sessions: QueueSession; // joined session
+};
+
+type QueueResponse = {
+  unassigned: QueueAssignment[];
+  mine: QueueAssignment[];
+  total: number;
+};
+
 export default function MechanicDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -92,6 +119,8 @@ export default function MechanicDashboardPage() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [queue, setQueue] = useState<QueueItem[]>([])
+  const [queueUnassigned, setQueueUnassigned] = useState<QueueAssignment[]>([])
+  const [queueMine, setQueueMine] = useState<QueueAssignment[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
 
   // Tier 4: Visual indicators
@@ -120,19 +149,27 @@ export default function MechanicDashboardPage() {
 
   const supabase = useMemo(() => createClient(), [])
 
+  // Standalone queue fetcher
+  const fetchQueue = useCallback(async () => {
+    console.log('[MechanicDashboard] Fetching mechanic queue...')
+    const res = await fetch('/api/mechanic/queue', { cache: 'no-store' })
+    if (!res.ok) {
+      console.error('[MechanicDashboard] Queue fetch failed', res.status)
+      return
+    }
+    const data: QueueResponse = await res.json()
+    console.log('[MechanicDashboard] Fetched queue items:', data.total, data)
+    setQueueUnassigned(data.unassigned ?? [])
+    setQueueMine(data.mine ?? [])
+  }, [])
+
   // Dedicated refetch function for realtime updates
   const refetchAllData = useCallback(async () => {
     console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…')
 
     // Refetch queue
     try {
-      const queueResponse = await fetch('/api/mechanic/queue')
-      if (queueResponse.ok) {
-        const queueData = await queueResponse.json()
-        const queue = queueData.queue || []
-        setQueue(queue)
-        console.log('[MechanicDashboard] ✅ Queue refetched:', queue?.length ?? 0)
-      }
+      await fetchQueue()
     } catch (err) {
       console.error('[MechanicDashboard] Failed to refetch queue:', err)
     }
@@ -316,27 +353,10 @@ export default function MechanicDashboardPage() {
 
   // Fetch pending requests - CRITICAL: Show available requests mechanics can accept
   useEffect(() => {
-    const fetchPendingRequests = async () => {
+    const loadQueue = async () => {
       setLoadingRequests(true)
       try {
-        console.log('[MechanicDashboard] Fetching mechanic queue...')
-        const response = await fetch('/api/mechanic/queue')
-
-        if (response.ok) {
-          const data = await response.json()
-          const queueItems = data.queue || []
-          setQueue(queueItems)
-          console.log('[MechanicDashboard] Fetched queue items:', queueItems.length)
-          console.log('[MechanicDashboard] Queue details:', queueItems)
-        } else {
-          console.error('[MechanicDashboard] Failed to fetch queue:', response.status, response.statusText)
-          try {
-            const errorData = await response.json()
-            console.error('[MechanicDashboard] Queue error details:', errorData)
-          } catch (e) {
-            console.error('[MechanicDashboard] Could not parse error response')
-          }
-        }
+        await fetchQueue()
       } catch (err) {
         console.error('[MechanicDashboard] Failed to fetch queue:', err)
       } finally {
@@ -345,9 +365,9 @@ export default function MechanicDashboardPage() {
     }
 
     if (isAuthenticated && !checkingTier) {
-      fetchPendingRequests()
+      loadQueue()
     }
-  }, [isAuthenticated, checkingTier])
+  }, [isAuthenticated, checkingTier, fetchQueue])
 
   // Handler to accept an assignment
   const handleAcceptAssignment = async (assignmentId: string, sessionType: string) => {
@@ -433,29 +453,24 @@ export default function MechanicDashboardPage() {
 
   // Listen to custom events emitted by MechanicRealtimeMount (in layout)
   useEffect(() => {
-    const onAssign = (e: WindowEventMap['mechanic:assignments:update']) => {
+    function onAssignUpdate(e: CustomEvent) {
       console.log('[MechanicDashboard] 🔔 Realtime assignment update received', e.detail);
-      refetchAllData();
-    };
-    const onSession = (e: WindowEventMap['mechanic:sessions:update']) => {
+      console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…');
+      fetchQueue();
+    }
+    function onSessionUpdate(e: CustomEvent) {
       console.log('[MechanicDashboard] 🔔 Realtime session update received', e.detail);
-      refetchAllData();
-    };
-    const onQuote = (e: WindowEventMap['mechanic:quotes:update']) => {
-      console.log('[MechanicDashboard] 🔔 Realtime quote update received', e.detail);
-      refetchAllData();
-    };
+      fetchQueue();
+    }
 
-    window.addEventListener('mechanic:assignments:update', onAssign as EventListener);
-    window.addEventListener('mechanic:sessions:update', onSession as EventListener);
-    window.addEventListener('mechanic:quotes:update', onQuote as EventListener);
+    window.addEventListener('mechanic:assignments:update', onAssignUpdate as EventListener);
+    window.addEventListener('mechanic:sessions:update', onSessionUpdate as EventListener);
 
     return () => {
-      window.removeEventListener('mechanic:assignments:update', onAssign as EventListener);
-      window.removeEventListener('mechanic:sessions:update', onSession as EventListener);
-      window.removeEventListener('mechanic:quotes:update', onQuote as EventListener);
+      window.removeEventListener('mechanic:assignments:update', onAssignUpdate as EventListener);
+      window.removeEventListener('mechanic:sessions:update', onSessionUpdate as EventListener);
     };
-  }, [])
+  }, [fetchQueue])
 
   if (authChecking || checkingTier) {
     return (
@@ -532,7 +547,7 @@ export default function MechanicDashboardPage() {
             <div className="h-6 bg-slate-700 rounded w-48 mb-4"></div>
             <div className="h-4 bg-slate-700 rounded w-64"></div>
           </div>
-        ) : queue.length > 0 ? (
+        ) : queueUnassigned.length > 0 ? (
           <div className="mb-6 sm:mb-8 bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="h-6 w-6 text-blue-400 animate-pulse" />
@@ -550,30 +565,27 @@ export default function MechanicDashboardPage() {
                   )}
                 </div>
                 <p className="text-sm text-blue-300 mt-1">
-                  {queue.length} session{queue.length > 1 ? 's' : ''} waiting for a mechanic
+                  {queueUnassigned.length} session{queueUnassigned.length > 1 ? 's' : ''} waiting for a mechanic
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              {queue.map((item) => (
+              {queueUnassigned.map((a) => (
                 <SessionCard
-                  key={item.assignmentId}
-                  sessionId={item.sessionId}
-                  type={item.sessionType}
-                  status={item.sessionStatus as any}
-                  plan={item.plan}
-                  createdAt={item.createdAt}
-                  partnerName={item.customer.name}
+                  key={a.id}
+                  sessionId={a.session_id}
+                  type={a.sessions?.type as any}
+                  status={a.sessions?.status as any}
+                  plan={a.sessions?.plan}
+                  createdAt={a.created_at}
+                  partnerName="Customer"
                   partnerRole="customer"
-                  vehicle={item.vehicle}
-                  concern={item.concern}
-                  urgent={item.urgent}
                   userRole="mechanic"
                   cta={{
                     action: 'Accept Request',
                     onClick: async () => {
-                      await handleAcceptAssignment(item.assignmentId, item.sessionType)
+                      await handleAcceptAssignment(a.id, a.sessions?.type || 'chat')
                     }
                   }}
                 />
