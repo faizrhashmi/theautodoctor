@@ -63,22 +63,16 @@ export async function POST(
     }
 
     // Update session status to cancelled
-    const metadata = session.metadata || {}
     const { error: updateError } = await supabaseAdmin
       .from('sessions')
       .update({
         status: 'cancelled',
-        ended_at: new Date().toISOString(),
-        metadata: {
-          ...metadata,
-          cancellation_reason: reason || 'Customer cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: 'customer',
-          refund_percentage: refundPercentage
-        },
-        updated_at: new Date().toISOString()
+        cancelled_by: 'customer',
+        cancelled_at: new Date().toISOString(),
+        ended_at: new Date().toISOString()
       })
       .eq('id', sessionId)
+      .in('status', ['pending', 'waiting', 'live'])
 
     if (updateError) {
       console.error('Cancel session error:', updateError)
