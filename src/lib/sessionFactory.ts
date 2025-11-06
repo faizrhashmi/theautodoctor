@@ -194,7 +194,7 @@ export async function createSessionRecord(
     assignmentMetadata.workshop_id = workshopId
   }
 
-  const { error: assignmentError } = await supabaseAdmin
+  const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from('session_assignments')
     .insert({
       session_id: sessionId,
@@ -202,12 +202,53 @@ export async function createSessionRecord(
       offered_at: new Date().toISOString(),
       ...(Object.keys(assignmentMetadata).length > 0 && { metadata: assignmentMetadata })
     })
+    .select('id')
+    .single()
 
   if (assignmentError) {
     console.error('[sessionFactory] Failed to create assignment:', assignmentError)
     // Don't fail the whole flow - assignment can be created later
   } else {
     console.log(`[sessionFactory] Created assignment for session ${sessionId}`)
+
+    // Step 5.5: Broadcast new assignment to mechanics in real-time
+    // IMPORTANT: Skip broadcast for FREE sessions - they broadcast after waiver acceptance
+    const shouldBroadcast = paymentMethod !== 'free'
+
+    if (shouldBroadcast) {
+      try {
+        const { broadcastSessionAssignment } = await import('./realtimeChannels')
+
+        // Fetch intake data for broadcast payload
+        const { data: intake } = await supabaseAdmin
+          .from('intakes')
+          .select('name, year, make, model, vin, concern')
+          .eq('id', intakeId)
+          .single()
+
+        const vehicleSummary = intake?.vin
+          ? `VIN: ${intake.vin}`
+          : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
+
+        await broadcastSessionAssignment('new_assignment', {
+          assignmentId: assignment?.id,
+          sessionId: sessionId,
+          requestId: sessionId, // For backward compatibility
+          customerName: intake?.name || 'Customer',
+          vehicleSummary: vehicleSummary || 'Vehicle',
+          vehicle: vehicleSummary || 'Vehicle',
+          concern: intake?.concern || '',
+          urgent: urgent || false,
+        })
+
+        console.log(`[sessionFactory] ✅ Broadcasted new assignment for session ${sessionId}`)
+      } catch (broadcastError) {
+        console.error('[sessionFactory] Failed to broadcast assignment:', broadcastError)
+        // Don't fail session creation if broadcast fails - it's a nice-to-have
+      }
+    } else {
+      console.log(`[sessionFactory] ⏭️  Skipping broadcast for free session - will broadcast after waiver`)
+    }
   }
 
   // Step 6: Log session creation event

@@ -1,7 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { type PlanKey } from '@/config/pricing'
 import type { Database, Json } from '@/types/supabase'
-import { broadcastSessionRequest } from '@/lib/realtimeChannels'
 import { trackInteraction } from '@/lib/crm'
 import {
   validateSessionRequestReferences,

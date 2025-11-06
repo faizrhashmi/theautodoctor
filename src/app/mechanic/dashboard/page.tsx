@@ -472,42 +472,42 @@ export default function MechanicDashboardPage() {
         console.log('[MechanicDashboard] Subscription status:', status)
       })
 
-    // Subscribe to broadcast channel for instant real-time session request updates
+    // Subscribe to broadcast channel for instant real-time session assignment updates
     const broadcastChannel = supabase
-      .channel('session_requests_feed')
+      .channel('session_assignments_feed')
       .on(
         'broadcast',
-        { event: 'new_request' },
+        { event: 'new_assignment' },
         (payload) => {
-          console.log('[MechanicDashboard] 🔔 New request received:', payload.customerName, '-', payload.vehicleSummary)
+          console.log('[MechanicDashboard] 🔔 New assignment received:', payload.customerName, '-', payload.vehicleSummary)
 
           // Tier 1-4: Trigger multi-layer alert system
           if (flags.mech_new_request_alerts) {
             onNewSessionRequest({
-              requestId: payload.requestId || payload.id,
+              requestId: payload.requestId || payload.sessionId,
               customerName: payload.customerName,
               vehicle: payload.vehicleSummary || payload.vehicle,
               concern: payload.concern,
             }, flags)
           }
 
-          // Immediately refetch pending requests to show new request
+          // Immediately refetch pending requests to show new assignment
           refetchData()
         }
       )
       .on(
         'broadcast',
-        { event: 'request_accepted' },
+        { event: 'assignment_accepted' },
         (payload) => {
-          console.log('[MechanicDashboard] Request accepted broadcast:', payload)
+          console.log('[MechanicDashboard] Assignment accepted broadcast:', payload)
           refetchData()
         }
       )
       .on(
         'broadcast',
-        { event: 'request_cancelled' },
+        { event: 'assignment_cancelled' },
         (payload) => {
-          console.log('[MechanicDashboard] Request cancelled broadcast:', payload)
+          console.log('[MechanicDashboard] Assignment cancelled broadcast:', payload)
           refetchData()
         }
       )
