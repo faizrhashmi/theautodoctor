@@ -118,9 +118,11 @@ export default function MechanicDashboardPage() {
   const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
-  const [queue, setQueue] = useState<QueueItem[]>([])
-  const [queueUnassigned, setQueueUnassigned] = useState<QueueAssignment[]>([])
-  const [queueMine, setQueueMine] = useState<QueueAssignment[]>([])
+  const [queue, setQueue] = useState<{
+    unassigned: QueueAssignment[]
+    mine: QueueAssignment[]
+    total: number
+  }>({ unassigned: [], mine: [], total: 0 })
   const [stats, setStats] = useState<DashboardStats | null>(null)
 
   // Tier 4: Visual indicators
@@ -151,16 +153,31 @@ export default function MechanicDashboardPage() {
 
   // Standalone queue fetcher
   const fetchQueue = useCallback(async () => {
-    console.log('[MechanicDashboard] Fetching mechanic queue...')
-    const res = await fetch('/api/mechanic/queue', { cache: 'no-store' })
-    if (!res.ok) {
-      console.error('[MechanicDashboard] Queue fetch failed', res.status)
-      return
+    try {
+      const res = await fetch('/api/mechanic/queue', { cache: 'no-store' });
+      const d = await res.json();
+
+      console.log('[MechanicDashboard] Queue API →', {
+        total: d?.total,
+        unassigned: d?.unassigned?.length ?? 0,
+        mine: d?.mine?.length ?? 0,
+        sampleUnassigned: d?.unassigned?.[0]?.session_id,
+        sampleMine: d?.mine?.[0]?.session_id,
+      });
+
+      // IMPORTANT: new shape
+      setQueue({
+        unassigned: Array.isArray(d?.unassigned) ? d.unassigned : [],
+        mine: Array.isArray(d?.mine) ? d.mine : [],
+        total: typeof d?.total === 'number' ? d.total : ((d?.unassigned?.length ?? 0) + (d?.mine?.length ?? 0)),
+      });
+
+      return d;
+    } catch (e) {
+      console.error('[MechanicDashboard] Failed to fetch queue', e);
+      setQueue({ unassigned: [], mine: [], total: 0 });
+      return null;
     }
-    const data: QueueResponse = await res.json()
-    console.log('[MechanicDashboard] Fetched queue items:', data.total, data)
-    setQueueUnassigned(data.unassigned ?? [])
-    setQueueMine(data.mine ?? [])
   }, [])
 
   // Dedicated refetch function for realtime updates
@@ -547,7 +564,7 @@ export default function MechanicDashboardPage() {
             <div className="h-6 bg-slate-700 rounded w-48 mb-4"></div>
             <div className="h-4 bg-slate-700 rounded w-64"></div>
           </div>
-        ) : queueUnassigned.length > 0 ? (
+        ) : queue.unassigned.length > 0 ? (
           <div className="mb-6 sm:mb-8 bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="h-6 w-6 text-blue-400 animate-pulse" />
@@ -565,31 +582,36 @@ export default function MechanicDashboardPage() {
                   )}
                 </div>
                 <p className="text-sm text-blue-300 mt-1">
-                  {queueUnassigned.length} session{queueUnassigned.length > 1 ? 's' : ''} waiting for a mechanic
+                  {queue.unassigned.length} session{queue.unassigned.length > 1 ? 's' : ''} waiting for a mechanic
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              {queueUnassigned.map((a) => (
-                <SessionCard
-                  key={a.id}
-                  sessionId={a.session_id}
-                  type={a.sessions?.type as any}
-                  status={a.sessions?.status as any}
-                  plan={a.sessions?.plan}
-                  createdAt={a.created_at}
-                  partnerName="Customer"
-                  partnerRole="customer"
-                  userRole="mechanic"
-                  cta={{
-                    action: 'Accept Request',
-                    onClick: async () => {
-                      await handleAcceptAssignment(a.id, a.sessions?.type || 'chat')
-                    }
-                  }}
-                />
-              ))}
+              {queue.unassigned.map((item) => {
+                const s = item.sessions; // <- note plural
+                if (!s) return null;
+
+                return (
+                  <SessionCard
+                    key={item.id}
+                    sessionId={item.session_id}
+                    type={s.type as any}
+                    status={s.status as any}
+                    plan={s.plan}
+                    createdAt={s.created_at}
+                    partnerName="Customer"
+                    partnerRole="customer"
+                    userRole="mechanic"
+                    cta={{
+                      action: 'Accept Request',
+                      onClick: async () => {
+                        await handleAcceptAssignment(item.id, s.type || 'chat')
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           </div>
         ) : !loadingRequests && (
