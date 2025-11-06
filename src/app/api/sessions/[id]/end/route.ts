@@ -98,12 +98,59 @@ export async function POST(
 
   console.log(`[end session] Found session in ${sessionTable} table`)
 
+  // === EARLY STATE PATCH (must run before any long work) ===
+  const now = new Date().toISOString()
+
+  // A) Complete the session if it's active
+  const { error: sErr } = await supabaseAdmin
+    .from('sessions')
+    .update({
+      status: 'completed',
+      ended_at: now
+    })
+    .eq('id', sessionId)
+    .in('status', ['waiting','live']) // only end active sessions
+
+  if (sErr) {
+    console.error('[end-session] session state patch failed', sErr)
+    return NextResponse.json({ ok: false, error: sErr.message }, { status: 500 })
+  }
+
+  // B) End any open assignment rows so they drop from the mechanic queue
+  // IMPORTANT: use 'ended' for end-of-session; keep 'cancelled' only for cancel flows
+  const { data: assignments, error: aSelErr } = await supabaseAdmin
+    .from('session_assignments')
+    .select('id, metadata')
+    .eq('session_id', sessionId)
+
+  if (aSelErr) {
+    console.error('[end-session] assignment select failed', aSelErr)
+  } else if (assignments && assignments.length > 0) {
+    const { error: aUpdErr } = await supabaseAdmin
+      .from('session_assignments')
+      .update({
+        status: 'ended',
+        updated_at: now,
+        metadata: {
+          ...(assignments[0]?.metadata ?? {}),
+          completed_at: now,
+          final_session_status: 'completed',
+          completion_reason: 'session_ended'
+        }
+      })
+      .eq('session_id', sessionId)
+      .in('status', ['accepted','joined','in_progress','queued','pending'])
+
+    if (aUpdErr) {
+      console.error('[end-session] assignment state patch failed', aUpdErr)
+      // do not return 500; state for the session is already correct
+    }
+  }
+  // === END EARLY STATE PATCH ===
 
   // Determine role from participant data
   const isCustomer = participant.role === 'customer'
   const isMechanic = participant.role === 'mechanic'
-
-  const now = new Date().toISOString()
 
   // Use the new semantic function to intelligently end the session
   console.log(`[end session] Calling end_session_with_semantics for session ${sessionId}`)
@@ -560,40 +607,6 @@ export async function POST(
         console.warn(`[end session] No matching session_request found for customer ${session.customer_user_id} and mechanic ${session.mechanic_id}`)
       }
     }
-  }
-
-  // =============================================================================
-  // UPDATE SESSION ASSIGNMENT STATUS
-  // Mark assignment as completed/cancelled so it's removed from queue
-  // =============================================================================
-  const { data: assignment } = await supabaseAdmin
-    .from('session_assignments')
-    .select('id, metadata')
-    .eq('session_id', sessionId)
-    .single()
-
-  if (assignment) {
-    const { error: assignmentUpdateError } = await supabaseAdmin
-      .from('session_assignments')
-      .update({
-        status: final_status === 'completed' ? 'completed' : 'cancelled',
-        updated_at: now,
-        metadata: {
-          ...assignment.metadata,
-          completed_at: now,
-          final_session_status: final_status,
-          completion_reason: 'session_ended'
-        }
-      })
-      .eq('id', assignment.id)
-
-    if (assignmentUpdateError) {
-      console.error('[end session] Failed to update session_assignment:', assignmentUpdateError)
-    } else {
-      console.log('[end session] ✅ Updated session_assignment to:', final_status)
-    }
-  } else {
-    console.warn('[end session] No session_assignment found for session:', sessionId)
   }
 
   // Build response with correct semantic status
