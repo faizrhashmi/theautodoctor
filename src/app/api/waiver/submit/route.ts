@@ -142,25 +142,41 @@ export async function POST(req: NextRequest) {
           thankYouUrl.searchParams.set('session', existingSession.id)
           console.log('[waiver] Found session for intake:', existingSession.id)
 
-          // PHASE 1 FIX: Transition assignment from 'pending_waiver' → 'queued'
-          // This triggers postgres_changes and notifies mechanics
+          // CREATE assignment for free session after waiver is signed
+          // This triggers postgres_changes INSERT event and notifies mechanics
           try {
-            const { error: updateError } = await supabaseAdmin
-              .from('session_assignments')
-              .update({
-                status: 'queued',
-                offered_at: new Date().toISOString()
-              })
-              .eq('session_id', existingSession.id)
-              .eq('status', 'pending_waiver')
+            console.log('[waiver] 🔍 Creating assignment for free session:', existingSession.id)
 
-            if (updateError) {
-              console.error('[waiver] Failed to update assignment status:', updateError)
+            // Check if assignment already exists (shouldn't happen, but be safe)
+            const { data: existingAssignment } = await supabaseAdmin
+              .from('session_assignments')
+              .select('id, status')
+              .eq('session_id', existingSession.id)
+              .maybeSingle()
+
+            if (existingAssignment) {
+              console.warn('[waiver] ⚠️ Assignment already exists:', existingAssignment.id, 'with status:', existingAssignment.status)
             } else {
-              console.log('[waiver] ✅ Transitioned assignment to queued (postgres_changes will notify mechanics)')
+              // Create new assignment with status='queued'
+              const { data: newAssignment, error: createError } = await supabaseAdmin
+                .from('session_assignments')
+                .insert({
+                  session_id: existingSession.id,
+                  status: 'queued',
+                  offered_at: new Date().toISOString()
+                })
+                .select('id, status')
+                .single()
+
+              if (createError) {
+                console.error('[waiver] ❌ Failed to create assignment:', createError)
+              } else {
+                console.log('[waiver] ✅ Created assignment', newAssignment.id, 'with status:', newAssignment.status)
+                console.log('[waiver] postgres_changes should fire INSERT event with status: queued')
+              }
             }
           } catch (assignmentError) {
-            console.error('[waiver] Error updating assignment:', assignmentError)
+            console.error('[waiver] Error creating assignment:', assignmentError)
             // Don't fail waiver submission if this fails
           }
 

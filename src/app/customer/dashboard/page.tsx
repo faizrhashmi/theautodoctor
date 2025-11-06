@@ -663,6 +663,8 @@ export default function CustomerDashboardPage() {
           preferredMechanicId={favoriteMechanicId}
           preferredMechanicName={favoriteMechanicName}
           routingType={favoriteRoutingType}
+          activeSession={activeSessions[0] || null}
+          loadingActiveSession={loading}
         />
       </div>
 

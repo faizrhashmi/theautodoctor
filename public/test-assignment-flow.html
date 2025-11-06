@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Assignment Flow</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+    #log {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      max-height: 600px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>Test Assignment Flow</h1>
+  <p>This will help debug why assignments aren't showing up</p>
+
+  <div>
+    <button onclick="checkLatestAssignment()">1. Check Latest Assignment</button>
+    <button onclick="subscribeToChanges()">2. Subscribe to Changes</button>
+    <button onclick="createTestUpdate()">3. Trigger Test Update</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <pre id="log"></pre>
+
+  <script>
+    const SUPABASE_URL = 'https://qtkouemogsymqrzkysar.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0a291ZW1vZ3N5bXFyemt5c2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MTgyOTUsImV4cCI6MjA3NjI5NDI5NX0.Q6n9qHk8NXe3GBMTpQN4VuxFtFqmuPvc-HTs2YmAHvw'
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const logEl = document.getElementById('log')
+    let channel = null
+
+    function log(msg, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString()
+      const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info'
+      const line = `[${timestamp}] ${msg}\n`
+      logEl.innerHTML += `<span class="${className}">${line}</span>`
+      console.log(msg)
+      logEl.scrollTop = logEl.scrollHeight
+    }
+
+    function clearLog() {
+      logEl.innerHTML = ''
+    }
+
+    async function checkLatestAssignment() {
+      log('--- Checking Latest Assignment ---', 'info')
+
+      const { data: assignments, error } = await supabase
+        .from('session_assignments')
+        .select(`
+          id,
+          session_id,
+          mechanic_id,
+          status,
+          created_at,
+          offered_at,
+          accepted_at,
+          sessions (
+            id,
+            status,
+            type,
+            customer_user_id
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (error) {
+        log(`❌ Error: ${error.message}`, 'error')
+        return
+      }
+
+      log(`✅ Found ${assignments.length} recent assignments:`, 'success')
+      assignments.forEach((a, i) => {
+        log(`\n${i + 1}. Assignment ID: ${a.id}`)
+        log(`   Status: ${a.status}`)
+        log(`   Session ID: ${a.session_id}`)
+        log(`   Session Status: ${a.sessions?.status}`)
+        log(`   Created: ${new Date(a.created_at).toLocaleString()}`)
+        log(`   Mechanic ID: ${a.mechanic_id || 'null (broadcast)'}`)
+      })
+
+      // Check if any are newly queued
+      const newlyQueued = assignments.filter(a =>
+        a.status === 'queued' &&
+        new Date() - new Date(a.created_at) < 60000 // Last minute
+      )
+
+      if (newlyQueued.length > 0) {
+        log(`\n🎯 Found ${newlyQueued.length} newly queued assignments (last 60 seconds)`, 'success')
+        log('These should have triggered alerts on mechanic dashboard')
+      } else {
+        log(`\n⚠️ No newly queued assignments in the last 60 seconds`, 'error')
+      }
+    }
+
+    async function subscribeToChanges() {
+      log('--- Setting Up Subscription ---', 'info')
+
+      // Sign in first
+      const email = prompt('Enter mechanic email:', 'workshop.mechanic@test.com')
+      const password = prompt('Enter password:')
+
+      if (!email || !password) {
+        log('❌ Need email and password', 'error')
+        return
+      }
+
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (authError) {
+        log(`❌ Auth error: ${authError.message}`, 'error')
+        return
+      }
+
+      log('✅ Signed in as ' + email, 'success')
+
+      // Unsubscribe old channel
+      if (channel) {
+        channel.unsubscribe()
+      }
+
+      // Subscribe to changes
+      channel = supabase
+        .channel('test-flow')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'session_assignments',
+          },
+          (payload) => {
+            log(`\n🔔 POSTGRES_CHANGES EVENT!`, 'success')
+            log(`Event: ${payload.eventType}`)
+            log(`Status: ${payload.new?.status || 'N/A'}`)
+            log(`ID: ${payload.new?.id || 'N/A'}`)
+            log(`Session ID: ${payload.new?.session_id || 'N/A'}`)
+
+            const isNewlyQueued = payload.new?.status === 'queued' &&
+                                  payload.old?.status !== 'queued'
+
+            if (isNewlyQueued) {
+              log(`\n✅ THIS SHOULD TRIGGER AN ALERT!`, 'success')
+            } else {
+              log(`\nℹ️ Not a "newly queued" transition`, 'info')
+              log(`Old status: ${payload.old?.status || 'N/A'}`)
+              log(`New status: ${payload.new?.status || 'N/A'}`)
+            }
+          }
+        )
+        .subscribe((status) => {
+          log(`Subscription status: ${status}`)
+        })
+    }
+
+    async function createTestUpdate() {
+      log('--- Creating Test Update ---', 'info')
+
+      // Get latest queued assignment
+      const { data: assignments } = await supabase
+        .from('session_assignments')
+        .select('id, status')
+        .in('status', ['queued', 'offered'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!assignments || assignments.length === 0) {
+        log('❌ No queued/offered assignments to test with', 'error')
+        return
+      }
+
+      const assignment = assignments[0]
+      log(`Found assignment: ${assignment.id} (${assignment.status})`)
+
+      // Toggle status
+      const newStatus = assignment.status === 'queued' ? 'offered' : 'queued'
+      log(`Updating to: ${newStatus}`)
+
+      const { error } = await supabase
+        .from('session_assignments')
+        .update({ status: newStatus })
+        .eq('id', assignment.id)
+
+      if (error) {
+        log(`❌ Update error: ${error.message}`, 'error')
+      } else {
+        log('✅ Update successful - watch for event above', 'success')
+      }
+    }
+
+    log('✅ Test page loaded', 'success')
+    log('Click buttons above to debug assignment flow', 'info')
+  </script>
+</body>
+</html>

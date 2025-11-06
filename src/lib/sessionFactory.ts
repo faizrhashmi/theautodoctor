@@ -186,73 +186,78 @@ export async function createSessionRecord(
   }
 
   // Step 5: Create session assignment (queued for mechanics)
-  const assignmentMetadata: Record<string, Json> = {}
-  if (preferredMechanicId) {
-    assignmentMetadata.preferred_mechanic_id = preferredMechanicId
-  }
-  if (workshopId) {
-    assignmentMetadata.workshop_id = workshopId
-  }
+  // IMPORTANT: Free sessions skip assignment creation - it's created after waiver signing
+  const shouldCreateAssignment = paymentMethod !== 'free'
+  let assignment: any = null
 
-  // PHASE 1 FIX: Free sessions start as 'pending_waiver' until waiver signed
-  // This prevents postgres_changes from notifying mechanics before waiver
-  const assignmentStatus = paymentMethod === 'free' ? 'pending_waiver' : 'queued'
-
-  const { data: assignment, error: assignmentError } = await supabaseAdmin
-    .from('session_assignments')
-    .insert({
-      session_id: sessionId,
-      status: assignmentStatus,
-      offered_at: assignmentStatus === 'queued' ? new Date().toISOString() : null,
-      ...(Object.keys(assignmentMetadata).length > 0 && { metadata: assignmentMetadata })
-    })
-    .select('id')
-    .single()
-
-  if (assignmentError) {
-    console.error('[sessionFactory] Failed to create assignment:', assignmentError)
-    // Don't fail the whole flow - assignment can be created later
-  } else {
-    console.log(`[sessionFactory] Created assignment for session ${sessionId}`)
-
-    // Step 5.5: Broadcast new assignment to mechanics in real-time
-    // IMPORTANT: Skip broadcast for FREE sessions - they broadcast after waiver acceptance
-    const shouldBroadcast = paymentMethod !== 'free'
-
-    if (shouldBroadcast) {
-      try {
-        const { broadcastSessionAssignment } = await import('./realtimeChannels')
-
-        // Fetch intake data for broadcast payload
-        const { data: intake } = await supabaseAdmin
-          .from('intakes')
-          .select('name, year, make, model, vin, concern')
-          .eq('id', intakeId)
-          .single()
-
-        const vehicleSummary = intake?.vin
-          ? `VIN: ${intake.vin}`
-          : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
-
-        await broadcastSessionAssignment('new_assignment', {
-          assignmentId: assignment?.id,
-          sessionId: sessionId,
-          requestId: sessionId, // For backward compatibility
-          customerName: intake?.name || 'Customer',
-          vehicleSummary: vehicleSummary || 'Vehicle',
-          vehicle: vehicleSummary || 'Vehicle',
-          concern: intake?.concern || '',
-          urgent: urgent || false,
-        })
-
-        console.log(`[sessionFactory] ✅ Broadcasted new assignment for session ${sessionId}`)
-      } catch (broadcastError) {
-        console.error('[sessionFactory] Failed to broadcast assignment:', broadcastError)
-        // Don't fail session creation if broadcast fails - it's a nice-to-have
-      }
-    } else {
-      console.log(`[sessionFactory] ⏭️  Skipping broadcast for free session - will broadcast after waiver`)
+  if (shouldCreateAssignment) {
+    const assignmentMetadata: Record<string, Json> = {}
+    if (preferredMechanicId) {
+      assignmentMetadata.preferred_mechanic_id = preferredMechanicId
     }
+    if (workshopId) {
+      assignmentMetadata.workshop_id = workshopId
+    }
+
+    const { data: assignmentData, error: assignmentError } = await supabaseAdmin
+      .from('session_assignments')
+      .insert({
+        session_id: sessionId,
+        status: 'queued',
+        offered_at: new Date().toISOString(),
+        ...(Object.keys(assignmentMetadata).length > 0 && { metadata: assignmentMetadata })
+      })
+      .select('id')
+      .single()
+
+    if (assignmentError) {
+      console.error('[sessionFactory] Failed to create assignment:', assignmentError)
+      // Don't fail the whole flow - assignment can be created later
+    } else {
+      assignment = assignmentData
+      console.log(`[sessionFactory] Created assignment for session ${sessionId}`)
+    }
+  } else {
+    console.log(`[sessionFactory] ⏭️  Skipping assignment creation for free session - will be created after waiver`)
+  }
+
+  // Step 5.5: Broadcast new assignment to mechanics in real-time
+  // IMPORTANT: Skip broadcast for FREE sessions - they broadcast after waiver acceptance
+  const shouldBroadcast = paymentMethod !== 'free'
+
+  if (shouldBroadcast) {
+    try {
+      const { broadcastSessionAssignment } = await import('./realtimeChannels')
+
+      // Fetch intake data for broadcast payload
+      const { data: intake } = await supabaseAdmin
+        .from('intakes')
+        .select('name, year, make, model, vin, concern')
+        .eq('id', intakeId)
+        .single()
+
+      const vehicleSummary = intake?.vin
+        ? `VIN: ${intake.vin}`
+        : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
+
+      await broadcastSessionAssignment('new_assignment', {
+        assignmentId: assignment?.id,
+        sessionId: sessionId,
+        requestId: sessionId, // For backward compatibility
+        customerName: intake?.name || 'Customer',
+        vehicleSummary: vehicleSummary || 'Vehicle',
+        vehicle: vehicleSummary || 'Vehicle',
+        concern: intake?.concern || '',
+        urgent: urgent || false,
+      })
+
+      console.log(`[sessionFactory] ✅ Broadcasted new assignment for session ${sessionId}`)
+    } catch (broadcastError) {
+      console.error('[sessionFactory] Failed to broadcast assignment:', broadcastError)
+      // Don't fail session creation if broadcast fails - it's a nice-to-have
+    }
+  } else {
+    console.log(`[sessionFactory] ⏭️  Skipping broadcast for free session - will broadcast after waiver`)
   }
 
   // Step 6: Log session creation event

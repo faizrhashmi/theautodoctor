@@ -65,10 +65,12 @@ export function ActiveSessionBanner({
         ? '/api/customer/sessions/active'
         : '/api/mechanic/active-session'
 
+      console.log('[ActiveSessionBanner] Fetching active session from:', endpoint)
       const response = await fetch(endpoint)
 
       if (response.status === 404) {
         // No active session
+        console.log('[ActiveSessionBanner] No active session found (404)')
         setSession(null)
         return
       }
@@ -79,6 +81,7 @@ export function ActiveSessionBanner({
       }
 
       const data = await response.json()
+      console.log('[ActiveSessionBanner] Fetched session:', data.session ? `${data.session.id} (${data.session.status})` : 'null')
       setSession(data.session || null)
     } catch (error) {
       console.error('[ActiveSessionBanner] Error fetching active session:', error)
@@ -104,7 +107,16 @@ export function ActiveSessionBanner({
         throw new Error('Failed to end session')
       }
 
+      console.log('[ActiveSessionBanner] Session ended successfully, clearing state')
       setSession(null)
+
+      // Immediately re-fetch to ensure we have latest state from database
+      // This prevents the banner from reappearing if the auto-refresh interval fires
+      setTimeout(async () => {
+        console.log('[ActiveSessionBanner] Re-fetching session state after end')
+        await fetchActiveSession()
+      }, 500) // Small delay to allow database to update
+
       onSessionEnded?.()
     } catch (error) {
       console.error('[ActiveSessionBanner] Error ending session:', error)

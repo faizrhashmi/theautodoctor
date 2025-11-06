@@ -65,6 +65,9 @@ interface SessionLauncherProps {
   routingType?: 'broadcast' | 'priority_broadcast'
   // Phase 2.2: Wizard Mode
   useWizard?: boolean // If true, use simplified wizard flow
+  // Active session from parent (to avoid duplicate fetches)
+  activeSession?: any | null
+  loadingActiveSession?: boolean
 }
 
 export default function SessionLauncher({
@@ -78,6 +81,8 @@ export default function SessionLauncher({
   preferredMechanicName = null,
   routingType = 'broadcast',
   useWizard = true, // Phase 2.2: Default to wizard mode for simplified UX
+  activeSession: externalActiveSession,
+  loadingActiveSession: externalLoadingActiveSession,
 }: SessionLauncherProps) {
   // Fetch plans from API
   const { plans: PLAN_TIERS, loading: loadingPlans, error: plansError } = useServicePlans()
@@ -95,9 +100,13 @@ export default function SessionLauncher({
   const [creditPricing, setCreditPricing] = useState<CreditPricing[]>([])
   const [loadingSubscription, setLoadingSubscription] = useState(false)
 
-  // Active Session State - prevents duplicate session creation
-  const [activeSession, setActiveSession] = useState<any | null>(null)
-  const [loadingActiveSession, setLoadingActiveSession] = useState(true)
+  // Active Session State - use external props if provided, otherwise fetch internally
+  const [internalActiveSession, setInternalActiveSession] = useState<any | null>(null)
+  const [internalLoadingActiveSession, setInternalLoadingActiveSession] = useState(true)
+
+  // Use external props if provided, otherwise use internal state
+  const activeSession = externalActiveSession !== undefined ? externalActiveSession : internalActiveSession
+  const loadingActiveSession = externalLoadingActiveSession !== undefined ? externalLoadingActiveSession : internalLoadingActiveSession
 
   // Determine default plan based on account type
   useEffect(() => {
@@ -171,33 +180,39 @@ export default function SessionLauncher({
   }, [isB2CCustomer])
 
   // Check for active session - prevents duplicate session creation
+  // Only fetch internally if not provided via props
   useEffect(() => {
+    // Skip internal fetch if external props are provided
+    if (externalActiveSession !== undefined || externalLoadingActiveSession !== undefined) {
+      return
+    }
+
     async function fetchActiveSession() {
-      setLoadingActiveSession(true)
+      setInternalLoadingActiveSession(true)
       try {
         const response = await fetch('/api/customer/sessions/active')
         if (response.ok) {
           const data = await response.json()
           if (data.active) {
-            setActiveSession(data.session)
+            setInternalActiveSession(data.session)
           } else {
             // No active session
-            setActiveSession(null)
+            setInternalActiveSession(null)
           }
         } else if (response.status === 404) {
           // No active session - this is fine
-          setActiveSession(null)
+          setInternalActiveSession(null)
         }
       } catch (error) {
         console.error('Failed to check for active session:', error)
         // On error, assume no active session to not block user
-        setActiveSession(null)
+        setInternalActiveSession(null)
       } finally {
-        setLoadingActiveSession(false)
+        setInternalLoadingActiveSession(false)
       }
     }
     fetchActiveSession()
-  }, [])
+  }, [externalActiveSession, externalLoadingActiveSession])
 
   // Helper function to get session type from plan slug
   const getSessionType = (planSlug: string): string => {
