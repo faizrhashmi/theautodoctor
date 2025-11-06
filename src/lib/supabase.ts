@@ -81,3 +81,12 @@ export async function checkAuthStatus() {
   const { data: { session }, error } = await supabase.auth.getSession()
   return { session, error, isAuthenticated: !!session }
 }
+
+/**
+ * Browser-only Supabase client for realtime subscriptions
+ * IMPORTANT: Only use this in client components ('use client')
+ * Never use server clients (supabaseAdmin) for subscriptions in production!
+ */
+export function supabaseBrowser() {
+  return createClient()
+}

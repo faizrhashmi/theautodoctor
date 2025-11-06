@@ -108,8 +108,49 @@ export default function MechanicDashboardPage() {
   const [acceptingRequest, setAcceptingRequest] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
-  
+
   const supabase = useMemo(() => createClient(), [])
+
+  // Dedicated refetch function for realtime updates
+  const refetchAllData = useCallback(async () => {
+    console.log('[MechanicDashboard] 🔄 Real-time update detected, refetching all data...')
+
+    // Refetch queue
+    try {
+      const queueResponse = await fetch('/api/mechanic/queue')
+      if (queueResponse.ok) {
+        const queueData = await queueResponse.json()
+        setQueue(queueData.queue || [])
+        console.log('[MechanicDashboard] ✓ Refetched queue:', queueData.queue?.length || 0)
+      }
+    } catch (err) {
+      console.error('[MechanicDashboard] Failed to refetch queue:', err)
+    }
+
+    // Refetch active sessions
+    try {
+      const activeResponse = await fetch('/api/mechanic/active-sessions')
+      if (activeResponse.ok) {
+        const activeData = await activeResponse.json()
+        setActiveSessions(activeData.sessions || [])
+        console.log('[MechanicDashboard] ✓ Refetched active sessions:', activeData.sessions?.length || 0)
+      }
+    } catch (err) {
+      console.error('[MechanicDashboard] Failed to refetch active sessions:', err)
+    }
+
+    // Refetch stats
+    try {
+      const statsResponse = await fetch('/api/mechanic/dashboard/stats')
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json()
+        setStats(statsData.stats)
+        console.log('[MechanicDashboard] ✓ Refetched stats')
+      }
+    } catch (err) {
+      console.error('[MechanicDashboard] Failed to refetch stats:', err)
+    }
+  }, [])
 
   // Manual retry handler
   const handleRetry = () => {
@@ -380,106 +421,43 @@ export default function MechanicDashboardPage() {
     }
   }, [retryCount, isAuthenticated, checkingTier])
 
-  // Real-time subscription for session updates
+  // Real-time subscription for session updates using dedicated browser-only listeners
   useEffect(() => {
-    if (checkingTier || !supabase || !isAuthenticated) return
+    if (checkingTier || !isAuthenticated) return
 
-    console.log('[MechanicDashboard] Setting up real-time subscriptions')
+    console.log('[MechanicDashboard] 🔌 Setting up browser-only realtime subscriptions')
 
-    const refetchData = async () => {
-      console.log('[MechanicDashboard] 🔄 Real-time update detected, refetching all data...')
-
-      // Refetch queue
-      try {
-        const queueResponse = await fetch('/api/mechanic/queue')
-        if (queueResponse.ok) {
-          const queueData = await queueResponse.json()
-          setQueue(queueData.queue || [])
-          console.log('[MechanicDashboard] ✓ Refetched queue:', queueData.queue?.length || 0)
-        }
-      } catch (err) {
-        console.error('[MechanicDashboard] Failed to refetch queue:', err)
+    // Import the dedicated browser-only listeners
+    import('@/lib/realtimeListeners').then(({ listenMechanicDashboard }) => {
+      // Window focus handler - refetch data when user returns to tab
+      const onFocus = () => {
+        console.log('[MechanicDashboard] Window focused, refetching data...')
+        refetchAllData()
       }
+      window.addEventListener('focus', onFocus)
 
-      // Refetch active sessions
-      try {
-        const activeResponse = await fetch('/api/mechanic/active-sessions')
-        if (activeResponse.ok) {
-          const activeData = await activeResponse.json()
-          setActiveSessions(activeData.sessions || [])
-          console.log('[MechanicDashboard] ✓ Refetched active sessions:', activeData.sessions?.length || 0)
-        }
-      } catch (err) {
-        console.error('[MechanicDashboard] Failed to refetch active sessions:', err)
-      }
+      // Set up all listeners using dedicated browser client
+      const cleanup = listenMechanicDashboard({
+        // Handle session assignment changes (INSERT, UPDATE, DELETE)
+        onSessionAssignment: async (event) => {
+          console.log('[MechanicDashboard] 📨 Session assignment event received:', {
+            eventType: event.eventType,
+            assignmentId: event.new?.id || event.old?.id,
+            newStatus: event.new?.status,
+            oldStatus: event.old?.status
+          })
 
-      // Refetch stats
-      try {
-        const statsResponse = await fetch('/api/mechanic/dashboard/stats')
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
-          setStats(statsData.stats)
-          console.log('[MechanicDashboard] ✓ Refetched stats')
-        }
-      } catch (err) {
-        console.error('[MechanicDashboard] Failed to refetch stats:', err)
-      }
-    }
-
-    // Window focus handler - refetch data when user returns to tab
-    const onFocus = () => {
-      console.log('[MechanicDashboard] Window focused, refetching data...')
-      refetchData()
-    }
-    window.addEventListener('focus', onFocus)
-
-    // Subscribe to sessions table changes
-    const channel = supabase
-      .channel('mechanic-dashboard-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sessions',
-        },
-        (payload) => {
-          console.log('[MechanicDashboard] Session change detected:', payload)
-          refetchData()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'session_assignments',
-        },
-        async (payload) => {
-          console.log('[MechanicDashboard] Session assignment change detected:', payload)
-          console.log('[MechanicDashboard] Event type:', payload.eventType, 'New record:', payload.new)
-
-          // PHASE 3A: Trigger alerts when new assignment becomes 'queued'
-          // This replaces the broadcast-based alert system
-          // CRITICAL FIX: Supabase returns lowercase event types ('insert', 'update')
-          const eventType = payload.eventType?.toUpperCase()
-          if (eventType === 'INSERT' || eventType === 'UPDATE') {
-            const newRecord = payload.new as any
-            const oldRecord = payload.old as any
-
-            console.log('[MechanicDashboard] Checking if should alert:', {
-              eventType,
-              oldStatus: oldRecord?.status,
-              newStatus: newRecord?.status,
-              alertsEnabled: flags.mech_new_request_alerts
-            })
+          // Trigger alerts for newly queued assignments
+          if (event.eventType === 'INSERT' || event.eventType === 'UPDATE') {
+            const newRecord = event.new
+            const oldRecord = event.old
 
             // Only alert when status TRANSITIONS TO 'queued' (not already queued)
             const isNewlyQueued = newRecord?.status === 'queued' && oldRecord?.status !== 'queued'
 
             console.log('[MechanicDashboard] Should alert?', {
               isNewlyQueued,
-              flagsCheck: flags.mech_new_request_alerts,
+              alertsEnabled: flags.mech_new_request_alerts,
               willAlert: isNewlyQueued && flags.mech_new_request_alerts
             })
 
@@ -501,8 +479,6 @@ export default function MechanicDashboardPage() {
                 }
 
                 if (session) {
-                  console.log('[MechanicDashboard] Fetched session:', session)
-
                   // Fetch intake for customer/vehicle info
                   const { data: intake, error: intakeError } = await supabase
                     .from('intakes')
@@ -512,18 +488,13 @@ export default function MechanicDashboardPage() {
 
                   if (intakeError) {
                     console.error('[MechanicDashboard] Failed to fetch intake:', intakeError)
-                    // Continue with minimal info
                   }
 
                   const vehicleSummary = intake?.vin
                     ? `VIN: ${intake.vin}`
                     : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
 
-                  console.log('[MechanicDashboard] 🔔 Calling onNewSessionRequest with:', {
-                    requestId: newRecord.id,
-                    customerName: intake?.name || 'Customer',
-                    vehicle: vehicleSummary || 'Vehicle'
-                  })
+                  console.log('[MechanicDashboard] 🔔 Calling onNewSessionRequest')
 
                   // Trigger multi-layer alert system
                   onNewSessionRequest({
@@ -539,34 +510,42 @@ export default function MechanicDashboardPage() {
             }
           }
 
-          refetchData()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'repair_quotes',
+          // Always refetch queue when assignment changes
+          refetchAllData()
         },
-        (payload) => {
-          console.log('[MechanicDashboard] Quote change detected:', payload)
-          refetchData()
+
+        // Handle session changes (status transitions)
+        onSession: (event) => {
+          console.log('[MechanicDashboard] 📨 Session event received:', {
+            eventType: event.eventType,
+            sessionId: event.new?.id || event.old?.id
+          })
+          refetchAllData()
+        },
+
+        // Handle quote changes
+        onQuote: (event) => {
+          console.log('[MechanicDashboard] 📨 Quote event received:', event.eventType)
+          refetchAllData()
         }
-      )
-      .subscribe((status) => {
-        console.log('[MechanicDashboard] Subscription status:', status)
       })
 
-    // PHASE 3A: Removed broadcast channel - now using postgres_changes above
-    // postgres_changes is more reliable on Render (survives container restarts)
+      // Store cleanup function in closure
+      ;(window as any).__mechanicDashboardCleanup = () => {
+        window.removeEventListener('focus', onFocus)
+        cleanup()
+      }
+    })
 
+    // Cleanup on unmount
     return () => {
-      console.log('[MechanicDashboard] Cleaning up subscriptions')
-      window.removeEventListener('focus', onFocus)
-      supabase.removeChannel(channel)
+      console.log('[MechanicDashboard] 🔌 Cleaning up realtime subscriptions')
+      if ((window as any).__mechanicDashboardCleanup) {
+        ;(window as any).__mechanicDashboardCleanup()
+        delete (window as any).__mechanicDashboardCleanup
+      }
     }
-  }, [checkingTier, supabase, isAuthenticated])
+  }, [checkingTier, isAuthenticated, refetchAllData, supabase, flags])
 
   if (authChecking || checkingTier) {
     return (

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Assignments Realtime Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .status {
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .status.pending {
+      background: #ffc107;
+      color: #000;
+    }
+    .status.connected {
+      background: #4caf50;
+      color: #fff;
+    }
+    .status.error {
+      background: #f44336;
+      color: #fff;
+    }
+    .log {
+      background: #2d2d2d;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin: 8px 0;
+      padding: 8px;
+      border-left: 3px solid #666;
+      padding-left: 12px;
+    }
+    .log-entry.success {
+      border-color: #4caf50;
+      background: rgba(76, 175, 80, 0.1);
+    }
+    .log-entry.error {
+      border-color: #f44336;
+      background: rgba(244, 67, 54, 0.1);
+    }
+    .log-entry.info {
+      border-color: #2196f3;
+      background: rgba(33, 150, 243, 0.1);
+    }
+    .timestamp {
+      color: #888;
+      font-size: 12px;
+      margin-right: 10px;
+    }
+    .config {
+      background: #2d2d2d;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      background: #1a1a1a;
+      border: 2px solid #444;
+      border-radius: 4px;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    button {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    .event-card {
+      background: #3d3d3d;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #4caf50;
+    }
+    .event-type {
+      font-weight: 600;
+      color: #4caf50;
+      margin-bottom: 8px;
+    }
+    pre {
+      background: #1a1a1a;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    h1 {
+      color: #2196f3;
+    }
+    h2 {
+      color: #4caf50;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Session Assignments Realtime Test</h1>
+  <p>This page tests real-time postgres_changes events on the <code>session_assignments</code> table.</p>
+
+  <!-- Configuration -->
+  <div class="config">
+    <h2>Configuration</h2>
+    <p>Enter your Supabase credentials (these are stored only in browser memory):</p>
+    <label>
+      Supabase URL:
+      <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co" />
+    </label>
+    <label>
+      Anon Key:
+      <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+    </label>
+    <button onclick="connect()">🔌 Connect</button>
+    <button onclick="clearLogs()">🗑️ Clear Logs</button>
+  </div>
+
+  <!-- Status -->
+  <div id="status" class="status pending">
+    ⏳ Not connected
+  </div>
+
+  <!-- Stats -->
+  <div id="stats" style="display: none;">
+    <h2>📊 Statistics</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+      <div style="background: #2d2d2d; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: #4caf50;" id="insertCount">0</div>
+        <div style="color: #888; font-size: 14px;">INSERT events</div>
+      </div>
+      <div style="background: #2d2d2d; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: #2196f3;" id="updateCount">0</div>
+        <div style="color: #888; font-size: 14px;">UPDATE events</div>
+      </div>
+      <div style="background: #2d2d2d; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: #f44336;" id="deleteCount">0</div>
+        <div style="color: #888; font-size: 14px;">DELETE events</div>
+      </div>
+      <div style="background: #2d2d2d; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: #ffc107;" id="totalCount">0</div>
+        <div style="color: #888; font-size: 14px;">Total events</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Events -->
+  <div id="eventsSection" style="display: none;">
+    <h2>📡 Real-time Events</h2>
+    <div id="events"></div>
+  </div>
+
+  <!-- Logs -->
+  <h2>📝 Connection Logs</h2>
+  <div id="logs" class="log">
+    <div class="log-entry info">
+      <span class="timestamp">[Ready]</span>
+      Enter your Supabase credentials above and click Connect.
+    </div>
+  </div>
+
+  <script>
+    let supabase = null
+    let channel = null
+    let stats = {
+      insert: 0,
+      update: 0,
+      delete: 0,
+      total: 0
+    }
+
+    function getTimestamp() {
+      const now = new Date()
+      return now.toLocaleTimeString() + '.' + now.getMilliseconds().toString().padStart(3, '0')
+    }
+
+    function addLog(message, type = 'info') {
+      const logs = document.getElementById('logs')
+      const entry = document.createElement('div')
+      entry.className = `log-entry ${type}`
+      entry.innerHTML = `<span class="timestamp">[${getTimestamp()}]</span>${message}`
+      logs.appendChild(entry)
+      logs.scrollTop = logs.scrollHeight
+    }
+
+    function updateStatus(message, type) {
+      const status = document.getElementById('status')
+      status.textContent = message
+      status.className = `status ${type}`
+    }
+
+    function updateStats() {
+      document.getElementById('insertCount').textContent = stats.insert
+      document.getElementById('updateCount').textContent = stats.update
+      document.getElementById('deleteCount').textContent = stats.delete
+      document.getElementById('totalCount').textContent = stats.total
+    }
+
+    function addEvent(payload) {
+      const events = document.getElementById('events')
+      const card = document.createElement('div')
+      card.className = 'event-card'
+
+      const eventType = payload.eventType.toUpperCase()
+      const newData = payload.new || {}
+      const oldData = payload.old || {}
+
+      let color = '#4caf50'
+      if (eventType === 'UPDATE') color = '#2196f3'
+      if (eventType === 'DELETE') color = '#f44336'
+
+      card.style.borderColor = color
+
+      card.innerHTML = `
+        <div class="event-type" style="color: ${color};">
+          ${eventType} event received
+        </div>
+        <div style="margin: 10px 0;">
+          <strong>Assignment ID:</strong> ${newData.id || oldData.id || 'N/A'}<br>
+          <strong>Status:</strong> ${newData.status || oldData.status || 'N/A'}<br>
+          <strong>Session ID:</strong> ${newData.session_id || oldData.session_id || 'N/A'}<br>
+          ${newData.mechanic_id ? `<strong>Mechanic ID:</strong> ${newData.mechanic_id}<br>` : ''}
+          <strong>Timestamp:</strong> ${getTimestamp()}
+        </div>
+        ${eventType === 'UPDATE' && oldData.status && newData.status && oldData.status !== newData.status ?
+          `<div style="background: #1a1a1a; padding: 10px; border-radius: 4px; margin-top: 10px;">
+            Status changed: <code>${oldData.status}</code> → <code>${newData.status}</code>
+          </div>` : ''}
+        <details style="margin-top: 10px;">
+          <summary style="cursor: pointer; color: #888;">Show full payload</summary>
+          <pre>${JSON.stringify(payload, null, 2)}</pre>
+        </details>
+      `
+
+      events.insertBefore(card, events.firstChild)
+    }
+
+    function clearLogs() {
+      document.getElementById('logs').innerHTML = ''
+      document.getElementById('events').innerHTML = ''
+      stats = { insert: 0, update: 0, delete: 0, total: 0 }
+      updateStats()
+      addLog('Logs cleared', 'info')
+    }
+
+    async function connect() {
+      const url = document.getElementById('supabaseUrl').value.trim()
+      const key = document.getElementById('supabaseKey').value.trim()
+
+      if (!url || !key) {
+        addLog('❌ Please enter both Supabase URL and Anon Key', 'error')
+        return
+      }
+
+      addLog('🔌 Initializing Supabase client...', 'info')
+      updateStatus('🔌 Connecting...', 'pending')
+
+      try {
+        // Create Supabase client
+        supabase = window.supabase.createClient(url, key)
+        addLog('✅ Supabase client created', 'success')
+
+        // Create channel
+        addLog('📡 Creating real-time channel for session_assignments...', 'info')
+
+        channel = supabase
+          .channel('test-session-assignments')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'session_assignments'
+            },
+            (payload) => {
+              addLog(`📨 Received ${payload.eventType} event`, 'success')
+
+              // Update stats
+              const eventType = payload.eventType.toLowerCase()
+              if (eventType === 'insert') stats.insert++
+              if (eventType === 'update') stats.update++
+              if (eventType === 'delete') stats.delete++
+              stats.total++
+              updateStats()
+
+              // Add event card
+              addEvent(payload)
+
+              // Show sections
+              document.getElementById('stats').style.display = 'block'
+              document.getElementById('eventsSection').style.display = 'block'
+            }
+          )
+          .subscribe((status, err) => {
+            addLog(`📡 Subscription status: ${status}`, status === 'SUBSCRIBED' ? 'success' : 'info')
+
+            if (status === 'SUBSCRIBED') {
+              updateStatus('✅ Connected - Listening for changes', 'connected')
+              addLog('🎉 Successfully subscribed to session_assignments changes!', 'success')
+              addLog('💡 Now create/update assignments in your app and watch them appear here', 'info')
+              document.getElementById('stats').style.display = 'block'
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+              updateStatus(`❌ Connection failed: ${status}`, 'error')
+              addLog(`❌ Subscription failed: ${status}`, 'error')
+              if (err) {
+                addLog(`Error details: ${JSON.stringify(err)}`, 'error')
+              }
+              addLog('⚠️ Check that realtime is enabled for session_assignments table', 'error')
+            }
+          })
+
+      } catch (error) {
+        addLog(`❌ Error: ${error.message}`, 'error')
+        updateStatus('❌ Connection failed', 'error')
+        console.error(error)
+      }
+    }
+
+    // Auto-fill if credentials are in localStorage (for convenience)
+    window.addEventListener('load', () => {
+      const savedUrl = localStorage.getItem('supabase_url')
+      const savedKey = localStorage.getItem('supabase_key')
+      if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl
+      if (savedKey) document.getElementById('supabaseKey').value = savedKey
+    })
+
+    // Save credentials to localStorage on change (for convenience)
+    document.getElementById('supabaseUrl').addEventListener('change', (e) => {
+      localStorage.setItem('supabase_url', e.target.value)
+    })
+    document.getElementById('supabaseKey').addEventListener('change', (e) => {
+      localStorage.setItem('supabase_key', e.target.value)
+    })
+  </script>
+
+  <div style="margin-top: 40px; padding: 20px; background: #2d2d2d; border-radius: 8px;">
+    <h2>📖 How to Use</h2>
+    <ol style="line-height: 1.8;">
+      <li>Enter your Supabase URL and Anon Key above</li>
+      <li>Click "Connect" to establish real-time connection</li>
+      <li>Wait for "✅ Connected" status</li>
+      <li>In another tab, create a session and sign the waiver (or manually insert into session_assignments)</li>
+      <li>Watch this page for real-time INSERT events</li>
+      <li>Accept/update assignments and watch for UPDATE events</li>
+    </ol>
+
+    <h3 style="color: #4caf50; margin-top: 20px;">What to Check</h3>
+    <ul style="line-height: 1.8;">
+      <li>✅ Status shows "SUBSCRIBED" - Realtime is working</li>
+      <li>❌ Status shows "CHANNEL_ERROR" - Realtime is disabled on the table</li>
+      <li>❌ Status shows "TIMED_OUT" - Network or project issues</li>
+      <li>✅ Events appear when assignments are created - Full realtime working</li>
+      <li>❌ Events don't appear - RLS policy blocking or replica identity issue</li>
+    </ul>
+
+    <h3 style="color: #f44336; margin-top: 20px;">Troubleshooting</h3>
+    <ul style="line-height: 1.8;">
+      <li>If CHANNEL_ERROR: Go to Supabase Dashboard → Database → Replication → Enable session_assignments</li>
+      <li>If SUBSCRIBED but no events: Check RLS policies allow SELECT for your user</li>
+      <li>If events delayed: Check network latency or server location</li>
+      <li>If connection drops: Check Supabase project isn't paused/sleeping</li>
+    </ul>
+  </div>
+</body>
+</html>
