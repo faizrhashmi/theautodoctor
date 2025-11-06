@@ -85,8 +85,26 @@ export async function POST(
     const origin = (() => {
       const envUrl = process.env.NEXT_PUBLIC_APP_URL
       const requestOrigin = req.nextUrl.origin
-      if (process.env.NODE_ENV === 'production') return requestOrigin
-      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) return envUrl
+
+      // Production: Use NEXT_PUBLIC_APP_URL if set to a real domain
+      if (process.env.NODE_ENV === 'production') {
+        if (envUrl &&
+            !envUrl.includes('localhost') &&
+            !envUrl.includes('127.0.0.1') &&
+            !envUrl.includes('0.0.0.0')) {
+          return envUrl
+        }
+        console.warn('[Quote Checkout] Production env missing valid NEXT_PUBLIC_APP_URL, using request origin:', requestOrigin)
+        return requestOrigin
+      }
+
+      // Dev: Use non-localhost env URL if set (proxy/tunnel)
+      if (envUrl &&
+          !envUrl.includes('localhost') &&
+          !envUrl.includes('127.0.0.1') &&
+          !envUrl.includes('0.0.0.0')) {
+        return envUrl
+      }
       return requestOrigin
     })()
 

@@ -23,20 +23,33 @@ export async function GET(req: NextRequest) {
 
   const cfg = PRICING[key];
   // Smart origin detection for all environments:
-  // - Production: Use request origin (actual domain)
+  // - Production: Use NEXT_PUBLIC_APP_URL (must be set to actual domain)
   // - Dev with proxy/tunnel: Use NEXT_PUBLIC_APP_URL (e.g., ngrok URL)
   // - Dev without proxy: Use request origin (auto port detection)
   const origin = (() => {
     const envUrl = process.env.NEXT_PUBLIC_APP_URL
     const requestOrigin = req.nextUrl.origin
 
-    // Production: always use request origin
+    // Production: Use NEXT_PUBLIC_APP_URL if set to a real domain
+    // This prevents using internal server addresses (0.0.0.0, localhost, etc.)
     if (process.env.NODE_ENV === 'production') {
+      // If env URL is set to a real domain (not localhost/0.0.0.0), use it
+      if (envUrl &&
+          !envUrl.includes('localhost') &&
+          !envUrl.includes('127.0.0.1') &&
+          !envUrl.includes('0.0.0.0')) {
+        return envUrl
+      }
+      // Fallback to request origin (but log warning as this shouldn't happen)
+      console.warn('[Checkout] Production env missing valid NEXT_PUBLIC_APP_URL, using request origin:', requestOrigin)
       return requestOrigin
     }
 
     // Dev: If NEXT_PUBLIC_APP_URL is set to non-localhost (proxy/tunnel), use it
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    if (envUrl &&
+        !envUrl.includes('localhost') &&
+        !envUrl.includes('127.0.0.1') &&
+        !envUrl.includes('0.0.0.0')) {
       return envUrl
     }
 
