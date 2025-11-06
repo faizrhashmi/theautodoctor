@@ -16,10 +16,10 @@ import {
   CheckCircle,
   XCircle,
   BarChart3,
-  Clock
+  Clock,
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 interface WorkshopMetrics {
   total_sessions: number
@@ -45,10 +45,10 @@ interface AnalyticsData {
 }
 
 export default function WorkshopAnalyticsPage() {
-  const router = useRouter()
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<AnalyticsData>({
     currentMonth: null,
     previousMonth: null,
@@ -59,11 +59,14 @@ export default function WorkshopAnalyticsPage() {
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true)
+      setError(null)
 
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      if (authError || !user) {
-        router.push('/login')
+      // Get workshop user ID from session without direct auth check
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // If no user, layout will handle redirect - just show loading
+      if (!user) {
+        setLoading(false)
         return
       }
 
@@ -149,10 +152,11 @@ export default function WorkshopAnalyticsPage() {
       })
     } catch (error: any) {
       console.error('Error fetching analytics:', error)
+      setError(error.message || 'Failed to load analytics')
     } finally {
       setLoading(false)
     }
-  }, [supabase, router])
+  }, [supabase])
 
   useEffect(() => {
     fetchAnalytics()
@@ -160,10 +164,28 @@ export default function WorkshopAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
           <p className="mt-4 text-slate-400">Loading analytics...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md p-8 rounded-2xl border border-red-500/20 bg-red-500/10">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Error Loading Analytics</h2>
+          <p className="text-sm text-red-200">{error}</p>
+          <button
+            onClick={() => fetchAnalytics()}
+            className="mt-6 rounded-lg bg-purple-500 px-6 py-2 text-sm font-semibold text-white hover:bg-purple-600"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     )
@@ -197,7 +219,7 @@ export default function WorkshopAnalyticsPage() {
     : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20 lg:pl-64 lg:pt-0">
+    <div>
       {/* Header */}
       <div className="border-b border-white/10 bg-slate-900/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { routeFor, apiRouteFor } from '@/lib/routes'
 
@@ -348,7 +349,8 @@ export function NotificationCenter({ isOpen, onClose, userId, userRole = 'custom
   const unreadNotifications = filteredNotifications.filter(n => !n.read_at)
   const readNotifications = filteredNotifications.filter(n => n.read_at)
 
-  return (
+  // Render into document.body using portal to escape sidebar constraints
+  return typeof document !== 'undefined' ? createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -356,8 +358,84 @@ export function NotificationCenter({ isOpen, onClose, userId, userRole = 'custom
         onClick={onClose}
       />
 
-      {/* Notification Panel */}
-      <div className="fixed top-16 right-4 z-50 w-full max-w-md max-h-[80vh] rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl flex flex-col overflow-hidden">
+      {/* Notification Panel - Mobile */}
+      <div className="md:hidden fixed top-16 left-4 right-4 z-50 w-auto max-w-md mx-auto max-h-[80vh] rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b border-slate-700 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Notifications</h3>
+              {unreadNotifications.length > 0 && (
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {unreadNotifications.length} unread
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={onClose}
+              className="rounded-full p-1 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {unreadNotifications.length > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="flex-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400 transition hover:border-indigo-500/50 hover:bg-indigo-500/20"
+              >
+                Mark all read
+              </button>
+            )}
+            {readNotifications.length > 0 && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="flex-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:border-red-500/50 hover:bg-red-500/20"
+              >
+                Clear read
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Notifications List */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-500 border-r-transparent" />
+              <p className="mt-2 text-sm text-slate-400">Loading notifications...</p>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="p-8 text-center">
+              <svg className="mx-auto h-12 w-12 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p className="mt-2 text-sm text-slate-400">No notifications yet</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-800">
+              {filteredNotifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => handleNotificationClick(notification)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Notification Panel - Desktop - positioned near sidebar */}
+      <div
+        className="hidden md:flex fixed top-16 z-50 w-96 max-h-[80vh] rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl flex-col overflow-hidden"
+        style={{ left: 'calc(16rem + 1rem)' }}
+      >
         {/* Header */}
         <div className="border-b border-slate-700 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -431,12 +509,12 @@ export function NotificationCenter({ isOpen, onClose, userId, userRole = 'custom
 
       {/* Confirmation Dialog */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowClearConfirm(false)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl mx-4">
             <h4 className="text-lg font-semibold text-white mb-2">Clear read notifications?</h4>
             <p className="text-sm text-slate-400 mb-6">
               This will permanently delete {readNotifications.length} read notification{readNotifications.length !== 1 ? 's' : ''}. This action cannot be undone.
@@ -460,8 +538,9 @@ export function NotificationCenter({ isOpen, onClose, userId, userRole = 'custom
           </div>
         </div>
       )}
-    </>
-  )
+    </>,
+    document.body
+  ) : null
 }
 
 // Individual notification item

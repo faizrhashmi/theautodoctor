@@ -256,6 +256,34 @@ export default function AdminFeatureFlagsPage() {
                     </p>
                   </div>
                 )}
+                {flag.flag_key === 'mech_new_request_alerts' && (
+                  <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <p className="text-orange-400 text-sm font-medium">
+                      🔔 Mechanic Alerts (Master): Multi-tier notification system for mechanics (Toast + Audio + Browser + Visual)
+                    </p>
+                  </div>
+                )}
+                {flag.flag_key === 'mech_audio_alerts' && (
+                  <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <p className="text-orange-400 text-sm font-medium">
+                      🔊 Audio Alerts (Tier 2): Play notification sound when new session arrives
+                    </p>
+                  </div>
+                )}
+                {flag.flag_key === 'mech_browser_notifications' && (
+                  <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <p className="text-orange-400 text-sm font-medium">
+                      📲 Browser Notifications (Tier 3): Show native OS notifications when tab is inactive
+                    </p>
+                  </div>
+                )}
+                {flag.flag_key === 'mech_visual_indicators' && (
+                  <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <p className="text-orange-400 text-sm font-medium">
+                      👁️ Visual Indicators (Tier 4): Badge count and tab title updates for new requests
+                    </p>
+                  </div>
+                )}
               </div>
             ))
           )}

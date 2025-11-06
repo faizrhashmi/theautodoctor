@@ -593,15 +593,14 @@ export default function CustomerDashboardPage() {
                 partnerRole="mechanic"
                 userRole="customer"
                 cta={{
-                  action: session.status === 'live' ? 'Return to Session' : 'Join Session',
+                  action: ['waiting', 'live'].includes(session.status) ? 'Return to Session' : 'Join Session',
                   route: `/${session.type}/${session.id}`
                 }}
                 onEnd={async () => {
                   try {
-                    const res = await fetch(`/api/customer/sessions/${session.id}/end`, {
+                    const res = await fetch(`/api/sessions/${session.id}/end`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ reason: 'Customer ended session' })
+                      headers: { 'Content-Type': 'application/json' }
                     })
                     if (res.ok) {
                       await fetchDashboardData()
@@ -611,24 +610,6 @@ export default function CustomerDashboardPage() {
                   } catch (error) {
                     console.error('End session error:', error)
                     alert('Failed to end session')
-                  }
-                }}
-                onCancel={async () => {
-                  if (!confirm('Are you sure you want to cancel this session?')) return
-                  try {
-                    const res = await fetch(`/api/customer/sessions/${session.id}/end`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ reason: 'Customer cancelled session' })
-                    })
-                    if (res.ok) {
-                      await fetchDashboardData()
-                    } else {
-                      alert('Failed to cancel session')
-                    }
-                  } catch (error) {
-                    console.error('Cancel session error:', error)
-                    alert('Failed to cancel session')
                   }
                 }}
               />

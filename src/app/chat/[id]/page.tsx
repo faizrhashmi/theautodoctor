@@ -121,7 +121,9 @@ export default async function ChatSessionPage({ params }: PageProps) {
     redirect(dashboardUrl)
   }
 
-  const { error: participantsError } = await supabase
+  // Use supabaseAdmin for participants and messages after authorization check
+  // This ensures both mechanics and customers can read messages regardless of RLS policies
+  const { error: participantsError } = await supabaseAdmin
     .from('session_participants')
     .select('user_id, role')
     .eq('session_id', sessionId)
@@ -130,7 +132,9 @@ export default async function ChatSessionPage({ params }: PageProps) {
     throw new Error(participantsError.message)
   }
 
-  const { data: messages, error: messagesError } = await supabase
+  // CRITICAL FIX: Use supabaseAdmin to fetch messages for both mechanics and customers
+  // This prevents RLS issues that can block mechanics from seeing chat history
+  const { data: messages, error: messagesError } = await supabaseAdmin
     .from('chat_messages')
     .select('id, content, sender_id, created_at, attachments, read_at')
     .eq('session_id', sessionId)

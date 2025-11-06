@@ -12,6 +12,12 @@ import { createClient } from '@/lib/supabase'
 import RecentSessions from '@/components/dashboard/RecentSessions'
 import SessionCard from '@/components/sessions/SessionCard'
 import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
+import { ensureNotificationPermission } from '@/lib/browserNotifications'
+import { primeAudio } from '@/lib/notificationSound'
+import { onNewSessionRequest } from '@/lib/newRequestAlerts'
+import { useNewRequestsIndicator } from '@/state/newRequestsIndicator'
+import { setTabNewRequests } from '@/lib/tabAttention'
+import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 
 interface ActiveSession {
   id: string
@@ -68,7 +74,7 @@ export default function MechanicDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const notification = searchParams.get('notification')
-  
+
   const [loading, setLoading] = useState(true)
   const [checkingTier, setCheckingTier] = useState(true)
   const [authChecking, setAuthChecking] = useState(true)
@@ -78,6 +84,21 @@ export default function MechanicDashboardPage() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
+
+  // Tier 4: Visual indicators
+  const newRequestCount = useNewRequestsIndicator((state) => state.count)
+  const clearNewRequestCount = useNewRequestsIndicator((state) => state.clear)
+
+  // Feature flags from database (admin-controlled)
+  const { flags } = useFeatureFlags()
+
+  // Log flags on initial load (silent after cache)
+  useEffect(() => {
+    if (flags.mech_new_request_alerts !== undefined) {
+      console.log('[MechanicDashboard] Alert system:', flags.mech_new_request_alerts ? 'ENABLED' : 'DISABLED')
+    }
+  }, [flags.mech_new_request_alerts])
+
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [acceptingRequest, setAcceptingRequest] = useState<string | null>(null)
@@ -172,6 +193,43 @@ export default function MechanicDashboardPage() {
 
     checkAuth()
   }, [router, supabase])
+
+  // Initialize notification system (Tiers 2 & 3)
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    // Tier 3: Request browser notification permission
+    ensureNotificationPermission()
+
+    // Tier 2: Prime audio on first user interaction
+    const enableAudio = () => primeAudio()
+    window.addEventListener('click', enableAudio, { once: true })
+    window.addEventListener('touchstart', enableAudio, { once: true })
+
+    return () => {
+      window.removeEventListener('click', enableAudio)
+      window.removeEventListener('touchstart', enableAudio)
+    }
+  }, [isAuthenticated])
+
+  // Handle Accept Now button from toast (Tier 1)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const requestId = (e as CustomEvent<string>).detail
+      console.log('[MechanicDashboard] Accept from toast:', requestId)
+      handleAcceptAssignment(requestId, 'chat') // Will be determined by queue item
+    }
+
+    window.addEventListener('mechanic-accept-request', handler as EventListener)
+    return () => window.removeEventListener('mechanic-accept-request', handler as EventListener)
+  }, [])
+
+  // Update tab title when request count changes (Tier 4)
+  useEffect(() => {
+    if (flags.mech_visual_indicators) {
+      setTabNewRequests(newRequestCount)
+    }
+  }, [newRequestCount, flags.mech_visual_indicators])
 
   // Fetch active sessions - mechanics can only have ONE active session at a time
   useEffect(() => {
@@ -421,7 +479,18 @@ export default function MechanicDashboardPage() {
         'broadcast',
         { event: 'new_request' },
         (payload) => {
-          console.log('[MechanicDashboard] 🔔 NEW REQUEST broadcast received:', payload)
+          console.log('[MechanicDashboard] 🔔 New request received:', payload.customerName, '-', payload.vehicleSummary)
+
+          // Tier 1-4: Trigger multi-layer alert system
+          if (flags.mech_new_request_alerts) {
+            onNewSessionRequest({
+              requestId: payload.requestId || payload.id,
+              customerName: payload.customerName,
+              vehicle: payload.vehicleSummary || payload.vehicle,
+              concern: payload.concern,
+            }, flags)
+          }
+
           // Immediately refetch pending requests to show new request
           refetchData()
         }
@@ -533,8 +602,19 @@ export default function MechanicDashboardPage() {
           <div className="mb-6 sm:mb-8 bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 rounded-lg shadow p-6">
             <div className="flex items-center gap-3 mb-4">
               <Bell className="h-6 w-6 text-blue-400 animate-pulse" />
-              <div>
-                <h2 className="text-xl font-bold text-white">Available Sessions</h2>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white">Available Sessions</h2>
+                  {newRequestCount > 0 && flags.mech_visual_indicators && (
+                    <span
+                      onClick={clearNewRequestCount}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse cursor-pointer hover:bg-orange-500/30 transition"
+                      title="Click to dismiss"
+                    >
+                      {newRequestCount} new
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-blue-300 mt-1">
                   {queue.length} session{queue.length > 1 ? 's' : ''} waiting for a mechanic
                 </p>

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import MechanicSidebar from '@/components/mechanic/MechanicSidebar'
 import { useActivityTimeout } from '@/hooks/useActivityTimeout'
 import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
+import { Toaster } from 'react-hot-toast'
 
 // Routes that should NOT show the sidebar
 const NO_SIDEBAR_ROUTES = [
@@ -85,12 +86,18 @@ export default function MechanicLayout({
 
   if (!showSidebar) {
     // No sidebar for auth/onboarding pages
-    return <>{children}</>
+    return (
+      <>
+        <Toaster position="top-center" />
+        {children}
+      </>
+    )
   }
 
   // Authenticated pages with sidebar
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      <Toaster position="top-center" />
       <MechanicSidebar />
       <main className="flex-1 lg:ml-64 transition-all duration-300">
         <ActiveSessionBanner userRole="mechanic" />

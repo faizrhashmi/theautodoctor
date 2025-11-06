@@ -152,7 +152,7 @@ export default function WorkshopDashboardPage() {
   const { organization, mechanics, pendingInvites, stats } = data
 
   return (
-    <div className="min-h-screen pt-20 lg:pt-0 ">
+    <div>
       {/* Header */}
       <div className="border-b border-white/10 bg-slate-900/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
@@ -205,7 +205,7 @@ export default function WorkshopDashboardPage() {
         </div>
       )}
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 pb-16 sm:px-6 lg:px-8">
         {/* Tabs */}
         <div className="mb-8 flex gap-2 overflow-x-auto border-b border-white/10">
           {[

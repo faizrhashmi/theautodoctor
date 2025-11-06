@@ -176,8 +176,8 @@ export default function MechanicSidebar() {
           {/* Logo Section - Improved padding for mobile */}
           <div className="p-5 sm:p-6 lg:p-4 border-b border-slate-800">
             <Logo size="md" showText={true} href="/mechanic/dashboard" variant="mechanic" />
-            <div className="flex items-center justify-between mt-3">
-              <p className="text-sm sm:text-base text-slate-300 font-medium">
+            <div className="flex items-center justify-between gap-2 mt-3">
+              <p className="text-sm sm:text-base text-slate-300 font-medium flex-shrink min-w-0 truncate">
                 {mechanicFirstName ? `Hi, ${mechanicFirstName}!` : 'Mechanic Portal'}
               </p>
               {mechanicUserId && <NotificationBell userId={mechanicUserId} userRole="mechanic" />}

@@ -27,7 +27,7 @@ async function getMechanicFromAuth() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId, content, attachments } = await req.json()
+    const { sessionId, content, attachments, tempId } = await req.json()
 
     if (!sessionId || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -88,14 +88,17 @@ export async function POST(req: NextRequest) {
 
     console.log('[send-message] Message inserted successfully:', message.id, 'from sender:', senderId)
 
-    // Notify recipient
-    try {
+    // Return response immediately
+    const response = NextResponse.json({ message, tempId })
+
+    // Create notification in background (non-blocking)
+    queueMicrotask(() => {
       const recipientId = senderId === session.customer_user_id
         ? mechanicUserId
         : session.customer_user_id
 
       if (recipientId) {
-        await supabaseAdmin
+        supabaseAdmin
           .from('notifications')
           .insert({
             user_id: recipientId,
@@ -107,13 +110,16 @@ export async function POST(req: NextRequest) {
               preview: sanitizedContent.substring(0, 100)
             }
           })
-        console.log('[send-message] ✓ Created message_received notification for recipient:', recipientId)
+          .then(() => {
+            console.log('[send-message] ✓ Created message_received notification for recipient:', recipientId)
+          })
+          .catch((notifError) => {
+            console.warn('[send-message] Failed to create notification:', notifError)
+          })
       }
-    } catch (notifError) {
-      console.warn('[send-message] Failed to create notification:', notifError)
-    }
+    })
 
-    return NextResponse.json({ message })
+    return response
   } catch (error: any) {
     console.error('Error in send-message:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

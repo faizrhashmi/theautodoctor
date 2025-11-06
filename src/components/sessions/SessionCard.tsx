@@ -67,7 +67,6 @@ export interface SessionCardProps {
 
   // Optional callbacks
   onEnd?: () => Promise<void>
-  onCancel?: () => Promise<void>
 }
 
 const STATUS_CONFIG = {
@@ -125,11 +124,9 @@ export default function SessionCard({
   presence,
   cta,
   userRole,
-  onEnd,
-  onCancel
+  onEnd
 }: SessionCardProps) {
   const [isEnding, setIsEnding] = useState(false)
-  const [isCancelling, setIsCancelling] = useState(false)
   const [isCtaLoading, setIsCtaLoading] = useState(false)
 
   const statusConfig = STATUS_CONFIG[status]
@@ -138,6 +135,14 @@ export default function SessionCard({
 
   const handleEnd = async () => {
     if (!onEnd) return
+
+    // Show confirmation for all sessions
+    const confirmMessage = status === 'pending'
+      ? 'Are you sure you want to cancel this session?'
+      : 'Are you sure you want to end this session?'
+
+    if (!confirm(confirmMessage)) return
+
     setIsEnding(true)
     try {
       await onEnd()
@@ -145,18 +150,6 @@ export default function SessionCard({
       console.error('Failed to end session:', error)
     } finally {
       setIsEnding(false)
-    }
-  }
-
-  const handleCancel = async () => {
-    if (!onCancel) return
-    setIsCancelling(true)
-    try {
-      await onCancel()
-    } catch (error) {
-      console.error('Failed to cancel session:', error)
-    } finally {
-      setIsCancelling(false)
     }
   }
 
@@ -311,7 +304,7 @@ export default function SessionCard({
           ) : null
         )}
 
-        {/* Secondary Actions */}
+        {/* End Session Button */}
         {isActive && userRole === 'customer' && onEnd && (
           <button
             onClick={handleEnd}
@@ -321,21 +314,7 @@ export default function SessionCard({
             {isEnding ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              'End'
-            )}
-          </button>
-        )}
-
-        {status === 'pending' && userRole === 'customer' && onCancel && (
-          <button
-            onClick={handleCancel}
-            disabled={isCancelling}
-            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCancelling ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              'Cancel'
+              status === 'pending' ? 'Cancel' : 'End Session'
             )}
           </button>
         )}

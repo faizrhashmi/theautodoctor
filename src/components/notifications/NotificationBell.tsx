@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createClient } from '@/lib/supabase'
 import { NotificationCenter } from './NotificationCenter'
 
 interface NotificationBellProps {
@@ -11,8 +12,8 @@ interface NotificationBellProps {
 export function NotificationBell({ userId, userRole = 'customer' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const [previousUnreadCount, setPreviousUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const previousUnreadCountRef = useRef(0)
+  const isInitialLoadRef = useRef(true)
 
   // Play notification sound (throttled per poll cycle)
   const playNotificationSound = useCallback(() => {
@@ -28,27 +29,32 @@ export function NotificationBell({ userId, userRole = 'customer' }: Notification
   }, [])
 
   // Fetch unread count
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetch('/api/notifications/feed?limit=1')
       if (response.ok) {
         const data = await response.json()
         const newCount = data.unreadCount || 0
+        const prevCount = previousUnreadCountRef.current
 
         // Play sound only if count increased (new notification) and not initial load
-        if (!loading && newCount > previousUnreadCount) {
+        if (!isInitialLoadRef.current && newCount > prevCount) {
+          console.log('[NotificationBell] Playing sound - new notification detected', {
+            newCount,
+            prevCount,
+            isInitialLoad: isInitialLoadRef.current
+          })
           playNotificationSound()
         }
 
-        setPreviousUnreadCount(newCount)
+        previousUnreadCountRef.current = newCount
         setUnreadCount(newCount)
+        isInitialLoadRef.current = false
       }
     } catch (error) {
       console.error('[NotificationBell] Error fetching unread count:', error)
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [playNotificationSound])
 
   // Initial fetch
   useEffect(() => {
@@ -58,7 +64,52 @@ export function NotificationBell({ userId, userRole = 'customer' }: Notification
     const interval = setInterval(fetchUnreadCount, 30000)
 
     return () => clearInterval(interval)
-  }, [userId])
+  }, [fetchUnreadCount])
+
+  // Realtime subscription for mechanics - new session assignments
+  useEffect(() => {
+    if (userRole !== 'mechanic') return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('session_assignments_feed', {
+        config: {
+          broadcast: { self: false },
+        },
+      })
+      .on('broadcast', { event: 'new_assignment' }, (payload) => {
+        console.log('[NotificationBell] New assignment broadcast received:', payload)
+
+        // Increment unread count
+        setUnreadCount((prev) => prev + 1)
+        previousUnreadCountRef.current = previousUnreadCountRef.current + 1
+
+        // Play notification sound
+        playNotificationSound()
+
+        // Optionally show toast notification (if you have react-hot-toast)
+        try {
+          // @ts-ignore - toast may not be imported yet
+          if (typeof window !== 'undefined' && window.toast) {
+            // @ts-ignore
+            window.toast.success('New session request received')
+          }
+        } catch (e) {
+          // Ignore if toast not available
+        }
+
+        // Refresh full count from server to stay in sync
+        setTimeout(fetchUnreadCount, 1000)
+      })
+      .subscribe((status) => {
+        console.log('[NotificationBell] Realtime subscription status:', status)
+      })
+
+    return () => {
+      console.log('[NotificationBell] Cleaning up realtime subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [userRole, playNotificationSound, fetchUnreadCount])
 
   // Update count when panel is closed (notifications might have been read)
   const handleClose = () => {
@@ -89,14 +140,14 @@ export function NotificationBell({ userId, userRole = 'customer' }: Notification
         </svg>
 
         {/* Unread Badge */}
-        {!loading && unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white z-10">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
 
         {/* Pulse animation for new notifications */}
-        {!loading && unreadCount > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
         )}
       </button>

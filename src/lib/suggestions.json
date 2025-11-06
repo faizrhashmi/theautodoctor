@@ -1,0 +1,53 @@
+{
+  "patterns": [
+    {
+      "keywords": ["brake", "brakes", "stopping", "squealing", "grinding"],
+      "suggestions": [
+        {
+          "text": "Brake pad wear is common. I recommend checking pad thickness and rotor condition.",
+          "label": "Brake Pad Check"
+        },
+        {
+          "text": "Could be brake fluid issue. When was your last brake fluid change?",
+          "label": "Brake Fluid"
+        }
+      ]
+    },
+    {
+      "keywords": ["engine", "noise", "knocking", "ticking", "rattling"],
+      "suggestions": [
+        {
+          "text": "Engine noises can indicate timing chain, valve train, or bearing issues. Can you describe when the noise occurs?",
+          "label": "Engine Diagnosis"
+        }
+      ]
+    },
+    {
+      "keywords": ["transmission", "shifting", "gear", "slipping"],
+      "suggestions": [
+        {
+          "text": "Transmission issues require fluid level check and scan for error codes. Do you feel any vibration?",
+          "label": "Transmission Check"
+        }
+      ]
+    },
+    {
+      "keywords": ["check engine", "warning light", "dashboard light", "cel"],
+      "suggestions": [
+        {
+          "text": "I'll need to run a diagnostic scan to read the error codes. This will identify the specific issue.",
+          "label": "Diagnostic Scan"
+        }
+      ]
+    },
+    {
+      "keywords": ["oil", "leak", "leaking", "drip", "dripping"],
+      "suggestions": [
+        {
+          "text": "Oil leaks need immediate attention. Can you take a photo of where you see the leak under the vehicle?",
+          "label": "Oil Leak Photo Request"
+        }
+      ]
+    }
+  ]
+}

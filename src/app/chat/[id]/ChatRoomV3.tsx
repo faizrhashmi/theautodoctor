@@ -5,13 +5,18 @@ import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase'
 import type { ChatMessage } from '@/types/supabase'
 import type { PlanKey } from '@/config/pricing'
-import toast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
 import MechanicProfileModal from '@/components/MechanicProfileModal'
 import { SessionCompletionModal } from '@/components/session/SessionCompletionModal'
+import MechanicToolsPanel from '@/components/mechanic/MechanicToolsPanel'
+import SmartSuggestions from '@/components/mechanic/SmartSuggestions'
+
+type MessageStatus = 'sending' | 'sent' | 'failed' | 'delivered' | 'read'
 
 type Message = Pick<ChatMessage, 'id' | 'content' | 'created_at' | 'sender_id'> & {
   attachments?: Array<{ name: string; url: string; size: number; type: string }>
   read_at?: string | null
+  status?: MessageStatus // Local only, not persisted to DB
 }
 
 // Lazy-loaded image component with IntersectionObserver
@@ -329,14 +334,28 @@ export default function ChatRoom({
 
   // Sync messages state with initialMessages prop when navigating back to chat
   useEffect(() => {
-    // Only update if we have initial messages and they're different from current state
+    // Always sync with server-fetched messages when component mounts or initialMessages changes
+    // This ensures chat history persists when users return to the session
     if (initialMessages.length > 0) {
       setMessages((prev) => {
-        // If current state is empty or significantly different, reset to initial messages
-        if (prev.length === 0 || prev.length !== initialMessages.length) {
+        // If current state is empty, use initial messages
+        if (prev.length === 0) {
           return [...initialMessages]
         }
-        // Otherwise keep current state (which includes real-time updates)
+
+        // Check if initialMessages has new messages not in current state
+        // This handles both: returning to session AND receiving new messages
+        const currentIds = new Set(prev.map(m => m.id))
+        const hasNewMessages = initialMessages.some(m => !currentIds.has(m.id))
+
+        if (hasNewMessages || prev.length < initialMessages.length) {
+          // Merge: keep any temp/optimistic messages, add any new server messages
+          const tempMessages = prev.filter(m => m.id.startsWith('temp-'))
+          const serverMessages = initialMessages.filter(m => !m.id.startsWith('temp-'))
+          return [...serverMessages, ...tempMessages]
+        }
+
+        // Keep current state if no new server messages
         return prev
       })
     }
@@ -620,7 +639,7 @@ export default function ChatRoom({
     const channel = supabase
       .channel(`session-${sessionId}`, {
         config: {
-          broadcast: { self: false }, // Don't receive own broadcasts
+          broadcast: { self: false }, // Don't receive own broadcasts - we handle optimistic UI locally
         },
       })
       .on('broadcast', { event: 'typing' }, (payload) => {
@@ -645,12 +664,29 @@ export default function ChatRoom({
         console.log('[ChatRoom] Received broadcast message:', payload)
         const msg = payload.payload.message
         if (msg) {
+          // Check if message is from another participant (not current user)
+          const isFromOtherParticipant = msg.sender_id !== userId
+
           setMessages((prev) => {
             if (prev.some((m) => m.id === msg.id)) {
               console.log('[ChatRoom] Message already exists, skipping:', msg.id)
               return prev
             }
             console.log('[ChatRoom] Adding new message to state:', msg.id)
+
+            // Play notification sound for messages from other participants
+            if (isFromOtherParticipant) {
+              try {
+                const audio = new Audio('/sounds/message-pop.mp3')
+                audio.volume = 0.5
+                audio.play().catch(() => {
+                  // Fail silently if sound can't play
+                })
+              } catch (error) {
+                // Fail silently
+              }
+            }
+
             return [
               ...prev,
               {
@@ -907,9 +943,6 @@ export default function ChatRoom({
       return
     }
 
-    setSending(true)
-    setError(null)
-
     // Stop typing indicator
     if (channelRef.current) {
       await channelRef.current.send({
@@ -919,23 +952,67 @@ export default function ChatRoom({
       })
     }
 
+    // Generate temporary ID for optimistic update
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: tempId,
+      content: trimmed || 'Attachment',
+      sender_id: userId,
+      created_at: new Date().toISOString(),
+      attachments: [], // Will be updated after upload
+      read_at: null,
+      status: 'sending' as const,
+    }
+
+    // 1️⃣ INSTANT: Add to UI immediately
+    setMessages((prev) => [...prev, optimisticMessage])
+    setError(null)
+
+    // Clear input immediately for better UX
+    const pendingContent = trimmed
+    const pendingAttachments = [...attachments]
+    setInput('')
+    setAttachments([])
+
+    // Keep focus on input (especially important on mobile)
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.focus({ preventScroll: true })
+          messageInputRef.current.style.height = 'auto'
+        }
+      }, 50)
+    })
+
     try {
       // Upload attachments first
       let uploadedFiles: Array<{ name: string; url: string; size: number; type: string }> = []
-      if (attachments.length > 0) {
+      if (pendingAttachments.length > 0) {
         setUploading(true)
-        uploadedFiles = await Promise.all(attachments.map((file) => uploadFile(file)))
+        uploadedFiles = await Promise.all(pendingAttachments.map((file) => uploadFile(file)))
         setUploading(false)
+
+        // Update optimistic message with uploaded files
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? { ...m, attachments: uploadedFiles }
+              : m
+          )
+        )
       }
 
-      // Use API endpoint (supports both customers and mechanics)
+      // 2️⃣ PERSIST: Save to database (will broadcast after persistence)
       const response = await fetch('/api/chat/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          content: trimmed || 'Attachment',
-          attachments: uploadedFiles.length > 0 ? uploadedFiles : [],
+          content: pendingContent || 'Attachment',
+          attachments: uploadedFiles,
+          tempId, // Send temp ID so API can return it for replacement
         }),
       })
 
@@ -945,68 +1022,159 @@ export default function ChatRoom({
       }
 
       const data = await response.json()
-      console.log('[ChatRoom] Message sent successfully:', data.message)
+      console.log('[ChatRoom] Message persisted successfully:', data.message)
 
-      // Add message to local state immediately so sender sees it
+      // 3️⃣ UPDATE: Replace temp message with real one and broadcast to recipient
       if (data.message) {
-        setMessages((prev) => {
-          // Check for duplicate to prevent double-adding
-          if (prev.some((m) => m.id === data.message.id)) {
-            return prev
-          }
-          return [
-            ...prev,
-            {
-              id: data.message.id,
-              content: data.message.content,
-              sender_id: data.message.sender_id,
-              created_at: data.message.created_at,
-              attachments: data.message.attachments || [],
-              read_at: null, // New messages start unread
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  id: data.message.id,
+                  content: data.message.content,
+                  sender_id: data.message.sender_id,
+                  created_at: data.message.created_at,
+                  attachments: data.message.attachments || [],
+                  read_at: null,
+                  status: 'sent' as const,
+                }
+              : m
+          )
+        )
+
+        // Broadcast the real message so recipient gets the persisted version
+        if (channelRef.current) {
+          await channelRef.current.send({
+            type: 'broadcast',
+            event: 'new_message',
+            payload: {
+              message: {
+                id: data.message.id,
+                content: data.message.content,
+                sender_id: data.message.sender_id,
+                created_at: data.message.created_at,
+                attachments: data.message.attachments || [],
+                read_at: null,
+              },
             },
-          ]
-        })
+          })
+          console.log('[ChatRoom] Broadcasted persisted message:', data.message.id)
+        }
       }
-
-      // Broadcast the message to all connected clients (including self)
-      // CRITICAL FIX: Reuse existing channel instead of creating a new one to prevent socket leaks
-      if (data.message && channelRef.current) {
-        await channelRef.current.send({
-          type: 'broadcast',
-          event: 'new_message',
-          payload: {
-            message: {
-              id: data.message.id,
-              content: data.message.content,
-              sender_id: data.message.sender_id,
-              created_at: data.message.created_at,
-              attachments: data.message.attachments || [],
-              read_at: null, // New messages start unread
-            },
-          },
-        })
-        console.log('[ChatRoom] Broadcasted message via existing channel:', data.message.id)
-      }
-
-      setInput('')
-      setAttachments([])
-
-      // Keep focus on input after sending (especially important on mobile)
-      // Use requestAnimationFrame + setTimeout for better mobile browser compatibility
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (messageInputRef.current) {
-            messageInputRef.current.focus({ preventScroll: true })
-            messageInputRef.current.style.height = 'auto'
-          }
-        }, 50)
-      })
     } catch (insertErr: any) {
       console.error('Send message error:', insertErr)
+
+      // Mark message as failed
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { ...m, status: 'failed' as const }
+            : m
+        )
+      )
+
       setError(insertErr?.message ?? 'Unable to send message right now.')
     } finally {
       setSending(false)
       setUploading(false)
+    }
+  }
+
+  async function handleRetryMessage(failedMessage: Message) {
+    // Remove the failed message from UI
+    setMessages((prev) => prev.filter((m) => m.id !== failedMessage.id))
+
+    // Generate new temp ID
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    // Create new optimistic message
+    const retryMessage: Message = {
+      id: tempId,
+      content: failedMessage.content,
+      sender_id: userId,
+      created_at: new Date().toISOString(),
+      attachments: failedMessage.attachments || [],
+      read_at: null,
+      status: 'sending' as const,
+    }
+
+    // Add to UI
+    setMessages((prev) => [...prev, retryMessage])
+    setError(null)
+
+    try {
+      // Broadcast immediately
+      if (channelRef.current) {
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'new_message',
+          payload: { message: retryMessage },
+        })
+        console.log('[ChatRoom] Broadcasted retry message:', tempId)
+      }
+
+      // Persist to database
+      const response = await fetch('/api/chat/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          content: failedMessage.content,
+          attachments: failedMessage.attachments || [],
+          tempId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to send message')
+      }
+
+      const data = await response.json()
+      console.log('[ChatRoom] Retry message persisted successfully:', data.message)
+
+      // Replace temp message with real one
+      if (data.message) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? {
+                  id: data.message.id,
+                  content: data.message.content,
+                  sender_id: data.message.sender_id,
+                  created_at: data.message.created_at,
+                  attachments: data.message.attachments || [],
+                  read_at: null,
+                  status: 'sent' as const,
+                }
+              : m
+          )
+        )
+
+        // Broadcast persisted message
+        if (channelRef.current) {
+          await channelRef.current.send({
+            type: 'broadcast',
+            event: 'new_message',
+            payload: { message: data.message },
+          })
+        }
+
+        toast.success('Message sent successfully')
+      }
+    } catch (error: any) {
+      console.error('Retry message error:', error)
+
+      // Mark as failed again
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { ...m, status: 'failed' as const }
+            : m
+        )
+      )
+
+      toast.error('Failed to send message. Please try again.')
     }
   }
 
@@ -1166,6 +1334,39 @@ export default function ChatRoom({
       setEndingSession(false)
     }
   }
+
+  // Mechanic Tools Handlers
+  const handleInsertTemplate = useCallback((text: string) => {
+    if (messageInputRef.current) {
+      const currentValue = messageInputRef.current.value
+      const newValue = currentValue ? `${currentValue}\n\n${text}` : text
+      setInput(newValue)
+      messageInputRef.current.value = newValue
+      messageInputRef.current.focus()
+
+      // Auto-resize textarea
+      messageInputRef.current.style.height = 'auto'
+      messageInputRef.current.style.height = Math.min(messageInputRef.current.scrollHeight, 120) + 'px'
+    }
+  }, [])
+
+  const handleVoiceTranscript = useCallback((text: string) => {
+    if (messageInputRef.current) {
+      const currentValue = messageInputRef.current.value
+      const newValue = currentValue ? `${currentValue} ${text}` : text
+      setInput(newValue)
+      messageInputRef.current.value = newValue
+
+      // Auto-resize textarea
+      messageInputRef.current.style.height = 'auto'
+      messageInputRef.current.style.height = Math.min(messageInputRef.current.scrollHeight, 120) + 'px'
+    }
+  }, [])
+
+  // Get recent messages for smart suggestions
+  const recentMessages = useMemo(() => {
+    return messages.slice(-5).map(m => m.content)
+  }, [messages])
 
   return (
     <div className="flex h-screen flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -1599,7 +1800,7 @@ export default function ChatRoom({
                         }`}
                       >
                         {message.content && (
-                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</p>
+                          <p className="whitespace-pre-wrap break-words break-all text-sm leading-relaxed overflow-wrap-anywhere">{message.content}</p>
                         )}
 
                         {/* Attachments - Inline images or file links */}
@@ -1667,24 +1868,50 @@ export default function ChatRoom({
                         )}
                       </div>
 
-                      {/* Timestamp with Read Receipts */}
-                      <div className={`flex items-center gap-1 px-1 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {/* Timestamp with Status Indicators */}
+                      <div className={`flex items-center gap-1.5 px-1 ${isSenderMechanic ? 'flex-row-reverse' : 'flex-row'}`}>
                         <span className={`text-[10px] text-slate-500`}>
                           {formatTimestamp(message.created_at)}
                         </span>
 
-                        {/* Read Receipts - Only show for own messages */}
+                        {/* Status Indicators - Only show for own messages */}
                         {((userRole === 'mechanic' && isSenderMechanic) || (userRole === 'customer' && !isSenderMechanic)) && (
-                          <span className="text-[10px] text-slate-400 flex items-center">
-                            {message.read_at ? (
+                          <span className="text-[10px] flex items-center gap-1">
+                            {message.status === 'sending' ? (
+                              // Spinner for sending
+                              <svg className="h-3 w-3 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : message.status === 'failed' ? (
+                              // Alert icon for failed with retry action
+                              <span
+                                onClick={() => handleRetryMessage(message)}
+                                className="flex items-center gap-1 text-red-400 hover:text-red-300 transition cursor-pointer"
+                                title="Retry sending message"
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    handleRetryMessage(message)
+                                  }
+                                }}
+                              >
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                <span className="text-[9px] underline">Retry</span>
+                              </span>
+                            ) : message.read_at ? (
                               // Double checkmark for read messages
-                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                              <svg className="h-3 w-3 text-blue-400" viewBox="0 0 16 16" fill="currentColor">
                                 <path d="M0.5 8.5l1.5 1.5 3-3-1.5-1.5-3 3zm5 0l1.5 1.5 8-8-1.5-1.5-8 8z" />
                                 <path d="M3.5 8.5l1.5 1.5 8-8-1.5-1.5-8 8z" opacity="0.6" />
                               </svg>
                             ) : (
                               // Single checkmark for sent messages
-                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                              <svg className="h-3 w-3 text-slate-400" viewBox="0 0 16 16" fill="currentColor">
                                 <path d="M3.5 8.5l1.5 1.5 8-8-1.5-1.5-8 8z" />
                               </svg>
                             )}
@@ -1711,6 +1938,16 @@ export default function ChatRoom({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </button>
+        )}
+
+        {/* Smart Suggestions for Mechanics */}
+        {isMechanic && !sessionEnded && recentMessages.length > 0 && (
+          <div className="mt-3">
+            <SmartSuggestions
+              recentMessages={recentMessages}
+              onInsert={handleInsertTemplate}
+            />
+          </div>
         )}
 
         {/* Input Area - Mobile Optimized with Safe Area */}
@@ -1818,8 +2055,8 @@ export default function ChatRoom({
             </div>
           )}
 
-          {/* Input Area - WhatsApp-style with full-width textbox and compact buttons */}
-          <div className="relative">
+          {/* Input Area - Slim & Beautiful */}
+          <div className="border-t border-slate-700 bg-slate-800 p-2 sm:p-3">
             {/* Hidden file inputs */}
             <input
               ref={fileInputRef}
@@ -1830,10 +2067,9 @@ export default function ChatRoom({
               accept="image/*,application/pdf,.doc,.docx,.txt"
             />
 
-            {/* Main Input Container - WhatsApp Style: Single cohesive box with all buttons integrated */}
-            <div className="flex items-end gap-2 rounded-2xl border border-slate-600/50 bg-slate-700/50 px-3 py-2 transition focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20">
-              {/* Left Buttons - Inside the box */}
-              <div className="flex items-center gap-1.5 pb-0.5">
+            <div className="flex items-end gap-2">
+              {/* Left Buttons */}
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {/* Camera Button */}
                 <button
                   type="button"
@@ -1853,20 +2089,19 @@ export default function ChatRoom({
                     }
                   }}
                   disabled={sending || uploading || sessionEnded}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center text-slate-400 transition-colors hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0"
                   title="Take photo"
+                  aria-label="Take photo"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5 sm:h-5.5 sm:w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
                     />
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
@@ -1884,21 +2119,21 @@ export default function ChatRoom({
                     }
                   }}
                   disabled={sending || uploading || sessionEnded}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-600/50 hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center text-slate-400 transition-colors hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0"
                   title="Attach file"
+                  aria-label="Attach file"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5 sm:h-5.5 sm:w-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                     />
                   </svg>
                 </button>
               </div>
 
-              {/* Textarea - Borderless, fills remaining space */}
+              {/* Textarea - Wide & Clean */}
               <textarea
                 ref={messageInputRef}
                 value={input}
@@ -1915,44 +2150,37 @@ export default function ChatRoom({
                     form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
                   }
                 }}
-                placeholder={sessionEnded ? "Session has ended" : "Type your message..."}
+                placeholder={sessionEnded ? "Session ended" : "Type a message..."}
                 rows={1}
                 maxLength={2000}
                 style={{ maxHeight: '120px' }}
-                className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder-slate-400 outline-none disabled:cursor-not-allowed"
+                className="flex-1 resize-none rounded-2xl border border-slate-600 bg-slate-700 px-4 py-2.5 text-sm text-white placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 sm:text-base disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={sending || uploading || sessionEnded}
               />
 
-              {/* Send Button - Inside the box on the right */}
-              <div className="flex items-center pb-0.5">
-                <button
-                  type="submit"
-                  disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white transition hover:from-orange-600 hover:to-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  title="Send message"
-                >
-                  {sending || uploading ? (
-                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Character Count - Below the input box */}
-            <div className="mt-1.5 flex items-center justify-between text-[10px] sm:text-xs text-slate-500 px-1">
-              <span>{input.length} / 2000</span>
-              <span className="hidden sm:inline">Press Enter to send</span>
+              {/* Send Button */}
+              <button
+                type="submit"
+                disabled={sending || uploading || sessionEnded || (!input.trim() && attachments.length === 0)}
+                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center text-orange-500 transition-colors hover:text-orange-400 disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0"
+                title="Send message"
+                aria-label="Send message"
+              >
+                {sending || uploading ? (
+                  <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <svg className="h-6 w-6 sm:h-7 sm:w-7" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -2498,6 +2726,18 @@ export default function ChatRoom({
               : '/customer/sessions'
           }}
           userRole={isMechanic ? 'mechanic' : 'customer'}
+        />
+      )}
+
+      {/* Mechanic Productivity Tools Panel */}
+      {isMechanic && mechanicId && (
+        <MechanicToolsPanel
+          sessionId={sessionId}
+          mechanicId={mechanicId}
+          onInsertTemplate={handleInsertTemplate}
+          onVoiceTranscript={handleVoiceTranscript}
+          sessionStartedAt={currentStartedAt}
+          isSessionActive={currentStatus === 'live' && !sessionEnded}
         />
       )}
     </div>

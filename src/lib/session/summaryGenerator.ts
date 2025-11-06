@@ -92,18 +92,20 @@ function extractIssues(text: string): IdentifiedIssue[] {
 function generateCustomerReport(sessionData: SessionData): string {
   const parts: string[] = []
 
-  // Chat summary
+  // Chat summary with full transcript
   if (sessionData.messages && sessionData.messages.length > 0) {
-    const mechanicMessages = sessionData.messages.filter(
-      (m) => m.sender_role === 'mechanic'
-    )
+    parts.push('## Chat Transcript\n')
 
-    if (mechanicMessages.length > 0) {
-      parts.push('## Session Discussion\n')
-      parts.push(
-        `During this ${sessionData.type} session, your mechanic provided guidance and answered your questions.`
-      )
-    }
+    sessionData.messages.forEach((msg) => {
+      const role = msg.sender_role === 'mechanic' ? 'Mechanic' : 'You'
+      const timestamp = new Date(msg.created_at).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+      parts.push(`**${role}** (${timestamp}):  \n${msg.content}\n`)
+    })
   }
 
   // Mechanic notes
