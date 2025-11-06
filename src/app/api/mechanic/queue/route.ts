@@ -40,66 +40,67 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user?.id ?? '')
       .single();
 
-    console.log('[mechanic/queue] user', user?.id, 'mech', mech?.id);
-
-    // 1) Unassigned, queued requests (the public queue every mechanic can see)
-    const { data: unassigned } = await supabase
+    // Unassigned (public queue) — use user client for assignments, admin for sessions
+    // assignments visible via RLS
+    const { data: unassignedA } = await supabase
       .from('session_assignments')
-      .select(`
-        id,
-        status,
-        mechanic_id,
-        session_id,
-        created_at,
-        updated_at,
-        sessions!inner(
-          id,
-          status,
-          plan,
-          type,
-          created_at,
-          scheduled_start,
-          scheduled_end,
-          customer_id
-        )
-      `)
-      .is('mechanic_id', null)                // <<< IMPORTANT: include NULL mechanic = unassigned
-      .eq('status', 'queued')                  // only queued rows
-      .in('sessions.status', ['pending','waiting']) // pair with session states shown in queue
+      .select('id, status, mechanic_id, session_id, created_at, updated_at')
+      .is('mechanic_id', null)
+      .eq('status', 'queued')
       .order('created_at', { ascending: false })
       .limit(50);
 
-    // 2) (optional) "My" in-progress offers for this mechanic (if you show them in queue)
-    const { data: mine } = await supabase
+    // fetch sessions with admin (bypass RLS) but whitelist fields
+    const unassignedSessionIds = (unassignedA ?? []).map(a => a.session_id);
+    const { data: unassignedS } = unassignedSessionIds.length
+      ? await supabaseAdmin
+          .from('sessions')
+          .select('id, status, plan, type, created_at, scheduled_start, scheduled_end, started_at, ended_at')
+          .in('id', unassignedSessionIds)
+          .in('status', ['pending','waiting'])
+      : { data: [] as any[] };
+
+    const unassigned = (unassignedA ?? []).map(a => ({
+      ...a,
+      sessions: unassignedS?.find(s => s.id === a.session_id) ?? null,
+    })).filter(a => a.sessions); // drop if session not eligible
+
+    // Mine (my active work) — same pattern
+    const { data: mineA } = await supabase
       .from('session_assignments')
-      .select(`
-        id,
-        status,
-        mechanic_id,
-        session_id,
-        created_at,
-        updated_at,
-        sessions!inner(
-          id,
-          status,
-          plan,
-          type,
-          created_at,
-          scheduled_start,
-          scheduled_end,
-          customer_id
-        )
-      `)
-      .eq('mechanic_id', mech?.id ?? '__none__')
+      .select('id, status, mechanic_id, session_id, created_at, updated_at')
+      .eq('mechanic_id', mech?.id ?? '00000000-0000-0000-0000-000000000000')
       .in('status', ['accepted','joined','in_progress'])
-      .in('sessions.status', ['waiting','live'])
       .order('created_at', { ascending: false })
       .limit(50);
+
+    const mineSessionIds = (mineA ?? []).map(a => a.session_id);
+    const { data: mineS } = mineSessionIds.length
+      ? await supabaseAdmin
+          .from('sessions')
+          .select('id, status, plan, type, created_at, scheduled_start, scheduled_end, started_at, ended_at')
+          .in('id', mineSessionIds)
+          .in('status', ['waiting','live'])
+      : { data: [] as any[] };
+
+    const mine = (mineA ?? []).map(a => ({
+      ...a,
+      sessions: mineS?.find(s => s.id === a.session_id) ?? null,
+    })).filter(a => a.sessions);
+
+    // Log helpful counts
+    console.log('[mechanic/queue]', {
+      user: user?.id, mech: mech?.id,
+      unassignedA: unassignedA?.length ?? 0,
+      unassignedS: unassignedS?.length ?? 0,
+      mineA: mineA?.length ?? 0,
+      mineS: mineS?.length ?? 0,
+    });
 
     // return combined list (adjust shape to what the UI expects)
     return NextResponse.json({
-      unassigned: unassigned ?? [],
-      mine: mine ?? [],
+      unassigned,
+      mine,
       total: (unassigned?.length ?? 0) + (mine?.length ?? 0),
     })
 
