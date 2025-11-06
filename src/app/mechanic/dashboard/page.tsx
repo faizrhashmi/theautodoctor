@@ -19,6 +19,15 @@ import { useNewRequestsIndicator } from '@/state/newRequestsIndicator'
 import { setTabNewRequests } from '@/lib/tabAttention'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 
+// --- Realtime custom event types for TS ---
+declare global {
+  interface WindowEventMap {
+    'mechanic:assignments:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; assignmentId?: string; status?: string; sessionId?: string }>;
+    'mechanic:sessions:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; sessionId?: string; status?: string }>;
+    'mechanic:quotes:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; quoteId?: string }>;
+  }
+}
+
 interface ActiveSession {
   id: string
   plan: string
@@ -113,15 +122,16 @@ export default function MechanicDashboardPage() {
 
   // Dedicated refetch function for realtime updates
   const refetchAllData = useCallback(async () => {
-    console.log('[MechanicDashboard] 🔄 Real-time update detected, refetching all data...')
+    console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…')
 
     // Refetch queue
     try {
       const queueResponse = await fetch('/api/mechanic/queue')
       if (queueResponse.ok) {
         const queueData = await queueResponse.json()
-        setQueue(queueData.queue || [])
-        console.log('[MechanicDashboard] ✓ Refetched queue:', queueData.queue?.length || 0)
+        const queue = queueData.queue || []
+        setQueue(queue)
+        console.log('[MechanicDashboard] ✅ Queue refetched:', queue?.length ?? 0)
       }
     } catch (err) {
       console.error('[MechanicDashboard] Failed to refetch queue:', err)
@@ -422,98 +432,30 @@ export default function MechanicDashboardPage() {
   }, [retryCount, isAuthenticated, checkingTier])
 
   // Listen to custom events emitted by MechanicRealtimeMount (in layout)
-  // This decouples subscription management from page logic
   useEffect(() => {
-    if (checkingTier || !isAuthenticated) return
+    const onAssign = (e: WindowEventMap['mechanic:assignments:update']) => {
+      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', e.detail);
+      refetchAllData();
+    };
+    const onSession = (e: WindowEventMap['mechanic:sessions:update']) => {
+      console.log('[MechanicDashboard] 🔔 Realtime session update received', e.detail);
+      refetchAllData();
+    };
+    const onQuote = (e: WindowEventMap['mechanic:quotes:update']) => {
+      console.log('[MechanicDashboard] 🔔 Realtime quote update received', e.detail);
+      refetchAllData();
+    };
 
-    console.log('[MechanicDashboard] 👂 Listening to realtime events from layout...')
+    window.addEventListener('mechanic:assignments:update', onAssign as EventListener);
+    window.addEventListener('mechanic:sessions:update', onSession as EventListener);
+    window.addEventListener('mechanic:quotes:update', onQuote as EventListener);
 
-    // Window focus handler - refetch data when user returns to tab
-    const onFocus = () => {
-      console.log('[MechanicDashboard] Window focused, refetching data...')
-      refetchAllData()
-    }
-
-    // Handle session assignment events (emitted by MechanicRealtimeMount)
-    const handleAssignmentUpdate = async (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      console.log('[MechanicDashboard] 📨 Assignment event received:', detail)
-
-      // Check if this is a newly queued assignment (for alerts)
-      if (detail.eventType === 'INSERT' && detail.status === 'queued') {
-        console.log('[MechanicDashboard] New assignment queued:', detail.assignmentId)
-
-        // Trigger alert if enabled
-        if (flags.mech_new_request_alerts) {
-          console.log('[MechanicDashboard] 🔔 Triggering alert for new assignment')
-
-          // Fetch session and intake details for alert
-          try {
-            const { data: session } = await supabase
-              .from('sessions')
-              .select('id, type, intake_id')
-              .eq('id', detail.sessionId)
-              .single()
-
-            if (session) {
-              const { data: intake } = await supabase
-                .from('intakes')
-                .select('name, year, make, model, vin, concern')
-                .eq('id', session.intake_id)
-                .single()
-
-              const vehicleSummary = intake?.vin
-                ? `VIN: ${intake.vin}`
-                : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
-
-              // Trigger multi-layer alert system
-              onNewSessionRequest(
-                {
-                  requestId: detail.assignmentId,
-                  customerName: intake?.name || 'Customer',
-                  vehicle: vehicleSummary || 'Vehicle',
-                  concern: intake?.concern || '',
-                },
-                flags
-              )
-            }
-          } catch (error) {
-            console.error('[MechanicDashboard] Error fetching assignment details:', error)
-          }
-        }
-      }
-
-      // Always refetch queue when assignments change
-      refetchAllData()
-    }
-
-    // Handle session events
-    const handleSessionUpdate = () => {
-      console.log('[MechanicDashboard] 📨 Session event received')
-      refetchAllData()
-    }
-
-    // Handle quote events
-    const handleQuoteUpdate = () => {
-      console.log('[MechanicDashboard] 📨 Quote event received')
-      refetchAllData()
-    }
-
-    // Register event listeners
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('mechanic:assignments:update', handleAssignmentUpdate as EventListener)
-    window.addEventListener('mechanic:sessions:update', handleSessionUpdate as EventListener)
-    window.addEventListener('mechanic:quotes:update', handleQuoteUpdate as EventListener)
-
-    // Cleanup event listeners on unmount (NOT subscriptions - layout handles those)
     return () => {
-      console.log('[MechanicDashboard] 🔌 Removing event listeners')
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('mechanic:assignments:update', handleAssignmentUpdate as EventListener)
-      window.removeEventListener('mechanic:sessions:update', handleSessionUpdate as EventListener)
-      window.removeEventListener('mechanic:quotes:update', handleQuoteUpdate as EventListener)
-    }
-  }, [checkingTier, isAuthenticated, refetchAllData, supabase, flags])
+      window.removeEventListener('mechanic:assignments:update', onAssign as EventListener);
+      window.removeEventListener('mechanic:sessions:update', onSession as EventListener);
+      window.removeEventListener('mechanic:quotes:update', onQuote as EventListener);
+    };
+  }, [])
 
   if (authChecking || checkingTier) {
     return (
