@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Realtime for session_assignments</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Test Realtime for session_assignments</h1>
+  <button onclick="testUpdate()">Trigger Test Update</button>
+  <pre id="log"></pre>
+
+  <script>
+    const SUPABASE_URL = 'https://qtkouemogsymqrzkysar.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0a291ZW1vZ3N5bXFyemt5c2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MTgyOTUsImV4cCI6MjA3NjI5NDI5NX0.Q6n9qHk8NXe3GBMTpQN4VuxFtFqmuPvc-HTs2YmAHvw'
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const logEl = document.getElementById('log')
+
+    function log(msg) {
+      const timestamp = new Date().toLocaleTimeString()
+      logEl.textContent += `[${timestamp}] ${msg}\n`
+      console.log(msg)
+    }
+
+    // Subscribe to postgres_changes for session_assignments
+    log('Setting up subscription...')
+
+    const channel = supabase
+      .channel('test-assignments')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'session_assignments',
+        },
+        (payload) => {
+          log(`🔔 POSTGRES_CHANGES EVENT RECEIVED!`)
+          log(`Event: ${payload.eventType}`)
+          log(`New record: ${JSON.stringify(payload.new, null, 2)}`)
+          log(`Old record: ${JSON.stringify(payload.old, null, 2)}`)
+        }
+      )
+      .subscribe((status) => {
+        log(`Subscription status: ${status}`)
+      })
+
+    async function testUpdate() {
+      log('\n--- Triggering manual update ---')
+
+      // Get the most recent assignment
+      const { data: assignments } = await supabase
+        .from('session_assignments')
+        .select('id, status')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!assignments || assignments.length === 0) {
+        log('❌ No assignments found to update')
+        return
+      }
+
+      const assignment = assignments[0]
+      log(`Found assignment: ${assignment.id} (status: ${assignment.status})`)
+
+      // Toggle status to trigger an UPDATE event
+      const newStatus = assignment.status === 'queued' ? 'offered' : 'queued'
+
+      log(`Updating status to: ${newStatus}`)
+      const { error } = await supabase
+        .from('session_assignments')
+        .update({ status: newStatus })
+        .eq('id', assignment.id)
+
+      if (error) {
+        log(`❌ Update error: ${error.message}`)
+      } else {
+        log(`✅ Update successful - watch for postgres_changes event above`)
+      }
+    }
+
+    log('✅ Page loaded - waiting for events...')
+    log('Click the button above to trigger a manual update')
+  </script>
+</body>
+</html>

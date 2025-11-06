@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Realtime (Authenticated)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+    #log {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .auth-section {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    input { padding: 8px; margin: 5px; width: 250px; }
+  </style>
+</head>
+<body>
+  <h1>Test Realtime for session_assignments (Authenticated)</h1>
+
+  <div class="auth-section">
+    <h3>Step 1: Sign in as a mechanic</h3>
+    <input type="email" id="email" placeholder="mechanic email">
+    <input type="password" id="password" placeholder="password">
+    <button onclick="signIn()">Sign In</button>
+    <div id="auth-status"></div>
+  </div>
+
+  <div>
+    <h3>Step 2: Test realtime events</h3>
+    <button onclick="testUpdate()">Trigger Test Update</button>
+  </div>
+
+  <pre id="log"></pre>
+
+  <script>
+    const SUPABASE_URL = 'https://qtkouemogsymqrzkysar.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0a291ZW1vZ3N5bXFyemt5c2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MTgyOTUsImV4cCI6MjA3NjI5NDI5NX0.Q6n9qHk8NXe3GBMTpQN4VuxFtFqmuPvc-HTs2YmAHvw'
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const logEl = document.getElementById('log')
+    const authStatusEl = document.getElementById('auth-status')
+
+    let channel = null
+
+    function log(msg) {
+      const timestamp = new Date().toLocaleTimeString()
+      logEl.textContent += `[${timestamp}] ${msg}\n`
+      console.log(msg)
+    }
+
+    async function signIn() {
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+
+      if (!email || !password) {
+        authStatusEl.textContent = '❌ Please enter email and password'
+        authStatusEl.style.color = 'red'
+        return
+      }
+
+      log('Attempting to sign in...')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        log(`❌ Sign in error: ${error.message}`)
+        authStatusEl.textContent = `❌ Error: ${error.message}`
+        authStatusEl.style.color = 'red'
+      } else {
+        log(`✅ Signed in as: ${data.user.email}`)
+        authStatusEl.textContent = `✅ Signed in as: ${data.user.email}`
+        authStatusEl.style.color = 'green'
+
+        // Now set up the subscription
+        setupSubscription()
+      }
+    }
+
+    function setupSubscription() {
+      log('\n--- Setting up subscription ---')
+
+      // Unsubscribe from old channel if exists
+      if (channel) {
+        channel.unsubscribe()
+      }
+
+      channel = supabase
+        .channel('test-assignments-auth')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'session_assignments',
+          },
+          (payload) => {
+            log(`\n🔔🔔🔔 POSTGRES_CHANGES EVENT RECEIVED! 🔔🔔🔔`)
+            log(`Event: ${payload.eventType}`)
+            log(`New record: ${JSON.stringify(payload.new, null, 2)}`)
+            log(`Old record: ${JSON.stringify(payload.old, null, 2)}`)
+          }
+        )
+        .subscribe((status) => {
+          log(`Subscription status: ${status}`)
+        })
+    }
+
+    async function testUpdate() {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        log('❌ Please sign in first!')
+        return
+      }
+
+      log('\n--- Triggering manual update ---')
+
+      // Get the most recent assignment
+      const { data: assignments } = await supabase
+        .from('session_assignments')
+        .select('id, status')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (!assignments || assignments.length === 0) {
+        log('❌ No assignments found to update')
+        return
+      }
+
+      const assignment = assignments[0]
+      log(`Found assignment: ${assignment.id} (status: ${assignment.status})`)
+
+      // Toggle status to trigger an UPDATE event
+      const newStatus = assignment.status === 'queued' ? 'offered' : 'queued'
+
+      log(`Updating status to: ${newStatus}`)
+      const { error } = await supabase
+        .from('session_assignments')
+        .update({ status: newStatus })
+        .eq('id', assignment.id)
+
+      if (error) {
+        log(`❌ Update error: ${error.message}`)
+      } else {
+        log(`✅ Update successful - watch for postgres_changes event above`)
+      }
+    }
+
+    log('✅ Page loaded')
+    log('Please sign in as a mechanic to test realtime events')
+  </script>
+</body>
+</html>

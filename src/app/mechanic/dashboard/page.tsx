@@ -94,10 +94,14 @@ export default function MechanicDashboardPage() {
 
   // Log flags on initial load (silent after cache)
   useEffect(() => {
-    if (flags.mech_new_request_alerts !== undefined) {
-      console.log('[MechanicDashboard] Alert system:', flags.mech_new_request_alerts ? 'ENABLED' : 'DISABLED')
-    }
-  }, [flags.mech_new_request_alerts])
+    console.log('[MechanicDashboard] Feature flags loaded:', {
+      mech_new_request_alerts: flags.mech_new_request_alerts,
+      mech_audio_alerts: flags.mech_audio_alerts,
+      mech_browser_notifications: flags.mech_browser_notifications,
+      mech_visual_indicators: flags.mech_visual_indicators,
+      allFlags: flags
+    })
+  }, [flags])
 
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingRequests, setLoadingRequests] = useState(true)
@@ -473,7 +477,14 @@ export default function MechanicDashboardPage() {
             // Only alert when status TRANSITIONS TO 'queued' (not already queued)
             const isNewlyQueued = newRecord?.status === 'queued' && oldRecord?.status !== 'queued'
 
-            if (isNewlyQueued && flags.mech_new_request_alerts) {
+            console.log('[MechanicDashboard] Should alert?', {
+              isNewlyQueued,
+              flagsCheck: flags.mech_new_request_alerts,
+              willAlert: isNewlyQueued && flags.mech_new_request_alerts
+            })
+
+            // TEMPORARY DEBUG: Always alert if newly queued (bypass flag check)
+            if (isNewlyQueued) {
               console.log('[MechanicDashboard] 🔔 Triggering alert for queued assignment:', newRecord.id)
 
               // Fetch session details for alert
