@@ -451,8 +451,83 @@ export default function MechanicDashboardPage() {
           schema: 'public',
           table: 'session_assignments',
         },
-        (payload) => {
+        async (payload) => {
           console.log('[MechanicDashboard] Session assignment change detected:', payload)
+          console.log('[MechanicDashboard] Event type:', payload.eventType, 'New record:', payload.new)
+
+          // PHASE 3A: Trigger alerts when new assignment becomes 'queued'
+          // This replaces the broadcast-based alert system
+          // CRITICAL FIX: Supabase returns lowercase event types ('insert', 'update')
+          const eventType = payload.eventType?.toUpperCase()
+          if (eventType === 'INSERT' || eventType === 'UPDATE') {
+            const newRecord = payload.new as any
+            const oldRecord = payload.old as any
+
+            console.log('[MechanicDashboard] Checking if should alert:', {
+              eventType,
+              oldStatus: oldRecord?.status,
+              newStatus: newRecord?.status,
+              alertsEnabled: flags.mech_new_request_alerts
+            })
+
+            // Only alert when status TRANSITIONS TO 'queued' (not already queued)
+            const isNewlyQueued = newRecord?.status === 'queued' && oldRecord?.status !== 'queued'
+
+            if (isNewlyQueued && flags.mech_new_request_alerts) {
+              console.log('[MechanicDashboard] 🔔 Triggering alert for queued assignment:', newRecord.id)
+
+              // Fetch session details for alert
+              try {
+                const { data: session, error: sessionError } = await supabase
+                  .from('sessions')
+                  .select('id, type, intake_id')
+                  .eq('id', newRecord.session_id)
+                  .single()
+
+                if (sessionError) {
+                  console.error('[MechanicDashboard] Failed to fetch session:', sessionError)
+                  return
+                }
+
+                if (session) {
+                  console.log('[MechanicDashboard] Fetched session:', session)
+
+                  // Fetch intake for customer/vehicle info
+                  const { data: intake, error: intakeError } = await supabase
+                    .from('intakes')
+                    .select('name, year, make, model, vin, concern')
+                    .eq('id', session.intake_id)
+                    .single()
+
+                  if (intakeError) {
+                    console.error('[MechanicDashboard] Failed to fetch intake:', intakeError)
+                    // Continue with minimal info
+                  }
+
+                  const vehicleSummary = intake?.vin
+                    ? `VIN: ${intake.vin}`
+                    : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
+
+                  console.log('[MechanicDashboard] 🔔 Calling onNewSessionRequest with:', {
+                    requestId: newRecord.id,
+                    customerName: intake?.name || 'Customer',
+                    vehicle: vehicleSummary || 'Vehicle'
+                  })
+
+                  // Trigger multi-layer alert system
+                  onNewSessionRequest({
+                    requestId: newRecord.id,
+                    customerName: intake?.name || 'Customer',
+                    vehicle: vehicleSummary || 'Vehicle',
+                    concern: intake?.concern || '',
+                  }, flags)
+                }
+              } catch (error) {
+                console.error('[MechanicDashboard] Error fetching assignment details:', error)
+              }
+            }
+          }
+
           refetchData()
         }
       )
@@ -472,54 +547,13 @@ export default function MechanicDashboardPage() {
         console.log('[MechanicDashboard] Subscription status:', status)
       })
 
-    // Subscribe to broadcast channel for instant real-time session assignment updates
-    const broadcastChannel = supabase
-      .channel('session_assignments_feed')
-      .on(
-        'broadcast',
-        { event: 'new_assignment' },
-        (payload) => {
-          console.log('[MechanicDashboard] 🔔 New assignment received:', payload.customerName, '-', payload.vehicleSummary)
-
-          // Tier 1-4: Trigger multi-layer alert system
-          if (flags.mech_new_request_alerts) {
-            onNewSessionRequest({
-              requestId: payload.requestId || payload.sessionId,
-              customerName: payload.customerName,
-              vehicle: payload.vehicleSummary || payload.vehicle,
-              concern: payload.concern,
-            }, flags)
-          }
-
-          // Immediately refetch pending requests to show new assignment
-          refetchData()
-        }
-      )
-      .on(
-        'broadcast',
-        { event: 'assignment_accepted' },
-        (payload) => {
-          console.log('[MechanicDashboard] Assignment accepted broadcast:', payload)
-          refetchData()
-        }
-      )
-      .on(
-        'broadcast',
-        { event: 'assignment_cancelled' },
-        (payload) => {
-          console.log('[MechanicDashboard] Assignment cancelled broadcast:', payload)
-          refetchData()
-        }
-      )
-      .subscribe((status) => {
-        console.log('[MechanicDashboard] Broadcast channel status:', status)
-      })
+    // PHASE 3A: Removed broadcast channel - now using postgres_changes above
+    // postgres_changes is more reliable on Render (survives container restarts)
 
     return () => {
       console.log('[MechanicDashboard] Cleaning up subscriptions')
       window.removeEventListener('focus', onFocus)
       supabase.removeChannel(channel)
-      supabase.removeChannel(broadcastChannel)
     }
   }, [checkingTier, supabase, isAuthenticated])
 

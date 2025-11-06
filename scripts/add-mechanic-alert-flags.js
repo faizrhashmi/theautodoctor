@@ -1,120 +1,66 @@
 /**
- * Add Mechanic Alert System Feature Flags to Database
- *
- * Run with: node scripts/add-mechanic-alert-flags.js
+ * Script to add mechanic alert feature flags to the database
  */
 
 const { createClient } = require('@supabase/supabase-js')
-require('dotenv').config({ path: '.env.local' })
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables:')
-  console.error('   NEXT_PUBLIC_SUPABASE_URL:', !!supabaseUrl)
-  console.error('   SUPABASE_SERVICE_ROLE_KEY:', !!supabaseServiceKey)
+  console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
   process.exit(1)
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const mechanicAlertFlags = [
+const flags = [
   {
     flag_key: 'mech_new_request_alerts',
     flag_name: 'Mechanic New Request Alerts',
-    description: 'Master flag for multi-tier mechanic alert system (Tiers 1-4: Toast, Audio, Browser, Visual indicators)',
-    is_enabled: true,
-    enabled_for_roles: ['mechanic', 'admin'],
-    rollout_percentage: 100,
-    metadata: {
-      category: 'mechanic_ux',
-      tiers: ['toast', 'audio', 'browser', 'visual'],
-      version: '1.0',
-    }
+    description: 'Enable multi-layer alert system for mechanics when new session requests arrive',
+    enabled_for_roles: ['mechanic'],
+    metadata: { tier: 'all' }
   },
   {
     flag_key: 'mech_audio_alerts',
     flag_name: 'Mechanic Audio Alerts',
-    description: 'Tier 2: Play notification sound when new session request arrives (requires user gesture)',
-    is_enabled: true,
-    enabled_for_roles: ['mechanic', 'admin'],
-    rollout_percentage: 100,
-    metadata: {
-      category: 'mechanic_ux',
-      tier: 2,
-      parent_flag: 'mech_new_request_alerts',
-      sound_file: '/sounds/new-request.mp3',
-    }
+    description: 'Play audio notification sound when new session requests arrive',
+    enabled_for_roles: ['mechanic'],
+    metadata: { tier: 'all' }
   },
   {
     flag_key: 'mech_browser_notifications',
     flag_name: 'Mechanic Browser Notifications',
-    description: 'Tier 3: Show native browser notifications when tab is inactive/background (requires permission)',
-    is_enabled: true,
-    enabled_for_roles: ['mechanic', 'admin'],
-    rollout_percentage: 100,
-    metadata: {
-      category: 'mechanic_ux',
-      tier: 3,
-      parent_flag: 'mech_new_request_alerts',
-      requires_permission: true,
-    }
+    description: 'Show browser notifications when tab is in background',
+    enabled_for_roles: ['mechanic'],
+    metadata: { tier: 'all' }
   },
   {
     flag_key: 'mech_visual_indicators',
     flag_name: 'Mechanic Visual Indicators',
-    description: 'Tier 4: Show persistent visual badges and update tab title with new request count',
-    is_enabled: true,
-    enabled_for_roles: ['mechanic', 'admin'],
-    rollout_percentage: 100,
-    metadata: {
-      category: 'mechanic_ux',
-      tier: 4,
-      parent_flag: 'mech_new_request_alerts',
-      indicators: ['badge', 'tab_title'],
-    }
-  },
+    description: 'Show badge count and tab title indicators for new requests',
+    enabled_for_roles: ['mechanic'],
+    metadata: { tier: 'all' }
+  }
 ]
 
 async function addFlags() {
-  console.log('🚀 Adding Mechanic Alert System Feature Flags...\n')
+  console.log('🚀 Adding mechanic alert feature flags...\n')
 
-  for (const flag of mechanicAlertFlags) {
-    console.log(`Processing: ${flag.flag_key}`)
-
-    // Check if flag already exists
-    const { data: existing } = await supabase
+  for (const flag of flags) {
+    const { error } = await supabase
       .from('feature_flags')
-      .select('id, flag_key')
-      .eq('flag_key', flag.flag_key)
-      .single()
-
-    if (existing) {
-      console.log(`   ⚠️  Flag already exists, skipping...`)
-      continue
-    }
-
-    // Insert new flag
-    const { data, error } = await supabase
-      .from('feature_flags')
-      .insert(flag)
-      .select()
-      .single()
+      .upsert(flag, { onConflict: 'flag_key' })
 
     if (error) {
-      console.error(`   ❌ Error:`, error.message)
+      console.error(`❌ Error adding ${flag.flag_key}:`, error)
     } else {
-      console.log(`   ✅ Added successfully (ID: ${data.id})`)
+      console.log(`✅ Added/updated ${flag.flag_key}`)
     }
   }
 
-  console.log('\n✨ Done! Visit /admin/feature-flags to manage these flags.')
+  console.log('\n✅ All mechanic alert flags added successfully!')
 }
 
-addFlags()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error('Fatal error:', err)
-    process.exit(1)
-  })
+addFlags().catch(console.error)

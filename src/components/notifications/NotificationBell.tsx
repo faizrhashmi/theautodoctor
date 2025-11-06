@@ -66,50 +66,10 @@ export function NotificationBell({ userId, userRole = 'customer' }: Notification
     return () => clearInterval(interval)
   }, [fetchUnreadCount])
 
-  // Realtime subscription for mechanics - new session assignments
-  useEffect(() => {
-    if (userRole !== 'mechanic') return
-
-    const supabase = createClient()
-    const channel = supabase
-      .channel('session_assignments_feed', {
-        config: {
-          broadcast: { self: false },
-        },
-      })
-      .on('broadcast', { event: 'new_assignment' }, (payload) => {
-        console.log('[NotificationBell] New assignment broadcast received:', payload)
-
-        // Increment unread count
-        setUnreadCount((prev) => prev + 1)
-        previousUnreadCountRef.current = previousUnreadCountRef.current + 1
-
-        // Play notification sound
-        playNotificationSound()
-
-        // Optionally show toast notification (if you have react-hot-toast)
-        try {
-          // @ts-ignore - toast may not be imported yet
-          if (typeof window !== 'undefined' && window.toast) {
-            // @ts-ignore
-            window.toast.success('New session request received')
-          }
-        } catch (e) {
-          // Ignore if toast not available
-        }
-
-        // Refresh full count from server to stay in sync
-        setTimeout(fetchUnreadCount, 1000)
-      })
-      .subscribe((status) => {
-        console.log('[NotificationBell] Realtime subscription status:', status)
-      })
-
-    return () => {
-      console.log('[NotificationBell] Cleaning up realtime subscription')
-      supabase.removeChannel(channel)
-    }
-  }, [userRole, playNotificationSound, fetchUnreadCount])
+  // PHASE 3B: Removed broadcast-based realtime subscription
+  // Now relies on 30-second polling (line 64) which is more reliable on Render
+  // The mechanic dashboard postgres_changes handles instant alerts + sound
+  // This component just shows the badge count via polling
 
   // Update count when panel is closed (notifications might have been read)
   const handleClose = () => {

@@ -194,12 +194,16 @@ export async function createSessionRecord(
     assignmentMetadata.workshop_id = workshopId
   }
 
+  // PHASE 1 FIX: Free sessions start as 'pending_waiver' until waiver signed
+  // This prevents postgres_changes from notifying mechanics before waiver
+  const assignmentStatus = paymentMethod === 'free' ? 'pending_waiver' : 'queued'
+
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from('session_assignments')
     .insert({
       session_id: sessionId,
-      status: 'queued',
-      offered_at: new Date().toISOString(),
+      status: assignmentStatus,
+      offered_at: assignmentStatus === 'queued' ? new Date().toISOString() : null,
       ...(Object.keys(assignmentMetadata).length > 0 && { metadata: assignmentMetadata })
     })
     .select('id')

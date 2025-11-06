@@ -114,7 +114,10 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
           table: 'sessions',
         },
         async (payload) => {
-          if (payload.eventType === 'INSERT') {
+          // CRITICAL FIX: Supabase returns lowercase event types ('insert', 'update', 'delete')
+          const eventType = payload.eventType?.toUpperCase()
+
+          if (eventType === 'INSERT') {
             // Fetch full session with participants
             const { data } = await supabase
               .from('sessions')
@@ -132,7 +135,7 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
             if (data) {
               setSessions((prev) => [data as unknown as SessionWithParticipants, ...prev])
             }
-          } else if (payload.eventType === 'UPDATE') {
+          } else if (eventType === 'UPDATE') {
             setSessions((prev) =>
               prev.map((session) =>
                 session.id === payload.new.id
@@ -140,7 +143,7 @@ export default function AdminSessionsClient({ initialSessions, initialStats }: P
                   : session
               )
             )
-          } else if (payload.eventType === 'DELETE') {
+          } else if (eventType === 'DELETE') {
             setSessions((prev) => prev.filter((session) => session.id !== payload.old.id))
           }
 

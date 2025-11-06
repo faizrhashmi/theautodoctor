@@ -1541,37 +1541,81 @@ export default function VideoSessionClient({
     }
   }, [sessionId, deviceFingerprint, _userId, supabase])
 
-  // Listen for session:ended broadcasts from the other participant
+  // PHASE 3C: Listen for session end via postgres_changes (more reliable on Render)
   useEffect(() => {
-    console.log('[VIDEO] Setting up session:ended broadcast listener')
+    console.log('[VIDEO] Setting up postgres_changes listener for session end')
 
+    // Handler for when session ends
+    const handleSessionEnd = async (endedBy?: string) => {
+      console.log('[VIDEO] 📡 Session ended, endedBy:', endedBy)
+
+      // Disconnect from LiveKit room immediately
+      console.log('[VIDEO] 📡 Disconnecting from LiveKit room...')
+      setIsRoomConnected(false)
+
+      // Clear all annotations
+      setAnnotations([])
+      setShowAnnotations(false)
+      setAnnotationMode(null)
+
+      // Show notification first
+      setSessionEnded(true)
+      setSessionEndedBy(endedBy || 'Other participant')
+
+      // Show modal immediately (no delay)
+      console.log('[VIDEO] 📡 Session ended, showing completion modal immediately...')
+      await fetchAndShowCompletionModal()
+      console.log('[VIDEO] 📡 Modal fetch completed')
+    }
+
+    // postgres_changes listener for session status changes
+    const statusChannel = supabase
+      .channel(`session-status-${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          console.log('[VIDEO] Session status change detected:', payload)
+          const newRecord = payload.new as any
+          if (newRecord?.status === 'completed' || newRecord?.status === 'cancelled') {
+            await handleSessionEnd(newRecord?.metadata?.ended_by)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[VIDEO] postgres_changes subscription status:', status)
+      })
+
+    // Polling backup - check session status every 10 seconds
+    const pollingInterval = setInterval(async () => {
+      try {
+        const { data: session } = await supabase
+          .from('sessions')
+          .select('status, metadata')
+          .eq('id', sessionId)
+          .single()
+
+        if (session && (session.status === 'completed' || session.status === 'cancelled')) {
+          console.log('[VIDEO] Polling detected session end:', session.status)
+          clearInterval(pollingInterval)
+          await handleSessionEnd(session.metadata?.ended_by)
+        }
+      } catch (error) {
+        console.error('[VIDEO] Error polling session status:', error)
+      }
+    }, 10000) // Poll every 10 seconds
+
+    // Keep annotations/extensions broadcast channel (peer-to-peer communication)
     const channel = supabase
       .channel(`session:${sessionId}`, {
         config: {
           broadcast: { self: false }, // Don't receive own broadcasts
         },
-      })
-      .on('broadcast', { event: 'session:ended' }, async (payload) => {
-        console.log('[VIDEO] 📡 Session ended by other participant:', payload)
-        const { status, endedBy } = payload.payload
-
-        // Disconnect from LiveKit room immediately
-        console.log('[VIDEO] 📡 Disconnecting from LiveKit room...')
-        setIsRoomConnected(false)
-
-        // Clear all annotations
-        setAnnotations([])
-        setShowAnnotations(false)
-        setAnnotationMode(null)
-
-        // Show notification first
-        setSessionEnded(true)
-        setSessionEndedBy(endedBy)
-
-        // Show modal immediately (no delay)
-        console.log('[VIDEO] 📡 Session ended, showing completion modal immediately...')
-        await fetchAndShowCompletionModal()
-        console.log('[VIDEO] 📡 Modal fetch completed')
       })
       .on('broadcast', { event: 'annotation' }, (payload) => {
         console.log('[VIDEO] 📡 Received annotation:', payload)
@@ -1628,7 +1672,9 @@ export default function VideoSessionClient({
     broadcastChannelRef.current = channel
 
     return () => {
-      console.log('[VIDEO] Cleaning up broadcast subscription')
+      console.log('[VIDEO] Cleaning up subscriptions')
+      clearInterval(pollingInterval)
+      supabase.removeChannel(statusChannel)
       supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

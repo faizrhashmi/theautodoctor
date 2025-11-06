@@ -52,12 +52,14 @@ export function ActivityFeed({ initialActivities }: ActivityFeedProps) {
           table: 'sessions',
         },
         (payload) => {
+          // CRITICAL FIX: Supabase returns lowercase event types ('insert', 'update', 'delete')
+          const eventType = payload.eventType?.toUpperCase()
           const session = payload.new as any
           if (session) {
             const newActivity: Activity = {
               id: session.id,
               type: 'session',
-              title: `${session.type} session ${payload.eventType === 'INSERT' ? 'created' : 'updated'}`,
+              title: `${session.type} session ${eventType === 'INSERT' ? 'created' : 'updated'}`,
               description: `Status: ${session.status}`,
               timestamp: session.created_at || new Date().toISOString(),
               status: session.status,
@@ -79,12 +81,14 @@ export function ActivityFeed({ initialActivities }: ActivityFeedProps) {
           table: 'session_requests',
         },
         (payload) => {
+          // CRITICAL FIX: Supabase returns lowercase event types ('insert', 'update', 'delete')
+          const eventType = payload.eventType?.toUpperCase()
           const request = payload.new as any
           if (request) {
             const newActivity: Activity = {
               id: request.id,
               type: 'request',
-              title: `Session request ${payload.eventType === 'INSERT' ? 'received' : 'updated'}`,
+              title: `Session request ${eventType === 'INSERT' ? 'received' : 'updated'}`,
               description: `Status: ${request.status}`,
               timestamp: request.created_at || new Date().toISOString(),
               status: request.status,

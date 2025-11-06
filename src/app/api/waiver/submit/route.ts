@@ -142,6 +142,28 @@ export async function POST(req: NextRequest) {
           thankYouUrl.searchParams.set('session', existingSession.id)
           console.log('[waiver] Found session for intake:', existingSession.id)
 
+          // PHASE 1 FIX: Transition assignment from 'pending_waiver' → 'queued'
+          // This triggers postgres_changes and notifies mechanics
+          try {
+            const { error: updateError } = await supabaseAdmin
+              .from('session_assignments')
+              .update({
+                status: 'queued',
+                offered_at: new Date().toISOString()
+              })
+              .eq('session_id', existingSession.id)
+              .eq('status', 'pending_waiver')
+
+            if (updateError) {
+              console.error('[waiver] Failed to update assignment status:', updateError)
+            } else {
+              console.log('[waiver] ✅ Transitioned assignment to queued (postgres_changes will notify mechanics)')
+            }
+          } catch (assignmentError) {
+            console.error('[waiver] Error updating assignment:', assignmentError)
+            // Don't fail waiver submission if this fails
+          }
+
           // CRITICAL: Create session_request to notify mechanics (same as paid flow in fulfillment.ts)
           if (existingSession.customer_user_id) {
             try {

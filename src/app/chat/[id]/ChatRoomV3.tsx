@@ -701,16 +701,7 @@ export default function ChatRoom({
           })
         }
       })
-      .on('broadcast', { event: 'session:ended' }, async (payload) => {
-        console.log('[ChatRoom] Session ended by other participant:', payload)
-        const { status, endedBy } = payload.payload
-        setSessionEnded(true)
-        setCurrentStatus(status)
-
-        // Show modal for both completed and cancelled sessions (consolidated approach)
-        console.log('[ChatRoom] Session ended, showing completion modal...')
-        await fetchAndShowCompletionModal()
-      })
+      // PHASE 3D: Removed session:ended broadcast - now using postgres_changes below (line 741)
       .on('broadcast', { event: 'session:extended' }, (payload) => {
         console.log('[ChatRoom] Session extended:', payload)
         const { extensionMinutes, newExpiresAt } = payload.payload
@@ -818,11 +809,44 @@ export default function ChatRoom({
         console.log('[ChatRoom] Subscription status:', status)
       })
 
+    // PHASE 3D: Add polling backup - check session status every 10 seconds
+    const pollingInterval = setInterval(async () => {
+      try {
+        const { data: session } = await supabase
+          .from('sessions')
+          .select('status, metadata')
+          .eq('id', sessionId)
+          .single()
+
+        if (session && (session.status === 'completed' || session.status === 'cancelled')) {
+          console.log('[ChatRoom] Polling detected session end:', session.status)
+          clearInterval(pollingInterval)
+          setSessionEnded(true)
+          setCurrentStatus(session.status)
+
+          if (session.status === 'cancelled') {
+            toast.error('Session has been cancelled', {
+              duration: 2000,
+              position: 'top-center',
+            })
+            setTimeout(() => {
+              window.location.href = dashboardUrl
+            }, 2000)
+          } else {
+            await fetchAndShowCompletionModal()
+          }
+        }
+      } catch (error) {
+        console.error('[ChatRoom] Error polling session status:', error)
+      }
+    }, 10000) // Poll every 10 seconds
+
     // Store channel reference for reuse in broadcasting
     channelRef.current = channel
 
     return () => {
       console.log('[ChatRoom] Cleaning up subscription')
+      clearInterval(pollingInterval)
       channelRef.current = null
       supabase.removeChannel(channel)
     }

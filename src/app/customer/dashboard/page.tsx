@@ -10,7 +10,6 @@ import {
   FileText,
   Clock,
   Calendar,
-  MessageSquare,
   Wrench,
   Zap,
   AlertCircle,
@@ -29,18 +28,13 @@ import {
   MapPin,
   Star,
   TrendingDown,
-  Eye,
-  MoreHorizontal,
-  ClipboardList,
   Heart,
   Building2
 } from 'lucide-react'
 import SessionLauncher from '@/components/customer/SessionLauncher'
-import SessionCard from '@/components/sessions/SessionCard'
 import OnboardingChecklist from '@/components/customer/OnboardingChecklist'
 import VehiclePrompt from '@/components/customer/VehiclePrompt'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { ProgressTracker } from '@/components/ui/ProgressTracker'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import ThemeSettingsModal from '@/components/customer/ThemeSettingsModal'
@@ -546,82 +540,8 @@ export default function CustomerDashboardPage() {
 
   const renderOverviewTab = () => (
     <>
-      {/* Active Sessions Manager - Shows when customer has an active session */}
-      {activeSessions.length > 0 && (
-        <>
-          {/* Progress Tracker */}
-          <div className="mb-4 sm:mb-6">
-            <ProgressTracker
-              steps={[
-                {
-                  id: 'intake',
-                  label: 'Intake',
-                  completed: true,
-                },
-                {
-                  id: 'photos',
-                  label: 'Photos',
-                  completed: activeSessions[0].status !== 'pending',
-                  current: activeSessions[0].status === 'pending',
-                },
-                {
-                  id: 'session',
-                  label: 'Session',
-                  completed: activeSessions[0].status === 'completed',
-                  current: activeSessions[0].status === 'live' || activeSessions[0].status === 'waiting',
-                },
-                {
-                  id: 'summary',
-                  label: 'Summary',
-                  completed: false,
-                  current: activeSessions[0].status === 'completed',
-                },
-              ]}
-            />
-          </div>
-          <div className="mb-6 sm:mb-8">
-            {activeSessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                sessionId={session.id}
-                type={session.type}
-                status={session.status as any}
-                plan={session.plan}
-                createdAt={session.createdAt}
-                startedAt={session.startedAt}
-                partnerName={session.mechanicName}
-                partnerRole="mechanic"
-                userRole="customer"
-                cta={{
-                  action: ['waiting', 'live'].includes(session.status) ? 'Return to Session' : 'Join Session',
-                  route: `/${session.type}/${session.id}`
-                }}
-                onEnd={async () => {
-                  try {
-                    const res = await fetch(`/api/sessions/${session.id}/end`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' }
-                    })
-                    if (res.ok) {
-                      await fetchDashboardData()
-                    } else {
-                      alert('Failed to end session')
-                    }
-                  } catch (error) {
-                    console.error('End session error:', error)
-                    alert('Failed to end session')
-                  }
-                }}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
       {/* Phase 2.1: Onboarding Checklist - Shows for new customers */}
-      {activeSessions.length === 0 && (
-        <OnboardingChecklist />
-      )}
+      <OnboardingChecklist />
 
       {/* ✅ P0 FIX: Credit Balance Widget */}
       {stats?.subscription.has_active && (
@@ -724,29 +644,27 @@ export default function CustomerDashboardPage() {
       )}
 
       {/* Unified Session Launcher - Account-Type Aware */}
-      {/* Only show if no active sessions */}
-      {activeSessions.length === 0 && (
-        <div
-          ref={sessionLauncherRef}
-          className={`mb-6 sm:mb-8 transition-all duration-500 ${
-            shouldHighlight
-              ? 'ring-2 sm:ring-4 ring-orange-500/50 rounded-2xl shadow-2xl shadow-orange-500/20'
-              : ''
-          }`}
-        >
-          <SessionLauncher
-            accountType={stats?.account_type}
-            hasUsedFreeSession={stats?.has_used_free_session}
-            isB2CCustomer={stats?.is_b2c_customer}
-            availableMechanics={availability?.available_now || 0}
-            workshopId={undefined}
-            organizationId={undefined}
-            preferredMechanicId={favoriteMechanicId}
-            preferredMechanicName={favoriteMechanicName}
-            routingType={favoriteRoutingType}
-          />
-        </div>
-      )}
+      {/* SessionLauncher handles active session detection internally */}
+      <div
+        ref={sessionLauncherRef}
+        className={`mb-6 sm:mb-8 transition-all duration-500 ${
+          shouldHighlight
+            ? 'ring-2 sm:ring-4 ring-orange-500/50 rounded-2xl shadow-2xl shadow-orange-500/20'
+            : ''
+        }`}
+      >
+        <SessionLauncher
+          accountType={stats?.account_type}
+          hasUsedFreeSession={stats?.has_used_free_session}
+          isB2CCustomer={stats?.is_b2c_customer}
+          availableMechanics={availability?.available_now || 0}
+          workshopId={undefined}
+          organizationId={undefined}
+          preferredMechanicId={favoriteMechanicId}
+          preferredMechanicName={favoriteMechanicName}
+          routingType={favoriteRoutingType}
+        />
+      </div>
 
       {/* Quick Actions Section */}
       <div className="mb-6 sm:mb-8">
