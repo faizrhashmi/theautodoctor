@@ -561,6 +561,41 @@ export async function POST(
       }
     }
   }
+
+  // =============================================================================
+  // UPDATE SESSION ASSIGNMENT STATUS
+  // Mark assignment as completed/cancelled so it's removed from queue
+  // =============================================================================
+  const { data: assignment } = await supabaseAdmin
+    .from('session_assignments')
+    .select('id, metadata')
+    .eq('session_id', sessionId)
+    .single()
+
+  if (assignment) {
+    const { error: assignmentUpdateError } = await supabaseAdmin
+      .from('session_assignments')
+      .update({
+        status: final_status === 'completed' ? 'completed' : 'cancelled',
+        updated_at: now,
+        metadata: {
+          ...assignment.metadata,
+          completed_at: now,
+          final_session_status: final_status,
+          completion_reason: 'session_ended'
+        }
+      })
+      .eq('id', assignment.id)
+
+    if (assignmentUpdateError) {
+      console.error('[end session] Failed to update session_assignment:', assignmentUpdateError)
+    } else {
+      console.log('[end session] ✅ Updated session_assignment to:', final_status)
+    }
+  } else {
+    console.warn('[end session] No session_assignment found for session:', sessionId)
+  }
+
   // Build response with correct semantic status
   const responseMessage = final_status === 'completed'
     ? 'Session completed successfully'

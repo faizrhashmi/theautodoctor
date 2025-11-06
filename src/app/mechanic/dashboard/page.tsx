@@ -483,8 +483,8 @@ export default function MechanicDashboardPage() {
               willAlert: isNewlyQueued && flags.mech_new_request_alerts
             })
 
-            // TEMPORARY DEBUG: Always alert if newly queued (bypass flag check)
-            if (isNewlyQueued) {
+            // Trigger alert for newly queued assignments (if flag enabled)
+            if (isNewlyQueued && flags.mech_new_request_alerts) {
               console.log('[MechanicDashboard] 🔔 Triggering alert for queued assignment:', newRecord.id)
 
               // Fetch session details for alert
