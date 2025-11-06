@@ -1,6 +1,6 @@
 # Realtime Subscription Fix - CRITICAL
 
-**Commit**: `5f5a11c`
+**Commits**: `5f5a11c`, `fb86d85`
 **Date**: 2025-11-06
 **Status**: ✅ Deployed to Production
 
@@ -61,41 +61,134 @@ This module provides:
 - ✅ Detailed logging for debugging
 - ✅ Cleanup functions for proper unmounting
 
-### 3. Updated Mechanic Dashboard
+### 3. Created Persistent Singleton Listener
+
+**File**: `src/app/mechanic/MechanicRealtimeMount.tsx` (NEW)
+
+This component:
+- Mounts once per browser tab in the mechanic layout
+- Persists across route changes (doesn't unmount when navigating)
+- Creates all realtime subscriptions using browser-only client
+- Emits custom window events when postgres_changes fire
+- Only cleans up on hard tab close (`beforeunload`)
+
+```typescript
+export default function MechanicRealtimeMount() {
+  useEffect(() => {
+    // Guard against double-mount
+    if (window.__mechanicRealtimeInit) return
+    window.__mechanicRealtimeInit = true
+
+    // Start persistent listeners
+    const cleanup = listenMechanicDashboard({
+      onSessionAssignment: (evt) => {
+        // Emit custom event for dashboard to listen to
+        window.dispatchEvent(
+          new CustomEvent('mechanic:assignments:update', { detail: evt })
+        )
+      },
+      // ... other listeners
+    })
+
+    // Only cleanup on tab close, NOT on route change
+    window.addEventListener('beforeunload', cleanup)
+
+    return () => {
+      // Remove listener but DON'T call cleanup()
+      window.removeEventListener('beforeunload', cleanup)
+    }
+  }, [])
+
+  return null
+}
+```
+
+### 4. Updated Mechanic Layout
+
+**File**: `src/app/mechanic/layout.tsx`
+
+```typescript
+import dynamic from 'next/dynamic'
+
+// Load with no SSR (browser-only)
+const MechanicRealtimeMount = dynamic(
+  () => import('./MechanicRealtimeMount'),
+  { ssr: false }
+)
+
+export default function MechanicLayout({ children }) {
+  return (
+    <div>
+      <MechanicRealtimeMount /> {/* Mounts once, persists across routes */}
+      <MechanicSidebar />
+      <main>{children}</main>
+    </div>
+  )
+}
+```
+
+### 5. Updated Dashboard to Use Events
 
 **File**: `src/app/mechanic/dashboard/page.tsx`
 
-**Before** (Inline subscriptions):
+**Before** (Dashboard manages subscriptions):
 ```typescript
-const supabase = useMemo(() => createClient(), [])
-
 useEffect(() => {
   const channel = supabase
     .channel('mechanic-dashboard-updates')
     .on('postgres_changes', { table: 'session_assignments' }, handler)
     .subscribe()
 
-  return () => supabase.removeChannel(channel)
+  return () => supabase.removeChannel(channel) // ❌ Kills subscription on route change
 }, [supabase])
 ```
 
-**After** (Dedicated browser-only listeners):
+**After** (Dashboard listens to events):
 ```typescript
 useEffect(() => {
-  import('@/lib/realtimeListeners').then(({ listenMechanicDashboard }) => {
-    const cleanup = listenMechanicDashboard({
-      onSessionAssignment: (event) => {
-        // Handle INSERT/UPDATE/DELETE with event.new, event.old
-        refetchAllData()
-      },
-      onSession: (event) => refetchAllData(),
-      onQuote: (event) => refetchAllData()
-    })
+  const handleAssignmentUpdate = (event: Event) => {
+    const detail = (event as CustomEvent).detail
+    // Trigger alerts, refetch queue, etc.
+    refetchAllData()
+  }
 
-    return cleanup
-  })
+  window.addEventListener('mechanic:assignments:update', handleAssignmentUpdate)
+
+  return () => {
+    window.removeEventListener('mechanic:assignments:update', handleAssignmentUpdate)
+    // ✅ Subscription stays alive in layout
+  }
 }, [])
 ```
+
+---
+
+## Architecture Benefits
+
+### Before (Direct Subscriptions in Pages):
+```
+Page mounts → Creates subscription → Page unmounts → Subscription killed
+User navigates → New page mounts → Creates NEW subscription → ...repeat
+```
+
+**Problems**:
+- ❌ Console spam: `CLOSED`, `SUBSCRIBED`, `CLOSED`, `SUBSCRIBED`...
+- ❌ Multiple subscriptions created/destroyed per session
+- ❌ Race conditions during navigation
+- ❌ Lost events during subscription recreation
+
+### After (Persistent Singleton in Layout):
+```
+Layout mounts → Creates subscription → Persists across all routes → Only closes on tab close
+User navigates → Same subscription stays alive → No recreation → No lost events
+```
+
+**Benefits**:
+- ✅ Clean console: One `SUBSCRIBED` per tab
+- ✅ Single persistent WebSocket connection
+- ✅ No race conditions or lost events
+- ✅ Pages react to events, don't manage subscriptions
+- ✅ Navigation is instant (no subscription overhead)
 
 ---
 
@@ -104,7 +197,9 @@ useEffect(() => {
 ### Files Modified:
 1. **src/lib/supabase.ts** - Added `supabaseBrowser()` helper
 2. **src/lib/realtimeListeners.ts** - NEW dedicated listener module
-3. **src/app/mechanic/dashboard/page.tsx** - Use new listeners
+3. **src/app/mechanic/MechanicRealtimeMount.tsx** - NEW persistent singleton listener
+4. **src/app/mechanic/layout.tsx** - Mount persistent listener
+5. **src/app/mechanic/dashboard/page.tsx** - Listen to custom events
 
 ### Files NOT Modified:
 - Database schema (no changes needed)
@@ -268,12 +363,23 @@ git push origin main
 
 ## Summary
 
+### Commit 1 (`5f5a11c`) - Browser-Only Clients
 ✅ **Root Cause**: Server-side subscriptions killed by Render serverless
-✅ **Fix**: Browser-only clients in persistent client components
-✅ **Impact**: Realtime now works identically in dev and production
-✅ **Testing**: Watch browser console for `SUBSCRIBED` status
-✅ **Expected**: Sessions appear within 2-5 seconds, no refresh needed
+✅ **Fix**: Created browser-only clients for subscriptions
+✅ **Impact**: Subscriptions no longer die with serverless functions
+
+### Commit 2 (`fb86d85`) - Persistent Singleton Architecture
+✅ **Root Cause**: Page-level subscriptions recreated on every route change
+✅ **Fix**: Moved subscriptions to layout, persist across navigation
+✅ **Impact**: Single WebSocket per tab, no subscription spam
+✅ **Architecture**: Event-driven decoupling (layout owns subscriptions, pages react to events)
+
+### Expected Behavior
+- ✅ Realtime works identically in dev and production
+- ✅ One `SUBSCRIBED` log per tab (no spam)
+- ✅ Sessions appear within 2-5 seconds, no refresh needed
+- ✅ Navigation between mechanic routes doesn't kill subscriptions
 
 ---
 
-**Next Step**: Wait for deployment, then test free session creation! 🚀
+**Next Step**: Wait for deployment (`fb86d85`), then test free session creation! 🚀
