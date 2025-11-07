@@ -216,7 +216,25 @@ export default function SessionLauncher({
         setInternalLoadingActiveSession(false)
       }
     }
+
     fetchActiveSession()
+
+    // Poll every 5 seconds to detect ended sessions quickly
+    const intervalId = setInterval(fetchActiveSession, 5000)
+
+    // Listen for session-ended event from ActiveSessionBanner
+    const handleSessionEnded = () => {
+      console.log('[SessionLauncher] Received session-ended event, refreshing active session state')
+      setInternalActiveSession(null) // Clear immediately
+      fetchActiveSession() // Then re-fetch to confirm
+    }
+
+    window.addEventListener('session-ended', handleSessionEnded)
+
+    return () => {
+      clearInterval(intervalId)
+      window.removeEventListener('session-ended', handleSessionEnded)
+    }
   }, [externalActiveSession, externalLoadingActiveSession])
 
   // Helper function to get session type from plan slug
@@ -270,8 +288,8 @@ export default function SessionLauncher({
         <div className="bg-gradient-to-br from-slate-800/90 via-slate-850/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-xl">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
-              <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center ring-2 ring-blue-500/20">
-                <AlertCircle className="h-6 w-6 text-blue-400" />
+              <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center ring-2 ring-orange-500/20">
+                <AlertCircle className="h-6 w-6 text-orange-400" />
               </div>
             </div>
             <div className="flex-1">
@@ -285,7 +303,7 @@ export default function SessionLauncher({
               <div className="flex gap-3">
                 <Link
                   href={sessionRoute}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -807,8 +825,8 @@ export default function SessionLauncher({
       <div className="bg-gradient-to-br from-slate-800/90 via-slate-850/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6 shadow-xl">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
-            <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center ring-2 ring-blue-500/20">
-              <AlertCircle className="h-6 w-6 text-blue-400" />
+            <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center ring-2 ring-orange-500/20">
+              <AlertCircle className="h-6 w-6 text-orange-400" />
             </div>
           </div>
           <div className="flex-1">
@@ -822,7 +840,7 @@ export default function SessionLauncher({
             <div className="flex gap-3">
               <Link
                 href={sessionRoute}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

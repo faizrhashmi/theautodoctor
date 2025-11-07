@@ -2,14 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import WaiverSignature from '@/components/intake/WaiverSignature'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-
-const CustomerActiveSessionMount = dynamic(
-  () => import('@/components/customer/CustomerActiveSessionMount'),
-  { ssr: false }
-)
 
 export default function IntakeWaiverPage() {
   const router = useRouter()
@@ -155,31 +149,64 @@ export default function IntakeWaiverPage() {
   }
 
   return (
-    <>
-      <CustomerActiveSessionMount />
-      <main className="min-h-screen bg-gradient-to-br from-orange-900 via-slate-900 to-slate-950 px-4 py-16 text-white">
-      <div className="mx-auto max-w-4xl">
-        {/* Progress Indicator */}
-        <div className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500">
-              <CheckCircle className="h-5 w-5 text-white" />
+    <main className="min-h-screen bg-gradient-to-br from-orange-800/40 via-slate-900 to-slate-950 px-4 py-12 text-white">
+      <div className="mx-auto max-w-5xl">
+        {/* Progress Indicator - Mobile First */}
+        <div className="mb-6 sm:mb-10">
+          {/* Mobile: Compact horizontal */}
+          <div className="sm:hidden rounded-xl border border-white/10 bg-slate-900/60 backdrop-blur-sm p-4 shadow-xl">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 shadow-md">
+                <CheckCircle className="h-4 w-4 text-white" />
+              </div>
+              <div className="h-0.5 flex-1 bg-gradient-to-r from-emerald-500 to-orange-500" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 shadow-md ring-2 ring-orange-500/30">
+                <span className="text-sm font-bold text-white">2</span>
+              </div>
+              <div className="h-0.5 flex-1 bg-white/10" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+                <span className="text-sm font-bold text-slate-400">3</span>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-emerald-300">Intake Complete</span>
+            <div className="mt-3 text-center">
+              <p className="text-sm font-bold text-white">Step 2 of 3</p>
+              <p className="text-xs text-orange-400">Safety Agreement • ~2 min</p>
+            </div>
           </div>
-          <div className="h-0.5 w-12 bg-white/20" />
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-500">
-              <span className="text-sm font-bold text-white">2</span>
+
+          {/* Desktop: Detailed horizontal */}
+          <div className="hidden sm:block rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-sm p-6 shadow-xl">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 shadow-lg">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <span className="block text-sm font-semibold text-emerald-300">Step 1 Complete</span>
+                  <span className="block text-xs text-emerald-400/70">Intake Form</span>
+                </div>
+              </div>
+              <div className="h-0.5 flex-1 bg-gradient-to-r from-emerald-500 to-orange-500" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 shadow-lg ring-4 ring-orange-500/20">
+                  <span className="text-base font-bold text-white">2</span>
+                </div>
+                <div>
+                  <span className="block text-sm font-semibold text-white">Step 2 of 3</span>
+                  <span className="block text-xs text-orange-400">Safety Agreement • ~2 min</span>
+                </div>
+              </div>
+              <div className="h-0.5 flex-1 bg-white/10" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+                  <span className="text-base font-bold text-slate-400">3</span>
+                </div>
+                <div>
+                  <span className="block text-sm font-semibold text-slate-400">Next</span>
+                  <span className="block text-xs text-slate-500">Join Session</span>
+                </div>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-white">Sign Waiver</span>
-          </div>
-          <div className="h-0.5 w-12 bg-white/20" />
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-              <span className="text-sm font-bold text-slate-400">3</span>
-            </div>
-            <span className="text-sm text-slate-400">Join Session</span>
           </div>
         </div>
 
@@ -190,6 +217,5 @@ export default function IntakeWaiverPage() {
         />
       </div>
     </main>
-    </>
   )
 }

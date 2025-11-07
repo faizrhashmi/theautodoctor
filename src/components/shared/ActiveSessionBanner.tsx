@@ -134,6 +134,9 @@ export function ActiveSessionBanner({
         intervalRef.current = null
       }
 
+      // Dispatch custom event to notify SessionLauncher to refresh
+      window.dispatchEvent(new CustomEvent('session-ended', { detail: { sessionId: session.id } }))
+
       onSessionEnded?.()
     } catch (error) {
       console.error('[ActiveSessionBanner] Error ending session:', error)
@@ -143,14 +146,15 @@ export function ActiveSessionBanner({
     }
   }
 
-  // Auto-refresh every 30 seconds if no initial session provided
+  // Auto-refresh every 5 seconds if no initial session provided
+  // Faster polling ensures banner disappears quickly when session ends
   useEffect(() => {
     if (initialSession) {
       return // Don't auto-refresh if session was passed as prop
     }
 
     fetchActiveSession()
-    intervalRef.current = setInterval(fetchActiveSession, 30000) // 30 seconds
+    intervalRef.current = setInterval(fetchActiveSession, 5000) // 5 seconds for faster updates
 
     return () => {
       if (intervalRef.current) {

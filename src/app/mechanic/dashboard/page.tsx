@@ -349,6 +349,7 @@ export default function MechanicDashboardPage() {
   }, [newRequestCount, flags.mech_visual_indicators])
 
   // Fetch active sessions - mechanics can only have ONE active session at a time
+  // Poll every 5 seconds to detect ended sessions quickly
   useEffect(() => {
     const fetchActiveSessions = async () => {
       console.log('[MechanicDashboard] Fetching active sessions...')
@@ -372,7 +373,15 @@ export default function MechanicDashboardPage() {
     }
 
     if (isAuthenticated && !checkingTier) {
+      // Fetch immediately
       fetchActiveSessions()
+
+      // Poll every 5 seconds to detect ended sessions quickly
+      const intervalId = setInterval(fetchActiveSessions, 5000)
+
+      return () => {
+        clearInterval(intervalId)
+      }
     }
   }, [isAuthenticated, checkingTier])
 
@@ -413,7 +422,11 @@ export default function MechanicDashboardPage() {
 
       if (response.ok) {
         // Success - remove from queue and redirect to session
-        setQueue(prev => prev.filter(q => q.assignmentId !== assignmentId))
+        setQueue(prev => ({
+          unassigned: prev.unassigned.filter(q => q.id !== assignmentId),
+          mine: prev.mine.filter(q => q.id !== assignmentId),
+          total: Math.max(0, prev.total - 1)
+        }))
         console.log('[MechanicDashboard] Assignment accepted successfully:', data)
 
         // Route based on session type
@@ -501,14 +514,50 @@ export default function MechanicDashboardPage() {
     function onSessionUpdate(e: CustomEvent) {
       console.log('[MechanicDashboard] 🔔 Realtime session update received', e.detail);
       fetchQueue();
+
+      // Also refresh active sessions when session updates occur
+      const fetchActiveSessions = async () => {
+        try {
+          const response = await fetch('/api/mechanic/active-sessions')
+          if (response.ok) {
+            const data = await response.json()
+            setActiveSessions(data.sessions || [])
+          }
+        } catch (err) {
+          console.error('[MechanicDashboard] Failed to refresh active sessions:', err)
+        }
+      }
+      fetchActiveSessions();
+    }
+
+    // Listen for session-ended event from ActiveSessionBanner
+    function onSessionEnded(e: Event) {
+      console.log('[MechanicDashboard] 🔔 Session ended event received, refreshing active sessions');
+      setActiveSessions([]); // Clear immediately
+
+      // Refetch to confirm
+      const fetchActiveSessions = async () => {
+        try {
+          const response = await fetch('/api/mechanic/active-sessions')
+          if (response.ok) {
+            const data = await response.json()
+            setActiveSessions(data.sessions || [])
+          }
+        } catch (err) {
+          console.error('[MechanicDashboard] Failed to refresh active sessions:', err)
+        }
+      }
+      fetchActiveSessions();
     }
 
     window.addEventListener('mechanic:assignments:update', onAssignUpdate as EventListener);
     window.addEventListener('mechanic:sessions:update', onSessionUpdate as EventListener);
+    window.addEventListener('session-ended', onSessionEnded);
 
     return () => {
       window.removeEventListener('mechanic:assignments:update', onAssignUpdate as EventListener);
       window.removeEventListener('mechanic:sessions:update', onSessionUpdate as EventListener);
+      window.removeEventListener('session-ended', onSessionEnded);
     };
   }, [fetchQueue])
 
