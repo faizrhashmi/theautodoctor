@@ -8,6 +8,14 @@
  *
  * This ensures consistent session creation, participant tracking,
  * assignment queueing, and event logging regardless of payment method.
+ *
+ * CRITICAL DESIGN NOTE:
+ * FREE sessions create the session record immediately but DEFER assignment
+ * creation until AFTER waiver is signed (in waiver/submit route). This prevents
+ * notifying mechanics before the customer has accepted liability terms.
+ *
+ * PAID/CREDIT sessions create both session and assignment immediately since
+ * payment/credit deduction implies commitment.
  */
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'

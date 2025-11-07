@@ -1,4 +1,8 @@
-// @ts-nocheck
+/**
+ * Waiver Submission API
+ * Handles waiver signature submission and creates session assignments for free plans.
+ * For paid plans, redirects to checkout after waiver is signed.
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -6,6 +10,17 @@ import type { Database } from '@/types/supabase'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Type for waiver submission request body
+interface WaiverSubmitRequest {
+  intakeId: string
+  signatureData: string
+  fullName: string
+  ipAddress?: string
+  userAgent?: string
+  email: string
+  plan?: string
+}
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -33,8 +48,8 @@ export async function POST(req: NextRequest) {
       return bad('Authentication required', 401)
     }
 
-    // Parse request body
-    let body: any
+    // Parse and validate request body
+    let body: WaiverSubmitRequest
     try {
       body = await req.json()
     } catch {

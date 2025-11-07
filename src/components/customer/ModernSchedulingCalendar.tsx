@@ -103,7 +103,7 @@ export default function ModernSchedulingCalendar({
     async function checkActiveSessions() {
       try {
         console.log('[Schedule Calendar] Checking for active sessions...')
-        const response = await fetch('/api/customer/active-sessions', {
+        const response = await fetch('/api/customer/sessions/active', {
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',

@@ -1,4 +1,30 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+﻿/**
+ * Intake Start API - Session Creation Entry Point
+ *
+ * Handles intake form submission and initiates one of three session creation flows:
+ *
+ * 1. FREE/TRIAL FLOW (lines 205-256):
+ *    - Creates session via sessionFactory
+ *    - Redirects to waiver
+ *    - Waiver route creates assignment after signature
+ *    - Redirects to thank-you page
+ *
+ * 2. CREDIT-BASED FLOW (lines 114-203):
+ *    - Creates session via sessionFactory
+ *    - Deducts credits (atomic transaction with rollback)
+ *    - Redirects to waiver
+ *    - Redirects to thank-you page
+ *
+ * 3. PAID FLOW (lines 258-265):
+ *    - NO session created yet
+ *    - Redirects to waiver
+ *    - Redirects to Stripe checkout
+ *    - Session created after payment confirmation (webhook)
+ *
+ * All flows use the unified sessionFactory for consistent session creation.
+ * See src/lib/sessionFactory.ts for implementation details.
+ */
+import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
 import { createServerClient } from '@supabase/ssr';

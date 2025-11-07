@@ -16,7 +16,7 @@ import QuickResponseTemplates from './QuickResponseTemplates'
 import QuoteBuilderDrawer from './QuoteBuilderDrawer'
 import VINDecoderModal from './VINDecoderModal'
 import VoiceInputButton from './VoiceInputButton'
-import SessionTimer from './SessionTimer'
+import SessionTimer from '@/components/session/SessionTimer'
 
 interface MechanicToolsPanelProps {
   sessionId: string
