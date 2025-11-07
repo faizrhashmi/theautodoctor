@@ -63,7 +63,7 @@ export function ActiveSessionBanner({
       setLoading(true)
 
       const endpoint = userRole === 'customer'
-        ? '/api/customer/sessions/active'
+        ? '/api/customer/sessions/open'
         : '/api/mechanic/active-session'
 
       console.log('[ActiveSessionBanner] Fetching active session from:', endpoint)

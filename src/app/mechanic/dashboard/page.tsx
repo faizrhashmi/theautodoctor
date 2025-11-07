@@ -14,7 +14,7 @@ import SessionCard from '@/components/sessions/SessionCard'
 import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
 import { ensureNotificationPermission } from '@/lib/browserNotifications'
 import { primeAudio } from '@/lib/notificationSound'
-import { onNewSessionRequest } from '@/lib/newRequestAlerts'
+import { triggerMechanicNewRequestAlert } from '@/lib/newRequestAlertsBridge'
 import { useNewRequestsIndicator } from '@/state/newRequestsIndicator'
 import { setTabNewRequests } from '@/lib/tabAttention'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
@@ -22,7 +22,15 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 // --- Realtime custom event types for TS ---
 declare global {
   interface WindowEventMap {
-    'mechanic:assignments:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; assignmentId?: string; status?: string; sessionId?: string }>;
+    'mechanic:assignments:update': CustomEvent<{
+      eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+      assignmentId?: string
+      status?: string
+      sessionId?: string
+      vehicleLabel?: string | null
+      concernSummary?: string | null
+      customerName?: string | null
+    }>;
     'mechanic:sessions:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; sessionId?: string; status?: string }>;
     'mechanic:quotes:update': CustomEvent<{ eventType: 'INSERT' | 'UPDATE' | 'DELETE'; quoteId?: string }>;
   }
@@ -471,9 +479,23 @@ export default function MechanicDashboardPage() {
   // Listen to custom events emitted by MechanicRealtimeMount (in layout)
   useEffect(() => {
     function onAssignUpdate(e: CustomEvent) {
-      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', e.detail);
+      const detail = e.detail
+      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', detail);
       console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…');
+
+      // Always refresh queue/stats
       fetchQueue();
+
+      // Only toast on *new* queued items
+      if (detail.eventType === 'INSERT' && detail.status === 'queued') {
+        triggerMechanicNewRequestAlert({
+          assignmentId: detail.assignmentId,
+          sessionId: detail.sessionId,
+          vehicleLabel: detail.vehicleLabel ?? null,
+          concernSummary: detail.concernSummary ?? null,
+          customerName: detail.customerName ?? null,
+        })
+      }
     }
 
     function onSessionUpdate(e: CustomEvent) {
