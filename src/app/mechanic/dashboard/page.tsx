@@ -589,7 +589,7 @@ export default function MechanicDashboardPage() {
 
             <div className="space-y-4">
               {queue.unassigned.map((item) => {
-                const s = item.sessions; // <- note plural
+                const s = item.session; // <- singular to match API
                 if (!s) return null;
 
                 return (
