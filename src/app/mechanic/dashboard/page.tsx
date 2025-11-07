@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import toast from 'react-hot-toast'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
 import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -472,42 +471,9 @@ export default function MechanicDashboardPage() {
   // Listen to custom events emitted by MechanicRealtimeMount (in layout)
   useEffect(() => {
     function onAssignUpdate(e: CustomEvent) {
-      const detail = e.detail as {
-        eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-        status?: string
-        assignmentId?: string
-        sessionId?: string
-      }
-
-      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', detail);
+      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', e.detail);
       console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…');
-
-      // Always refetch queue
       fetchQueue();
-
-      // Toast/notification only for brand-new incoming requests
-      if (detail.eventType === 'INSERT' && detail.status === 'queued') {
-        try {
-          console.log('[MechanicDashboard] 🆕 New queued request detected, firing notification');
-
-          // Use existing alert system (includes sound + browser notification)
-          onNewSessionRequest?.();
-
-          // Add visual toast
-          toast.success('New Session Request', {
-            duration: 5000,
-            icon: '🔔',
-            style: {
-              background: '#10b981',
-              color: '#fff',
-            },
-          });
-
-          console.log('[MechanicDashboard] ✅ Toast and notification fired for new request');
-        } catch (err) {
-          console.error('[MechanicDashboard] Notification error', err);
-        }
-      }
     }
 
     function onSessionUpdate(e: CustomEvent) {
