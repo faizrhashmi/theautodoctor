@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { Clock, CheckCircle, XCircle, MessageSquare, Video, FileText, User, Calendar, AlertTriangle, RefreshCw, Bell, CheckCheck } from 'lucide-react'
 import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -489,29 +490,20 @@ export default function MechanicDashboardPage() {
         try {
           console.log('[MechanicDashboard] 🆕 New queued request detected, firing notification');
 
-          // Use existing alert system if available
+          // Use existing alert system (includes sound + browser notification)
           onNewSessionRequest?.();
 
-          // Fallback to browser notification
-          if ('Notification' in window) {
-            if (Notification.permission === 'granted') {
-              new Notification('New Session Request', {
-                body: 'A customer just submitted a request. Check the queue to view.',
-                icon: '/favicon.ico'
-              });
-            } else if (Notification.permission !== 'denied') {
-              Notification.requestPermission().then(p => {
-                if (p === 'granted') {
-                  new Notification('New Session Request', {
-                    body: 'A customer just submitted a request. Check the queue to view.',
-                    icon: '/favicon.ico'
-                  });
-                }
-              });
-            }
-          }
+          // Add visual toast
+          toast.success('New Session Request', {
+            duration: 5000,
+            icon: '🔔',
+            style: {
+              background: '#10b981',
+              color: '#fff',
+            },
+          });
 
-          console.log('[MechanicDashboard] ✅ Notification fired for new request');
+          console.log('[MechanicDashboard] ✅ Toast and notification fired for new request');
         } catch (err) {
           console.error('[MechanicDashboard] Notification error', err);
         }
