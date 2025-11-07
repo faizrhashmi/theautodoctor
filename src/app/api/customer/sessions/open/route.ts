@@ -1,97 +1,68 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const ACTIVE_STATUSES = ['pending', 'waiting', 'live', 'scheduled'] as const
+
 /**
- * Returns the user's most recent *open* session (pending|waiting|live) regardless
- * of which column your schema uses to reference the user. Falls back to session_requests.
+ * GET /api/customer/sessions/open
+ * Returns the customer's most recent open session (if any)
+ * This is a robust alternative to /active with consistent response shape
  */
 export async function GET() {
-  const supabase = createClient(cookies())
-  const admin = supabaseAdmin
+  try {
+    const supabase = createClient(cookies())
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ active: false, session: null })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
+    }
 
-  const ACTIVE = ['pending', 'waiting', 'live'] as const
+    // Fetch most recent open session
+    const { data: rows, error } = await supabase
+      .from('sessions')
+      .select('id, type, status, plan, created_at, started_at, ended_at, scheduled_start, scheduled_end')
+      .eq('customer_user_id', user.id)
+      .in('status', ACTIVE_STATUSES as unknown as string[])
+      .is('ended_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-  // --- Strategy 1: direct session ownership via multiple possible columns
-  // (We OR across likely columns to avoid schema drift issues.)
-  const orExpr = [
-    `customer_id.eq.${user.id}`,
-    `customer_user_id.eq.${user.id}`,
-    `requester_id.eq.${user.id}`,
-    `created_by.eq.${user.id}`
-  ].join(',')
+    if (error) {
+      console.warn('[customer/open] error:', error)
+      return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
+    }
 
-  const { data: s1 } = await admin
-    .from('sessions')
-    .select('id,type,status,plan,created_at,started_at,ended_at,scheduled_start')
-    .or(orExpr)
-    .is('ended_at', null)
-    .in('status', ACTIVE)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    const active = !!(rows?.length)
 
-  if (s1) {
+    if (!active || !rows || rows.length === 0) {
+      return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
+    }
+
+    const s = rows[0]
+
     return NextResponse.json({
       active: true,
       session: {
-        id: s1.id,
-        type: s1.type,
-        status: s1.status,
-        plan: s1.plan,
-        createdAt: s1.created_at,
-        startedAt: s1.started_at,
+        id: s.id,
+        type: s.type,
+        status: s.status,
+        plan: s.plan,
+        createdAt: s.created_at,
+        startedAt: s.started_at,
+        scheduledStart: s.scheduled_start,
+        scheduledEnd: s.scheduled_end,
         mechanicName: null,
         customerName: null
       },
       hasActiveSessions: true
     })
+
+  } catch (error) {
+    console.error('[customer/open] Unexpected error:', error)
+    return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
   }
-
-  // --- Strategy 2 (fallback): resolve through session_requests if present
-  // Pick the newest request still "open-ish", then hydrate its session.
-  const { data: req } = await admin
-    .from('session_requests')
-    .select('session_id, status, user_id, created_at')
-    .eq('user_id', user.id)
-    .not('status', 'in', '("completed","cancelled")')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (req?.session_id) {
-    const { data: s2 } = await admin
-      .from('sessions')
-      .select('id,type,status,plan,created_at,started_at,ended_at,scheduled_start')
-      .eq('id', req.session_id)
-      .is('ended_at', null)
-      .in('status', ACTIVE)
-      .maybeSingle()
-
-    if (s2) {
-      return NextResponse.json({
-        active: true,
-        session: {
-          id: s2.id,
-          type: s2.type,
-          status: s2.status,
-          plan: s2.plan,
-          createdAt: s2.created_at,
-          startedAt: s2.started_at,
-          mechanicName: null,
-          customerName: null
-        },
-        hasActiveSessions: true
-      })
-    }
-  }
-
-  return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
 }

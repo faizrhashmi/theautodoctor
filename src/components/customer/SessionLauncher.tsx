@@ -195,10 +195,10 @@ export default function SessionLauncher({
     async function fetchActiveSession() {
       setInternalLoadingActiveSession(true)
       try {
-        const response = await fetch('/api/customer/sessions/open', { cache: 'no-store' })
+        const response = await fetch('/api/customer/sessions/active', { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
-          if (data.active) {
+          if (data.active && data.session) {
             setInternalActiveSession(data.session)
           } else {
             // No active session

@@ -154,6 +154,7 @@ export async function createSessionRecord(
       plan,
       intake_id: intakeId,
       stripe_session_id: stripeSessionId,
+      ended_at: null, // Explicitly set to null to ensure session is open
       metadata
     })
     .select('id')
