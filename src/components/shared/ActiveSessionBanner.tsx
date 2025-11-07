@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 
 interface ActiveSession {
@@ -55,6 +55,7 @@ export function ActiveSessionBanner({
   const [session, setSession] = useState<ActiveSession | null>(initialSession)
   const [loading, setLoading] = useState(false)
   const [ending, setEnding] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch active session
   const fetchActiveSession = async () => {
@@ -66,7 +67,7 @@ export function ActiveSessionBanner({
         : '/api/mechanic/active-session'
 
       console.log('[ActiveSessionBanner] Fetching active session from:', endpoint)
-      const response = await fetch(endpoint)
+      const response = await fetch(endpoint, { cache: 'no-store' })
 
       if (response.status === 404) {
         // No active session
@@ -81,8 +82,23 @@ export function ActiveSessionBanner({
       }
 
       const data = await response.json()
-      console.log('[ActiveSessionBanner] Fetched session:', data.session ? `${data.session.id} (${data.session.status})` : 'null')
-      setSession(data.session || null)
+
+      // Defensive: if no active session or session is null, clear state
+      if (!data?.active || !data?.session) {
+        setSession(null)
+        return
+      }
+
+      // Defensive: if backend ever returns a non-actionable status, hide the banner
+      const bad = data.session.status === 'completed' || data.session.status === 'cancelled'
+      if (bad) {
+        console.log('[ActiveSessionBanner] Ignoring non-active session status:', data.session.status)
+        setSession(null)
+        return
+      }
+
+      console.log('[ActiveSessionBanner] Fetched session:', `${data.session.id} (${data.session.status})`)
+      setSession(data.session)
     } catch (error) {
       console.error('[ActiveSessionBanner] Error fetching active session:', error)
     } finally {
@@ -107,15 +123,16 @@ export function ActiveSessionBanner({
         throw new Error('Failed to end session')
       }
 
-      console.log('[ActiveSessionBanner] Session ended successfully, clearing state')
+      console.log('[ActiveSessionBanner] Session ended successfully, clearing state and stopping polling')
+
+      // Clear local UI immediately
       setSession(null)
 
-      // Immediately re-fetch to ensure we have latest state from database
-      // This prevents the banner from reappearing if the auto-refresh interval fires
-      setTimeout(async () => {
-        console.log('[ActiveSessionBanner] Re-fetching session state after end')
-        await fetchActiveSession()
-      }, 500) // Small delay to allow database to update
+      // Stop the polling interval to prevent flicker
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
 
       onSessionEnded?.()
     } catch (error) {
@@ -133,9 +150,14 @@ export function ActiveSessionBanner({
     }
 
     fetchActiveSession()
-    const interval = setInterval(fetchActiveSession, 30000) // 30 seconds
+    intervalRef.current = setInterval(fetchActiveSession, 30000) // 30 seconds
 
-    return () => clearInterval(interval)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
   }, [initialSession])
 
   // Don't render if no active session OR if hideOnDashboard is true
