@@ -1,28 +1,46 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import type { Database } from '@/types/supabase'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const ACTIVE_STATUSES = ['pending', 'waiting', 'live', 'scheduled'] as const
 
 /**
  * GET /api/customer/sessions/active
  * Returns the customer's active session (if any)
  * Active = most recent open session (ended_at IS NULL and status in pending/waiting/live/scheduled)
+ * Updated with admin client to bypass RLS
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient(cookies())
+    console.log('[customer/active] === API CALLED ===')
+
+    // Create Supabase client with auth - use req.cookies like /auth/me does
+    const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set() {},
+        remove() {},
+      },
+    })
 
     const { data: { user }, error: uerr } = await supabase.auth.getUser()
+    console.log('[customer/active] Auth result:', { user: user?.id, email: user?.email, error: uerr })
+
     if (uerr || !user) {
+      console.log('[customer/active] No user found, returning empty')
       return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
     }
 
     console.log('[customer/active] Checking active session for user:', user.id)
+    console.log('[customer/active] ACTIVE_STATUSES:', ACTIVE_STATUSES)
 
     // Use admin client to bypass RLS and ensure we get the session
     const { data: rows, error } = await supabaseAdmin
