@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import WaiverSignature from '@/components/intake/WaiverSignature'
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+
+const CustomerActiveSessionMount = dynamic(
+  () => import('@/components/customer/CustomerActiveSessionMount'),
+  { ssr: false }
+)
 
 export default function IntakeWaiverPage() {
   const router = useRouter()
@@ -149,7 +155,9 @@ export default function IntakeWaiverPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-900 via-slate-900 to-slate-950 px-4 py-16 text-white">
+    <>
+      <CustomerActiveSessionMount />
+      <main className="min-h-screen bg-gradient-to-br from-orange-900 via-slate-900 to-slate-950 px-4 py-16 text-white">
       <div className="mx-auto max-w-4xl">
         {/* Progress Indicator */}
         <div className="mb-8 flex items-center justify-center gap-2">
@@ -182,5 +190,6 @@ export default function IntakeWaiverPage() {
         />
       </div>
     </main>
+    </>
   )
 }

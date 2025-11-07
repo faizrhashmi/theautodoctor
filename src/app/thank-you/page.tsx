@@ -1,9 +1,15 @@
 ﻿import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { stripe } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PRICING } from '@/config/pricing'
 import MechanicInvite from './MechanicInvite'
 import { fulfillCheckout } from '@/lib/fulfillment'
+
+const CustomerActiveSessionMount = dynamic(
+  () => import('@/components/customer/CustomerActiveSessionMount'),
+  { ssr: false }
+)
 
 type SessionType = 'chat' | 'video' | 'diagnostic'
 
@@ -145,7 +151,9 @@ export default async function ThankYou({
     sessionRoute ?? (stripeSessionId ? `/signup?session_id=${encodeURIComponent(stripeSessionId)}` : '/signup')
 
   return (
-    <main className="mx-auto max-w-4xl rounded-[2.5rem] border border-slate-700 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm lg:p-12">
+    <>
+      <CustomerActiveSessionMount />
+      <main className="mx-auto max-w-4xl rounded-[2.5rem] border border-slate-700 bg-slate-800/50 p-8 shadow-2xl backdrop-blur-sm lg:p-12">
       <div className="flex flex-col gap-10">
         <header className="rounded-2xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm p-8 text-center shadow-lg">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">Session confirmed</p>
@@ -216,5 +224,6 @@ export default async function ThankYou({
         )}
       </div>
     </main>
+    </>
   )
 }
