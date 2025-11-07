@@ -471,10 +471,53 @@ export default function MechanicDashboardPage() {
   // Listen to custom events emitted by MechanicRealtimeMount (in layout)
   useEffect(() => {
     function onAssignUpdate(e: CustomEvent) {
-      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', e.detail);
+      const detail = e.detail as {
+        eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+        status?: string
+        assignmentId?: string
+        sessionId?: string
+      }
+
+      console.log('[MechanicDashboard] 🔔 Realtime assignment update received', detail);
       console.log('[MechanicDashboard] 🔄 Real-time update detected → refetching queue…');
+
+      // Always refetch queue
       fetchQueue();
+
+      // Toast/notification only for brand-new incoming requests
+      if (detail.eventType === 'INSERT' && detail.status === 'queued') {
+        try {
+          console.log('[MechanicDashboard] 🆕 New queued request detected, firing notification');
+
+          // Use existing alert system if available
+          onNewSessionRequest?.();
+
+          // Fallback to browser notification
+          if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+              new Notification('New Session Request', {
+                body: 'A customer just submitted a request. Check the queue to view.',
+                icon: '/favicon.ico'
+              });
+            } else if (Notification.permission !== 'denied') {
+              Notification.requestPermission().then(p => {
+                if (p === 'granted') {
+                  new Notification('New Session Request', {
+                    body: 'A customer just submitted a request. Check the queue to view.',
+                    icon: '/favicon.ico'
+                  });
+                }
+              });
+            }
+          }
+
+          console.log('[MechanicDashboard] ✅ Notification fired for new request');
+        } catch (err) {
+          console.error('[MechanicDashboard] Notification error', err);
+        }
+      }
     }
+
     function onSessionUpdate(e: CustomEvent) {
       console.log('[MechanicDashboard] 🔔 Realtime session update received', e.detail);
       fetchQueue();
