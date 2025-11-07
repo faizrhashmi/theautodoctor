@@ -14,23 +14,33 @@ export default function CustomerActiveSessionMount() {
   const router = useRouter()
   const [canShow, setCanShow] = useState(false)
 
+  console.log('[CustomerActiveSessionMount] Component rendered, canShow:', canShow)
+
   // fetch once on mount + any time the page asks to refresh
   useEffect(() => {
     let mounted = true
     const run = async () => {
       try {
+        console.log('[CustomerActiveSessionMount] Fetching active session...')
         const r = await fetch('/api/customer/sessions/active', { cache: 'no-store' })
         const d = await r.json()
+        console.log('[CustomerActiveSessionMount] API response:', d)
         // only show if active + session returned (banner has its own guards too)
-        if (mounted) setCanShow(!!(d?.active && d?.session))
-      } catch {
+        const shouldShow = !!(d?.active && d?.session)
+        console.log('[CustomerActiveSessionMount] Should show banner:', shouldShow)
+        if (mounted) setCanShow(shouldShow)
+      } catch (error) {
+        console.error('[CustomerActiveSessionMount] Error fetching active session:', error)
         if (mounted) setCanShow(false)
       }
     }
     run()
 
     // also listen for our optional realtime event if you keep it
-    const onUpdate = () => run()
+    const onUpdate = () => {
+      console.log('[CustomerActiveSessionMount] Realtime update event received')
+      run()
+    }
     window.addEventListener('customer:sessions:update', onUpdate)
     return () => {
       mounted = false

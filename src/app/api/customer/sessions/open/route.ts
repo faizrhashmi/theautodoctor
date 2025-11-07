@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -21,8 +22,8 @@ export async function GET() {
       return NextResponse.json({ active: false, session: null, hasActiveSessions: false })
     }
 
-    // Fetch most recent open session
-    const { data: rows, error } = await supabase
+    // Fetch most recent open session using admin client to bypass RLS
+    const { data: rows, error } = await supabaseAdmin
       .from('sessions')
       .select('id, type, status, plan, created_at, started_at, ended_at, scheduled_start, scheduled_end')
       .eq('customer_user_id', user.id)
