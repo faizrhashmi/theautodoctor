@@ -26,8 +26,8 @@ export interface ProfileRequirement {
   field_name: string
   field_category: string
   weight: number
-  required_for_general: boolean
-  required_for_specialist: boolean
+  required_for_general: boolean | null
+  required_for_specialist: boolean | null
 }
 
 /**
@@ -233,12 +233,12 @@ export async function getProfileCompletion(
     // Check if we have a recent score
     const { data: mechanic } = await supabase
       .from('mechanics')
-      .select('profile_completion_score, can_accept_sessions, updated_at')
+      .select('profile_completion_score, can_accept_sessions, last_updated')
       .eq('id', mechanicId)
       .single()
 
-    if (mechanic && mechanic.profile_completion_score !== null) {
-      const lastUpdate = new Date(mechanic.updated_at)
+    if (mechanic && mechanic.profile_completion_score !== null && mechanic.last_updated) {
+      const lastUpdate = new Date(mechanic.last_updated)
       const hoursSinceUpdate = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60)
 
       // If updated within last hour, return cached values

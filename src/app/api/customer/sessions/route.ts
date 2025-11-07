@@ -46,12 +46,12 @@ export async function GET(req: NextRequest) {
     // Get mechanic names for sessions that have mechanics assigned (using mechanic_id directly)
     const mechanicIds = sessions?.map(s => s.mechanic_id).filter(Boolean) || []
     const { data: mechanics } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name')
+      .from('mechanics')
+      .select('id, name')
       .in('id', mechanicIds)
 
     // Map mechanic names by mechanic_id
-    const mechanicsMap = new Map(mechanics?.map(m => [m.id, m.full_name]) || [])
+    const mechanicsMap = new Map(mechanics?.map(m => [m.id, m.name]) || [])
 
     // Format sessions with all fields needed for SessionCompletionModal
     const formattedSessions = sessions?.map(session => {

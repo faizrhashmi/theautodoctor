@@ -9,7 +9,7 @@ if (!url) throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_URL');
 if (!serviceKey) throw new Error('Missing env: SUPABASE_SERVICE_ROLE_KEY');
 
 // Ensure a single instance in dev (Next.js hot reload)
-let _admin: SupabaseClient<Database>;
+let _admin: SupabaseClient<Database> | undefined;
 
 export const supabaseAdmin: SupabaseClient<Database> =
   _admin ??

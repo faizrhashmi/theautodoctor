@@ -84,7 +84,7 @@ export const VEHICLE_BRANDS: VehicleBrand[] = [
  * Get brands grouped by category for react-select
  */
 export function getGroupedBrands() {
-  const groups: Record<string, VehicleBrand[]> = {
+  const groups: Record<VehicleBrand['group'], VehicleBrand[]> = {
     Popular: [],
     Luxury: [],
     Import: [],
