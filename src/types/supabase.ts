@@ -6254,5 +6254,3 @@ export type SessionRequestUpdate = TablesUpdate<'session_requests'>
 export type Profile = Tables<'profiles'>
 export type ProfileInsert = TablesInsert<'profiles'>
 export type ProfileUpdate = TablesUpdate<'profiles'>
-A new version of Supabase CLI is available: v2.54.10 (currently installed v2.53.6)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

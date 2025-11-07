@@ -106,7 +106,7 @@ export default function Home() {
               href="/signup"
               className="hidden rounded-full bg-white px-4 py-1.5 text-xs font-bold text-green-600 transition hover:bg-gray-100 sm:block"
             >
-              Claim Now ->
+              Claim Now →
             </Link>
           </div>
         </div>

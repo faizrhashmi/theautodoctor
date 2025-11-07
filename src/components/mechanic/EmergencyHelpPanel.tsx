@@ -37,7 +37,7 @@ Emergency Contact: 1-800-AUTO-DOC`
   {
     id: 'customer-no-show',
     category: 'emergency',
-    title: 'Customer didn't show up',
+    title: 'Customer didn\'t show up',
     icon: Clock,
     content: `If a customer doesn't join within 10 minutes:
 1. Wait the full 10 minutes from scheduled time
@@ -64,7 +64,7 @@ Still having issues? Switch to chat-only mode in the session controls.`
   {
     id: 'payment-missing',
     category: 'payment',
-    title: 'Haven't received payment',
+    title: 'Haven\'t received payment',
     icon: DollarSign,
     content: `Payment timeline:
 • Earnings appear in your dashboard immediately after session completion
