@@ -1355,72 +1355,78 @@ export default function VideoSessionClient({
   const fetchAndShowCompletionModal = useCallback(async () => {
     console.log('[VIDEO] Fetching session data for completion modal...', { sessionId, userRole: _userRole })
 
-    try {
-      // Fetch from role-specific API
-      const apiPath = _userRole === 'customer' ? '/api/customer/sessions' : '/api/mechanic/sessions'
-      console.log('[VIDEO] Fetching from:', apiPath)
+    // Helper function to attempt fetching session data
+    const attemptFetch = async (attemptNumber: number, delayMs: number): Promise<boolean> => {
+      try {
+        console.log(`[VIDEO] Fetch attempt ${attemptNumber}/${4} (${delayMs}ms delay)`)
 
-      const response = await fetch(apiPath)
-      console.log('[VIDEO] API response status:', response.status)
+        // Fetch from role-specific API
+        const apiPath = _userRole === 'customer' ? '/api/customer/sessions' : '/api/mechanic/sessions'
+        const response = await fetch(apiPath)
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[VIDEO] API data received:', { sessionCount: data.sessions?.length })
+        console.log(`[VIDEO] Attempt ${attemptNumber} - API response status:`, response.status)
 
-        const session = data.sessions?.find((s: any) => s.id === sessionId)
-        console.log('[VIDEO] Session found:', session ? 'YES' : 'NO')
-
-        if (session) {
-          console.log('[VIDEO] ✅ Session found! Showing completion modal:', {
-            sessionId: session.id,
-            status: session.status,
-            hasData: !!session
+        if (response.ok) {
+          const data = await response.json()
+          console.log(`[VIDEO] Attempt ${attemptNumber} - Sessions received:`, {
+            count: data.sessions?.length,
+            sessionIds: data.sessions?.map((s: any) => s.id).slice(0, 5)
           })
-          console.log('[VIDEO] Setting completionSessionData...')
-          setCompletionSessionData(session)
-          console.log('[VIDEO] Setting showCompletionModal to true...')
-          setShowCompletionModal(true)
-          console.log('[VIDEO] Modal state set complete!')
+
+          const session = data.sessions?.find((s: any) => s.id === sessionId)
+
+          if (session) {
+            console.log(`[VIDEO] ✅ Session found on attempt ${attemptNumber}!`, {
+              id: session.id,
+              status: session.status,
+              mechanic_name: session.mechanic_name
+            })
+            setCompletionSessionData(session)
+            setShowCompletionModal(true)
+            return true
+          } else {
+            console.warn(`[VIDEO] ⚠️ Session ${sessionId} not found in response on attempt ${attemptNumber}`)
+            return false
+          }
         } else {
-          // Retry once after a short delay (session might not be fully persisted yet)
-          console.warn('[VIDEO] Session not found, retrying in 1 second...')
-          setTimeout(async () => {
-            try {
-              const retryResponse = await fetch(apiPath)
-              if (retryResponse.ok) {
-                const retryData = await retryResponse.json()
-                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
-                if (retrySession) {
-                  console.log('[VIDEO] ✅ Session found on retry!', {
-                    sessionId: retrySession.id,
-                    status: retrySession.status
-                  })
-                  console.log('[VIDEO] [RETRY] Setting completionSessionData...')
-                  setCompletionSessionData(retrySession)
-                  console.log('[VIDEO] [RETRY] Setting showCompletionModal to true...')
-                  setShowCompletionModal(true)
-                  console.log('[VIDEO] [RETRY] Modal state set complete!')
-                  return
-                }
-              }
-            } catch (retryError) {
-              console.error('[VIDEO] Retry failed:', retryError)
-            }
-            // Final fallback
-            console.warn('[VIDEO] Session still not found after retry, redirecting...')
-            window.location.href = dashboardUrl
-          }, 1000)
+          console.error(`[VIDEO] Attempt ${attemptNumber} - API error:`, response.status)
+          const errorText = await response.text()
+          console.error(`[VIDEO] Error response:`, errorText)
+          return false
         }
-      } else {
-        console.error('[VIDEO] API returned error status:', response.status)
-        const errorText = await response.text()
-        console.error('[VIDEO] Error response:', errorText)
-        // Fallback: redirect on error
-        window.location.href = dashboardUrl
+      } catch (error) {
+        console.error(`[VIDEO] Attempt ${attemptNumber} - Exception:`, error)
+        return false
       }
+    }
+
+    try {
+      // Try immediately (attempt 1)
+      const success1 = await attemptFetch(1, 0)
+      if (success1) return
+
+      // Retry after 1.5 seconds (attempt 2)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const success2 = await attemptFetch(2, 1500)
+      if (success2) return
+
+      // Retry after 3 seconds total (attempt 3)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const success3 = await attemptFetch(3, 3000)
+      if (success3) return
+
+      // Final retry after 5 seconds total (attempt 4)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const success4 = await attemptFetch(4, 5000)
+      if (success4) return
+
+      // All retries exhausted - redirect to dashboard
+      console.error('[VIDEO] ❌ Session not found after 4 attempts over 5 seconds')
+      console.error('[VIDEO] This indicates a database replication issue or auth problem')
+      console.error('[VIDEO] Redirecting to dashboard as fallback...')
+      window.location.href = dashboardUrl
     } catch (error) {
-      console.error('[VIDEO] Exception fetching session data:', error)
-      // Fallback: redirect on error
+      console.error('[VIDEO] Fatal error in fetchAndShowCompletionModal:', error)
       window.location.href = dashboardUrl
     }
   }, [sessionId, dashboardUrl, _userRole])

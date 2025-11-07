@@ -1268,56 +1268,78 @@ export default function ChatRoom({
   const fetchAndShowCompletionModal = useCallback(async () => {
     console.log('[CHAT] Fetching session data for completion modal...', { sessionId, userRole })
 
-    try {
-      // Fetch from role-specific API
-      const apiPath = isMechanic ? '/api/mechanic/sessions' : '/api/customer/sessions'
-      console.log('[CHAT] Fetching from:', apiPath)
+    // Helper function to attempt fetching session data
+    const attemptFetch = async (attemptNumber: number, delayMs: number): Promise<boolean> => {
+      try {
+        console.log(`[CHAT] Fetch attempt ${attemptNumber}/${4} (${delayMs}ms delay)`)
 
-      const response = await fetch(apiPath)
-      console.log('[CHAT] API response status:', response.status)
+        // Fetch from role-specific API
+        const apiPath = isMechanic ? '/api/mechanic/sessions' : '/api/customer/sessions'
+        const response = await fetch(apiPath)
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[CHAT] API data received:', { sessionCount: data.sessions?.length })
+        console.log(`[CHAT] Attempt ${attemptNumber} - API response status:`, response.status)
 
-        const session = data.sessions?.find((s: any) => s.id === sessionId)
-        console.log('[CHAT] Session found:', session ? 'YES' : 'NO')
+        if (response.ok) {
+          const data = await response.json()
+          console.log(`[CHAT] Attempt ${attemptNumber} - Sessions received:`, {
+            count: data.sessions?.length,
+            sessionIds: data.sessions?.map((s: any) => s.id).slice(0, 5)
+          })
 
-        if (session) {
-          console.log('[CHAT] Showing completion modal with session:', session.id)
-          setCompletionSessionData(session)
-          setShowCompletionModal(true)
+          const session = data.sessions?.find((s: any) => s.id === sessionId)
+
+          if (session) {
+            console.log(`[CHAT] ✅ Session found on attempt ${attemptNumber}!`, {
+              id: session.id,
+              status: session.status,
+              mechanic_name: session.mechanic_name
+            })
+            setCompletionSessionData(session)
+            setShowCompletionModal(true)
+            return true
+          } else {
+            console.warn(`[CHAT] ⚠️ Session ${sessionId} not found in response on attempt ${attemptNumber}`)
+            return false
+          }
         } else {
-          // Retry once after a short delay (session might not be fully persisted yet)
-          console.warn('[CHAT] Session not found, retrying in 1 second...')
-          setTimeout(async () => {
-            try {
-              const retryResponse = await fetch(apiPath)
-              if (retryResponse.ok) {
-                const retryData = await retryResponse.json()
-                const retrySession = retryData.sessions?.find((s: any) => s.id === sessionId)
-                if (retrySession) {
-                  console.log('[CHAT] Session found on retry!')
-                  setCompletionSessionData(retrySession)
-                  setShowCompletionModal(true)
-                  return
-                }
-              }
-            } catch (retryError) {
-              console.error('[CHAT] Retry failed:', retryError)
-            }
-            console.warn('[CHAT] Session still not found after retry, redirecting...')
-            window.location.href = dashboardUrl
-          }, 1000)
+          console.error(`[CHAT] Attempt ${attemptNumber} - API error:`, response.status)
+          const errorText = await response.text()
+          console.error(`[CHAT] Error response:`, errorText)
+          return false
         }
-      } else {
-        console.error('[CHAT] API returned error status:', response.status)
-        const errorText = await response.text()
-        console.error('[CHAT] Error response:', errorText)
-        window.location.href = dashboardUrl
+      } catch (error) {
+        console.error(`[CHAT] Attempt ${attemptNumber} - Exception:`, error)
+        return false
       }
+    }
+
+    try {
+      // Try immediately (attempt 1)
+      const success1 = await attemptFetch(1, 0)
+      if (success1) return
+
+      // Retry after 1.5 seconds (attempt 2)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const success2 = await attemptFetch(2, 1500)
+      if (success2) return
+
+      // Retry after 3 seconds total (attempt 3)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const success3 = await attemptFetch(3, 3000)
+      if (success3) return
+
+      // Final retry after 5 seconds total (attempt 4)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const success4 = await attemptFetch(4, 5000)
+      if (success4) return
+
+      // All retries exhausted - redirect to dashboard
+      console.error('[CHAT] ❌ Session not found after 4 attempts over 5 seconds')
+      console.error('[CHAT] This indicates a database replication issue or auth problem')
+      console.error('[CHAT] Redirecting to dashboard as fallback...')
+      window.location.href = dashboardUrl
     } catch (error) {
-      console.error('[CHAT] Exception fetching session data:', error)
+      console.error('[CHAT] Fatal error in fetchAndShowCompletionModal:', error)
       window.location.href = dashboardUrl
     }
   }, [sessionId, dashboardUrl, isMechanic, userRole])
