@@ -79,7 +79,7 @@ export async function findMatchingMechanics(
     const matchReasons: string[] = []
 
     // Base score for availability (highest priority)
-    if (mechanic.is_online) {
+    if (mechanic.is_available) {
       score += 50
       matchReasons.push('Available now')
     } else {
@@ -110,7 +110,7 @@ export async function findMatchingMechanics(
     }
 
     // Experience bonus
-    const experience = mechanic.years_experience || 0
+    const experience = mechanic.years_of_experience || 0
     if (experience >= 10) {
       score += 20
       matchReasons.push('10+ years experience')
@@ -149,7 +149,7 @@ export async function findMatchingMechanics(
     }
 
     // Completed sessions bonus (experienced with platform)
-    const completedSessions = mechanic.completed_sessions_count || 0
+    const completedSessions = mechanic.completed_sessions || 0
     if (completedSessions >= 50) {
       score += 12
       matchReasons.push('50+ sessions completed')
@@ -187,11 +187,11 @@ export async function findMatchingMechanics(
 
     return {
       mechanicId: mechanic.id,
-      mechanicName: mechanic.full_name || mechanic.name || 'Mechanic',
-      profilePhoto: mechanic.profile_photo_url,
+      mechanicName: mechanic.name || 'Mechanic',
+      profilePhoto: null, // TODO: Add profile photo field to mechanics table
       matchScore: score,
       matchReasons,
-      availability: mechanic.is_online ? 'online' : 'offline',
+      availability: mechanic.is_available ? 'online' : 'offline',
       yearsExperience: experience,
       rating,
       isBrandSpecialist: mechanic.is_brand_specialist || false,

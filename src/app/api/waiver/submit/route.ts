@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
       return bad('Intake ID is required')
     }
 
-    if (!signatureData || typeof signatureData !== 'string' || !signatureData.startsWith('data:image')) {
+    // Accept both image signatures (data:image/png;base64,...) and text signatures (data:text/plain;base64,...)
+    if (!signatureData || typeof signatureData !== 'string' || !signatureData.startsWith('data:')) {
       return bad('Valid signature data is required')
     }
 

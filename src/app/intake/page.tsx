@@ -482,6 +482,23 @@ export default function IntakePage() {
             </div>
           )}
 
+          {/* Phase 2 Header */}
+          <div className="mb-4 sm:mb-6 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-red-500/10 p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-orange-300 uppercase tracking-wide">
+                  Phase 2: Finalize Request
+                </p>
+                <p className="text-sm sm:text-base text-white font-bold">
+                  Step 1 of 2: Vehicle Details
+                </p>
+              </div>
+              <p className="text-xs text-slate-400">
+                Next: Safety agreement (~30 sec)
+              </p>
+            </div>
+          </div>
+
           {/* Header Section */}
           <header className="rounded-xl sm:rounded-2xl border border-white/5 sm:border-white/10 bg-slate-950/30 sm:bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-sm sm:shadow-lg">
             <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">

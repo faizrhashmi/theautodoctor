@@ -282,6 +282,25 @@ export default function SessionWizard({
   // Render vehicle selection step
   const renderVehicleStep = () => (
     <div className="space-y-3 sm:space-y-4">
+      {/* Phase Header */}
+      <div className="mb-4 rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-3 sm:p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
+              Phase 1: Session Setup
+            </p>
+            <p className="text-sm sm:text-base text-white font-bold">
+              Step {currentStep} of {totalSteps}
+            </p>
+          </div>
+          <p className="text-xs text-slate-400">
+            {currentStep === 1 && 'Next: Choose plan'}
+            {currentStep === 2 && 'Next: Choose mechanic'}
+            {currentStep === 3 && 'Next: Vehicle details'}
+          </p>
+        </div>
+      </div>
+
       <div className="text-center mb-4 sm:mb-6">
         <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
           Which vehicle needs attention?

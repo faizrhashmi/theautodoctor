@@ -4,11 +4,13 @@
 import { useRef, useState, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { FileSignature, Check, AlertCircle, Loader2 } from 'lucide-react'
+import SimpleWaiverCheckbox from './SimpleWaiverCheckbox'
 
 interface WaiverSignatureProps {
   onSubmit: (signatureData: string, fullName: string) => Promise<void>
   fullName?: string
   email?: string
+  simplified?: boolean // If true, shows checkbox instead of signature canvas (faster UX)
 }
 
 const WAIVER_VERSION = '1.0'
@@ -45,7 +47,12 @@ const WAIVER_TERMS = [
   }
 ]
 
-export default function WaiverSignature({ onSubmit, fullName = '', email = '' }: WaiverSignatureProps) {
+export default function WaiverSignature({ onSubmit, fullName = '', email = '', simplified = false }: WaiverSignatureProps) {
+  // If simplified mode, use SimpleWaiverCheckbox instead of full signature canvas
+  if (simplified) {
+    return <SimpleWaiverCheckbox onSubmit={onSubmit} fullName={fullName} email={email} />
+  }
+
   const sigCanvasRef = useRef<SignatureCanvas>(null)
   const [name, setName] = useState(fullName)
   const [agreedToTerms, setAgreedToTerms] = useState(false)

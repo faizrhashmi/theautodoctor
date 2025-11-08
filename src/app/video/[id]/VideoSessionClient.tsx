@@ -26,6 +26,7 @@ import { SessionCompletionModal } from '@/components/session/SessionCompletionMo
 import { routeFor } from '@/lib/routes'
 import { getOrCreateSessionFingerprint } from '@/lib/deviceFingerprint'
 import MechanicProfileModal from '@/components/MechanicProfileModal'
+import { InspectionControls } from '@/components/video/InspectionControls'
 
 type PlanKey = 'chat10' | 'video15' | 'diagnostic'
 
@@ -704,8 +705,8 @@ function VideoControls({
         </button>
       )}
 
-      {/* Flashlight Toggle (only show if torch supported) */}
-      {torchSupported && isCameraEnabled && (
+      {/* Flashlight Toggle - Show on mobile devices or if torch is detected */}
+      {isCameraEnabled && (torchSupported || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) && (
         <button
           onClick={toggleFlashlight}
           className={`rounded-lg p-2 transition sm:p-3 ${
@@ -1206,6 +1207,7 @@ export default function VideoSessionClient({
   // Don't initialize for scheduled/pending sessions even if they have started_at
   const [sessionStarted, setSessionStarted] = useState(_status === 'live')
   const [mechanicName, setMechanicName] = useState<string | null>(_mechanicName)
+  const [mechanicId, setMechanicId] = useState<string | null>(_mechanicId)
   const [customerName, setCustomerName] = useState<string | null>(_customerName)
   // Initialize timer only for already-live sessions (e.g., page reload during active session)
   // Don't initialize for scheduled/pending sessions
@@ -1356,7 +1358,7 @@ export default function VideoSessionClient({
     console.log('[VIDEO] Fetching session data for completion modal...', { sessionId, userRole: _userRole })
 
     // Helper function to attempt fetching session data
-    const attemptFetch = async (attemptNumber: number, delayMs: number): Promise<boolean> => {
+    const attemptFetch = async (attemptNumber: number, delayMs: number): Promise<any> => {
       try {
         console.log(`[VIDEO] Fetch attempt ${attemptNumber}/${4} (${delayMs}ms delay)`)
 
@@ -1381,58 +1383,106 @@ export default function VideoSessionClient({
               status: session.status,
               mechanic_name: session.mechanic_name
             })
-            setCompletionSessionData(session)
-            setShowCompletionModal(true)
-            return true
+            return session
           } else {
             console.warn(`[VIDEO] ⚠️ Session ${sessionId} not found in response on attempt ${attemptNumber}`)
-            return false
+            return null
           }
         } else {
           console.error(`[VIDEO] Attempt ${attemptNumber} - API error:`, response.status)
           const errorText = await response.text()
           console.error(`[VIDEO] Error response:`, errorText)
-          return false
+          return null
         }
       } catch (error) {
         console.error(`[VIDEO] Attempt ${attemptNumber} - Exception:`, error)
-        return false
+        return null
       }
     }
 
     try {
       // Try immediately (attempt 1)
-      const success1 = await attemptFetch(1, 0)
-      if (success1) return
+      let sessionData = await attemptFetch(1, 0)
+      if (sessionData) {
+        setCompletionSessionData(sessionData)
+        setShowCompletionModal(true)
+        return
+      }
 
       // Retry after 1.5 seconds (attempt 2)
       await new Promise(resolve => setTimeout(resolve, 1500))
-      const success2 = await attemptFetch(2, 1500)
-      if (success2) return
+      sessionData = await attemptFetch(2, 1500)
+      if (sessionData) {
+        setCompletionSessionData(sessionData)
+        setShowCompletionModal(true)
+        return
+      }
 
       // Retry after 3 seconds total (attempt 3)
       await new Promise(resolve => setTimeout(resolve, 1500))
-      const success3 = await attemptFetch(3, 3000)
-      if (success3) return
+      sessionData = await attemptFetch(3, 3000)
+      if (sessionData) {
+        setCompletionSessionData(sessionData)
+        setShowCompletionModal(true)
+        return
+      }
 
       // Final retry after 5 seconds total (attempt 4)
       await new Promise(resolve => setTimeout(resolve, 2000))
-      const success4 = await attemptFetch(4, 5000)
-      if (success4) return
+      sessionData = await attemptFetch(4, 5000)
+      if (sessionData) {
+        setCompletionSessionData(sessionData)
+        setShowCompletionModal(true)
+        return
+      }
 
-      // All retries exhausted - redirect to dashboard
+      // All retries exhausted - show basic completion modal without full data
       console.error('[VIDEO] ❌ Session not found after 4 attempts over 5 seconds')
       console.error('[VIDEO] This indicates a database replication issue or auth problem')
-      console.error('[VIDEO] Redirecting to dashboard as fallback...')
-      window.location.href = dashboardUrl
+      console.error('[VIDEO] Showing basic completion modal...')
+
+      // Create minimal session data for completion modal
+      const minimalSessionData = {
+        id: sessionId,
+        customer_user_id: _customerId,
+        mechanic_id: _mechanicId,
+        customer_name: _customerName,
+        mechanic_name: _mechanicName,
+        started_at: _startedAt,
+        ended_at: new Date().toISOString(),
+        duration_minutes: null,
+        plan: plan,
+        base_price: null,
+        rating: null,
+      }
+
+      setCompletionSessionData(minimalSessionData)
+      setShowCompletionModal(true)
     } catch (error) {
       console.error('[VIDEO] Fatal error in fetchAndShowCompletionModal:', error)
-      window.location.href = dashboardUrl
+
+      // Show basic completion modal even on fatal error
+      const minimalSessionData = {
+        id: sessionId,
+        customer_user_id: _customerId,
+        mechanic_id: _mechanicId,
+        customer_name: _customerName,
+        mechanic_name: _mechanicName,
+        started_at: _startedAt,
+        ended_at: new Date().toISOString(),
+        duration_minutes: null,
+        plan: plan,
+        base_price: null,
+        rating: null,
+      }
+
+      setCompletionSessionData(minimalSessionData)
+      setShowCompletionModal(true)
     }
-  }, [sessionId, dashboardUrl, _userRole])
+  }, [sessionId, dashboardUrl, _userRole, _customerId, _mechanicId, _customerName, _mechanicName, _startedAt, plan])
 
   // 🔒 SECURITY LAYER 3: Real-time database listener for status changes
-  // Shows completion modal for normal endings, redirects for external cancellations
+  // Shows completion modal when session ends (completed/cancelled)
   useEffect(() => {
     console.log('[VIDEO SECURITY L3] Setting up real-time status monitor')
 
@@ -1447,9 +1497,36 @@ export default function VideoSessionClient({
           filter: `id=eq.${sessionId}`,
         },
         async (payload) => {
-          console.log('[VIDEO SECURITY L3] 🔄 Session status changed:', payload)
+          console.log('[VIDEO SECURITY L3] 🔄 Session updated:', payload)
           const newStatus = payload.new?.status
+          const newMechanicId = payload.new?.mechanic_id
+          const oldMechanicId = payload.old?.mechanic_id
 
+          // 🔧 MECHANIC ASSIGNMENT: Update mechanic name when mechanic joins
+          if (newMechanicId && newMechanicId !== oldMechanicId && _userRole === 'customer') {
+            console.log('[VIDEO] 🔧 Mechanic assigned, fetching name...', { mechanicId: newMechanicId })
+
+            try {
+              // Fetch mechanic info via API (uses admin client server-side)
+              const response = await fetch(`/api/sessions/${sessionId}/mechanic-info`)
+
+              if (response.ok) {
+                const data = await response.json()
+
+                if (data.mechanicAssigned && data.name) {
+                  console.log('[VIDEO] ✅ Mechanic name fetched:', data.name)
+                  setMechanicName(data.name)
+                  setMechanicId(data.user_id)
+                }
+              } else {
+                console.error('[VIDEO] API error:', response.status)
+              }
+            } catch (error) {
+              console.error('[VIDEO] Failed to fetch mechanic name:', error)
+            }
+          }
+
+          // 🔒 SESSION ENDING: Show completion modal
           if (newStatus === 'cancelled' || newStatus === 'completed') {
             // Show completion modal for both completed and cancelled sessions
             // This handles both normal user-initiated ends (which may result in 'cancelled'
@@ -2792,14 +2869,20 @@ export default function VideoSessionClient({
           </a>
 
           {/* PARTICIPANT NAME - Shows the other participant's name */}
-          {_userRole === 'customer' && mechanicName && _mechanicId ? (
+          {_userRole === 'customer' && mechanicName && mechanicId ? (
             <button
               onClick={() => setShowMechanicProfileModal(true)}
-              className="rounded-full border-2 border-blue-400 bg-blue-500/20 px-2 py-1 text-xs font-bold text-blue-100 backdrop-blur transition hover:bg-blue-500/30 sm:px-4 sm:py-2 sm:text-sm flex items-center gap-1.5"
-              title="View mechanic profile"
+              className="relative rounded-full border-2 border-blue-400/80 bg-gradient-to-r from-blue-500/30 to-blue-600/30 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-lg transition-all hover:scale-105 hover:border-blue-300 hover:from-blue-500/40 hover:to-blue-600/40 hover:shadow-blue-500/50 sm:px-5 sm:py-2.5 sm:text-sm flex items-center gap-2 animate-pulse hover:animate-none z-10"
+              title="Click to view your mechanic's profile, credentials & expertise"
             >
-              🔧 {mechanicName}
-              <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="flex items-center gap-2">
+                <span className="text-base sm:text-lg">🔧</span>
+                <span className="font-extrabold tracking-wide">{mechanicName}</span>
+              </span>
+              <div className="flex items-center gap-1 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] sm:px-2 sm:py-1 sm:text-xs">
+                <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline font-semibold">Profile</span>
+              </div>
             </button>
           ) : _userRole === 'mechanic' && customerName ? (
             <div className="rounded-full border-2 border-green-400 bg-green-500/20 px-2 py-1 text-xs font-bold text-green-100 backdrop-blur sm:px-4 sm:py-2 sm:text-sm">
@@ -2809,9 +2892,9 @@ export default function VideoSessionClient({
             <div className={`rounded-full border-2 px-2 py-1 text-xs font-bold backdrop-blur sm:px-4 sm:py-2 sm:text-sm ${
               _userRole === 'mechanic'
                 ? 'border-blue-400 bg-blue-500/20 text-blue-100'
-                : 'border-green-400 bg-green-500/20 text-green-100'
+                : 'border-green-400/50 bg-green-500/10 text-green-200/70'
             }`}>
-              {_userRole === 'mechanic' ? '🔧 Mechanic' : '👤 Customer'}
+              {_userRole === 'mechanic' ? '🔧 Mechanic' : '⏳ Waiting for mechanic...'}
             </div>
           )}
 
@@ -2905,17 +2988,15 @@ export default function VideoSessionClient({
 
         {/* Video Controls - Bottom Bar */}
         {sessionStarted && (
-          <div className="absolute bottom-0 left-0 right-0 z-40 border-t border-slate-700/50 bg-slate-900/90 p-2 backdrop-blur sm:p-3 md:p-4">
+          <div className="absolute bottom-0 left-0 right-0 z-40 p-2 sm:p-3 md:p-4">
             <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-2 sm:justify-between">
               <div className="hidden text-xs text-slate-300 sm:block sm:text-sm">
                 <strong className="text-white">{_planName}</strong>
               </div>
 
-              <VideoControls
-                onEndSession={handleEndSession}
-                onUploadFile={handleFileUpload}
+              <InspectionControls
+                onFileUpload={handleFileUpload}
                 onCaptureScreenshot={handleScreenshotCapture}
-                capturingScreenshot={capturingScreenshot}
                 showChat={showChat}
                 onToggleChat={() => setShowChat(!showChat)}
                 unreadCount={unreadCount}
@@ -2937,6 +3018,7 @@ export default function VideoSessionClient({
                 onToggleNetworkStats={() => setShowNetworkStats(!showNetworkStats)}
                 showAnnotations={showAnnotations}
                 onToggleAnnotations={() => setShowAnnotations(!showAnnotations)}
+                sessionId={sessionId}
               />
             </div>
           </div>
@@ -3130,7 +3212,7 @@ export default function VideoSessionClient({
                   <h3 className="font-semibold text-white">
                     {_userRole === 'mechanic' ? (
                       customerName || 'Customer'
-                    ) : mechanicName && _mechanicId ? (
+                    ) : mechanicName && mechanicId ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -3519,20 +3601,23 @@ Examples:
       )}
 
       {/* Session Completion Modal - Simplified to match working chat implementation */}
-      {completionSessionData && (
+      {showCompletionModal && completionSessionData && (
         <SessionCompletionModal
-          isOpen={showCompletionModal}
+          isOpen={true}
           sessionData={completionSessionData}
           onClose={() => {
             console.log('[VIDEO] Modal onClose called')
             setShowCompletionModal(false)
+            // Don't clear completionSessionData to prevent modal from reopening
           }}
           onViewDashboard={() => {
             console.log('[VIDEO] Modal onViewDashboard called')
+            setShowCompletionModal(false)
             window.location.href = dashboardUrl
           }}
           onViewDetails={() => {
             console.log('[VIDEO] Modal onViewDetails called')
+            setShowCompletionModal(false)
             window.location.href = _userRole === 'mechanic' ? '/mechanic/sessions' : '/customer/sessions'
           }}
           userRole={_userRole}
@@ -3540,9 +3625,9 @@ Examples:
       )}
 
       {/* Mechanic Profile Modal (Customer Only) */}
-      {_userRole === 'customer' && _mechanicId && (
+      {_userRole === 'customer' && mechanicId && (
         <MechanicProfileModal
-          mechanicId={_mechanicId}
+          mechanicId={mechanicId}
           isOpen={showMechanicProfileModal}
           onClose={() => setShowMechanicProfileModal(false)}
         />
