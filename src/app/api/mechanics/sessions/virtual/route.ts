@@ -69,9 +69,7 @@ export async function GET(req: NextRequest) {
         scheduled_end,
         profiles!diagnostic_sessions_customer_id_fkey (
           id,
-          full_name,
-          email,
-          phone
+          full_name
         )
       `)
       .in('session_type', ['chat', 'video', 'upgraded_from_chat'])
@@ -88,12 +86,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Transform the data for easier frontend consumption
+    // 🔒 PRIVACY: Never expose customer contact info to mechanics
     const transformedSessions = sessions?.map(s => ({
       id: s.id,
       customer_id: s.customer_id,
       customer_name: s.profiles?.full_name || 'Unknown',
-      customer_email: s.profiles?.email,
-      customer_phone: s.profiles?.phone,
+      // ✅ REMOVED: customer_email, customer_phone (marketplace privacy protection)
       session_type: s.session_type,
       status: s.status,
       base_price: s.base_price,

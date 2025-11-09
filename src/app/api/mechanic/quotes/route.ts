@@ -53,11 +53,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
+    // Get mechanic record to get correct mechanic ID
+    const { data: mechanic, error: mechErr } = await supabaseAdmin
+      .from('mechanics')
+      .select('id, service_tier, account_type, workshop_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (mechErr || !mechanic) {
+      console.log('[MECHANIC-QUOTES] Mechanic profile not found')
+      return NextResponse.json({ error: 'Mechanic profile not found' }, { status: 404 })
+    }
+
     // Parse query parameters
     const { searchParams } = new URL(req.url)
     const statusFilter = searchParams.get('status') // Filter by status
 
-    // Fetch mechanic's quotes
+    // Fetch mechanic's quotes using mechanic.id (not user.id)
     let query = supabaseAdmin
       .from('repair_quotes')
       .select(`
@@ -80,7 +92,7 @@ export async function GET(req: NextRequest) {
           customer_concern
         )
       `)
-      .eq('mechanic_id', user.id)
+      .eq('mechanic_id', mechanic.id)
 
     // Apply status filter if provided
     if (statusFilter) {

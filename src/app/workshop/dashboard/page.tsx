@@ -166,13 +166,6 @@ export default function WorkshopDashboardPage() {
                 <p className="text-sm text-slate-400">Workshop Dashboard</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-800/60 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700/60"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </button>
           </div>
         </div>
       </div>
@@ -274,7 +267,7 @@ export default function WorkshopDashboardPage() {
               {/* Quick Actions */}
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
                 <h3 className="mb-4 text-lg font-semibold text-white">Quick Actions</h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <button
                     onClick={() => setShowInviteModal(true)}
                     className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 text-left transition hover:bg-purple-500/20"
@@ -285,26 +278,6 @@ export default function WorkshopDashboardPage() {
                       <p className="text-sm text-slate-400">Send invitation code</p>
                     </div>
                   </button>
-                  <Link
-                    href="/workshop/partnerships/programs"
-                    className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-left transition hover:bg-blue-500/20"
-                  >
-                    <Briefcase className="h-6 w-6 text-blue-400" />
-                    <div>
-                      <p className="font-semibold text-white">Partnership Programs</p>
-                      <p className="text-sm text-slate-400">Manage programs</p>
-                    </div>
-                  </Link>
-                  <Link
-                    href="/workshop/partnerships/applications"
-                    className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-left transition hover:bg-green-500/20"
-                  >
-                    <Users className="h-6 w-6 text-green-400" />
-                    <div>
-                      <p className="font-semibold text-white">Applications</p>
-                      <p className="text-sm text-slate-400">Review applications</p>
-                    </div>
-                  </Link>
                   <button
                     onClick={() => setActiveTab('settings')}
                     className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-800/40 p-4 text-left transition hover:bg-slate-700/40"

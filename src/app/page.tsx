@@ -1,46 +1,72 @@
-﻿import Link from 'next/link'
-import { CheckCircle2, Shield, Video, Clock, Zap, Star, Sparkles, MessageSquare, Wrench } from 'lucide-react'
-import HeroSection from '@/components/home/HeroSection'
+﻿'use client'
 
-const SERVICES = [
+import Link from 'next/link'
+import { CheckCircle2, Shield, Video, Clock, Zap, Star, Sparkles, MessageSquare, Wrench, Loader2 } from 'lucide-react'
+import HeroSection from '@/components/home/HeroSection'
+import { useServicePlans } from '@/hooks/useServicePlans'
+
+// Icon mapping based on plan slug
+const PLAN_ICONS: Record<string, any> = {
+  free: Sparkles,
+  trial: Sparkles,
+  quick: MessageSquare,
+  standard: Video,
+  diagnostic: Wrench,
+}
+
+// Gradient mapping
+const PLAN_GRADIENTS: Record<string, string> = {
+  free: 'from-green-500 to-emerald-600',
+  trial: 'from-green-500 to-emerald-600',
+  quick: 'from-orange-500 to-red-600',
+  standard: 'from-red-600 to-red-700',
+  diagnostic: 'from-red-700 to-orange-800',
+}
+
+// Fallback services (used while loading or if fetch fails)
+const FALLBACK_SERVICES = [
   {
     name: 'Free Trial',
     price: '$0',
-    duration: '5 min',
+    duration: '5 minutes',
     description: 'LIMITED TIME - Try before you buy',
     features: ['Quick text chat', 'Ask one question', 'No credit card needed'],
     gradient: 'from-green-500 to-emerald-600',
     Icon: Sparkles,
     badge: 'LIMITED TIME',
-    special: true
+    special: true,
+    slug: 'free'
   },
   {
     name: 'Quick Chat',
     price: '$9.99',
-    duration: '30 min',
+    duration: '30 minutes',
     description: 'Fast text consultation for quick questions',
     features: ['Text-based chat', 'Photo & video sharing', 'Instant answers'],
     gradient: 'from-orange-500 to-red-600',
     Icon: MessageSquare,
+    slug: 'quick'
   },
   {
     name: 'Video Diagnostic',
     price: '$29.99',
-    duration: '45 min',
+    duration: '45 minutes',
     description: 'Live HD video session with mechanic',
     features: ['HD video call', 'Screen sharing', 'Session recording'],
     gradient: 'from-red-600 to-red-700',
     Icon: Video,
-    popular: true
+    popular: true,
+    slug: 'standard'
   },
   {
     name: 'Complete Guidance',
     price: '$49.99',
-    duration: '60 min',
+    duration: '60 minutes',
     description: 'Expert analysis with actionable repair plan',
     features: ['Senior mechanic', 'Written report', 'Repair roadmap'],
     gradient: 'from-red-700 to-orange-800',
     Icon: Wrench,
+    slug: 'diagnostic'
   }
 ]
 
@@ -89,6 +115,30 @@ const BENEFITS = [
 ]
 
 export default function Home() {
+  const { plans, loading } = useServicePlans()
+
+  // Transform database plans to match UI format
+  const services = loading || plans.length === 0
+    ? FALLBACK_SERVICES
+    : plans.map(plan => {
+        const Icon = PLAN_ICONS[plan.slug] || MessageSquare
+        const gradient = PLAN_GRADIENTS[plan.slug] || 'from-orange-500 to-red-600'
+
+        return {
+          name: plan.name,
+          price: plan.price,
+          duration: plan.duration,
+          description: plan.description,
+          features: plan.perks.slice(0, 3), // First 3 perks
+          gradient,
+          Icon,
+          slug: plan.slug,
+          badge: plan.slug === 'free' || plan.slug === 'trial' ? 'LIMITED TIME' : undefined,
+          special: plan.slug === 'free' || plan.slug === 'trial',
+          popular: plan.slug === 'standard' || plan.slug === 'video15'
+        }
+      })
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Limited Time Banner - Sticky */}
@@ -147,7 +197,7 @@ export default function Home() {
           </div>
 
           <div className="mt-12 grid gap-8 md:grid-cols-4">
-            {SERVICES.map((service, index) => (
+            {services.map((service, index) => (
               <div
                 key={index}
                 className={`relative rounded-3xl border bg-white/5 p-8 backdrop-blur transition hover:bg-white/10 ${

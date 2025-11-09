@@ -127,14 +127,14 @@ export async function buildSessionPdf(
   const planName = pricingInfo?.name || sessionData.plan
 
   // ============================================================================
-  // HEADER - TheAutoDoctor Branding
+  // HEADER - AskAutoDoctor Branding
   // ============================================================================
   if (includeHeader) {
     // Company name
     doc.setFontSize(24)
     doc.setTextColor(220, 38, 38) // Orange/Red brand color
     doc.setFont('helvetica', 'bold')
-    doc.text('TheAutoDoctor', margin, yPos)
+    doc.text('AskAutoDoctor', margin, yPos)
     yPos += 8
 
     // Tagline
@@ -489,7 +489,7 @@ export async function buildSessionPdf(
       doc.setFontSize(8)
       doc.setTextColor(100, 116, 139)
       doc.setFont('helvetica', 'normal')
-      doc.text('TheAutoDoctor - Remote Automotive Diagnostics', margin, footerY)
+      doc.text('AskAutoDoctor - Remote Automotive Diagnostics', margin, footerY)
 
       // Page number
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, footerY)
@@ -521,7 +521,7 @@ export async function downloadSessionPdf(sessionId: string): Promise<void> {
     const url = URL.createObjectURL(pdfBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `TheAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
+    link.download = `AskAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
 
     // Trigger download
     document.body.appendChild(link)

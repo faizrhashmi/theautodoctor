@@ -25,8 +25,7 @@ interface DiagnosticSession {
   id: string
   customer_id: string
   customer_name: string
-  customer_email?: string
-  customer_phone?: string
+  // 🔒 PRIVACY: customer_email and customer_phone removed for marketplace protection
   mechanic_id?: string
   mechanic_name?: string
   mechanic_email?: string
@@ -253,18 +252,7 @@ export default function WorkshopDiagnosticsPage() {
 
                       {/* Contact Info */}
                       <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                        {session.customer_email && (
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="h-3.5 w-3.5" />
-                            <span>{session.customer_email}</span>
-                          </div>
-                        )}
-                        {session.customer_phone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="h-3.5 w-3.5" />
-                            <span>{session.customer_phone}</span>
-                          </div>
-                        )}
+                        {/* 🔒 PRIVACY: Customer contact info intentionally hidden to protect marketplace business model */}
                       </div>
 
                       {/* Mechanic Info */}

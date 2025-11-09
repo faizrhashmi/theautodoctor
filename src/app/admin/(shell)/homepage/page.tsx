@@ -122,7 +122,7 @@ export default function AdminHomepagePage() {
               <p className="text-slate-400">Configure homepage sections, layout, and content</p>
             </div>
             <Link
-              href="/admin/dashboard"
+              href="/admin"
               className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
             >
               Back to Dashboard

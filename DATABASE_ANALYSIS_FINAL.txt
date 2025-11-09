@@ -1,0 +1,109 @@
+DATABASE SCHEMA & RLS ANALYSIS - SIGN-UP FLOWS
+===============================================
+
+CRITICAL ISSUES FOUND: 5
+HIGH PRIORITY ISSUES: 7
+MEDIUM PRIORITY ISSUES: 12
+
+ISSUE #1: MECHANICS TABLE - NO RLS POLICIES (CRITICAL)
+======================================================
+- RLS enabled but 0 policies defined
+- Users cannot view/update their own profiles  
+- Impact: Professional sign-up completely blocked
+- Fix: Add 2 policies (view own profile, admin manage all)
+- Time: 10 minutes
+
+ISSUE #2: MECHANIC_DOCUMENTS - BROKEN RLS (CRITICAL)
+===================================================
+- Circular WHERE id = mechanic_id always true
+- Makes RLS policies useless
+- Users cannot upload/view documents
+- Impact: Cannot onboard professionals
+- Fix: Rewrite SELECT/INSERT policies correctly
+- Time: 15 minutes
+
+ISSUE #3: ORGANIZATIONS - NO INSERT POLICY (CRITICAL)
+===================================================
+- Cannot create organizations via RLS
+- Only SELECT/UPDATE policies exist
+- Impact: Workshop/corporate sign-up blocked
+- Fix: Add 1 INSERT policy
+- Time: 5 minutes
+
+ISSUE #4: ORGANIZATION_MEMBERS - NO INSERT + RACE CONDITION (CRITICAL)
+===================================================================
+- Cannot invite members via RLS
+- UNIQUE(org_id, user_id) allows duplicate pending invites
+- Race condition during concurrent invitations
+- Impact: Team setup blocked
+- Fix: Add INSERT policy + fix UNIQUE constraints
+- Time: 30 minutes
+
+ISSUE #5: PROFILES - NO EMAIL INDEX (CRITICAL)
+==============================================
+- Signup email lookups do full table scan O(n)
+- At 1000 users, each signup does 1000 row checks
+- Performance bottleneck at scale
+- Email reuse after soft delete blocked
+- Impact: Slow signups, broken account recovery
+- Fix: Add compound unique index WHERE deleted_at IS NULL
+- Time: 5 minutes
+
+ADDITIONAL CRITICAL ISSUES:
+==========================
+- waiver_acceptances: Missing INSERT/UPDATE policies
+- corporate_businesses: Missing INSERT policy
+- corporate_employees: Missing INSERT policy
+- customer_consents: Missing UPDATE policy for withdrawal
+
+PERFORMANCE ISSUES:
+==================
+- No JSONB indexes on vehicle_info, communication_preferences
+- No compound indexes for common queries
+- Recursive admin policies cause N+1 subqueries
+- Missing indexes on org_members.invite_code
+
+DATA INTEGRITY ISSUES:
+=====================
+- Email uniqueness breaks after soft delete
+- Organization slug has race condition
+- Cascading deletes could delete months of data
+- Foreign key constraints could fail on signup
+
+SECURITY ISSUES:
+================
+- SIN/business numbers stored in plaintext (PIPA risk)
+- DOB stored in plaintext
+- No email format validation
+- No phone format validation
+- Postal codes unvalidated
+- 54 SECURITY DEFINER functions - some lack permission checks
+- Storage URLs unvalidated (XSS/malicious link risk)
+- JSONB fields have no size limits (DoS risk)
+
+COMPLIANCE ISSUES:
+=================
+- PIPEDA: No encryption for sensitive PII
+- PIPEDA: No access audit log
+- CASL: No unsubscribe tracking
+- CASL: Consent version not tied to email template
+
+ESTIMATED DEPLOYMENT TIME:
+==========================
+Critical Fixes:     2-3 hours
+High Priority:      4-5 hours  
+Medium Priority:    6-8 hours
+Security/Compliance: 8-10 hours
+
+DEPLOYMENT ORDER:
+=================
+1. RLS policy additions (30 min)
+2. RLS policy fixes (15 min)
+3. Critical indexes (10 min)
+4. Race condition fixes (20 min)
+5. Validation constraints (15 min)
+6. Performance optimization (15 min)
+7. Security hardening (1-2 hours)
+
+See CRITICAL_FIXES.sql for immediate SQL to apply
+See SCHEMA_ANALYSIS_PART1.md for detailed analysis

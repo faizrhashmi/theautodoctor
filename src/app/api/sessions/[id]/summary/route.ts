@@ -188,10 +188,42 @@ export async function GET(
   console.log(`[GET /sessions/${sessionId}/summary] ${participant.role} accessing summary for session ${participant.sessionId}`)
 
   try {
-    // Get session with manual summary
+    // Get session with manual summary and profile joins
     const { data: session, error } = await supabaseAdmin
       .from('sessions')
-      .select('summary_data, summary_submitted_at, mechanic_id, customer_user_id, type')
+      .select(`
+        summary_data,
+        summary_submitted_at,
+        mechanic_id,
+        customer_user_id,
+        type,
+        plan,
+        started_at,
+        ended_at,
+        duration_minutes,
+
+        customer:profiles!customer_user_id (
+          full_name,
+          email
+        ),
+
+        mechanic:mechanics!mechanic_id (
+          name,
+          mechanic_profile:profiles!user_id (
+            full_name
+          )
+        ),
+
+        intake:intakes!intake_id (
+          concern_summary,
+          vehicle:vehicles!vehicle_id (
+            year,
+            make,
+            model,
+            vin
+          )
+        )
+      `)
       .eq('id', sessionId)
       .single()
 
@@ -231,10 +263,31 @@ export async function GET(
       }
     }
 
-    // Return both manual and auto summaries
+    // Return both manual and auto summaries with session details
     const response: any = {
       has_manual_summary: !!(session as any).summary_submitted_at,
-      has_auto_summary: !!autoSummary
+      has_auto_summary: !!autoSummary,
+
+      // Session context for reports
+      session_details: {
+        type: (session as any).type,
+        plan: (session as any).plan,
+        started_at: (session as any).started_at,
+        ended_at: (session as any).ended_at,
+        duration_minutes: (session as any).duration_minutes,
+
+        customer_name: (session as any).customer?.full_name || null,
+        customer_email: (session as any).customer?.email || null,
+
+        mechanic_name: (session as any).mechanic?.name || (session as any).mechanic?.mechanic_profile?.full_name || null,
+
+        vehicle: (session as any).intake?.vehicle
+          ? `${(session as any).intake.vehicle.year} ${(session as any).intake.vehicle.make} ${(session as any).intake.vehicle.model}`
+          : null,
+        vehicle_vin: (session as any).intake?.vehicle?.vin || null,
+
+        concern_summary: (session as any).intake?.concern_summary || null,
+      }
     }
 
     if ((session as any).summary_submitted_at) {

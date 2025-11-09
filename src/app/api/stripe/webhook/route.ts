@@ -21,6 +21,27 @@ import { fulfillCheckout } from '@/lib/fulfillment'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 // ============================================================================
+// PLAN VALIDATION: Check database first, fallback to hardcoded PRICING
+// ============================================================================
+
+async function isValidPlan(planSlug: string): Promise<boolean> {
+  // Check database first
+  const { data: planData, error } = await supabaseAdmin
+    .from('service_plans')
+    .select('slug')
+    .eq('slug', planSlug)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!error && planData) {
+    return true
+  }
+
+  // Fallback to hardcoded PRICING for backward compatibility
+  return !!(PRICING[planSlug as PlanKey])
+}
+
+// ============================================================================
 // IDEMPOTENCY: Check if event already processed
 // ============================================================================
 
@@ -82,8 +103,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log('[webhook:checkout] Plan:', plan)
 
-  if (!plan || !PRICING[plan]) {
-    throw new Error('Unknown plan in session metadata')
+  // ✅ Validate plan against database first, fallback to hardcoded config
+  if (!plan || !(await isValidPlan(plan))) {
+    console.error('[webhook:checkout] Invalid plan:', plan)
+    throw new Error(`Unknown or inactive plan in session metadata: ${plan}`)
   }
 
   const result = await fulfillCheckout(plan, {
@@ -484,7 +507,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         )
       }
 
-      // Notify referring mechanic if there is one
+      // Transfer referral fee to referring mechanic if there is one
       const { data: rfq } = await supabaseAdmin
         .from('workshop_rfq_marketplace')
         .select('escalating_mechanic_id')
@@ -494,24 +517,72 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       if (rfq?.escalating_mechanic_id) {
         const { data: mechanic } = await supabaseAdmin
           .from('mechanics')
-          .select('user_id')
+          .select('id, user_id, name, stripe_account_id, stripe_payouts_enabled')
           .eq('id', rfq.escalating_mechanic_id)
           .maybeSingle()
 
-        if (mechanic?.user_id) {
-          await supabaseAdmin.from('notifications').insert({
-            user_id: mechanic.user_id,
-            type: 'rfq_referral_earned',
-            payload: {
-              rfq_id: rfqId,
-              bid_id: bidId,
-              workshop_id: workshopId,
-              amount: paymentIntent.amount / 100,
-              referral_fee_percent: 5.0, // 5% referral fee
-              referral_fee_amount: (paymentIntent.amount / 100) * 0.05,
-            },
-          })
-          console.log('[webhook:rfq-bid-payment] ✓ Notified referring mechanic:', mechanic.user_id)
+        if (mechanic) {
+          // Get mechanic's referral fee percentage (custom or default)
+          const { getMechanicReferralFee } = await import('@/lib/platformFees')
+          const referralFeePercent = await getMechanicReferralFee(mechanic.id)
+          const referralFeeCents = Math.round(paymentIntent.amount * (referralFeePercent / 100))
+
+          // Transfer referral fee via Stripe if mechanic has connected account
+          let transferId: string | null = null
+          if (mechanic.stripe_account_id && mechanic.stripe_payouts_enabled && referralFeeCents > 0) {
+            try {
+              const { stripe } = await import('@/lib/stripe')
+              const referralTransfer = await stripe.transfers.create({
+                amount: referralFeeCents,
+                currency: 'usd',
+                destination: mechanic.stripe_account_id,
+                description: `Referral fee - RFQ ${rfqId} (${referralFeePercent}%)`,
+                metadata: {
+                  type: 'referral_fee',
+                  rfq_id: rfqId,
+                  bid_id: bidId,
+                  mechanic_id: mechanic.id,
+                  workshop_id: workshopId,
+                  referral_fee_percent: referralFeePercent.toString(),
+                },
+              })
+
+              transferId = referralTransfer.id
+              console.log(`[webhook:rfq-bid-payment] ✓ Referral fee transferred: ${referralTransfer.id} ($${(referralFeeCents / 100).toFixed(2)} at ${referralFeePercent}%)`)
+
+              // Record earnings in mechanic_earnings table
+              await supabaseAdmin.from('mechanic_earnings').insert({
+                mechanic_id: mechanic.id,
+                quote_id: bidId,
+                gross_amount_cents: referralFeeCents,
+                payout_status: 'transferred',
+                payout_id: transferId,
+                earnings_type: 'referral',
+              })
+            } catch (transferError) {
+              console.error('[webhook:rfq-bid-payment] Failed to transfer referral fee:', transferError)
+              // Continue anyway - will be marked as pending
+            }
+          }
+
+          // Send notification to mechanic
+          if (mechanic.user_id) {
+            await supabaseAdmin.from('notifications').insert({
+              user_id: mechanic.user_id,
+              type: 'rfq_referral_earned',
+              payload: {
+                rfq_id: rfqId,
+                bid_id: bidId,
+                workshop_id: workshopId,
+                amount: paymentIntent.amount / 100,
+                referral_fee_percent: referralFeePercent,
+                referral_fee_amount: referralFeeCents / 100,
+                transfer_id: transferId,
+                transferred: !!transferId,
+              },
+            })
+            console.log('[webhook:rfq-bid-payment] ✓ Notified referring mechanic:', mechanic.user_id)
+          }
         }
       }
     } catch (notifError) {

@@ -5,7 +5,10 @@
  * Centralized fee structure for B2C (direct mechanic) model.
  *
  * Business Model Defaults (locked from user approval):
- * - B2C: mechanicShareRate=0.85, platformFeeRate=0.15, referralFeeRate=0.05
+ * - B2C: mechanicShareRate=0.85, platformFeeRate=0.15, referralFeeRate=0.02
+ *
+ * NOTE: These are FALLBACK values. The platform now uses database-driven fees
+ * from platform_fee_settings table. See src/lib/platformFees.ts
  */
 
 export const MECHANIC_FEES = {
@@ -23,9 +26,10 @@ export const MECHANIC_FEES = {
 
   /**
    * Referral fee for escalated sessions (percentage as decimal)
-   * Mechanic earns 5% when customer approves workshop repair quote
+   * Virtual mechanic earns 2% when customer approves workshop repair quote
+   * UPDATED: 2025-11-08 - Changed from 5% to 2% per business model
    */
-  REFERRAL_FEE_RATE: 0.05,
+  REFERRAL_FEE_RATE: 0.02,
 
   /**
    * Platform fee rate as percentage (for display)
@@ -39,8 +43,9 @@ export const MECHANIC_FEES = {
 
   /**
    * Referral fee as percentage (for display)
+   * UPDATED: 2025-11-08 - Changed from 5% to 2% per business model
    */
-  REFERRAL_FEE_PERCENT: 5,
+  REFERRAL_FEE_PERCENT: 2,
 } as const
 
 /**

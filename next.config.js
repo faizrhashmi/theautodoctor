@@ -7,6 +7,9 @@ const path = require('path')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
+
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js'],
     // 🚀 SPEED: Optimize server actions

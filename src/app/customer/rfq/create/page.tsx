@@ -177,12 +177,17 @@ export default function CreateRfqPage() {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const newErrors: Record<string, string> = {}
-        err.errors.forEach(error => {
-          if (error.path[0]) {
-            newErrors[error.path[0].toString()] = error.message
-          }
-        })
+        if (err.errors && Array.isArray(err.errors)) {
+          err.errors.forEach(error => {
+            if (error.path && error.path[0]) {
+              newErrors[error.path[0].toString()] = error.message
+            }
+          })
+        }
         setErrors(newErrors)
+      } else {
+        console.error('[RFQ Create] Validation error:', err)
+        setErrors({ submit: 'Validation failed. Please check your inputs.' })
       }
     }
   }
@@ -288,7 +293,7 @@ export default function CreateRfqPage() {
                 ) : vehicles.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-slate-400 mb-4">You haven't added any vehicles yet</p>
-                    <Link href="/customer/vehicles/add" className="text-orange-500 hover:text-orange-400">
+                    <Link href="/customer/vehicles?returnTo=/customer/rfq/create" className="text-orange-500 hover:text-orange-400">
                       Add a vehicle first
                     </Link>
                   </div>

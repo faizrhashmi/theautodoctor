@@ -12,6 +12,7 @@ export interface MatchingCriteria {
   extractedKeywords: string[]
   customerCountry?: string
   customerCity?: string
+  customerPostalCode?: string // Canadian postal code for FSA matching (e.g., M5V 3A8)
   preferLocalMechanic?: boolean
   urgency?: 'immediate' | 'scheduled'
 }
@@ -199,13 +200,33 @@ export async function findMatchingMechanics(
         score += 25
         matchReasons.push(`Located in ${mechanic.country}`)
 
-        // Same city bonus (if customer prefers local)
+        // Postal code FSA matching (highest priority for local matching)
+        if (criteria.customerPostalCode && mechanic.postal_code) {
+          const customerFSA = criteria.customerPostalCode.replace(/\s+/g, '').substring(0, 3).toUpperCase()
+          const mechanicFSA = mechanic.postal_code.replace(/\s+/g, '').substring(0, 3).toUpperCase()
+
+          if (customerFSA === mechanicFSA) {
+            score += 40
+            matchReasons.push(`Same area (${mechanicFSA})`)
+            isLocalMatch = true
+          } else {
+            // Same first character (same province/region) - smaller bonus
+            if (customerFSA[0] === mechanicFSA[0]) {
+              score += 15
+              matchReasons.push(`Same region (${mechanicFSA[0]})`)
+            }
+          }
+        }
+
+        // Same city bonus (if customer prefers local and no postal code match yet)
         if (criteria.customerCity && mechanic.city &&
             criteria.preferLocalMechanic !== false) {
           if (mechanic.city.toLowerCase() === criteria.customerCity.toLowerCase()) {
             score += 35
             matchReasons.push(`Local to ${mechanic.city}`)
-            isLocalMatch = true
+            if (!isLocalMatch) {
+              isLocalMatch = true
+            }
           }
         }
       } else {

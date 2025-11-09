@@ -134,8 +134,17 @@ export default async function VideoSessionPage({ params }: PageProps) {
     redirect(dashboardUrl)
   }
 
+  // ✅ DYNAMIC PRICING: Fetch plan name from database first, fallback to hardcoded
+  const planSlug = session.plan ?? 'standard'
+  const { data: planData } = await supabaseAdmin
+    .from('service_plans')
+    .select('name, plan_type')
+    .eq('slug', planSlug)
+    .eq('is_active', true)
+    .maybeSingle()
+
   const planKey = (session.plan as PlanKey) ?? 'video15'
-  const planName = PRICING[planKey]?.name ?? 'Video Consultation'
+  const planName = planData?.name ?? PRICING[planKey]?.name ?? 'Video Consultation'
 
   // Fetch mechanic name and user_id if assigned
   let mechanicName: string | null = null

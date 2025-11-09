@@ -1,8 +1,13 @@
+'use client'
+
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { OFFERINGS, VALUE_ADDS } from '@/lib/pricing'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { VALUE_ADDS } from '@/lib/pricing'
+import { useServicePlans } from '@/hooks/useServicePlans'
 
 export default function ServicesPricingPage() {
+  const { plans, loading } = useServicePlans()
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="bg-gradient-to-br from-blue-900 via-slate-900 to-slate-950">
@@ -16,28 +21,35 @@ export default function ServicesPricingPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {OFFERINGS.map((offering) => (
-            <article key={offering.name} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <h2 className="text-xl font-semibold text-white">{offering.name}</h2>
-              <p className="mt-2 text-sm text-slate-300">{offering.description}</p>
-              <div className="mt-6 text-3xl font-bold text-white">{offering.price}</div>
-              <p className="text-xs uppercase tracking-wide text-orange-200">{offering.duration}</p>
-              <ul className="mt-6 space-y-2 text-sm text-slate-300">
-                {offering.features.map((feature) => (
-                  <li key={feature}>• {feature}</li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-400"
-              >
-                Book now
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </article>
-          ))}
-        </section>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            <span className="ml-3 text-slate-400">Loading pricing...</span>
+          </div>
+        ) : (
+          <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {plans.map((plan) => (
+              <article key={plan.slug} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+                <h2 className="text-xl font-semibold text-white">{plan.name}</h2>
+                <p className="mt-2 text-sm text-slate-300">{plan.description}</p>
+                <div className="mt-6 text-3xl font-bold text-white">{plan.price}</div>
+                <p className="text-xs uppercase tracking-wide text-orange-200">{plan.duration}</p>
+                <ul className="mt-6 space-y-2 text-sm text-slate-300">
+                  {plan.perks.map((perk, index) => (
+                    <li key={index}>• {perk}</li>
+                  ))}
+                </ul>
+                <Link
+                  href="/signup"
+                  className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-400"
+                >
+                  Book now
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </article>
+            ))}
+          </section>
+        )}
 
         <section className="mt-16 rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur">
           <h2 className="text-2xl font-bold text-white">What makes AskAutoDoctor sessions different?</h2>

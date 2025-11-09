@@ -1,0 +1,101 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log*
+.pnpm
+
+# Testing
+coverage
+.nyc_output
+*.spec.ts
+*.spec.js
+tests/
+
+# Next.js
+.next/
+out/
+dist/
+build/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# Typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Git
+.git
+.gitignore
+.github
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+
+# Documentation
+*.md
+docs/
+documentation/
+
+# SQL files and scripts
+*.sql
+migrations/
+supabase/
+scripts/
+
+# Test files
+*.html
+test-*.js
+test-*.mjs
+
+# Backup files
+*_backup_*
+*.bak
+
+# Reports
+reports/
+*.pdf
+
+# Build outputs
+*.txt
+typecheck.log
+build.log
+build-output.txt
+
+# Other
+.claude
+audit/
+plan/
+notes/
+lib/

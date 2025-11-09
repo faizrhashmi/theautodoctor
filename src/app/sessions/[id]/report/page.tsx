@@ -13,7 +13,9 @@ import {
   Clock,
   DollarSign,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Car,
+  MessageSquare
 } from 'lucide-react'
 import type { SessionSummary, IdentifiedIssue } from '@/types/sessionSummary'
 import { downloadSessionPdf } from '@/lib/reports/sessionReport'
@@ -30,6 +32,19 @@ interface SessionDetails {
   customer_name?: string
   mechanic_name?: string
   mechanic_notes?: string
+  vehicle?: string
+  vehicle_vin?: string
+  vehicle_plate?: string
+  concern_summary?: string
+  urgent?: boolean
+  chat_messages?: Array<{
+    id: string
+    content: string
+    created_at: string
+    sender_id: string
+    sender?: { full_name: string }
+  }>
+  chat_message_count?: number
 }
 
 export default function SessionReportPage() {
@@ -109,6 +124,11 @@ export default function SessionReportPage() {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(dateString))
+  }
+
+  const getDisplayName = (name: string | null | undefined, role: string) => {
+    if (!name) return `${role} (Not Available)`
+    return name
   }
 
   if (loading) {
@@ -195,7 +215,7 @@ export default function SessionReportPage() {
               <User className="h-5 w-5 text-slate-400 mt-0.5" />
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide">Mechanic</p>
-                <p className="text-sm font-medium text-white">{session.mechanic_name || 'N/A'}</p>
+                <p className="text-sm font-medium text-white">{getDisplayName(session.mechanic_name, 'Mechanic')}</p>
               </div>
             </div>
 
@@ -203,7 +223,7 @@ export default function SessionReportPage() {
               <User className="h-5 w-5 text-slate-400 mt-0.5" />
               <div>
                 <p className="text-xs text-slate-500 uppercase tracking-wide">Customer</p>
-                <p className="text-sm font-medium text-white">{session.customer_name || 'N/A'}</p>
+                <p className="text-sm font-medium text-white">{getDisplayName(session.customer_name, 'Customer')}</p>
               </div>
             </div>
 
@@ -240,6 +260,36 @@ export default function SessionReportPage() {
                 </p>
               </div>
             </div>
+
+            {/* Vehicle Information */}
+            {session.vehicle && (
+              <div className="flex items-start gap-3">
+                <Car className="h-5 w-5 text-slate-400 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Vehicle</p>
+                  <p className="text-sm font-medium text-white">{session.vehicle}</p>
+                  {session.vehicle_vin && (
+                    <p className="text-xs text-slate-400 mt-0.5">VIN: {session.vehicle_vin}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Original Concern */}
+            {session.concern_summary && (
+              <div className="col-span-2 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Original Concern</p>
+                  <p className="text-sm text-slate-300">{session.concern_summary}</p>
+                  {session.urgent && (
+                    <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                      URGENT
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -351,6 +401,38 @@ export default function SessionReportPage() {
           <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-white mb-3">Mechanic Notes</h2>
             <p className="text-sm text-slate-300 whitespace-pre-wrap">{session.mechanic_notes}</p>
+          </div>
+        )}
+
+        {/* Chat Transcript */}
+        {session.chat_messages && session.chat_messages.length > 0 && (
+          <div className="mb-6 rounded-xl border border-slate-700 bg-slate-800/50 p-4 sm:p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-blue-400" />
+              Chat Transcript ({session.chat_message_count || 0} messages)
+            </h2>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {session.chat_messages.map((message) => (
+                <div
+                  key={message.id}
+                  className="rounded-lg border border-slate-700 bg-slate-900/50 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-1">
+                    <p className="text-xs font-medium text-slate-400">
+                      {message.sender?.full_name || 'Unknown'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {new Intl.DateTimeFormat('en-CA', {
+                        timeStyle: 'short',
+                      }).format(new Date(message.created_at))}
+                    </p>
+                  </div>
+                  <p className="text-sm text-slate-200 whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

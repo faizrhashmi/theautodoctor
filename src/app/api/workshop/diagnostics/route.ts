@@ -57,9 +57,7 @@ export async function GET(req: NextRequest) {
         service_type,
         profiles!diagnostic_sessions_customer_id_fkey (
           id,
-          full_name,
-          email,
-          phone
+          full_name
         ),
         mechanics (
           id,
@@ -88,12 +86,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Format sessions
+    // 🔒 PRIVACY: Never expose customer contact info to workshops
     const formattedSessions = (sessions || []).map((session: any) => ({
       id: session.id,
       customer_id: session.customer_id,
       customer_name: session.profiles?.full_name || 'Unknown Customer',
-      customer_email: session.profiles?.email,
-      customer_phone: session.profiles?.phone,
+      // ✅ REMOVED: customer_email, customer_phone (marketplace privacy protection)
       mechanic_id: session.mechanic_id,
       mechanic_name: session.mechanics?.name,
       mechanic_email: session.mechanics?.email,

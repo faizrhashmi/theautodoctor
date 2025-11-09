@@ -8,8 +8,7 @@ interface VirtualSessionCardProps {
   session: {
     id: string
     customer_name: string
-    customer_email?: string
-    customer_phone?: string
+    // 🔒 PRIVACY: customer_email and customer_phone removed for marketplace protection
     session_type: 'chat' | 'video' | 'upgraded_from_chat'
     status: string
     base_price: number
@@ -133,17 +132,13 @@ export default function VirtualSessionCard({ session, onAccept, onView }: Virtua
 
         {/* Customer Info */}
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-gray-600" />
             <span className="text-sm font-medium text-gray-900">
               {session.customer_name}
             </span>
           </div>
-          {session.customer_phone && (
-            <div className="text-sm text-gray-600">
-              📞 {session.customer_phone}
-            </div>
-          )}
+          {/* 🔒 PRIVACY: Customer contact info intentionally hidden to protect marketplace business model */}
         </div>
 
         {/* Vehicle Info */}

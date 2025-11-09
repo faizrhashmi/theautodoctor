@@ -17,8 +17,7 @@ interface LineItem {
 interface DiagnosticSession {
   id: string
   customer_name: string
-  customer_email: string
-  customer_phone: string
+  // 🔒 PRIVACY: customer_email and customer_phone removed for marketplace protection
   vehicle: any
   issue_description: string
   diagnosis_summary: string
@@ -256,14 +255,7 @@ export default function CreateQuotePage() {
                   <label className="text-sm font-medium text-gray-600">Customer Name</label>
                   <p className="text-gray-900">{session.customer_name}</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Email</label>
-                  <p className="text-gray-900">{session.customer_email}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Phone</label>
-                  <p className="text-gray-900">{session.customer_phone}</p>
-                </div>
+                {/* 🔒 PRIVACY: Customer contact info intentionally hidden to protect marketplace business model */}
                 <div>
                   <label className="text-sm font-medium text-gray-600">Vehicle</label>
                   <p className="text-gray-900">

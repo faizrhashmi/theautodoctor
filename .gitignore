@@ -54,5 +54,8 @@ package.json.backup
 /blob-report/
 nul
 
+# Supabase local config (contains database passwords)
+.supabase/
+
 # Claude Code local settings
 .claude/settings.local.json

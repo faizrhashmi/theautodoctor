@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
   const {
     plan = 'trial',
     name, email, phone, city,
+    postalCode = null, // Postal code for location-based matching
     vin = '', year = '', make = '', model = '',
     odometer = '', plate = '',
     concern,

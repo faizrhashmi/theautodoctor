@@ -101,7 +101,7 @@ export default function AdminCreditPricingPage() {
               <p className="text-slate-400">Manage credit costs for different session types and specialist tiers</p>
             </div>
             <Link
-              href="/admin/dashboard"
+              href="/admin"
               className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
             >
               Back to Dashboard

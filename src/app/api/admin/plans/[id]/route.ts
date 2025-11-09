@@ -1,8 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAPI } from '@/lib/auth/guards'
+import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
+
+// ============================================================================
+// STRIPE PRICE ID VALIDATION
+// ============================================================================
+
+/**
+ * Validates that a Stripe Price ID exists and is properly configured
+ * @param priceId - The Stripe Price ID to validate (e.g., "price_1ABC123...")
+ * @returns Object with { valid: boolean, error?: string, priceDetails?: any }
+ */
+async function validateStripePriceId(priceId: string | null | undefined): Promise<{
+  valid: boolean
+  error?: string
+  priceDetails?: any
+}> {
+  // Allow null/empty for plans that don't require Stripe (like free plans)
+  if (!priceId || priceId.trim() === '') {
+    return { valid: true }
+  }
+
+  // Check format
+  if (!priceId.startsWith('price_')) {
+    return {
+      valid: false,
+      error: 'Stripe Price ID must start with "price_" (e.g., "price_1ABC123...")'
+    }
+  }
+
+  // Verify with Stripe API
+  try {
+    const price = await stripe.prices.retrieve(priceId)
+
+    // Check if price is active
+    if (!price.active) {
+      return {
+        valid: false,
+        error: 'This Stripe Price ID exists but is marked as inactive in your Stripe dashboard'
+      }
+    }
+
+    return {
+      valid: true,
+      priceDetails: {
+        amount: price.unit_amount ? price.unit_amount / 100 : 0,
+        currency: price.currency,
+        type: price.type,
+        recurring: price.recurring
+      }
+    }
+  } catch (error: any) {
+    return {
+      valid: false,
+      error: error.code === 'resource_missing'
+        ? 'Stripe Price ID not found. Please check your Stripe dashboard.'
+        : `Stripe API error: ${error.message}`
+    }
+  }
+}
 
 // PUT /api/admin/plans/[id] - Update plan
 export async function PUT(
@@ -75,6 +134,29 @@ export async function PUT(
           { status: 409 }
         )
       }
+    }
+
+    // ✅ VALIDATE STRIPE PRICE IDs BEFORE SAVING
+    if (stripe_price_id !== undefined) {
+      const validation = await validateStripePriceId(stripe_price_id)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: `Invalid Stripe Price ID: ${validation.error}` },
+          { status: 400 }
+        )
+      }
+      console.log('[admin/plans] Stripe Price ID validated:', stripe_price_id, validation.priceDetails)
+    }
+
+    if (stripe_subscription_price_id !== undefined) {
+      const validation = await validateStripePriceId(stripe_subscription_price_id)
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: `Invalid Stripe Subscription Price ID: ${validation.error}` },
+          { status: 400 }
+        )
+      }
+      console.log('[admin/plans] Stripe Subscription Price ID validated:', stripe_subscription_price_id, validation.priceDetails)
     }
 
     const updateData: any = {}

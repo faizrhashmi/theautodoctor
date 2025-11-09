@@ -19,15 +19,29 @@ export async function GET(
   try {
     const mechanicId = params.id;
 
-    // Get mechanic
+    // Get mechanic with workshop details
     const { data: mechanic, error: mechanicError } = await supabaseAdmin
       .from('mechanics')
-      .select('*')
+      .select(`
+        *,
+        workshop:workshop_id (
+          id,
+          name,
+          created_by
+        )
+      `)
       .eq('id', mechanicId)
       .single();
 
     if (mechanicError || !mechanic) {
       return NextResponse.json({ error: 'Mechanic not found' }, { status: 404 });
+    }
+
+    // Calculate mechanic type classification
+    let mechanicType = 'VIRTUAL_ONLY'
+    if (mechanic.workshop_id) {
+      const isOwner = mechanic.workshop?.created_by === mechanic.user_id
+      mechanicType = isOwner ? 'INDEPENDENT_WORKSHOP' : 'WORKSHOP_AFFILIATED'
     }
 
     // Get admin notes

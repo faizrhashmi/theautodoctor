@@ -45,16 +45,16 @@ const NAV_ITEMS = [
     description: 'Manage estimates'
   },
   {
+    label: 'RFQ Marketplace',
+    href: '/workshop/rfq/marketplace',
+    icon: Briefcase,
+    description: 'Browse repair requests'
+  },
+  {
     label: 'Analytics',
     href: '/workshop/analytics',
     icon: TrendingUp,
     description: 'Performance metrics'
-  },
-  {
-    label: 'Partnerships',
-    href: '/workshop/partnerships',
-    icon: Briefcase,
-    description: 'Mechanic network'
   },
   {
     label: 'Settings',
@@ -68,23 +68,32 @@ export default function WorkshopSidebar() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [workshopUserId, setWorkshopUserId] = useState<string | null>(null)
+  const [isOwner, setIsOwner] = useState(false)
 
-  // Fetch workshop userId on mount
+  // Fetch workshop userId and check if owner on mount
   useEffect(() => {
-    const fetchWorkshopUserId = async () => {
+    const fetchWorkshopData = async () => {
       try {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
           setWorkshopUserId(user.id)
+
+          // Check if user is workshop owner by fetching their role
+          const response = await fetch('/api/workshop/dashboard')
+          const result = await response.json()
+
+          if (response.ok && result.data?.userRole === 'owner') {
+            setIsOwner(true)
+          }
         }
       } catch (error) {
-        console.error('Failed to fetch workshop user:', error)
+        console.error('Failed to fetch workshop data:', error)
       }
     }
 
-    fetchWorkshopUserId()
+    fetchWorkshopData()
   }, [])
 
   async function handleSignOut() {
@@ -169,6 +178,20 @@ export default function WorkshopSidebar() {
 
           {/* Bottom Actions - Enhanced for mobile */}
           <div className="p-3 sm:p-4 lg:p-3 border-t border-slate-800 space-y-2">
+            {/* Mechanic View Toggle - Only for independent workshop owners */}
+            {isOwner && (
+              <Link
+                href="/mechanic/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base sm:text-lg lg:text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-lg shadow-purple-500/20"
+              >
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 lg:h-4 lg:w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span className="flex-1 text-left">Mechanic View</span>
+              </Link>
+            )}
+
             {/* Logout Button */}
             <button
               onClick={handleSignOut}

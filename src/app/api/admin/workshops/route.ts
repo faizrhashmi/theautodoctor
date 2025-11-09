@@ -21,15 +21,13 @@ export async function GET(req: NextRequest) {
       .select(`
         id,
         name,
-        business_name,
         email,
         phone,
         address,
         city,
-        state_province,
+        province,
         country,
         status,
-        revenue_share_percentage,
         created_at,
         updated_at
       `)

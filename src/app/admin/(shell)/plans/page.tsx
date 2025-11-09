@@ -36,6 +36,7 @@ export default function AdminPlansPage() {
   const [filter, setFilter] = useState<'all' | 'payg' | 'subscription'>('all')
   const [editingPlan, setEditingPlan] = useState<ServicePlan | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     loadPlans()
@@ -115,6 +116,51 @@ export default function AdminPlansPage() {
     }
   }
 
+  async function deletePlan(planId: string, planName: string) {
+    if (!confirm(`Are you sure you want to delete "${planName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/plans/${planId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        alert(`Plan "${planName}" deleted successfully`)
+        loadPlans()
+      } else {
+        const data = await response.json()
+        alert(`Failed to delete plan: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error deleting plan:', error)
+      alert('Failed to delete plan')
+    }
+  }
+
+  async function createPlan(planData: any) {
+    try {
+      const response = await fetch('/api/admin/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(planData)
+      })
+
+      if (response.ok) {
+        alert('Plan created successfully!')
+        loadPlans()
+        setShowCreateModal(false)
+      } else {
+        const data = await response.json()
+        alert(`Failed to create plan: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error creating plan:', error)
+      alert('Failed to create plan')
+    }
+  }
+
   const filteredPlans = plans.filter(plan => {
     if (filter === 'payg') return plan.plan_type === 'payg'
     if (filter === 'subscription') return plan.plan_type === 'subscription'
@@ -142,12 +188,20 @@ export default function AdminPlansPage() {
               <h1 className="text-3xl font-bold text-white mb-2">Service Plans Manager</h1>
               <p className="text-slate-400">Manage PAYG session plans and subscription packages</p>
             </div>
-            <Link
-              href="/admin/dashboard"
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
-            >
-              Back to Dashboard
-            </Link>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+              >
+                + Create New Plan
+              </button>
+              <Link
+                href="/admin"
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -311,7 +365,7 @@ export default function AdminPlansPage() {
                     onClick={() => togglePlan(plan.id, plan.is_active)}
                     className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
                       plan.is_active
-                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        ? 'bg-orange-600 hover:bg-orange-700 text-white'
                         : 'bg-green-600 hover:bg-green-700 text-white'
                     }`}
                   >
@@ -328,6 +382,12 @@ export default function AdminPlansPage() {
                     {plan.show_on_homepage ? 'On Home' : 'Add to Home'}
                   </button>
                 </div>
+                <button
+                  onClick={() => deletePlan(plan.id, plan.name)}
+                  className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition"
+                >
+                  Delete Plan
+                </button>
               </div>
             </div>
           ))}
@@ -572,6 +632,186 @@ export default function AdminPlansPage() {
                     setShowEditModal(false)
                     setEditingPlan(null)
                   }}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create New Plan Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-slate-800 rounded-lg p-6 max-w-4xl w-full border border-slate-700 my-8">
+              <h3 className="text-2xl font-semibold text-white mb-6">
+                Create New Service Plan
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">Basic Information</h4>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Plan Slug (URL-friendly ID)</label>
+                    <input
+                      type="text"
+                      id="create-slug"
+                      placeholder="e.g., premium-care"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Lowercase, hyphens only. Cannot be changed later.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Plan Name</label>
+                    <input
+                      type="text"
+                      id="create-name"
+                      placeholder="e.g., Premium Care"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Price ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="create-price"
+                      placeholder="0.00"
+                      defaultValue="0"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Description</label>
+                    <textarea
+                      id="create-description"
+                      rows={3}
+                      placeholder="Brief description of this plan"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Display Order</label>
+                    <input
+                      type="number"
+                      id="create-order"
+                      defaultValue="0"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Plan Type & Settings */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-white border-b border-slate-700 pb-2">Plan Type & Settings</h4>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Plan Type</label>
+                    <select
+                      id="create-plan-type"
+                      defaultValue="payg"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="payg">Pay As You Go (One-time)</option>
+                      <option value="subscription">Subscription (Recurring)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Session Duration (minutes) - For PAYG</label>
+                    <input
+                      type="number"
+                      id="create-duration"
+                      defaultValue="30"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-2">Stripe Price ID (Optional)</label>
+                    <input
+                      type="text"
+                      id="create-stripe-price"
+                      placeholder="price_xxx"
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Add now or edit later. Will be validated against Stripe.</p>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="create-active"
+                        defaultChecked
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-300">Make plan active immediately</span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="create-homepage"
+                        defaultChecked
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-300">Show on homepage</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-6 pt-6 border-t border-slate-700">
+                <button
+                  onClick={() => {
+                    const slug = (document.getElementById('create-slug') as HTMLInputElement).value
+                    const name = (document.getElementById('create-name') as HTMLInputElement).value
+                    const price = parseFloat((document.getElementById('create-price') as HTMLInputElement).value)
+                    const description = (document.getElementById('create-description') as HTMLTextAreaElement).value
+                    const duration_minutes = parseInt((document.getElementById('create-duration') as HTMLInputElement).value)
+                    const display_order = parseInt((document.getElementById('create-order') as HTMLInputElement).value)
+                    const plan_type = (document.getElementById('create-plan-type') as HTMLSelectElement).value
+                    const stripe_price_id = (document.getElementById('create-stripe-price') as HTMLInputElement).value || null
+                    const is_active = (document.getElementById('create-active') as HTMLInputElement).checked
+                    const show_on_homepage = (document.getElementById('create-homepage') as HTMLInputElement).checked
+
+                    if (!slug || !name || !description) {
+                      alert('Please fill in all required fields (slug, name, description)')
+                      return
+                    }
+
+                    createPlan({
+                      slug,
+                      name,
+                      price,
+                      description,
+                      duration_minutes,
+                      display_order,
+                      plan_type,
+                      stripe_price_id,
+                      is_active,
+                      show_on_homepage,
+                      perks: [],
+                      recommended_for: '',
+                    })
+                  }}
+                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition"
+                >
+                  Create Plan
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
                   className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
                 >
                   Cancel

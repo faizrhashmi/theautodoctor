@@ -5,8 +5,12 @@ import { useRouter } from 'next/navigation'
 import {
   History, TrendingUp, Clock, CheckCircle, XCircle,
   Filter, Calendar, Download, RefreshCw, Eye, DollarSign,
-  Video, MessageSquare, Wrench, BarChart3
+  Video, MessageSquare, Wrench, BarChart3, FileText
 } from 'lucide-react'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { getMechanicType, canAccessEarnings, MechanicType } from '@/types/mechanic'
+import { createClient } from '@/lib/supabase'
+import { EscalateToRfqModal } from '@/components/mechanic/EscalateToRfqModal'
 
 type SessionStatus = 'scheduled' | 'waiting' | 'live' | 'completed' | 'cancelled'
 type SessionType = 'chat' | 'video' | 'diagnostic'
@@ -43,11 +47,18 @@ const PLAN_PRICING: Record<string, number> = {
 const MECHANIC_SHARE = 0.7
 
 export default function MechanicSessionsPage() {
+  // ✅ Auth guard - ensures user is authenticated as mechanic
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'mechanic' })
+
   const router = useRouter()
   const [sessions, setSessions] = useState<Session[]>([])
   const [stats, setStats] = useState<SessionStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Mechanic type detection for access control
+  const [mechanicType, setMechanicType] = useState<MechanicType | null>(null)
+  const [mechanicData, setMechanicData] = useState<any>(null)
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -61,9 +72,39 @@ export default function MechanicSessionsPage() {
   const [limit] = useState(20)
   const [hasMore, setHasMore] = useState(true)
 
+  // RFQ Modal
+  const [showRfqModal, setShowRfqModal] = useState(false)
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null)
+
+  // Fetch mechanic type on mount
+  useEffect(() => {
+    if (user) {
+      fetchMechanicType()
+    }
+  }, [user])
+
   useEffect(() => {
     fetchSessions()
   }, [page, statusFilter, typeFilter, fromDate, toDate])
+
+  async function fetchMechanicType() {
+    try {
+      const supabase = createClient()
+      const { data: mechanic, error } = await supabase
+        .from('mechanics')
+        .select('id, service_tier, account_type, workshop_id, partnership_type, can_perform_physical_work')
+        .eq('user_id', user?.id)
+        .single()
+
+      if (error) throw error
+
+      setMechanicData(mechanic)
+      const type = getMechanicType(mechanic)
+      setMechanicType(type)
+    } catch (err) {
+      console.error('[SESSIONS] Failed to fetch mechanic type:', err)
+    }
+  }
 
   async function fetchSessions() {
     try {
@@ -176,18 +217,28 @@ export default function MechanicSessionsPage() {
   }
 
   function exportToCSV() {
-    const headers = ['Date', 'Customer', 'Type', 'Plan', 'Status', 'Duration', 'Earnings']
+    // ✅ CRITICAL: Hide earnings column for workshop employees
+    const showEarnings = mechanicData && canAccessEarnings(mechanicData)
+    const headers = showEarnings
+      ? ['Date', 'Customer', 'Type', 'Plan', 'Status', 'Duration', 'Earnings']
+      : ['Date', 'Customer', 'Type', 'Plan', 'Status', 'Duration']
+
     const csvContent = [
       headers.join(','),
-      ...sessions.map(s => [
-        s.ended_at || s.started_at || s.scheduled_start || '',
-        s.customer_name,
-        s.type,
-        s.plan || 'N/A',
-        s.status,
-        s.duration_minutes || 0,
-        formatCurrency(calculateEarnings(s.plan)),
-      ].join(','))
+      ...sessions.map(s => {
+        const baseData = [
+          s.ended_at || s.started_at || s.scheduled_start || '',
+          s.customer_name,
+          s.type,
+          s.plan || 'N/A',
+          s.status,
+          s.duration_minutes || 0,
+        ]
+        if (showEarnings) {
+          baseData.push(formatCurrency(calculateEarnings(s.plan)))
+        }
+        return baseData.join(',')
+      })
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -205,7 +256,8 @@ export default function MechanicSessionsPage() {
     return true
   })
 
-  if (loading && page === 0) {
+  // Show loading state while checking authentication or loading data
+  if (authLoading || (loading && page === 0)) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10 overflow-x-hidden">
         <div className="mx-auto max-w-7xl">
@@ -217,14 +269,25 @@ export default function MechanicSessionsPage() {
     )
   }
 
+  // Auth guard will redirect if not authenticated, but add safety check
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 px-4 py-10 overflow-x-hidden">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Session History & Analytics</h1>
-            <p className="mt-1 text-sm text-slate-400">View detailed session history and performance metrics</p>
+            <h1 className="text-3xl font-bold text-white">
+              {mechanicData && canAccessEarnings(mechanicData) ? 'Session History & Analytics' : 'Session History'}
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              {mechanicData && canAccessEarnings(mechanicData)
+                ? 'View detailed session history and performance metrics'
+                : 'View your session history'}
+            </p>
           </div>
           <button
             onClick={exportToCSV}
@@ -275,16 +338,19 @@ export default function MechanicSessionsPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-green-700/50 bg-green-900/20 p-6 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-300">Total Earned</p>
-                  <p className="mt-2 text-3xl font-bold text-green-400">{formatCurrency(stats.total_earnings_cents)}</p>
-                  <p className="mt-1 text-xs text-green-300/60">From completed sessions</p>
+            {/* ✅ CRITICAL: Hide earnings for workshop employees */}
+            {mechanicData && canAccessEarnings(mechanicData) && (
+              <div className="rounded-2xl border border-green-700/50 bg-green-900/20 p-6 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-300">Total Earned</p>
+                    <p className="mt-2 text-3xl font-bold text-green-400">{formatCurrency(stats.total_earnings_cents)}</p>
+                    <p className="mt-1 text-xs text-green-300/60">From completed sessions</p>
+                  </div>
+                  <DollarSign className="h-10 w-10 text-green-400" />
                 </div>
-                <DollarSign className="h-10 w-10 text-green-400" />
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -447,13 +513,36 @@ export default function MechanicSessionsPage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => router.push(`/mechanic/session/${session.id}`)}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700 sm:w-auto"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View
-                      </button>
+                      <div className="flex gap-2">
+                        {/* Create RFQ Button - Only for completed sessions within last 7 days */}
+                        {session.status === 'completed' && (() => {
+                          const sessionEndDate = session.ended_at ? new Date(session.ended_at) : null
+                          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                          const isRecent = sessionEndDate && sessionEndDate >= sevenDaysAgo
+
+                          return isRecent && (
+                            <button
+                              onClick={() => {
+                                setSelectedSession(session)
+                                setShowRfqModal(true)
+                              }}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-semibold text-purple-400 transition hover:border-purple-500/50 hover:bg-purple-500/20"
+                              title="Create RFQ for customer and earn 2% commission"
+                            >
+                              <FileText className="h-4 w-4" />
+                              Create RFQ
+                            </button>
+                          )
+                        })()}
+
+                        <button
+                          onClick={() => router.push(`/mechanic/session/${session.id}`)}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -491,6 +580,30 @@ export default function MechanicSessionsPage() {
           </button>
         </div>
       </div>
+
+      {/* RFQ Modal */}
+      {selectedSession && (
+        <EscalateToRfqModal
+          isOpen={showRfqModal}
+          sessionData={{
+            id: selectedSession.id,
+            customer_id: selectedSession.metadata?.customer_id || '',
+            vehicle_id: selectedSession.metadata?.vehicle_id || null,
+            metadata: selectedSession.metadata
+          }}
+          onClose={() => {
+            setShowRfqModal(false)
+            setSelectedSession(null)
+          }}
+          onSuccess={(rfqId) => {
+            console.log('RFQ created:', rfqId)
+            setShowRfqModal(false)
+            setSelectedSession(null)
+            // Refresh sessions to show updated status
+            fetchSessions()
+          }}
+        />
+      )}
     </div>
   )
 }

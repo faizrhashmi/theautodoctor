@@ -17,14 +17,16 @@ import {
   ChevronRight,
   DollarSign,
   Star,
-  Briefcase,
   Video,
   TrendingUp,
-  FolderOpen
+  FolderOpen,
+  Building2,
+  Gift
 } from 'lucide-react'
 import Logo from '@/components/branding/Logo'
 import { createClient } from '@/lib/supabase'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { getMechanicType, MechanicType, canAccessEarnings, isOwnerOperator } from '@/types/mechanic'
 
 const NAV_ITEMS = [
   {
@@ -64,6 +66,12 @@ const NAV_ITEMS = [
     description: 'Income & payouts'
   },
   {
+    label: 'Referrals',
+    href: '/mechanic/referrals',
+    icon: Gift,
+    description: 'Referral commissions'
+  },
+  {
     label: 'Reviews',
     href: '/mechanic/reviews',
     icon: Star,
@@ -74,12 +82,6 @@ const NAV_ITEMS = [
     href: '/mechanic/documents',
     icon: FolderOpen,
     description: 'Files & certificates'
-  },
-  {
-    label: 'Partnerships',
-    href: '/mechanic/partnerships/browse',
-    icon: Briefcase,
-    description: 'Workshop collaborations'
   },
   {
     label: 'Availability',
@@ -100,8 +102,12 @@ export default function MechanicSidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [mechanicFirstName, setMechanicFirstName] = useState<string>('')
   const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
+  const [mechanicType, setMechanicType] = useState<MechanicType | null>(null)
+  const [mechanicData, setMechanicData] = useState<any>(null)
+  const [isLoadingType, setIsLoadingType] = useState(true)
+  const [isOwner, setIsOwner] = useState(false)
 
-  // Fetch mechanic's name and userId on mount
+  // Fetch mechanic's name, userId, and type on mount
   useEffect(() => {
     const fetchMechanicData = async () => {
       try {
@@ -117,9 +123,34 @@ export default function MechanicSidebar() {
           const data = await response.json()
           const firstName = data.name ? data.name.split(' ')[0] : ''
           setMechanicFirstName(firstName)
+
+          // Store full mechanic data
+          setMechanicData(data)
+
+          // ✅ Determine mechanic type for sidebar filtering
+          const type = getMechanicType({
+            service_tier: data.service_tier,
+            account_type: data.account_type,
+            workshop_id: data.workshop_id,
+            partnership_type: data.partnership_type,
+            can_perform_physical_work: data.can_perform_physical_work
+          })
+          setMechanicType(type)
+
+          // ✅ Check if mechanic is an independent owner-operator
+          const ownerOperator = isOwnerOperator({
+            service_tier: data.service_tier,
+            account_type: data.account_type,
+            workshop_id: data.workshop_id,
+            partnership_type: data.partnership_type,
+            can_perform_physical_work: data.can_perform_physical_work
+          })
+          setIsOwner(ownerOperator)
         }
       } catch (error) {
         console.error('Failed to fetch mechanic data:', error)
+      } finally {
+        setIsLoadingType(false)
       }
     }
 
@@ -186,34 +217,92 @@ export default function MechanicSidebar() {
 
           {/* Navigation - Enhanced for mobile */}
           <nav className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-3 space-y-1.5">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
-              const Icon = item.icon
+            {NAV_ITEMS
+              .filter((item) => {
+                // ✅ CRITICAL: Filter sidebar items based on mechanic access rights
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-base sm:text-lg lg:text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent hover:border-slate-700'
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-4 lg:w-4 flex-shrink-0 ${isActive ? 'text-blue-400' : ''}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="truncate">{item.label}</div>
-                    <div className="text-xs text-slate-500 truncate sm:block lg:hidden">{item.description}</div>
-                  </div>
-                  {isActive && <ChevronRight className="h-4 w-4 text-blue-400 flex-shrink-0" />}
-                </Link>
-              )
-            })}
+                // Hide restricted items during loading to prevent flash
+                if (isLoadingType || !mechanicData) {
+                  // During loading, hide potentially restricted items
+                  const restrictedPaths = ['/earnings', '/analytics', '/quotes', '/crm', '/availability']
+                  if (restrictedPaths.some(path => item.href.includes(path))) {
+                    return false
+                  }
+                  return true
+                }
+
+                // ✅ QUOTES PAGE FILTERING
+                // Remove Quotes page from ALL mechanic types
+                // - Virtual mechanics: Don't create quotes (they escalate to RFQ)
+                // - Independent workshop owners: Use workshop sidebar Quotes page instead
+                // - Workshop employees: No access to quotes
+                if (item.href.includes('/quotes')) {
+                  return false
+                }
+
+                // Once loaded, apply actual filtering for WORKSHOP EMPLOYEES ONLY
+                // Workshop employees (account_type='workshop_mechanic') cannot see:
+                // - Earnings (they don't get paid directly)
+                // - Analytics (business metrics)
+                // - CRM (customer management)
+                // - Availability (managed by workshop)
+
+                const restrictedForEmployees = [
+                  '/earnings',
+                  '/analytics',
+                  '/crm',
+                  '/availability'
+                ]
+
+                for (const path of restrictedForEmployees) {
+                  if (item.href.includes(path)) {
+                    // Only allow if mechanic can access earnings (virtual + independent, NOT employees)
+                    return canAccessEarnings(mechanicData)
+                  }
+                }
+
+                return true
+              })
+              .map((item) => {
+                const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+                const Icon = item.icon
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-base sm:text-lg lg:text-sm font-medium transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent hover:border-slate-700'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-4 lg:w-4 flex-shrink-0 ${isActive ? 'text-blue-400' : ''}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="truncate">{item.label}</div>
+                      <div className="text-xs text-slate-500 truncate sm:block lg:hidden">{item.description}</div>
+                    </div>
+                    {isActive && <ChevronRight className="h-4 w-4 text-blue-400 flex-shrink-0" />}
+                  </Link>
+                )
+              })}
           </nav>
 
           {/* Bottom Actions - Enhanced for mobile */}
           <div className="p-3 sm:p-4 lg:p-3 border-t border-slate-800 space-y-2">
+            {/* Workshop View Toggle - Only for independent owner-operators */}
+            {isOwner && (
+              <Link
+                href="/workshop/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base sm:text-lg lg:text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-lg shadow-blue-500/20"
+              >
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 lg:h-4 lg:w-4 flex-shrink-0" />
+                <span className="flex-1 text-left">Workshop View</span>
+              </Link>
+            )}
+
             {/* Logout Button */}
             <button
               onClick={handleSignOut}

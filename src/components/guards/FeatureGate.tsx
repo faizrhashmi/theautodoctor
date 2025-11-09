@@ -109,3 +109,33 @@ export function CustomerRfqGate({
     </FeatureGate>
   )
 }
+
+/**
+ * Quote System gate
+ *
+ * Convenience component for diagnostic-based quote system feature gating
+ * This is separate from RFQ - quotes are created by workshops after diagnostics
+ *
+ * @param props.children - Content to render when quote system is enabled
+ * @param props.fallback - Optional content to render when disabled
+ *
+ * @example
+ * ```tsx
+ * <QuoteGate>
+ *   <CreateQuoteButton />
+ * </QuoteGate>
+ * ```
+ */
+export function QuoteGate({
+  children,
+  fallback
+}: {
+  children: React.ReactNode
+  fallback?: React.ReactNode
+}) {
+  return (
+    <FeatureGate feature="ENABLE_QUOTE_SYSTEM" fallback={fallback}>
+      {children}
+    </FeatureGate>
+  )
+}

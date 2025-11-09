@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireMechanicAPI } from '@/lib/auth/guards'
 import { WORKSHOP_PRICING } from '@/config/workshopPricing'
+import { getMechanicType, MechanicType } from '@/types/mechanic'
 
 /**
  * GET /api/mechanics/earnings
@@ -18,6 +19,16 @@ export async function GET(req: NextRequest) {
   if (authResult.error) return authResult.error
 
   const mechanic = authResult.data
+
+  // ✅ CRITICAL: Block workshop employees from accessing earnings
+  // Workshop employees are paid by their workshop, not directly by platform
+  const mechanicType = getMechanicType(mechanic)
+  if (mechanicType === MechanicType.WORKSHOP_AFFILIATED) {
+    return NextResponse.json({
+      error: 'Workshop employees cannot access earnings. Contact your workshop admin for payment details.',
+      code: 'WORKSHOP_EMPLOYEE_RESTRICTION'
+    }, { status: 403 })
+  }
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })

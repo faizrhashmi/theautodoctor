@@ -17,12 +17,17 @@ import {
   ChevronRight,
   Plus,
   X,
+  Zap,
+  Users,
+  CheckCircle2,
 } from 'lucide-react'
 import { usePlansContext } from '@/contexts/PlansContext'
 import CarBrandLogo from '@/components/ui/CarBrandLogo'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 import { createClient } from '@/lib/supabase'
+import MechanicSelectionCard from './MechanicSelectionCard'
+import type { MechanicCardData } from './MechanicSelectionCard'
 
 // Lazy load VehiclePrompt component
 const VehiclePrompt = lazy(() => import('./VehiclePrompt'))
@@ -59,6 +64,7 @@ interface SessionWizardProps {
 
 type SessionType = 'quick' | 'video' | 'diagnostic' | string
 type MechanicType = 'standard' | 'specialist'
+type MechanicSelection = 'first-available' | 'specific'
 
 // Map plan slugs to icons
 const PLAN_ICONS: Record<string, typeof MessageSquare> = {
@@ -92,7 +98,16 @@ export default function SessionWizard({
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null)
   const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('standard')
   const [selectedMechanicType, setSelectedMechanicType] = useState<MechanicType>('standard')
+  const [mechanicSelection, setMechanicSelection] = useState<MechanicSelection>('first-available')
+  const [selectedSpecificMechanic, setSelectedSpecificMechanic] = useState<string | null>(null)
+  const [customerPostalCode, setCustomerPostalCode] = useState<string>('')
+  const [availableMechanicsList, setAvailableMechanicsList] = useState<any[]>([])
+  const [loadingMechanics, setLoadingMechanics] = useState(false)
   const [launching, setLaunching] = useState(false)
+
+  // Auto-match preview state
+  const [topMatchedMechanic, setTopMatchedMechanic] = useState<MechanicCardData | null>(null)
+  const [loadingTopMatch, setLoadingTopMatch] = useState(false)
 
   // Add ref for wizard container to maintain focus
   const wizardRef = useRef<HTMLDivElement>(null)
@@ -144,6 +159,20 @@ export default function SessionWizard({
     }
   }, [currentStep])
 
+  // Fetch available mechanics when reaching step 3 and "specific" is selected
+  useEffect(() => {
+    if (currentStep === 3 && mechanicSelection === 'specific') {
+      fetchAvailableMechanics()
+    }
+  }, [currentStep, mechanicSelection, selectedMechanicType, selectedVehicle, customerPostalCode])
+
+  // Fetch top matched mechanic for auto-match preview when "first-available" is selected
+  useEffect(() => {
+    if (currentStep === 3 && mechanicSelection === 'first-available') {
+      fetchTopMatchedMechanic()
+    }
+  }, [currentStep, mechanicSelection, selectedMechanicType, selectedVehicle, customerPostalCode])
+
   const fetchVehicles = async () => {
     try {
       setLoadingVehicles(true)
@@ -161,6 +190,81 @@ export default function SessionWizard({
       console.error('[SessionWizard] Error fetching vehicles:', error)
     } finally {
       setLoadingVehicles(false)
+    }
+  }
+
+  const fetchAvailableMechanics = async () => {
+    try {
+      setLoadingMechanics(true)
+      const vehicle = vehicles.find(v => v.id === selectedVehicle)
+
+      const params = new URLSearchParams()
+      params.set('request_type', selectedMechanicType === 'specialist' ? 'brand_specialist' : 'general')
+
+      // ✅ Always include country for better matching (default to Canada for now)
+      params.set('customer_country', 'Canada')
+
+      if (selectedMechanicType === 'specialist' && vehicle?.make) {
+        params.set('requested_brand', vehicle.make)
+      }
+
+      if (customerPostalCode) {
+        params.set('customer_postal_code', customerPostalCode)
+      }
+
+      params.set('limit', '10')
+
+      const response = await fetch(`/api/mechanics/available?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableMechanicsList(data.mechanics || [])
+      } else {
+        console.error('[SessionWizard] Error fetching mechanics:', response.statusText)
+        setAvailableMechanicsList([])
+      }
+    } catch (error) {
+      console.error('[SessionWizard] Error fetching mechanics:', error)
+      setAvailableMechanicsList([])
+    } finally {
+      setLoadingMechanics(false)
+    }
+  }
+
+  const fetchTopMatchedMechanic = async () => {
+    try {
+      setLoadingTopMatch(true)
+      const vehicle = vehicles.find(v => v.id === selectedVehicle)
+
+      const params = new URLSearchParams()
+      params.set('request_type', selectedMechanicType === 'specialist' ? 'brand_specialist' : 'general')
+      params.set('customer_country', 'Canada')
+      params.set('limit', '1')  // Only fetch top match
+
+      if (selectedMechanicType === 'specialist' && vehicle?.make) {
+        params.set('requested_brand', vehicle.make)
+      }
+
+      if (customerPostalCode) {
+        params.set('customer_postal_code', customerPostalCode)
+      }
+
+      const response = await fetch(`/api/mechanics/available?${params.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.mechanics && data.mechanics.length > 0) {
+          setTopMatchedMechanic(data.mechanics[0])
+        } else {
+          setTopMatchedMechanic(null)
+        }
+      } else {
+        console.error('[SessionWizard] Error fetching top match:', response.statusText)
+        setTopMatchedMechanic(null)
+      }
+    } catch (error) {
+      console.error('[SessionWizard] Error fetching top match:', error)
+      setTopMatchedMechanic(null)
+    } finally {
+      setLoadingTopMatch(false)
     }
   }
 
@@ -255,12 +359,21 @@ export default function SessionWizard({
       params.set('urgent', 'true')
     }
 
-    if (preferredMechanicId) {
+    // Add selected mechanic if specific selection
+    if (mechanicSelection === 'specific' && selectedSpecificMechanic) {
+      params.set('preferred_mechanic_id', selectedSpecificMechanic)
+      params.set('routing_type', 'priority_broadcast')
+    } else if (preferredMechanicId) {
       params.set('preferred_mechanic_id', preferredMechanicId)
     }
 
     if (routingType === 'priority_broadcast') {
       params.set('routing_type', 'priority_broadcast')
+    }
+
+    // Add postal code for location-based matching
+    if (customerPostalCode) {
+      params.set('postal_code', customerPostalCode)
     }
 
     // Handle navigation asynchronously
@@ -270,7 +383,7 @@ export default function SessionWizard({
     setTimeout(() => {
       router.push(navigationUrl)
     }, 300)
-  }, [selectedSessionType, selectedMechanicType, selectedVehicle, availableMechanics, preferredMechanicId, routingType, router])
+  }, [selectedSessionType, selectedMechanicType, selectedVehicle, availableMechanics, preferredMechanicId, routingType, router, mechanicSelection, selectedSpecificMechanic, customerPostalCode])
 
   const canProceed = useCallback(() => {
     if (currentStep === 1 && vehicles.length > 0) {
@@ -461,14 +574,17 @@ export default function SessionWizard({
     <div className="space-y-3 sm:space-y-4">
       <div className="text-center mb-4 sm:mb-6">
         <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
-          Standard or Specialist?
+          Choose Your Mechanic
         </h3>
         <p className="text-xs sm:text-sm text-slate-400">
-          Choose the type of mechanic for your vehicle
+          Select mechanic type and optionally choose a specific mechanic
         </p>
       </div>
 
+      {/* Step 3A: Mechanic Type Selection */}
       <div className="space-y-3">
+        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Mechanic Type</p>
+
         {/* Standard Mechanic */}
         <button
           onClick={() => handleMechanicTypeSelect('standard')}
@@ -546,6 +662,203 @@ export default function SessionWizard({
           </div>
         </button>
       </div>
+
+      {/* Step 3B: Optional Postal Code for Location Matching */}
+      <div className="pt-2">
+        <label htmlFor="postal-code" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide mb-2">
+          Your Location (Optional)
+        </label>
+        <input
+          id="postal-code"
+          type="text"
+          placeholder="e.g., M5V 3A8"
+          value={customerPostalCode}
+          onChange={(e) => setCustomerPostalCode(e.target.value.toUpperCase())}
+          maxLength={7}
+          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 text-sm"
+        />
+        <p className="text-xs text-slate-500 mt-1">Helps match you with local mechanics in your area</p>
+      </div>
+
+      {/* Step 3C: Mechanic Selection Mode */}
+      <div className="pt-2 space-y-3">
+        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Mechanic Selection</p>
+
+        {/* First Available (Default) */}
+        <button
+          onClick={() => setMechanicSelection('first-available')}
+          className={`w-full p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${
+            mechanicSelection === 'first-available'
+              ? 'border-orange-500 bg-orange-500/10'
+              : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+          }`}
+        >
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div
+              className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
+                mechanicSelection === 'first-available' ? 'bg-orange-500/20' : 'bg-slate-700/50'
+              }`}
+            >
+              <Zap
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                  mechanicSelection === 'first-available' ? 'text-orange-400' : 'text-slate-400'
+                }`}
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-white font-bold text-sm sm:text-base">First Available</h4>
+                {mechanicSelection === 'first-available' && (
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
+                Fastest response - auto-matched with the best available mechanic
+              </p>
+              <div className="mt-1 text-xs font-medium text-orange-400">⚡ Recommended</div>
+            </div>
+          </div>
+        </button>
+
+        {/* Auto-Match Preview (shown when First Available is selected) */}
+        {mechanicSelection === 'first-available' && (
+          <div className="mt-3 space-y-3">
+            {loadingTopMatch && (
+              <div className="flex flex-col items-center justify-center py-6 space-y-2 rounded-lg bg-slate-800/30 border border-slate-700">
+                <Loader2 className="h-5 w-5 animate-spin text-orange-400" />
+                <p className="text-xs text-slate-400">Finding your perfect match...</p>
+              </div>
+            )}
+
+            {!loadingTopMatch && topMatchedMechanic && (
+              <div className="rounded-xl border-2 border-green-500 bg-green-500/10 p-4">
+                {/* Success Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-full bg-green-500/20">
+                    <CheckCircle2 className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-base sm:text-lg">Perfect Match Found!</h4>
+                    <p className="text-xs sm:text-sm text-green-300">We found the best mechanic for your needs</p>
+                  </div>
+                </div>
+
+                {/* Mechanic Preview Card */}
+                <MechanicSelectionCard
+                  mechanic={topMatchedMechanic}
+                  isSelected={true}
+                  onSelect={() => {}}
+                  showMatchScore={true}
+                />
+
+                {/* Action Buttons */}
+                <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div className="flex-1 bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-0.5">
+                    <div className="bg-slate-900 rounded-[6px] p-2 text-center">
+                      <p className="text-xs text-green-300 font-medium">
+                        ✓ You'll be matched with {topMatchedMechanic.name}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMechanicSelection('specific')}
+                    className="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 text-sm transition-colors"
+                  >
+                    <Users className="h-4 w-4" />
+                    See Other Options
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!loadingTopMatch && !topMatchedMechanic && (
+              <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-center">
+                <p className="text-sm text-slate-400">
+                  No mechanics available right now. We'll find you one as soon as they're online.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Choose Specific Mechanic */}
+        <button
+          onClick={() => setMechanicSelection('specific')}
+          className={`w-full p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${
+            mechanicSelection === 'specific'
+              ? 'border-orange-500 bg-orange-500/10'
+              : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+          }`}
+        >
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div
+              className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
+                mechanicSelection === 'specific' ? 'bg-orange-500/20' : 'bg-slate-700/50'
+              }`}
+            >
+              <Users
+                className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                  mechanicSelection === 'specific' ? 'text-orange-400' : 'text-slate-400'
+                }`}
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-white font-bold text-sm sm:text-base">Choose Specific Mechanic</h4>
+                {mechanicSelection === 'specific' && (
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-400 flex-shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-slate-400">
+                Browse and select from available mechanics with matching expertise
+              </p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Step 3D: Specific Mechanic List (if selected) */}
+      {mechanicSelection === 'specific' && (
+        <div className="pt-2 space-y-3">
+          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+            Available Mechanics
+          </p>
+
+          {loadingMechanics && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-3">
+              <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+              <p className="text-xs text-slate-400">Finding matching mechanics...</p>
+            </div>
+          )}
+
+          {!loadingMechanics && availableMechanicsList.length === 0 && (
+            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700 text-center">
+              <p className="text-sm text-slate-400">
+                No mechanics available right now. Try "First Available" for fastest response.
+              </p>
+            </div>
+          )}
+
+          {!loadingMechanics && availableMechanicsList.length > 0 && (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {availableMechanicsList.slice(0, 5).map((mechanic) => (
+                <MechanicSelectionCard
+                  key={mechanic.id}
+                  mechanic={mechanic as MechanicCardData}
+                  isSelected={selectedSpecificMechanic === mechanic.id}
+                  onSelect={setSelectedSpecificMechanic}
+                  showMatchScore={true}
+                />
+              ))}
+              {availableMechanicsList.length > 5 && (
+                <p className="text-xs text-slate-400 text-center pt-2">
+                  +{availableMechanicsList.length - 5} more mechanics available
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 

@@ -25,6 +25,7 @@ interface Session {
 interface RecentSessionsProps {
   userRole: 'customer' | 'mechanic'
   limit?: number
+  hidePricing?: boolean // Hide pricing for workshop employees
 }
 
 const getStatusIcon = (status: string) => {
@@ -69,7 +70,7 @@ const getTypeIcon = (type: string) => {
   }
 }
 
-export default function RecentSessions({ userRole, limit = 3 }: RecentSessionsProps) {
+export default function RecentSessions({ userRole, limit = 3, hidePricing = false }: RecentSessionsProps) {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -205,17 +206,26 @@ export default function RecentSessions({ userRole, limit = 3 }: RecentSessionsPr
 
                   {/* Right Side - Price & Action */}
                   <div className="flex flex-col items-end gap-2">
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-white">
-                        ${session.price.toFixed(2)}
-                      </div>
-                      {session.rating && (
-                        <div className="flex items-center gap-1 text-xs text-amber-400">
-                          <span>★</span>
-                          <span>{session.rating.toFixed(1)}</span>
+                    {/* ✅ CRITICAL: Hide pricing for workshop employees */}
+                    {!hidePricing && (
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-white">
+                          ${session.price.toFixed(2)}
                         </div>
-                      )}
-                    </div>
+                        {session.rating && (
+                          <div className="flex items-center gap-1 text-xs text-amber-400">
+                            <span>★</span>
+                            <span>{session.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {hidePricing && session.rating && (
+                      <div className="flex items-center gap-1 text-xs text-amber-400">
+                        <span>★</span>
+                        <span>{session.rating.toFixed(1)}</span>
+                      </div>
+                    )}
                     <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-orange-400 transition-colors" />
                   </div>
                 </div>

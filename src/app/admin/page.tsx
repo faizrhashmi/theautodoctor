@@ -213,6 +213,22 @@ export default function AdminPage() {
           color="green"
         />
         <AdminCard
+          href="/admin/fee-settings"
+          icon={<DollarSign className="h-6 w-6" />}
+          title="Platform Fees"
+          description="Configure global platform fee percentages"
+          color="green"
+          badge="NEW"
+        />
+        <AdminCard
+          href="/admin/workshop-rates"
+          icon={<Building2 className="h-6 w-6" />}
+          title="Workshop Fee Overrides"
+          description="Manage per-workshop custom fee agreements"
+          color="indigo"
+          badge="NEW"
+        />
+        <AdminCard
           href="/admin/brands"
           icon={<Shield className="h-6 w-6" />}
           title="Brands Management"

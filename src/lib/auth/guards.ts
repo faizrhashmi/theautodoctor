@@ -33,6 +33,9 @@ export interface AuthenticatedMechanic {
   stripePayoutsEnabled: boolean
   serviceTier?: string | null
   userId?: string | null
+  accountType?: string | null  // CRITICAL: For access control (individual_mechanic vs workshop_mechanic)
+  workshopId?: string | null   // CRITICAL: For access control
+  partnershipType?: string | null  // For owner/operator detection
 }
 
 export interface AuthenticatedCustomer {
@@ -278,10 +281,10 @@ export async function requireMechanicAPI(
     }
   }
 
-  // Load mechanic profile using user_id
+  // Load mechanic profile using user_id (including access control fields)
   const { data: mechanic, error } = await supabaseAdmin
     .from('mechanics')
-    .select('id, name, email, stripe_account_id, stripe_payouts_enabled, service_tier, user_id')
+    .select('id, name, email, stripe_account_id, stripe_payouts_enabled, service_tier, user_id, account_type, workshop_id, partnership_type')
     .eq('user_id', user.id)
     .maybeSingle()
 
@@ -305,6 +308,9 @@ export async function requireMechanicAPI(
       stripePayoutsEnabled: mechanic.stripe_payouts_enabled ?? false,
       serviceTier: mechanic.service_tier,
       userId: mechanic.user_id,
+      accountType: mechanic.account_type,       // CRITICAL: For access control
+      workshopId: mechanic.workshop_id,         // CRITICAL: For access control
+      partnershipType: mechanic.partnership_type, // For owner/operator detection
     },
     error: null,
   }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, X, Loader2, CheckCircle } from 'lucide-react'
+import { Upload, X, Loader2, CheckCircle, FileText } from 'lucide-react'
+import { EscalateToRfqModal } from '@/components/mechanic/EscalateToRfqModal'
 
 interface SummaryFormData {
   findings: string
@@ -20,6 +21,7 @@ export default function SessionSummaryPage({ params }: { params: { id: string } 
   const [submitting, setSubmitting] = useState(false)
   const [session, setSession] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showRfqModal, setShowRfqModal] = useState(false)
   const [formData, setFormData] = useState<SummaryFormData>({
     findings: '',
     steps_taken: '',
@@ -306,7 +308,46 @@ export default function SessionSummaryPage({ params }: { params: { id: string } 
             </button>
           </div>
         </form>
+
+        {/* Escalate to RFQ Button */}
+        <div className="mt-6 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <FileText className="h-5 w-5 text-purple-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-1">Need Workshop Repairs?</h3>
+              <p className="text-xs text-purple-300">
+                Help your customer get competitive quotes from workshops and earn a 2% referral commission!
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRfqModal(true)}
+            disabled={submitting || !session}
+            className="w-full rounded-lg bg-gradient-to-r from-purple-500 to-blue-600 px-4 py-3 font-semibold text-white transition hover:from-purple-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create RFQ for Customer
+          </button>
+        </div>
       </div>
+
+      {/* RFQ Modal */}
+      {session && (
+        <EscalateToRfqModal
+          isOpen={showRfqModal}
+          sessionData={{
+            id: session.id,
+            customer_id: session.customer_id,
+            vehicle_id: session.vehicle_id,
+            metadata: session.metadata
+          }}
+          onClose={() => setShowRfqModal(false)}
+          onSuccess={(rfqId) => {
+            console.log('RFQ created:', rfqId)
+            setShowRfqModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }

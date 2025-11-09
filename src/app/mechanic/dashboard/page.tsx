@@ -18,6 +18,7 @@ import { triggerMechanicNewRequestAlert } from '@/lib/newRequestAlertsBridge'
 import { useNewRequestsIndicator } from '@/state/newRequestsIndicator'
 import { setTabNewRequests } from '@/lib/tabAttention'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
+import { getMechanicType, getDashboardTitle, isOwnerOperator, canAccessEarnings, MechanicType } from '@/types/mechanic'
 
 // --- Realtime custom event types for TS ---
 declare global {
@@ -124,6 +125,8 @@ export default function MechanicDashboardPage() {
   const [authChecking, setAuthChecking] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [mechanicUserId, setMechanicUserId] = useState<string | null>(null)
+  const [mechanicType, setMechanicType] = useState<MechanicType | null>(null)
+  const [mechanicData, setMechanicData] = useState<any>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
   const [queue, setQueue] = useState<{
@@ -268,10 +271,10 @@ export default function MechanicDashboardPage() {
           return
         }
 
-        // Get mechanic details
+        // Get mechanic details with type classification fields
         const { data: mechanic, error: mechanicError } = await supabase
           .from('mechanics')
-          .select('id, service_tier')
+          .select('id, user_id, service_tier, account_type, workshop_id, partnership_type')
           .eq('user_id', session.user.id)
           .single()
 
@@ -282,22 +285,21 @@ export default function MechanicDashboardPage() {
           return
         }
 
+        // Determine mechanic type
+        const type = getMechanicType(mechanic)
+
         setMechanicUserId(mechanic.id)
+        setMechanicData(mechanic)
+        setMechanicType(type)
         setIsAuthenticated(true)
         setAuthChecking(false)
-        
+
         console.log('[MechanicDashboard] Mechanic authenticated:', {
           userId: session.user.id,
           mechanicId: mechanic.id,
-          serviceTier: mechanic.service_tier
+          serviceTier: mechanic.service_tier,
+          mechanicType: type
         })
-
-        // Route virtual-only mechanics to their specific dashboard
-        if (mechanic.service_tier === 'virtual_only') {
-          console.log('[MechanicDashboard] Virtual-only mechanic, redirecting...')
-          router.replace('/mechanic/dashboard/virtual')
-          return
-        }
 
         setCheckingTier(false)
         setLoading(false)
@@ -376,8 +378,8 @@ export default function MechanicDashboardPage() {
       // Fetch immediately
       fetchActiveSessions()
 
-      // Poll every 5 seconds to detect ended sessions quickly
-      const intervalId = setInterval(fetchActiveSessions, 5000)
+      // Poll every 30 seconds to reduce load (reduced from 5s due to slow API response times)
+      const intervalId = setInterval(fetchActiveSessions, 30000)
 
       return () => {
         clearInterval(intervalId)
@@ -579,8 +581,14 @@ export default function MechanicDashboardPage() {
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">Mechanic Dashboard</h1>
-              <p className="text-sm sm:text-base text-slate-400 mt-1">Manage your sessions and quotes</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">
+                {mechanicType ? getDashboardTitle(mechanicType) : 'Mechanic Dashboard'}
+              </h1>
+              <p className="text-sm sm:text-base text-slate-400 mt-1">
+                {mechanicType === MechanicType.INDEPENDENT_WORKSHOP
+                  ? 'Manage your diagnostic sessions and workshop operations'
+                  : 'Manage your sessions and quotes'}
+              </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <ConnectionQuality quality="excellent" showLabel={true} />
@@ -731,11 +739,11 @@ export default function MechanicDashboardPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${mechanicData && canAccessEarnings(mechanicData) ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4 sm:gap-6 mb-6 sm:mb-8`}>
           {loadingStats ? (
             // Loading skeletons for stats cards
             <>
-              {[1, 2, 3, 4].map((i) => (
+              {(mechanicData && canAccessEarnings(mechanicData) ? [1, 2, 3, 4] : [1, 2]).map((i) => (
                 <div key={i} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6 animate-pulse">
                   <div className="h-4 bg-slate-700 rounded w-24 mb-3"></div>
                   <div className="h-9 bg-slate-700 rounded w-16"></div>
@@ -751,30 +759,39 @@ export default function MechanicDashboardPage() {
                 </div>
               </div>
               <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
-                <div className="text-sm text-slate-400 mb-1">Active Quotes</div>
-                <div className="text-3xl font-bold text-blue-400">
-                  {stats?.active_quotes ?? 0}
-                </div>
-              </div>
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
                 <div className="text-sm text-slate-400 mb-1">Approved Today</div>
                 <div className="text-3xl font-bold text-green-600">
                   {stats?.approved_today ?? 0}
                 </div>
               </div>
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
-                <div className="text-sm text-slate-400 mb-1">Revenue This Month</div>
-                <div className="text-3xl font-bold text-blue-600">
-                  ${stats?.revenue_this_month?.toFixed(2) ?? '0.00'}
-                </div>
-              </div>
+              {/* ✅ CRITICAL: Only show quotes and revenue for mechanics who can access earnings (virtual + independent) */}
+              {mechanicData && canAccessEarnings(mechanicData) && (
+                <>
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
+                    <div className="text-sm text-slate-400 mb-1">Active Quotes</div>
+                    <div className="text-3xl font-bold text-blue-400">
+                      {stats?.active_quotes ?? 0}
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg shadow p-6">
+                    <div className="text-sm text-slate-400 mb-1">Revenue This Month</div>
+                    <div className="text-3xl font-bold text-blue-600">
+                      ${stats?.revenue_this_month?.toFixed(2) ?? '0.00'}
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
 
         {/* Recent Sessions */}
         <div className="mt-8">
-          <RecentSessions userRole="mechanic" limit={3} />
+          <RecentSessions
+            userRole="mechanic"
+            limit={3}
+            hidePricing={mechanicData ? !canAccessEarnings(mechanicData) : false}
+          />
         </div>
       </div>
       </div>

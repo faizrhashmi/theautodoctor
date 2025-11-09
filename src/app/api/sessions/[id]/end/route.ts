@@ -8,6 +8,7 @@ import type { SessionStatus } from '@/types/session'
 import { logInfo } from '@/lib/log'
 import { sendSessionEndedEmail } from '@/lib/email/templates'
 import { trackInteraction, generateUpsellsForSession } from '@/lib/crm'
+import { getSessionPaymentDestination } from '@/types/mechanic'
 
 const MECHANIC_SHARE = 0.7 // 70% to mechanic, 30% to platform
 
@@ -210,29 +211,87 @@ export async function POST(
   // Attempt Stripe transfer if mechanic has connected account AND session was completed (not cancelled)
   if (session.mechanic_id && mechanicEarningsCents > 0 && final_status === 'completed' && started) {
     try {
-      // First try mechanics table (custom auth system)
+      // Fetch mechanic with workshop data for payment routing
       const { data: mechanic } = await supabaseAdmin
         .from('mechanics')
-        .select('stripe_account_id, stripe_payouts_enabled, name')
+        .select(`
+          id,
+          name,
+          stripe_account_id,
+          stripe_payouts_enabled,
+          workshop_id,
+          account_type,
+          service_tier,
+          partnership_type,
+          organizations!inner(
+            id,
+            name,
+            stripe_account_id,
+            stripe_payouts_enabled
+          )
+        `)
         .eq('id', session.mechanic_id)
         .single()
 
-      // Fallback to profiles table (Supabase auth system) if not found
+      // Fallback to profiles table (Supabase auth system) if not found in mechanics
       const { data: profile } = !mechanic ? await supabaseAdmin
         .from('profiles')
         .select('stripe_account_id, stripe_payouts_enabled, full_name')
         .eq('id', session.mechanic_id)
         .single() : { data: null }
 
-      const mechanicData = mechanic || profile
-      const mechanicName = mechanic?.name || profile?.full_name || 'Mechanic'
+      if (mechanic) {
+        // Use smart payment routing for mechanics (handles workshop-affiliated vs independent)
+        const paymentDestination = getSessionPaymentDestination(mechanic)
 
-      if (mechanicData?.stripe_account_id && mechanicData.stripe_payouts_enabled) {
-        // Create Stripe transfer
+        if (paymentDestination.accountId && mechanic.stripe_payouts_enabled) {
+          // Create Stripe transfer to correct destination (mechanic OR workshop)
+          const transfer = await stripe.transfers.create({
+            amount: mechanicEarningsCents,
+            currency: 'usd',
+            destination: paymentDestination.accountId,
+            description: `Session ${sessionId} - ${session.type} (${session.plan}) - ${paymentDestination.payeeName}`,
+            metadata: {
+              session_id: sessionId,
+              mechanic_id: session.mechanic_id,
+              plan: session.plan,
+              session_type: session.type,
+              payee_type: paymentDestination.type,
+              mechanic_type: paymentDestination.context.mechanic_type,
+              workshop_id: paymentDestination.context.workshop_id || '',
+            },
+          })
+
+          payoutMetadata = {
+            ...payoutMetadata,
+            status: 'transferred',
+            transfer_id: transfer.id,
+            destination_account: paymentDestination.accountId,
+            transferred_at: now,
+            mechanic_name: mechanic.name,
+            payee_type: paymentDestination.type,
+            payee_name: paymentDestination.payeeName,
+            mechanic_type: paymentDestination.context.mechanic_type,
+          }
+
+          console.log(
+            `[end session] Stripe transfer created: ${transfer.id} for ${mechanicEarningsCents / 100} USD to ${paymentDestination.payeeName} (${paymentDestination.type})`
+          )
+        } else {
+          payoutMetadata = {
+            ...payoutMetadata,
+            status: 'pending_stripe_connection',
+            message: `${paymentDestination.payeeName} needs to complete Stripe Connect onboarding`,
+          }
+
+          console.warn(`⚠️ ${paymentDestination.payeeName} not connected to Stripe - payout pending`)
+        }
+      } else if (profile?.stripe_account_id && profile.stripe_payouts_enabled) {
+        // Fallback: profile-based mechanic (legacy auth system)
         const transfer = await stripe.transfers.create({
           amount: mechanicEarningsCents,
           currency: 'usd',
-          destination: mechanicData.stripe_account_id,
+          destination: profile.stripe_account_id,
           description: `Session ${sessionId} - ${session.type} (${session.plan})`,
           metadata: {
             session_id: sessionId,
@@ -246,13 +305,13 @@ export async function POST(
           ...payoutMetadata,
           status: 'transferred',
           transfer_id: transfer.id,
-          destination_account: mechanicData.stripe_account_id,
+          destination_account: profile.stripe_account_id,
           transferred_at: now,
-          mechanic_name: mechanicName,
+          mechanic_name: profile.full_name || 'Mechanic',
         }
 
         console.log(
-          `[end session] Stripe transfer created: ${transfer.id} for ${mechanicEarningsCents / 100} USD`
+          `[end session] Stripe transfer created (profile): ${transfer.id} for ${mechanicEarningsCents / 100} USD`
         )
       } else {
         payoutMetadata = {

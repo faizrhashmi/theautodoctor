@@ -144,8 +144,17 @@ export default async function ChatSessionPage({ params }: PageProps) {
     throw new Error(messagesError.message)
   }
 
+  // ✅ DYNAMIC PRICING: Fetch plan name from database first, fallback to hardcoded
+  const planSlug = session.plan ?? 'free'
+  const { data: planData } = await supabaseAdmin
+    .from('service_plans')
+    .select('name, plan_type')
+    .eq('slug', planSlug)
+    .eq('is_active', true)
+    .maybeSingle()
+
   const planKey = (session.plan as PlanKey) ?? 'chat10'
-  const planName = PRICING[planKey]?.name ?? 'Quick Chat'
+  const planName = planData?.name ?? PRICING[planKey]?.name ?? 'Quick Chat'
   const isFreeSession = session.plan === 'free' || session.plan === 'trial' || session.plan === 'trial-free'
 
   // Fetch mechanic name and user_id if assigned

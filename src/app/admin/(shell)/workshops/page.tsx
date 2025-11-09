@@ -26,15 +26,13 @@ import { useAuthGuard } from '@/hooks/useAuthGuard'
 interface Workshop {
   id: string
   name: string
-  business_name: string | null
   email: string
   phone: string | null
   address: string | null
   city: string | null
-  state_province: string | null
+  province: string | null
   country: string | null
   status: 'pending' | 'approved' | 'suspended'
-  revenue_share_percentage: number
   created_at: string
   updated_at: string
   // Aggregated data
@@ -97,7 +95,6 @@ export default function WorkshopsPage() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(w =>
         w.name.toLowerCase().includes(query) ||
-        (w.business_name && w.business_name.toLowerCase().includes(query)) ||
         w.email.toLowerCase().includes(query) ||
         (w.city && w.city.toLowerCase().includes(query))
       )
@@ -336,11 +333,6 @@ export default function WorkshopsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3">
                       <h3 className="text-lg font-semibold text-white">{workshop.name}</h3>
-                      {workshop.business_name && (
-                        <span className="rounded-full bg-slate-900/70 px-2.5 py-1 text-xs text-slate-300">
-                          {workshop.business_name}
-                        </span>
-                      )}
                       <span className="rounded-full border border-slate-600 px-2.5 py-1 text-xs text-slate-300">
                         ID: {workshop.id.slice(0, 8)}
                       </span>
@@ -362,7 +354,7 @@ export default function WorkshopsPage() {
                       {workshop.city && (
                         <span className="inline-flex items-center gap-1">
                           <MapPin className="h-4 w-4 text-slate-500" />
-                          {[workshop.city, workshop.state_province, workshop.country]
+                          {[workshop.city, workshop.province, workshop.country]
                             .filter(Boolean)
                             .join(', ')}
                         </span>

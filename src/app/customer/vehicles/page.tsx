@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { Trash2, Star, Plus, Edit2, History } from 'lucide-react'
+import { Trash2, Star, Plus, Edit2, History, ArrowLeft } from 'lucide-react'
 import type { Vehicle } from '@/types/supabase'
 import { AuthGuard } from '@/components/AuthGuard'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
@@ -13,6 +13,8 @@ import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 
 function VehiclesPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams?.get('returnTo')
   const supabase = createClient()
   const { user } = useAuthGuard({ requiredRole: 'customer' })
   const [loading, setLoading] = useState(false)
@@ -87,33 +89,60 @@ function VehiclesPageContent() {
           .eq('user_id', user.id)
 
         if (updateError) throw updateError
+
+        // For edits, always stay on page (never redirect)
+        setSuccess(true)
+        setShowForm(false)
+        setEditingId(null)
+        setVehicle({
+          make: '',
+          model: '',
+          year: '',
+          vin: '',
+          color: '',
+          mileage: '',
+          plate: '',
+          nickname: '',
+        })
+        await loadVehicles()
       } else {
         // Insert new vehicle
-        const { error: insertError } = await supabase
+        const { data: insertedVehicle, error: insertError } = await supabase
           .from('vehicles')
           .insert({
             ...vehicle,
             user_id: user.id,
             is_primary: vehicles.length === 0, // First vehicle is primary
           })
+          .select()
+          .single()
 
         if (insertError) throw insertError
-      }
 
-      setSuccess(true)
-      setShowForm(false)
-      setEditingId(null)
-      setVehicle({
-        make: '',
-        model: '',
-        year: '',
-        vin: '',
-        color: '',
-        mileage: '',
-        plate: '',
-        nickname: '',
-      })
-      await loadVehicles()
+        // Context-aware redirect for NEW vehicles only
+        if (returnTo && insertedVehicle) {
+          // Add vehicle_id to return URL
+          const separator = returnTo.includes('?') ? '&' : '?'
+          const redirectUrl = `${returnTo}${separator}vehicle_id=${insertedVehicle.id}`
+          console.log('[Vehicles] Redirecting to:', redirectUrl)
+          router.push(redirectUrl)
+        } else {
+          // Default: Stay on page (normal vehicle management)
+          setSuccess(true)
+          setShowForm(false)
+          setVehicle({
+            make: '',
+            model: '',
+            year: '',
+            vin: '',
+            color: '',
+            mileage: '',
+            plate: '',
+            nickname: '',
+          })
+          await loadVehicles()
+        }
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -258,6 +287,23 @@ function VehiclesPageContent() {
         {success && (
           <div className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">
             Vehicle saved successfully!
+          </div>
+        )}
+
+        {/* Context Banner - Show when coming from another flow */}
+        {returnTo && (
+          <div className="mb-4 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm">
+            <div className="flex items-start gap-3">
+              <ArrowLeft className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-blue-300 font-medium mb-1">
+                  You'll return after adding your vehicle
+                </p>
+                <p className="text-blue-400/80 text-xs">
+                  After saving your vehicle, you'll be redirected back to continue where you left off.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 

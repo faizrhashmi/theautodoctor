@@ -16,14 +16,9 @@ interface FeatureFlag {
 }
 
 interface FeatureFlagsState {
-  // Mechanic Alert System Flags
-  mech_new_request_alerts: boolean
-  mech_audio_alerts: boolean
-  mech_browser_notifications: boolean
-  mech_visual_indicators: boolean
-
-  // Other existing flags
+  // Platform feature flags
   rfq_system: boolean
+  quote_system: boolean // Diagnostic-based quote system
   brand_specialists: boolean
   subscriptions: boolean
   referral_program: boolean
@@ -33,11 +28,8 @@ interface FeatureFlagsState {
 
 // Default values (fallback if API fails)
 const DEFAULT_FLAGS: FeatureFlagsState = {
-  mech_new_request_alerts: true,
-  mech_audio_alerts: true,
-  mech_browser_notifications: true,
-  mech_visual_indicators: true,
-  rfq_system: false,
+  rfq_system: true, // RFQ Marketplace enabled by default
+  quote_system: false, // Quote system disabled until demand is seen
   brand_specialists: true,
   subscriptions: false,
   referral_program: false,
@@ -146,4 +138,37 @@ export function useFeatureFlags(refreshInterval: number = 60000) {
 export function invalidateFeatureFlagsCache() {
   cachedFlags = null
   cacheTimestamp = 0
+}
+
+/**
+ * React Hook: Check if a specific feature flag is enabled
+ *
+ * @param flagKey - The feature flag key to check
+ * @returns Boolean indicating if the feature is enabled
+ *
+ * @example
+ * const isEnabled = useFeatureFlag('ENABLE_CUSTOMER_RFQ')
+ * if (isEnabled) {
+ *   // Show RFQ creation UI
+ * }
+ */
+export function useFeatureFlag(flagKey: string): boolean {
+  const { flags } = useFeatureFlags()
+
+  // Map environment-based feature flag keys to database flag keys
+  const flagKeyMap: Record<string, keyof FeatureFlagsState> = {
+    'ENABLE_WORKSHOP_RFQ': 'rfq_system',
+    'ENABLE_CUSTOMER_RFQ': 'rfq_system', // Customer RFQ uses the same flag as workshop RFQ
+    'ENABLE_QUOTE_SYSTEM': 'quote_system', // Diagnostic-based quote system
+    'ENABLE_FAVORITES_PRIORITY': 'rfq_system', // This might need its own flag
+  }
+
+  const dbFlagKey = flagKeyMap[flagKey]
+
+  if (!dbFlagKey) {
+    console.warn(`[useFeatureFlag] Unknown feature flag: ${flagKey}`)
+    return false
+  }
+
+  return flags[dbFlagKey] || false
 }

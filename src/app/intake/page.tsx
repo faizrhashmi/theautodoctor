@@ -61,6 +61,8 @@ export default function IntakePage() {
   // Phase 3: Favorites Priority Flow
   const preferredMechanicId = searchParams.get('preferred_mechanic_id')
   const routingType = searchParams.get('routing_type')
+  // Location-based matching
+  const postalCodeFromUrl = searchParams.get('postal_code')
   const router = useRouter()
 
   // SIMPLE AUTH - Same as dashboard
@@ -82,6 +84,7 @@ export default function IntakePage() {
     email: '',
     phone: '',
     city: '',
+    postalCode: postalCodeFromUrl || '',
     vin: '',
     year: '',
     make: '',
@@ -598,6 +601,13 @@ export default function IntakePage() {
                   inputRef={(el) => {
                     if (errors.city && !firstErrorRef.current) firstErrorRef.current = el
                   }}
+                />
+                <Input
+                  label="Postal Code (Optional)"
+                  value={form.postalCode}
+                  onChange={(value) => setForm((prev) => ({ ...prev, postalCode: value.toUpperCase() }))}
+                  placeholder="e.g., M5V 3A8"
+                  maxLength={7}
                 />
               </div>
             </Section>

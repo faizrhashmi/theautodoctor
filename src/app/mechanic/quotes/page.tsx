@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { FileText, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Wrench, User } from 'lucide-react'
+import { FileText, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Wrench, User, TrendingUp } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { getMechanicType, MechanicType, canCreateQuotes } from '@/types/mechanic'
+import { createClient } from '@/lib/supabase'
 
 interface Quote {
   id: string
@@ -37,12 +39,41 @@ export default function MechanicQuotesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all')
+  const [mechanicType, setMechanicType] = useState<MechanicType | null>(null)
+  const [mechanicData, setMechanicData] = useState<any>(null)
 
+  // Fetch mechanic type on mount
   useEffect(() => {
     if (user) {
+      fetchMechanicType()
+    }
+  }, [user])
+
+  // Fetch quotes when filter changes
+  useEffect(() => {
+    if (user && mechanicData) {
       fetchQuotes()
     }
-  }, [user, filter])
+  }, [user, filter, mechanicData])
+
+  async function fetchMechanicType() {
+    try {
+      const supabase = createClient()
+      const { data: mechanic, error } = await supabase
+        .from('mechanics')
+        .select('id, service_tier, account_type, workshop_id, partnership_type, can_perform_physical_work')
+        .eq('user_id', user?.id)
+        .single()
+
+      if (error) throw error
+
+      setMechanicData(mechanic)
+      const type = getMechanicType(mechanic)
+      setMechanicType(type)
+    } catch (err) {
+      console.error('[QUOTES] Failed to fetch mechanic type:', err)
+    }
+  }
 
   async function fetchQuotes() {
     try {
