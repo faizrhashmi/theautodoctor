@@ -243,12 +243,14 @@ export default function MechanicSidebar() {
                 // Once loaded, apply actual filtering for WORKSHOP EMPLOYEES ONLY
                 // Workshop employees (account_type='workshop_mechanic') cannot see:
                 // - Earnings (they don't get paid directly)
+                // - Referrals (they don't get referral commissions - workshop does)
                 // - Analytics (business metrics)
                 // - CRM (customer management)
                 // - Availability (managed by workshop)
 
                 const restrictedForEmployees = [
                   '/earnings',
+                  '/referrals',
                   '/analytics',
                   '/crm',
                   '/availability'

@@ -309,13 +309,7 @@ export default function MechanicQuotesPage() {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-slate-700 flex items-center justify-between">
-                  <Link
-                    href={`/mechanic/session/${quote.diagnostic_session_id}`}
-                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                  >
-                    View Session →
-                  </Link>
+                <div className="pt-4 border-t border-slate-700 flex items-center justify-end">
                   {quote.status === 'pending' && (
                     <div className="text-xs text-yellow-400 flex items-center gap-1">
                       <Clock className="h-3 w-3" />

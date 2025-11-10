@@ -115,25 +115,26 @@ export async function requireSessionParticipantRelaxed(
     }
 
     // Check if user is mechanic
-    if (session.mechanic_id) {
+    // IMPORTANT: sessions.mechanic_id references auth.users(id), not mechanics.id
+    if (session.mechanic_id === user.id) {
+      console.log(`[Relaxed Auth] ✓ User is mechanic (via Supabase auth - direct match)`)
+
+      // Get mechanic profile for additional info
       const { data: mechanic } = await supabaseAdmin
         .from('mechanics')
         .select('id, user_id')
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (mechanic && mechanic.id === session.mechanic_id) {
-        console.log(`[Relaxed Auth] ✓ User is mechanic (via Supabase auth)`)
-        return {
-          data: {
-            userId: user.id,
-            sessionId: session.id,
-            role: 'mechanic',
-            mechanicId: mechanic.id,
-            source: 'supabase_auth',
-          },
-          error: null,
-        }
+      return {
+        data: {
+          userId: user.id,
+          sessionId: session.id,
+          role: 'mechanic',
+          mechanicId: mechanic?.id,
+          source: 'supabase_auth',
+        },
+        error: null,
       }
     }
 

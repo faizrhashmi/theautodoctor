@@ -19,6 +19,7 @@ import { useNewRequestsIndicator } from '@/state/newRequestsIndicator'
 import { setTabNewRequests } from '@/lib/tabAttention'
 import { useFeatureFlags } from '@/hooks/useFeatureFlags'
 import { getMechanicType, getDashboardTitle, isOwnerOperator, canAccessEarnings, MechanicType } from '@/types/mechanic'
+import { useMechanicActiveSession } from '@/contexts/MechanicActiveSessionContext'
 
 // --- Realtime custom event types for TS ---
 declare global {
@@ -119,6 +120,11 @@ export default function MechanicDashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const notification = searchParams.get('notification')
+
+  // ✅ Phase 2: Use context for active session awareness (complementary to dashboard API)
+  // Context provides single source of truth for THE active session (for banner)
+  // Dashboard API provides list of ALL active sessions (for display)
+  const { activeSession: contextActiveSession, hasActiveSession } = useMechanicActiveSession()
 
   const [loading, setLoading] = useState(true)
   const [checkingTier, setCheckingTier] = useState(true)

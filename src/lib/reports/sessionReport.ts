@@ -39,6 +39,8 @@ interface PDFOptions {
   includeHeader?: boolean
   includeSummary?: boolean
   includeFooter?: boolean
+  includeChatTranscript?: boolean  // Include full raw chat transcript
+  includeChatSummary?: boolean     // Include AI-generated chat summary
 }
 
 /**
@@ -53,6 +55,8 @@ export async function buildSessionPdf(
     includeHeader = true,
     includeSummary = true,
     includeFooter = true,
+    includeChatTranscript = true,   // Show full chat by default
+    includeChatSummary = false,     // AI summary optional
   } = options
 
   // Fetch session data
@@ -61,22 +65,47 @@ export async function buildSessionPdf(
   let chatMessages: ChatMessage[] = []
 
   try {
-    // Try fetching from both customer and mechanic endpoints
-    // One will succeed based on user's role
-    let response = await fetch(`/api/customer/sessions`)
+    // Fetch session data directly (works for both customer and mechanic roles)
+    console.log('[PDF Generator] Fetching session from:', `/api/sessions/${sessionId}`)
+    const response = await fetch(`/api/sessions/${sessionId}`)
+
+    console.log('[PDF Generator] Response status:', response.status, response.statusText)
 
     if (!response.ok) {
-      // Try mechanic endpoint if customer endpoint fails
-      response = await fetch(`/api/mechanic/sessions`)
+      const errorText = await response.text()
+      console.error('[PDF Generator] Error response:', errorText)
+      throw new Error(`Failed to fetch session data: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
-    if (!response.ok) throw new Error('Failed to fetch session data')
-
     const data = await response.json()
-    sessionData = data.sessions?.find((s: any) => s.id === sessionId)
+    sessionData = data
+
+    console.log('[PDF Generator] Fetched session data:', {
+      sessionId,
+      hasSessionData: !!sessionData,
+      type: sessionData?.type,
+      hasSummaryData: !!sessionData?.summary_data,
+      summaryDataFields: sessionData?.summary_data ? Object.keys(sessionData.summary_data) : [],
+      chatMessageCount: sessionData?.chat_message_count || 0,
+      hasChatMessages: !!(sessionData?.chat_messages && (sessionData as any).chat_messages.length > 0)
+    })
 
     if (!sessionData) {
       throw new Error('Session not found')
+    }
+
+    // Use chat messages from the main session response
+    if (sessionData.chat_messages && Array.isArray(sessionData.chat_messages)) {
+      chatMessages = (sessionData as any).chat_messages.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        sender_name: msg.sender?.full_name || 'Unknown',
+        sender_role: msg.sender_id === sessionData.mechanic_id ? 'mechanic' : 'customer',
+        created_at: msg.created_at,
+        attachments: msg.attachments
+      }))
+      console.log('[PDF Generator] Mapped chat messages:', chatMessages.length)
     }
 
     // Fetch auto-generated summary
@@ -91,24 +120,6 @@ export async function buildSessionPdf(
     } catch (err) {
       console.error('[PDF Generator] Error fetching auto-summary:', err)
       // Continue without auto-summary
-    }
-
-    // Fetch chat messages (for chat and video sessions)
-    if (sessionData.type === 'chat' || sessionData.type === 'video') {
-      try {
-        const messagesRes = await fetch(`/api/sessions/${sessionId}/messages`)
-        if (messagesRes.ok) {
-          const messagesData = await messagesRes.json()
-          if (messagesData.messages && Array.isArray(messagesData.messages)) {
-            chatMessages = messagesData.messages
-          }
-        } else {
-          console.warn('[PDF Generator] Messages endpoint returned:', messagesRes.status)
-        }
-      } catch (err) {
-        console.error('[PDF Generator] Error fetching chat messages:', err)
-        // Continue without chat messages - this is not a fatal error
-      }
     }
   } catch (error) {
     console.error('[PDF Generator] Error fetching session:', error)
@@ -164,14 +175,14 @@ export async function buildSessionPdf(
   const planName = pricingInfo?.name || sessionData.plan
 
   // ============================================================================
-  // HEADER - The Auto Doctor Branding
+  // HEADER - AskAutoDoctor Branding
   // ============================================================================
   if (includeHeader) {
     let logoAdded = false
 
     try {
-      // Try to add logo image (PNG format)
-      const logoUrl = '/logo.png'
+      // Try to add logo image (JPEG format) - use logo.jpg
+      const logoUrl = '/logo.jpg'
       const logoImg = await fetch(logoUrl)
 
       if (logoImg.ok) {
@@ -189,9 +200,17 @@ export async function buildSessionPdf(
           reader.readAsDataURL(logoBlob)
         })
 
-        // Add logo (25mm width, auto height, positioned at top-left)
-        doc.addImage(logoDataUrl, 'PNG', margin, yPos, 25, 8)
-        yPos += 10
+        // Add logo - it's a square icon (car with A symbol) so use 1:1 aspect ratio
+        const logoSize = 12 // 12mm x 12mm square
+        doc.addImage(logoDataUrl, 'JPEG', margin, yPos, logoSize, logoSize)
+
+        // Add "AskAutoDoctor.com" text next to logo
+        doc.setFontSize(18)
+        doc.setTextColor(249, 115, 22) // Orange brand color
+        doc.setFont('helvetica', 'bold')
+        doc.text('AskAutoDoctor.com', margin + logoSize + 3, yPos + 8) // Vertically centered with logo
+
+        yPos += logoSize + 2
         logoAdded = true
       } else {
         console.warn('[PDF Generator] Logo fetch returned:', logoImg.status)
@@ -205,15 +224,15 @@ export async function buildSessionPdf(
       doc.setFontSize(20)
       doc.setTextColor(249, 115, 22) // Orange brand color (#f97316)
       doc.setFont('helvetica', 'bold')
-      doc.text('The Auto Doctor', margin, yPos)
+      doc.text('AskAutoDoctor.com', margin, yPos)
       yPos += 8
     }
 
-    // Tagline
+    // Tagline - Updated to reflect platform nature
     doc.setFontSize(10)
     doc.setTextColor(100, 116, 139) // Slate gray
     doc.setFont('helvetica', 'normal')
-    doc.text('Professional Remote Automotive Diagnostics', margin, yPos)
+    doc.text('Connecting You with Expert Automotive Professionals', margin, yPos)
     yPos += 10
 
     // Horizontal line
@@ -544,7 +563,7 @@ export async function buildSessionPdf(
   // ============================================================================
   // CHAT MESSAGES & VIDEO TRANSCRIPTION (for chat/video sessions)
   // ============================================================================
-  if (includeSummary && chatMessages.length > 0) {
+  if (includeChatTranscript && chatMessages.length > 0) {
     // Check if we need a new page
     if (yPos > pageHeight - 60) {
       doc.addPage()
@@ -604,10 +623,68 @@ export async function buildSessionPdf(
         1: { cellWidth: 35, fontStyle: 'bold' },
         2: { cellWidth: 'auto' },
       },
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, bottom: 30 }, // Add bottom margin to avoid footer overlap
+      didDrawPage: (data: any) => {
+        // Ensure table doesn't overlap with footer area
+        // Footer is at pageHeight - 20, so leave at least 30mm space
+      }
     })
 
     yPos = (doc as any).lastAutoTable.finalY + 10
+  }
+
+  // ============================================================================
+  // LEGAL DISCLAIMER
+  // ============================================================================
+  if (includeSummary) {
+    // Check if we need a new page for disclaimer
+    if (yPos > pageHeight - 80) {
+      doc.addPage()
+      yPos = margin
+    } else {
+      yPos += 10 // Add spacing before disclaimer
+    }
+
+    // Disclaimer header
+    doc.setFontSize(12)
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Legal Disclaimer', margin, yPos)
+    yPos += 6
+
+    // Disclaimer content
+    doc.setFontSize(8)
+    doc.setTextColor(71, 85, 105) // Slate-600
+    doc.setFont('helvetica', 'normal')
+
+    const disclaimerText = [
+      'This report is provided for informational purposes only. AskAutoDoctor.com acts as a platform connecting customers with independent automotive mechanics and technicians.',
+      '',
+      'IMPORTANT: AskAutoDoctor.com is not a mechanic service provider. We are a technology platform that facilitates connections between customers and independent mechanics. The diagnostic information, recommendations, and conclusions in this report are provided by independent contractors and do not represent the views or guarantees of AskAutoDoctor.com.',
+      '',
+      'Limitations of Liability: AskAutoDoctor.com makes no warranties or representations about the accuracy, completeness, or reliability of the diagnostic information provided. We are not liable for any damages, losses, or injuries arising from reliance on this report or services obtained through our platform.',
+      '',
+      'Professional Advice: This report should not replace in-person professional automotive inspection and repair services. Always verify diagnoses with a certified mechanic before making repair decisions. Remote diagnostics have inherent limitations and may not identify all vehicle issues.',
+      '',
+      'Use of Report: This report may be used for personal reference, sharing with other automotive professionals, or insurance purposes. Unauthorized reproduction or distribution for commercial purposes is prohibited.',
+      '',
+      'By using this report, you acknowledge and agree to our Terms of Service and Privacy Policy available at AskAutoDoctor.com.'
+    ]
+
+    disclaimerText.forEach(line => {
+      if (yPos > pageHeight - 30) {
+        doc.addPage()
+        yPos = margin
+      }
+
+      if (line === '') {
+        yPos += 3
+      } else {
+        const lines = doc.splitTextToSize(line, pageWidth - 2 * margin)
+        doc.text(lines, margin, yPos)
+        yPos += lines.length * 3.5
+      }
+    })
   }
 
   // ============================================================================
@@ -630,7 +707,7 @@ export async function buildSessionPdf(
       doc.setFontSize(8)
       doc.setTextColor(100, 116, 139)
       doc.setFont('helvetica', 'normal')
-      doc.text('The Auto Doctor - Remote Automotive Diagnostics', margin, footerY)
+      doc.text('AskAutoDoctor.com - Connecting You with Expert Automotive Professionals', margin, footerY)
 
       // Page number
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, footerY)
@@ -662,7 +739,7 @@ export async function downloadSessionPdf(sessionId: string): Promise<void> {
     const url = URL.createObjectURL(pdfBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `TheAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
+    link.download = `AskAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
 
     // Trigger download
     document.body.appendChild(link)

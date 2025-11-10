@@ -11,6 +11,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { getMechanicType, canAccessEarnings, MechanicType } from '@/types/mechanic'
 import { createClient } from '@/lib/supabase'
 import { EscalateToRfqModal } from '@/components/mechanic/EscalateToRfqModal'
+import MechanicSessionDetailsModal from '@/components/mechanic/MechanicSessionDetailsModal'
 
 type SessionStatus = 'scheduled' | 'waiting' | 'live' | 'completed' | 'cancelled'
 type SessionType = 'chat' | 'video' | 'diagnostic'
@@ -75,6 +76,10 @@ export default function MechanicSessionsPage() {
   // RFQ Modal
   const [showRfqModal, setShowRfqModal] = useState(false)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
+
+  // Session Details Modal
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
 
   // Fetch mechanic type on mount
   useEffect(() => {
@@ -514,8 +519,8 @@ export default function MechanicSessionsPage() {
                       </div>
 
                       <div className="flex gap-2">
-                        {/* Create RFQ Button - Only for completed sessions within last 7 days */}
-                        {session.status === 'completed' && (() => {
+                        {/* Create RFQ Button - Only for VIRTUAL_ONLY mechanics on completed sessions within last 7 days */}
+                        {session.status === 'completed' && mechanicType === MechanicType.VIRTUAL_ONLY && (() => {
                           const sessionEndDate = session.ended_at ? new Date(session.ended_at) : null
                           const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
                           const isRecent = sessionEndDate && sessionEndDate >= sevenDaysAgo
@@ -537,13 +542,8 @@ export default function MechanicSessionsPage() {
 
                         <button
                           onClick={() => {
-                            // Route to appropriate session page based on type
-                            const route = session.type === 'chat'
-                              ? `/chat/${session.id}`
-                              : session.type === 'video'
-                              ? `/video/${session.id}`
-                              : `/chat/${session.id}` // Default to chat for other types
-                            router.push(route)
+                            setSelectedSessionId(session.id)
+                            setShowDetailsModal(true)
                           }}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                         >
@@ -609,6 +609,31 @@ export default function MechanicSessionsPage() {
             setSelectedSession(null)
             // Refresh sessions to show updated status
             fetchSessions()
+          }}
+        />
+      )}
+
+      {/* Session Details Modal */}
+      {mechanicData && (
+        <MechanicSessionDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false)
+            setSelectedSessionId(null)
+          }}
+          sessionId={selectedSessionId}
+          mechanicData={mechanicData}
+          onCreateRFQ={(sessionId) => {
+            // Find the session and open RFQ modal
+            const session = sessions.find(s => s.id === sessionId)
+            if (session) {
+              setSelectedSession(session)
+              setShowRfqModal(true)
+            }
+          }}
+          onCreateQuote={(sessionId) => {
+            // Navigate to quote builder or open quote modal
+            router.push(`/mechanic/quotes/create?sessionId=${sessionId}`)
           }}
         />
       )}

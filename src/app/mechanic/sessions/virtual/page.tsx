@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import VirtualSessionCard from '@/components/mechanic/VirtualSessionCard'
+import MechanicSessionDetailsModal from '@/components/mechanic/MechanicSessionDetailsModal'
 import { MessageCircle, Video, RefreshCw, Filter, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { MECHANIC_FEES } from '@/config/mechanicPricing'
 
@@ -30,6 +31,8 @@ export default function VirtualSessionsPage() {
   const [filter, setFilter] = useState<'pending' | 'accepted' | 'scheduled' | 'completed'>('pending')
   const [error, setError] = useState<string | null>(null)
   const [mechanicInfo, setMechanicInfo] = useState<any>(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
 
   const loadSessions = async (showLoader = true) => {
     if (showLoader) {
@@ -111,11 +114,9 @@ export default function VirtualSessionsPage() {
   }
 
   const handleViewSession = (sessionId: string, sessionType: 'chat' | 'video' | 'upgraded_from_chat') => {
-    // Route to appropriate session page based on type
-    const route = sessionType === 'video' || sessionType === 'upgraded_from_chat'
-      ? `/video/${sessionId}`
-      : `/chat/${sessionId}`
-    router.push(route)
+    // Open modal for historical view (avoid navigating to old chat/video rooms)
+    setSelectedSessionId(sessionId)
+    setShowDetailsModal(true)
   }
 
   const getFilterStats = () => {
@@ -318,6 +319,27 @@ export default function VirtualSessionsPage() {
           </div>
         )}
       </div>
+
+      {/* Session Details Modal */}
+      {mechanicInfo && (
+        <MechanicSessionDetailsModal
+          isOpen={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false)
+            setSelectedSessionId(null)
+          }}
+          sessionId={selectedSessionId}
+          mechanicData={mechanicInfo}
+          onCreateRFQ={(sessionId) => {
+            // Navigate to RFQ creation (for virtual-only mechanics)
+            router.push(`/mechanic/rfqs/create?sessionId=${sessionId}`)
+          }}
+          onCreateQuote={(sessionId) => {
+            // Navigate to quote creation (for independent workshop mechanics)
+            router.push(`/mechanic/quotes/create?sessionId=${sessionId}`)
+          }}
+        />
+      )}
     </div>
   )
 }

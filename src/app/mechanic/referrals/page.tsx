@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DollarSign, TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DollarSign, TrendingUp, Clock, CheckCircle, AlertCircle, Ban } from 'lucide-react'
+import { getMechanicType, MechanicType, canAccessEarnings } from '@/types/mechanic'
 
 interface Referral {
   id: string
@@ -35,13 +37,52 @@ interface Summary {
 }
 
 export default function ReferralsPage() {
+  const router = useRouter()
   const [referrals, setReferrals] = useState<Referral[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mechanicData, setMechanicData] = useState<any>(null)
+  const [accessDenied, setAccessDenied] = useState(false)
 
   useEffect(() => {
-    fetchReferrals()
+    checkAccessAndFetch()
   }, [])
+
+  async function checkAccessAndFetch() {
+    try {
+      // Fetch mechanic data to check access rights
+      const meResponse = await fetch('/api/mechanics/me')
+      if (!meResponse.ok) {
+        router.push('/mechanic/dashboard')
+        return
+      }
+
+      const data = await meResponse.json()
+      setMechanicData(data)
+
+      // ✅ BUSINESS RULE: Only Virtual-Only and Independent Workshop mechanics get referral commissions
+      // Workshop-affiliated employees do NOT get referrals (workshop gets paid, not them)
+      const hasAccess = canAccessEarnings({
+        service_tier: data.service_tier,
+        account_type: data.account_type,
+        workshop_id: data.workshop_id,
+        partnership_type: data.partnership_type,
+        can_perform_physical_work: data.can_perform_physical_work
+      })
+
+      if (!hasAccess) {
+        setAccessDenied(true)
+        setLoading(false)
+        return
+      }
+
+      // Fetch referrals
+      await fetchReferrals()
+    } catch (error) {
+      console.error('Failed to check access:', error)
+      setLoading(false)
+    }
+  }
 
   async function fetchReferrals() {
     try {
@@ -65,6 +106,34 @@ export default function ReferralsPage() {
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-slate-400">Loading referral earnings...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ ACCESS DENIED: Workshop-affiliated mechanics cannot access referrals
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center py-12">
+            <div className="flex items-center justify-center mb-6">
+              <div className="p-4 bg-red-500/10 rounded-full border border-red-500/30">
+                <Ban className="h-12 w-12 text-red-400" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-4">Access Restricted</h1>
+            <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
+              Referral commissions are only available to Virtual-Only and Independent Workshop mechanics.
+              As a workshop-affiliated mechanic, you receive compensation through your workshop.
+            </p>
+            <button
+              onClick={() => router.push('/mechanic/dashboard')}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+            >
+              Return to Dashboard
+            </button>
           </div>
         </div>
       </div>

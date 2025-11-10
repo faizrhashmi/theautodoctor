@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   title: 'AskAutoDoctor',
   description:
     'Certified mechanics on demand - online diagnostics & inspections across Ontario.',
-  // If you have /app/icon.png and /app/apple-icon.png, Next will auto-detect.
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

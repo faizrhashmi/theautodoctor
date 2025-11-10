@@ -5,11 +5,12 @@
  * Reuses Phase 2 mechanic selection with search, filters, and cards
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Search, AlertCircle, Info, DollarSign, Star, Heart, HelpCircle, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import MechanicCard, { type MechanicCardData } from '../MechanicCard'
 import MechanicProfileModal from '../../MechanicProfileModal'
 import { ImprovedLocationSelector } from '../../shared/ImprovedLocationSelector'
+import { createClient } from '@/lib/supabase'
 
 const MECHANICS_PER_PAGE = 10
 
@@ -52,16 +53,8 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
     if (wizardData.postalCode && !postalCode) setPostalCode(wizardData.postalCode)
   }, [wizardData.country, wizardData.province, wizardData.city, wizardData.postalCode])
 
-  useEffect(() => {
-    fetchMechanics()
-  }, [mechanicType, requestedBrand, country, city])
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [mechanicType, requestedBrand, country, city, searchQuery, filters])
-
-  const fetchMechanics = async () => {
+  // Memoize fetchMechanics to prevent unnecessary re-renders
+  const fetchMechanics = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -94,7 +87,48 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
     } finally {
       setLoading(false)
     }
-  }
+  }, [mechanicType, requestedBrand, country, city])
+
+  useEffect(() => {
+    fetchMechanics()
+
+    // Set up polling to refresh mechanic availability every 30 seconds
+    // This ensures customers see updated status when mechanics clock in/out
+    const intervalId = setInterval(() => {
+      fetchMechanics()
+    }, 30000) // 30 seconds
+
+    // Set up Supabase real-time subscription for instant updates
+    // Listen for changes to mechanics table (clock in/out updates)
+    const supabase = createClient()
+    const channel = supabase
+      .channel('mechanic-status-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mechanics',
+          filter: 'application_status=eq.approved'
+        },
+        (payload) => {
+          console.log('[Mechanic Status] Real-time update:', payload)
+          // Refresh mechanics list when any mechanic's status changes
+          fetchMechanics()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      clearInterval(intervalId)
+      supabase.removeChannel(channel)
+    }
+  }, [fetchMechanics])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [mechanicType, requestedBrand, country, city, searchQuery, filters])
 
   const filteredMechanics = useMemo(() => {
     let filtered = [...mechanics]

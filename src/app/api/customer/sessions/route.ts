@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    // Fetch all sessions for this customer (including fields needed for SessionCompletionModal)
+    // Fetch all sessions for this customer (including fields needed for SessionCompletionModal and PDF reports)
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('sessions')
       .select(`
@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
         customer_user_id,
         mechanic_id,
         rating,
-        metadata
+        metadata,
+        summary_data,
+        summary_submitted_at,
+        duration_minutes
       `)
       .eq('customer_user_id', customer.id)
       .order('created_at', { ascending: false })
@@ -69,8 +72,8 @@ export async function GET(req: NextRequest) {
       }
 
       // Calculate duration in minutes if session has started and ended
-      let durationMinutes = null
-      if (session.started_at && session.ended_at) {
+      let durationMinutes = (session as any).duration_minutes
+      if (!durationMinutes && session.started_at && session.ended_at) {
         const startTime = new Date(session.started_at).getTime()
         const endTime = new Date(session.ended_at).getTime()
         durationMinutes = Math.round((endTime - startTime) / 60000)
@@ -93,6 +96,8 @@ export async function GET(req: NextRequest) {
         base_price: priceMap[session.plan || 'free'] || 0,
         price: (priceMap[session.plan || 'free'] || 0) / 100, // Keep for backward compatibility (in dollars)
         rating: session.rating,
+        summary_data: (session as any).summary_data,
+        summary_submitted_at: (session as any).summary_submitted_at,
       }
     }) || []
 

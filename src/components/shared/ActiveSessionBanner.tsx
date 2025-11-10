@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import { useMechanicActiveSession } from '@/contexts/MechanicActiveSessionContext'
 
 interface ActiveSession {
   id: string
@@ -43,7 +44,8 @@ interface ActiveSessionBannerProps {
  * - Shows session type and status
  * - "Return to Session" button
  * - "End Session" button (for customers)
- * - Auto-refreshes every 30 seconds to detect session changes
+ * - MECHANICS: Uses MechanicActiveSessionContext (single source of truth, 5s polling)
+ * - CUSTOMERS: Uses legacy polling (1s) for now (will migrate later)
  * - Conditional rendering based on hideOnDashboard prop
  */
 export function ActiveSessionBanner({
@@ -52,10 +54,19 @@ export function ActiveSessionBanner({
   onSessionEnded,
   hideOnDashboard = false
 }: ActiveSessionBannerProps) {
+  // ✅ MECHANICS: Use context (single source of truth, optimized polling)
+  // ✅ CUSTOMERS: Use local state + polling (legacy approach, will migrate later)
+  const mechanicContext = userRole === 'mechanic' ? useMechanicActiveSession() : null
+
   const [session, setSession] = useState<ActiveSession | null>(initialSession)
   const [loading, setLoading] = useState(false)
   const [ending, setEnding] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // ✅ For mechanics, use context session instead of local state
+  const activeSession = userRole === 'mechanic' && mechanicContext?.activeSession
+    ? mechanicContext.activeSession
+    : session
 
   // Fetch active session
   const fetchActiveSession = async () => {
@@ -108,14 +119,14 @@ export function ActiveSessionBanner({
 
   // End session
   const handleEndSession = async () => {
-    if (!session || !confirm('Are you sure you want to end this session?')) {
+    if (!activeSession || !confirm('Are you sure you want to end this session?')) {
       return
     }
 
     try {
       setEnding(true)
 
-      const response = await fetch(`/api/sessions/${session.id}/end`, {
+      const response = await fetch(`/api/sessions/${activeSession.id}/end`, {
         method: 'POST'
       })
 
@@ -125,17 +136,24 @@ export function ActiveSessionBanner({
 
       console.log('[ActiveSessionBanner] Session ended successfully, clearing state and stopping polling')
 
-      // Clear local UI immediately
-      setSession(null)
+      // Clear local UI immediately (only for customers, mechanics use context)
+      if (userRole === 'customer') {
+        setSession(null)
+      }
 
-      // Stop the polling interval to prevent flicker
+      // Stop the polling interval to prevent flicker (only for customers)
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
 
+      // ✅ For mechanics, trigger context refetch
+      if (userRole === 'mechanic' && mechanicContext) {
+        await mechanicContext.refetch()
+      }
+
       // Dispatch custom event to notify SessionLauncher to refresh
-      window.dispatchEvent(new CustomEvent('session-ended', { detail: { sessionId: session.id } }))
+      window.dispatchEvent(new CustomEvent('session-ended', { detail: { sessionId: activeSession.id } }))
 
       onSessionEnded?.()
     } catch (error) {
@@ -147,8 +165,16 @@ export function ActiveSessionBanner({
   }
 
   // Auto-refresh every 1 second if no initial session provided
+  // ✅ CRITICAL: Only poll for CUSTOMERS - mechanics use context
   // Very fast polling + event listener ensures instant updates when session ends
   useEffect(() => {
+    // ✅ MECHANICS: Skip polling entirely, use context instead
+    if (userRole === 'mechanic') {
+      console.log('[ActiveSessionBanner] Mechanic mode: using context, skipping local polling')
+      return
+    }
+
+    // ✅ CUSTOMERS ONLY: Use legacy polling approach
     if (initialSession) {
       return // Don't auto-refresh if session was passed as prop
     }
@@ -183,56 +209,57 @@ export function ActiveSessionBanner({
       window.removeEventListener('session-ended', handleSessionEnded)
       window.removeEventListener('customer:sessions:update', handleSessionUpdate)
     }
-  }, [initialSession])
+  }, [initialSession, userRole])
 
   // Don't render if no active session OR if hideOnDashboard is true
-  if (!session || hideOnDashboard) {
+  // ✅ Use activeSession (which is context for mechanics, local state for customers)
+  if (!activeSession || hideOnDashboard) {
     return null
   }
 
-  // Route mapping
+  // Route mapping - use activeSession
   const sessionRoute =
-    session.type === 'chat' ? `/chat/${session.id}` :
-    session.type === 'video' ? `/video/${session.id}` :
-    `/diagnostic/${session.id}`
+    activeSession.type === 'chat' ? `/chat/${activeSession.id}` :
+    activeSession.type === 'video' ? `/video/${activeSession.id}` :
+    `/diagnostic/${activeSession.id}`
 
   // Determine if session has started (industry standard: check if someone joined)
-  const sessionStarted = !!session.startedAt
+  const sessionStarted = !!activeSession.startedAt
 
   // Industry-standard status messaging
   const getStatusMessage = () => {
     if (userRole === 'customer') {
       // Customer perspective
-      if (session.status === 'live') {
-        if (session.mechanicName) {
-          return `${session.mechanicName} in session`
+      if (activeSession.status === 'live') {
+        if (activeSession.mechanicName) {
+          return `${activeSession.mechanicName} in session`
         }
         return 'Session live'
-      } else if (session.status === 'waiting') {
-        if (session.mechanicName && sessionStarted) {
-          return `${session.mechanicName} waiting for you`
-        } else if (session.mechanicName) {
-          return `${session.mechanicName} assigned`
+      } else if (activeSession.status === 'waiting') {
+        if (activeSession.mechanicName && sessionStarted) {
+          return `${activeSession.mechanicName} waiting for you`
+        } else if (activeSession.mechanicName) {
+          return `${activeSession.mechanicName} assigned`
         }
         return 'Waiting for mechanic'
-      } else if (session.status === 'pending') {
+      } else if (activeSession.status === 'pending') {
         return 'Pending mechanic assignment'
       }
-      return session.status
+      return activeSession.status
     } else {
       // Mechanic perspective
-      if (session.status === 'live') {
-        if (session.customerName) {
-          return `${session.customerName} in session`
+      if (activeSession.status === 'live') {
+        if (activeSession.customerName) {
+          return `${activeSession.customerName} in session`
         }
         return 'Session live'
-      } else if (session.status === 'waiting') {
-        if (session.customerName) {
-          return `${session.customerName} waiting`
+      } else if (activeSession.status === 'waiting') {
+        if (activeSession.customerName) {
+          return `${activeSession.customerName} waiting`
         }
         return 'Waiting for customer'
       }
-      return session.status
+      return activeSession.status
     }
   }
 
@@ -240,7 +267,7 @@ export function ActiveSessionBanner({
 
   return (
     <div className={`sticky top-0 z-40 border-b backdrop-blur-md shadow-lg transition-all duration-300 ${
-      session.status === 'live' || session.status === 'waiting'
+      activeSession.status === 'live' || activeSession.status === 'waiting'
         ? 'border-emerald-500/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-800/95 animate-[breathe_3s_ease-in-out_infinite]'
         : 'border-slate-700/50 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800/95'
     }`}>
@@ -260,32 +287,32 @@ export function ActiveSessionBanner({
           <div className="flex items-center gap-3">
             <div className={`relative flex items-center justify-center`}>
               <div className={`h-3 w-3 rounded-full ${
-                session.status === 'live'
+                activeSession.status === 'live'
                   ? 'bg-emerald-500'
-                  : session.status === 'waiting'
+                  : activeSession.status === 'waiting'
                     ? 'bg-blue-500'
                     : 'bg-amber-500'
               }`} />
-              {session.status === 'live' && (
+              {activeSession.status === 'live' && (
                 <div className="absolute h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />
               )}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
               <span className="text-sm font-medium text-slate-200">
-                {session.type.charAt(0).toUpperCase() + session.type.slice(1)} Session
+                {activeSession.type.charAt(0).toUpperCase() + activeSession.type.slice(1)} Session
               </span>
 
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium border inline-flex items-center gap-1.5 ${
-                session.status === 'live'
+                activeSession.status === 'live'
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                session.status === 'waiting'
+                activeSession.status === 'waiting'
                   ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                   'bg-amber-500/10 text-amber-400 border-amber-500/20'
               }`}>
                 <span className={`inline-block h-1.5 w-1.5 rounded-full ${
-                  session.status === 'live' ? 'bg-emerald-400' :
-                  session.status === 'waiting' ? 'bg-blue-400' : 'bg-amber-400'
+                  activeSession.status === 'live' ? 'bg-emerald-400' :
+                  activeSession.status === 'waiting' ? 'bg-blue-400' : 'bg-amber-400'
                 }`} />
                 {statusMessage}
               </span>

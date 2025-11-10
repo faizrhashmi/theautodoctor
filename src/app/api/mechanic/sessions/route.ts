@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
     // No need to look up mechanics table - query by Supabase Auth user ID
     console.log('[MECHANIC SESSIONS] Querying sessions where mechanic_id =', mechanic.id)
 
-    // Fetch all sessions for this mechanic (including fields needed for SessionCompletionModal)
-    const { data: sessions, error: sessionsError } = await supabaseAdmin
+    // Fetch all sessions for this mechanic (including fields needed for SessionCompletionModal and PDF reports)
+    const { data: sessions, error: sessionsError} = await supabaseAdmin
       .from('sessions')
       .select(`
         id,
@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
         customer_user_id,
         mechanic_id,
         rating,
-        metadata
+        metadata,
+        summary_data,
+        summary_submitted_at,
+        duration_minutes
       `)
       .eq('mechanic_id', mechanic.id)  // Use Supabase Auth user ID directly
       .order('created_at', { ascending: false })
@@ -69,8 +72,8 @@ export async function GET(req: NextRequest) {
       const customerName = customersMap.get(session.customer_user_id) || 'Unknown Customer'
 
       // Calculate duration in minutes if session has started and ended
-      let durationMinutes = null
-      if (session.started_at && session.ended_at) {
+      let durationMinutes = (session as any).duration_minutes
+      if (!durationMinutes && session.started_at && session.ended_at) {
         const startTime = new Date(session.started_at).getTime()
         const endTime = new Date(session.ended_at).getTime()
         durationMinutes = Math.round((endTime - startTime) / 60000)
@@ -94,6 +97,8 @@ export async function GET(req: NextRequest) {
         price: (priceMap[session.plan || 'free'] || 0) / 100, // Keep for backward compatibility (in dollars)
         rating: session.rating,
         metadata: session.metadata,
+        summary_data: (session as any).summary_data,
+        summary_submitted_at: (session as any).summary_submitted_at,
       }
     }) || []
 
