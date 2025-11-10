@@ -31,7 +31,6 @@ import {
   Heart,
   Building2
 } from 'lucide-react'
-import SessionLauncher from '@/components/customer/SessionLauncher'
 import OnboardingChecklist from '@/components/customer/OnboardingChecklist'
 import VehiclePrompt from '@/components/customer/VehiclePrompt'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -366,19 +365,27 @@ export default function CustomerDashboardPage() {
     fetchFavorites()
     fetchVehicleCount()
 
-    // Refresh availability every 30 seconds
+    // Refresh availability and active sessions every 5 seconds for faster updates
     const interval = setInterval(async () => {
       if (!user) return
       try {
-        const response = await fetch('/api/mechanics/available-count')
-        if (response.ok) {
-          const data = await response.json()
+        // Update mechanics availability
+        const availResponse = await fetch('/api/mechanics/available-count')
+        if (availResponse.ok) {
+          const data = await availResponse.json()
           setAvailability(data)
         }
+
+        // Update active sessions to unlock booking immediately when session ends
+        const sessionsResponse = await fetch('/api/customer/active-sessions')
+        if (sessionsResponse.ok) {
+          const sessionsData = await sessionsResponse.json()
+          setActiveSessions(sessionsData.activeSessions || [])
+        }
       } catch (err) {
-        console.error('Availability refresh error:', err)
+        console.error('Refresh error:', err)
       }
-    }, 30000)
+    }, 5000) // Reduced from 30000ms to 5000ms
 
     return () => clearInterval(interval)
   }, [user, retryCount])
@@ -644,7 +651,7 @@ export default function CustomerDashboardPage() {
       )}
 
       {/* Unified Session Launcher - Account-Type Aware */}
-      {/* SessionLauncher handles active session detection internally */}
+      {/* Book a Session - New Wizard */}
       <div
         ref={sessionLauncherRef}
         className={`mb-6 sm:mb-8 transition-all duration-500 ${
@@ -653,19 +660,69 @@ export default function CustomerDashboardPage() {
             : ''
         }`}
       >
-        <SessionLauncher
-          accountType={stats?.account_type}
-          hasUsedFreeSession={stats?.has_used_free_session}
-          isB2CCustomer={stats?.is_b2c_customer}
-          availableMechanics={availability?.available_now || 0}
-          workshopId={undefined}
-          organizationId={undefined}
-          preferredMechanicId={favoriteMechanicId}
-          preferredMechanicName={favoriteMechanicName}
-          routingType={favoriteRoutingType}
-          activeSession={activeSessions[0] || null}
-          loadingActiveSession={loading}
-        />
+        {activeSessions.length > 0 ? (
+          <div className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-2xl p-6 sm:p-8 border border-slate-600 opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-3 bg-white/10 rounded-xl">
+                    <Car className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Book a Session</h2>
+                    <p className="text-white/60 text-sm">
+                      Complete your active session first
+                    </p>
+                  </div>
+                </div>
+                <p className="text-white/60 text-base sm:text-lg mb-4">
+                  You can only have one active session at a time
+                </p>
+              </div>
+              <AlertCircle className="hidden sm:block h-12 w-12 text-white/60 flex-shrink-0 ml-6" />
+            </div>
+          </div>
+        ) : (
+          <Link href="/customer/book-session">
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl p-6 sm:p-8 hover:shadow-2xl hover:shadow-orange-500/30 transition-all cursor-pointer group">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-3 bg-white/10 rounded-xl group-hover:bg-white/20 transition-colors">
+                    <Car className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white">Book a Session</h2>
+                    {availability && (
+                      <p className="text-white/80 text-sm">
+                        {availability.available_now} mechanics available now
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-white/90 text-base sm:text-lg mb-4">
+                  Get expert help from certified mechanics - video, chat, or diagnostic
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm text-white/80">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-5 w-5" />
+                    <span>Instant connection</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-5 w-5" />
+                    <span>Choose your mechanic</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-5 w-5" />
+                    <span>Free plan available</span>
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="hidden sm:block h-12 w-12 text-white group-hover:translate-x-2 transition-transform flex-shrink-0 ml-6" />
+            </div>
+          </div>
+        </Link>
+        )}
       </div>
 
       {/* Quick Actions Section */}

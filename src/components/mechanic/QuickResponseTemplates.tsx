@@ -25,11 +25,6 @@ const TEMPLATES = [
     text: 'For your safety, please avoid driving until this issue is properly inspected. I can arrange mobile service if needed.'
   },
   {
-    id: 'schedule',
-    label: '📅 Schedule Appointment',
-    text: 'Would you like me to recommend a time slot for on-site service? I have availability this week.'
-  },
-  {
     id: 'followup',
     label: '👋 Follow-up Check',
     text: 'Just checking in - how is everything running since the repair? Any concerns?'

@@ -5,13 +5,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = supabaseAdmin
+    if (!supabase) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
     const searchParams = req.nextUrl.searchParams
 
     // Extract query parameters
@@ -28,12 +31,13 @@ export async function GET(req: NextRequest) {
       .from('mechanics')
       .select(`
         id,
+        user_id,
         name,
         email,
         rating,
         years_of_experience,
-        is_available,
-        last_seen_at,
+        currently_on_shift,
+        last_clock_in,
         is_brand_specialist,
         brand_specializations,
         service_keywords,
@@ -42,16 +46,27 @@ export async function GET(req: NextRequest) {
         postal_code,
         completed_sessions,
         red_seal_certified,
-        profile_completion_score
+        profile_completion_score,
+        certification_expiry_date,
+        account_status,
+        suspended_until,
+        workshop_id,
+        shop_affiliation,
+        organizations:workshop_id (
+          id,
+          name
+        )
       `)
-      .eq('status', 'approved')
+      .eq('application_status', 'approved')
+      .eq('account_status', 'active')
       .eq('can_accept_sessions', true)
+      .gte('profile_completion_score', 80) // Only mechanics with 80%+ profile completion
 
     // Filter by request type
-    if (requestType === 'brand_specialist' && requestedBrand) {
-      // Only brand specialists with matching brand
+    if (requestType === 'brand_specialist') {
+      // Only show brand specialists when specialist tab is selected
       query = query.eq('is_brand_specialist', true)
-      // Note: We'll filter by brand in JavaScript since PostgreSQL contains() checks ALL elements
+      // Note: We'll filter by specific brand in JavaScript if requestedBrand is provided
     }
 
     const { data: mechanics, error } = await query
@@ -68,10 +83,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ mechanics: [] })
     }
 
+    // Filter out mechanics with expired certifications (JavaScript filtering)
+    let filteredMechanics = mechanics.filter(mechanic => {
+      // If certification has expiry date, check it's not expired
+      if (mechanic.certification_expiry_date) {
+        const expiryDate = new Date(mechanic.certification_expiry_date)
+        const now = new Date()
+        if (expiryDate < now) {
+          return false // Expired certification
+        }
+      }
+      return true
+    })
+
     // Filter brand specialists by brand match (JavaScript filtering)
-    let filteredMechanics = mechanics
     if (requestType === 'brand_specialist' && requestedBrand) {
-      filteredMechanics = mechanics.filter(mechanic => {
+      filteredMechanics = filteredMechanics.filter(mechanic => {
         if (!mechanic.brand_specializations || !Array.isArray(mechanic.brand_specializations)) {
           return false
         }
@@ -86,8 +113,8 @@ export async function GET(req: NextRequest) {
       let score = 0
       const matchReasons: string[] = []
 
-      // Availability score (highest priority)
-      if (mechanic.is_available) {
+      // Availability score (highest priority) - use currently_on_shift as single source of truth
+      if (mechanic.currently_on_shift) {
         score += 50
         matchReasons.push('Available now')
       } else {
@@ -164,15 +191,15 @@ export async function GET(req: NextRequest) {
         score += 8
       }
 
-      // Calculate presence status
+      // Calculate presence status based on currently_on_shift (single source of truth)
       let presenceStatus: 'online' | 'offline' | 'away' = 'offline'
       let lastSeenText = 'Offline'
 
-      if (mechanic.is_available) {
+      if (mechanic.currently_on_shift) {
         presenceStatus = 'online'
         lastSeenText = 'Available now'
-      } else if (mechanic.last_seen_at) {
-        const lastSeen = new Date(mechanic.last_seen_at)
+      } else if (mechanic.last_clock_in) {
+        const lastSeen = new Date(mechanic.last_clock_in)
         const minutesAgo = Math.floor((Date.now() - lastSeen.getTime()) / 60000)
 
         if (minutesAgo < 5) {
@@ -187,14 +214,18 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Get workshop name from organizations join or fallback to shop_affiliation
+      const workshopName = (mechanic as any).organizations?.name || mechanic.shop_affiliation || null
+
       return {
         id: mechanic.id,
+        userId: mechanic.user_id,
         name: mechanic.name || 'Mechanic',
         email: mechanic.email,
         rating: rating,
         yearsExperience: experience,
-        isAvailable: mechanic.is_available,
-        lastSeenAt: mechanic.last_seen_at,
+        isAvailable: mechanic.currently_on_shift, // Use currently_on_shift as single source of truth
+        lastSeenAt: mechanic.last_clock_in,
         presenceStatus,
         lastSeenText,
         isBrandSpecialist: mechanic.is_brand_specialist || false,
@@ -205,6 +236,7 @@ export async function GET(req: NextRequest) {
         postalCode: mechanic.postal_code,
         completedSessions: completedSessions,
         redSealCertified: mechanic.red_seal_certified || false,
+        workshopName: workshopName,
         matchScore: score,
         matchReasons,
         profileCompletionScore: mechanic.profile_completion_score || 0

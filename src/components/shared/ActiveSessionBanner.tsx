@@ -146,21 +146,42 @@ export function ActiveSessionBanner({
     }
   }
 
-  // Auto-refresh every 5 seconds if no initial session provided
-  // Faster polling ensures banner disappears quickly when session ends
+  // Auto-refresh every 1 second if no initial session provided
+  // Very fast polling + event listener ensures instant updates when session ends
   useEffect(() => {
     if (initialSession) {
       return // Don't auto-refresh if session was passed as prop
     }
 
     fetchActiveSession()
-    intervalRef.current = setInterval(fetchActiveSession, 5000) // 5 seconds for faster updates
+    intervalRef.current = setInterval(fetchActiveSession, 1000) // 1 second for near-instant updates
+
+    // Listen for session-ended event from ChatRoomV3 or other components
+    const handleSessionEnded = (e: any) => {
+      console.log('[ActiveSessionBanner] session-ended event received, clearing immediately')
+      setSession(null)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+    // Listen for customer:sessions:update event from CustomerActiveSessionMount
+    const handleSessionUpdate = () => {
+      console.log('[ActiveSessionBanner] customer:sessions:update event received, fetching immediately')
+      fetchActiveSession()
+    }
+
+    window.addEventListener('session-ended', handleSessionEnded)
+    window.addEventListener('customer:sessions:update', handleSessionUpdate)
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
+      window.removeEventListener('session-ended', handleSessionEnded)
+      window.removeEventListener('customer:sessions:update', handleSessionUpdate)
     }
   }, [initialSession])
 

@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { User, Mail, Phone, MapPin, Key, Bell, CreditCard, TrendingUp } from 'lucide-react'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { apiRouteFor } from '@/lib/routes'
+import { ImprovedLocationSelector } from '@/components/shared/ImprovedLocationSelector'
 
 interface ProfileData {
   full_name: string
   email: string
   phone: string
+  country: string
+  province: string
   city: string
 }
 
@@ -24,6 +27,8 @@ export default function CustomerProfilePage() {
     full_name: '',
     email: '',
     phone: '',
+    country: '',
+    province: '',
     city: '',
   })
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
@@ -48,6 +53,8 @@ export default function CustomerProfilePage() {
         full_name: data.profile.full_name || '',
         email: data.profile.email || '',
         phone: data.profile.phone || '',
+        country: data.profile.country || '',
+        province: data.profile.province || '',
         city: data.profile.city || '',
       })
     } catch (err) {
@@ -63,6 +70,45 @@ export default function CustomerProfilePage() {
     setSaving(true)
     setError(null)
     setSuccess(null)
+
+    // Validate required fields
+    if (!profile.full_name?.trim()) {
+      setError('Full name is required')
+      setSaving(false)
+      return
+    }
+
+    if (!profile.phone?.trim()) {
+      setError('Phone number is required')
+      setSaving(false)
+      return
+    }
+
+    // Validate phone format
+    const phoneRegex = /^[0-9+()\-\s]{7,}$/
+    if (!phoneRegex.test(profile.phone)) {
+      setError('Please enter a valid phone number')
+      setSaving(false)
+      return
+    }
+
+    if (!profile.country?.trim()) {
+      setError('Country is required')
+      setSaving(false)
+      return
+    }
+
+    if (!profile.province?.trim()) {
+      setError('Province/State is required')
+      setSaving(false)
+      return
+    }
+
+    if (!profile.city?.trim()) {
+      setError('City is required')
+      setSaving(false)
+      return
+    }
 
     try {
       const response = await fetch('/api/customer/profile', {
@@ -177,10 +223,27 @@ export default function CustomerProfilePage() {
               <h2 className="text-lg sm:text-xl font-bold text-white">Personal Information</h2>
             </div>
 
+            {/* Required fields notice */}
+            <div className="mb-4 sm:mb-6 rounded-lg border border-blue-400/20 bg-blue-500/10 p-3 sm:p-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-blue-400 text-xs sm:text-sm font-bold">!</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-blue-200 font-medium">
+                    Complete your profile to book sessions
+                  </p>
+                  <p className="text-xs text-blue-300/80 mt-1">
+                    All fields marked with <span className="text-red-400">*</span> are required before you can start a session with a mechanic.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
-                  Full Name
+                  Full Name <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <User className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
@@ -190,6 +253,7 @@ export default function CustomerProfilePage() {
                     onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                     className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
                     placeholder="John Doe"
+                    required
                   />
                 </div>
               </div>
@@ -210,38 +274,36 @@ export default function CustomerProfilePage() {
                 <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
-                    <input
-                      type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
+                  Phone Number <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
+                  <input
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
+                    placeholder="+1 (555) 123-4567"
+                    required
+                  />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
-                    City
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
-                    <input
-                      type="text"
-                      value={profile.city}
-                      onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                      className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
-                      placeholder="Toronto"
-                    />
-                  </div>
-                </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
+                  Location <span className="text-red-400">*</span>
+                </label>
+                <ImprovedLocationSelector
+                  country={profile.country}
+                  province={profile.province}
+                  city={profile.city}
+                  onCountryChange={(country) => setProfile({ ...profile, country })}
+                  onCityChange={(city, province) => setProfile({ ...profile, city, province })}
+                  onProvinceChange={(province) => setProfile({ ...profile, province })}
+                />
+                <p className="text-xs text-slate-500 mt-1">Country, Province/State, and City are all required</p>
               </div>
 
               <div className="pt-3 sm:pt-4">

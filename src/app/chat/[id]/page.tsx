@@ -113,12 +113,11 @@ export default async function ChatSessionPage({ params }: PageProps) {
     notFound()
   }
 
-  // 🔒 SECURITY FIX: Prevent access to completed/cancelled sessions
-  // This blocks browser back button, direct URL access, and bookmarks
+  // 🔒 SECURITY: Allow viewing completed/cancelled sessions
+  // Both customers and mechanics can view session summary and chat history
+  // Auto-redirect disabled to allow users to review session before leaving
   if (session.status === 'completed' || session.status === 'cancelled') {
-    const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
-    console.log(`[CHAT PAGE SECURITY] Session ${sessionId} is ${session.status} - redirecting to dashboard`)
-    redirect(dashboardUrl)
+    console.log(`[CHAT PAGE SECURITY] Session ${sessionId} is ${session.status} - allowing access to view summary`)
   }
 
   // Use supabaseAdmin for participants and messages after authorization check

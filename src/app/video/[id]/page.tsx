@@ -126,12 +126,11 @@ export default async function VideoSessionPage({ params }: PageProps) {
     notFound()
   }
 
-  // 🔒 SECURITY FIX: Prevent access to completed/cancelled sessions
-  // This blocks browser back button, direct URL access, and bookmarks
+  // 🔒 SECURITY: Allow viewing completed/cancelled sessions
+  // Both customers and mechanics can view session summary
+  // Auto-redirect disabled to allow users to review session before leaving
   if (session.status === 'completed' || session.status === 'cancelled') {
-    const dashboardUrl = userRole === 'customer' ? '/customer/dashboard' : '/mechanic/dashboard'
-    console.log(`[VIDEO/DIAGNOSTIC PAGE SECURITY] Session ${sessionId} (type: ${session.type}) is ${session.status} - redirecting to dashboard`)
-    redirect(dashboardUrl)
+    console.log(`[VIDEO/DIAGNOSTIC PAGE SECURITY] Session ${sessionId} (type: ${session.type}) is ${session.status} - allowing access to view summary`)
   }
 
   // ✅ DYNAMIC PRICING: Fetch plan name from database first, fallback to hardcoded

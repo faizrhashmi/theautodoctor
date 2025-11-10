@@ -173,7 +173,7 @@ export default function ChatRoom({
   const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null)
   const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map())
   const [showScrollButton, setShowScrollButton] = useState(false)
-  const [showVehicleBar, setShowVehicleBar] = useState(true) // Collapsed by default
+  const [showVehicleBar, setShowVehicleBar] = useState(false) // Collapsed by default - user clicks to expand
   const [sidebarSwipeStart, setSidebarSwipeStart] = useState<number | null>(null)
   const [sidebarSwipeOffset, setSidebarSwipeOffset] = useState(0)
   const [isMounted, setIsMounted] = useState(false) // Track if component is mounted (for Portal)
@@ -621,13 +621,13 @@ export default function ChatRoom({
   }
 
   // 🔒 SECURITY LAYER 2: Client-side status validation (backup for server-side)
-  // Only redirects if session is ALREADY completed when component mounts
-  // Prevents accessing completed sessions via back button/bookmark
+  // Allow viewing completed/cancelled sessions for session summary
+  // Auto-redirect disabled - users manually navigate away after reviewing summary
   useEffect(() => {
-    console.log('[CHAT SECURITY L2] Checking initial session status:', status)
+    console.log('[CHAT SECURITY L2] Checking initial session status:', status, 'Role:', userRole)
     if (status === 'completed' || status === 'cancelled') {
-      console.log('[CHAT SECURITY L2] ⚠️ Session already ended, redirecting...')
-      window.location.href = dashboardUrl
+      console.log('[CHAT SECURITY L2] ✓ Ended session - allowing access to view summary')
+      // No redirect - users can view session summary and chat history
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Only run on mount, not on status changes
@@ -748,25 +748,22 @@ export default function ChatRoom({
           }
 
           // 🔒 SECURITY LAYER 3: Real-time database status monitoring
-          // Shows completion modal for normal endings, redirects for external cancellations
+          // Shows completion modal - no auto-redirect, users manually navigate away
           if ((oldStatus === 'live' || oldStatus === 'waiting') &&
               (updated.status === 'completed' || updated.status === 'cancelled')) {
-            console.log(`[CHAT SECURITY L3] Session status changed to ${updated.status}`)
+            console.log(`[CHAT SECURITY L3] Session status changed to ${updated.status}, Role: ${userRole}`)
 
             setSessionEnded(true)
 
-            // Handle based on completion status
+            // Show notification but don't redirect - users can review session summary
             if (updated.status === 'cancelled') {
-              // Cancelled sessions redirect immediately (admin/external cancellation)
-              console.log('[CHAT SECURITY L3] ⚠️ Session cancelled externally, redirecting...')
+              // Cancelled sessions show toast
+              console.log('[CHAT SECURITY L3] ⚠️ Session cancelled - showing notification')
               toast.error('Session has been cancelled', {
-                duration: 2000,
+                duration: 4000,
                 position: 'top-center',
               })
-              // Redirect after showing toast
-              setTimeout(() => {
-                window.location.href = dashboardUrl
-              }, 2000)
+              // No redirect - users can view session summary
             } else {
               // Completed sessions show modal (normal ending flow)
               console.log('[CHAT SECURITY L3] ✅ Session completed, showing modal...')

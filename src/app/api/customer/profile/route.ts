@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   // Fetch profile from database
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id, full_name, phone, city, email, preferred_plan')
+    .select('id, full_name, phone, city, email, preferred_plan, country, province, postal_code')
     .eq('id', customer.id)
     .single()
 
@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
         email: customer.email,
         phone: '',
         city: '',
+        country: '',
+        province: '',
+        postal_code: '',
       }
     })
   }
@@ -39,6 +42,9 @@ export async function GET(request: NextRequest) {
       email: profile.email || customer.email,
       phone: profile.phone || '',
       city: profile.city || '',
+      country: profile.country || '',
+      province: profile.province || '',
+      postal_code: profile.postal_code || '',
     }
   })
 }

@@ -86,18 +86,36 @@ export async function POST(req: NextRequest) {
   if (!emailOk) return bad('Invalid email');
   if (!phoneOk) return bad('Invalid phone');
 
-  // For urgent sessions, vehicle info is optional - can be provided during session
-  if (!urgent) {
-    const hasYMM = !!(year && make && model);
-    if (!(vin && String(vin).trim().length === 17) && !hasYMM) {
+  // For urgent sessions and quick/advice plans, vehicle info is optional - can be provided during session
+  const vehicleOptionalPlans = ['quick', 'advice', 'free', 'trial'];
+  const vehicleIsOptional = urgent || vehicleOptionalPlans.includes(plan);
+
+  // Debug logging for vehicle validation
+  console.log('[INTAKE API] Vehicle validation:', {
+    plan,
+    urgent,
+    vehicleIsOptional,
+    year: year || '(empty)',
+    make: make || '(empty)',
+    model: model || '(empty)',
+    vin: vin || '(empty)',
+    vehicle_id,
+  })
+
+  if (!vehicleIsOptional) {
+    // Check for non-empty strings, not just truthy values
+    const hasYMM = !!(year && String(year).trim() && make && String(make).trim() && model && String(model).trim());
+    const hasValidVIN = vin && String(vin).trim().length === 17;
+
+    console.log('[INTAKE API] Vehicle check:', { hasYMM, hasValidVIN })
+
+    if (!hasValidVIN && !hasYMM) {
       return bad('Provide VIN (17) or full Year/Make/Model');
     }
   }
 
-  // Validate VIN length if provided (both urgent and non-urgent)
-  if (vin && String(vin).trim().length > 0 && String(vin).trim().length !== 17) {
-    return bad('VIN must be 17 characters');
-  }
+  // VIN validation removed - VIN is completely optional and not validated
+  // User can provide any VIN format or leave it blank
 
   // Concern validation - shorter minimum for urgent sessions
   const minConcernLength = urgent ? 5 : 10;

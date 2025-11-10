@@ -1,11 +1,8 @@
-// src/app/intake/layout.tsx
-// Force this entire segment to be dynamic and uncached,
-// even if a parent layout accidentally sets caching.
-import CustomerNavbar from '@/components/customer/CustomerNavbar'
+'use client'
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
+// src/app/intake/layout.tsx
+// This is a client component - caching is handled by parent layouts
+import CustomerNavbar from '@/components/customer/CustomerNavbar'
 
 export default function IntakeLayout({ children }: { children: React.ReactNode }) {
   return (

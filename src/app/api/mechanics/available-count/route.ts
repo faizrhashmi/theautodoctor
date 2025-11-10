@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
  *
  * Public endpoint to check how many mechanics are currently available
  * No authentication required - used for customer dashboard
+ * Uses currently_on_shift as single source of truth for mechanic availability
  */
 export async function GET(req: NextRequest) {
   try {
@@ -13,10 +14,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    // Get all mechanics (simplified - no is_active column)
+    // Get all approved mechanics who can accept sessions
     const { data: mechanics, error: mechanicsError } = await supabaseAdmin
       .from('mechanics')
-      .select('id')
+      .select('id, currently_on_shift')
+      .eq('application_status', 'approved')
+      .eq('account_status', 'active')
+      .eq('can_accept_sessions', true)
 
     if (mechanicsError) {
       console.error('Mechanics fetch error:', mechanicsError)
@@ -34,7 +38,10 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Check which mechanics are currently in active sessions
+    // Count mechanics who are currently on shift (single source of truth)
+    const availableNow = mechanics.filter(m => m.currently_on_shift).length
+
+    // Check which mechanics are currently in active sessions (for informational purposes)
     const mechanicIds = mechanics.map(m => m.id)
 
     const { data: activeSessions, error: sessionsError } = await supabaseAdmin
@@ -59,12 +66,13 @@ export async function GET(req: NextRequest) {
     })
 
     const inSession = mechanicsInSession.size
-    const availableNow = totalActiveMechanics - inSession
-    const availabilityPercentage = Math.round((availableNow / totalActiveMechanics) * 100)
+    const availabilityPercentage = totalActiveMechanics > 0
+      ? Math.round((availableNow / totalActiveMechanics) * 100)
+      : 0
 
     return NextResponse.json({
       total_mechanics: totalActiveMechanics,
-      available_now: availableNow,
+      available_now: availableNow, // Based on currently_on_shift (single source of truth)
       in_session: inSession,
       availability_percentage: availabilityPercentage,
     })

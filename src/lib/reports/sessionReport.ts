@@ -15,6 +15,7 @@ interface SessionReportData {
   plan: string
   base_price?: number
   rating: number | null
+  type?: 'chat' | 'video' | 'diagnostic'
   summary_data?: {
     findings?: string
     steps_taken?: string
@@ -23,6 +24,15 @@ interface SessionReportData {
     photos?: string[]
   } | null
   summary_submitted_at?: string | null
+}
+
+interface ChatMessage {
+  id: string
+  content: string
+  sender_id: string
+  created_at: string
+  sender_name?: string
+  sender_role?: 'customer' | 'mechanic'
 }
 
 interface PDFOptions {
@@ -48,9 +58,18 @@ export async function buildSessionPdf(
   // Fetch session data
   let sessionData: SessionReportData | null = null
   let autoSummary: SessionSummary | null = null
+  let chatMessages: ChatMessage[] = []
 
   try {
-    const response = await fetch(`/api/customer/sessions`)
+    // Try fetching from both customer and mechanic endpoints
+    // One will succeed based on user's role
+    let response = await fetch(`/api/customer/sessions`)
+
+    if (!response.ok) {
+      // Try mechanic endpoint if customer endpoint fails
+      response = await fetch(`/api/mechanic/sessions`)
+    }
+
     if (!response.ok) throw new Error('Failed to fetch session data')
 
     const data = await response.json()
@@ -72,6 +91,24 @@ export async function buildSessionPdf(
     } catch (err) {
       console.error('[PDF Generator] Error fetching auto-summary:', err)
       // Continue without auto-summary
+    }
+
+    // Fetch chat messages (for chat and video sessions)
+    if (sessionData.type === 'chat' || sessionData.type === 'video') {
+      try {
+        const messagesRes = await fetch(`/api/sessions/${sessionId}/messages`)
+        if (messagesRes.ok) {
+          const messagesData = await messagesRes.json()
+          if (messagesData.messages && Array.isArray(messagesData.messages)) {
+            chatMessages = messagesData.messages
+          }
+        } else {
+          console.warn('[PDF Generator] Messages endpoint returned:', messagesRes.status)
+        }
+      } catch (err) {
+        console.error('[PDF Generator] Error fetching chat messages:', err)
+        // Continue without chat messages - this is not a fatal error
+      }
     }
   } catch (error) {
     console.error('[PDF Generator] Error fetching session:', error)
@@ -127,15 +164,50 @@ export async function buildSessionPdf(
   const planName = pricingInfo?.name || sessionData.plan
 
   // ============================================================================
-  // HEADER - AskAutoDoctor Branding
+  // HEADER - The Auto Doctor Branding
   // ============================================================================
   if (includeHeader) {
-    // Company name
-    doc.setFontSize(24)
-    doc.setTextColor(220, 38, 38) // Orange/Red brand color
-    doc.setFont('helvetica', 'bold')
-    doc.text('AskAutoDoctor', margin, yPos)
-    yPos += 8
+    let logoAdded = false
+
+    try {
+      // Try to add logo image (PNG format)
+      const logoUrl = '/logo.png'
+      const logoImg = await fetch(logoUrl)
+
+      if (logoImg.ok) {
+        const logoBlob = await logoImg.blob()
+        const logoDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            if (reader.result) {
+              resolve(reader.result as string)
+            } else {
+              reject(new Error('Failed to read logo'))
+            }
+          }
+          reader.onerror = () => reject(new Error('FileReader error'))
+          reader.readAsDataURL(logoBlob)
+        })
+
+        // Add logo (25mm width, auto height, positioned at top-left)
+        doc.addImage(logoDataUrl, 'PNG', margin, yPos, 25, 8)
+        yPos += 10
+        logoAdded = true
+      } else {
+        console.warn('[PDF Generator] Logo fetch returned:', logoImg.status)
+      }
+    } catch (err) {
+      console.error('[PDF Generator] Error loading logo:', err)
+    }
+
+    // Fallback to text if logo didn't load
+    if (!logoAdded) {
+      doc.setFontSize(20)
+      doc.setTextColor(249, 115, 22) // Orange brand color (#f97316)
+      doc.setFont('helvetica', 'bold')
+      doc.text('The Auto Doctor', margin, yPos)
+      yPos += 8
+    }
 
     // Tagline
     doc.setFontSize(10)
@@ -470,6 +542,75 @@ export async function buildSessionPdf(
   }
 
   // ============================================================================
+  // CHAT MESSAGES & VIDEO TRANSCRIPTION (for chat/video sessions)
+  // ============================================================================
+  if (includeSummary && chatMessages.length > 0) {
+    // Check if we need a new page
+    if (yPos > pageHeight - 60) {
+      doc.addPage()
+      yPos = margin
+    }
+
+    doc.setFontSize(14)
+    doc.setTextColor(15, 23, 42)
+    doc.setFont('helvetica', 'bold')
+    const sectionTitle = sessionData.type === 'video'
+      ? 'Session Transcript & Notes'
+      : 'Chat Conversation'
+    doc.text(sectionTitle, margin, yPos)
+    yPos += 6
+
+    doc.setFontSize(9)
+    doc.setTextColor(100, 116, 139)
+    doc.setFont('helvetica', 'italic')
+    doc.text(`${chatMessages.length} message(s)`, margin, yPos)
+    yPos += 8
+
+    // Display messages in a table format
+    const messageTableData = chatMessages.map((msg) => {
+      const timestamp = new Date(msg.created_at).toLocaleTimeString('en-CA', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      const sender = msg.sender_role === 'mechanic'
+        ? (sessionData.mechanic_name || 'Mechanic')
+        : (sessionData.customer_name || 'Customer')
+
+      // Truncate very long messages
+      const content = msg.content.length > 200
+        ? msg.content.substring(0, 200) + '...'
+        : msg.content
+
+      return [timestamp, sender, content]
+    })
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Time', 'Sender', 'Message']],
+      body: messageTableData,
+      theme: 'striped',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        textColor: [15, 23, 42],
+      },
+      headStyles: {
+        fillColor: [59, 130, 246], // Blue color
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 35, fontStyle: 'bold' },
+        2: { cellWidth: 'auto' },
+      },
+      margin: { left: margin, right: margin },
+    })
+
+    yPos = (doc as any).lastAutoTable.finalY + 10
+  }
+
+  // ============================================================================
   // FOOTER
   // ============================================================================
   if (includeFooter) {
@@ -489,7 +630,7 @@ export async function buildSessionPdf(
       doc.setFontSize(8)
       doc.setTextColor(100, 116, 139)
       doc.setFont('helvetica', 'normal')
-      doc.text('AskAutoDoctor - Remote Automotive Diagnostics', margin, footerY)
+      doc.text('The Auto Doctor - Remote Automotive Diagnostics', margin, footerY)
 
       // Page number
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin - 20, footerY)
@@ -521,7 +662,7 @@ export async function downloadSessionPdf(sessionId: string): Promise<void> {
     const url = URL.createObjectURL(pdfBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `AskAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
+    link.download = `TheAutoDoctor-Session-${sessionId.slice(0, 8)}.pdf`
 
     // Trigger download
     document.body.appendChild(link)

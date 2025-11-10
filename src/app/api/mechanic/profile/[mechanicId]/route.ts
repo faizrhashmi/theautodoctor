@@ -32,7 +32,12 @@ export async function GET(
         specialist_tier,
         red_seal_certified,
         shop_affiliation,
-        completed_sessions
+        completed_sessions,
+        workshop_id,
+        organizations:workshop_id (
+          id,
+          name
+        )
       `)
       .eq('user_id', mechanicId)
       .maybeSingle()
@@ -53,6 +58,17 @@ export async function GET(
     }
 
     // Return profile data
+    // Prefer workshop name from organizations table, fallback to shop_affiliation text field
+    // Note: Supabase returns the joined organization as an object (not array) when using foreign key
+    const workshopName = (mechanic as any).organizations?.name || mechanic.shop_affiliation || null
+
+    console.log('[mechanic/profile] Workshop data:', {
+      workshop_id: mechanic.workshop_id,
+      organizations: (mechanic as any).organizations,
+      shop_affiliation: mechanic.shop_affiliation,
+      resolved_name: workshopName
+    })
+
     return NextResponse.json({
       profile: {
         id: mechanic.id,
@@ -65,7 +81,7 @@ export async function GET(
         brandSpecializations: mechanic.brand_specializations || [],
         specialistTier: mechanic.specialist_tier || null,
         redSealCertified: mechanic.red_seal_certified || false,
-        shopAffiliation: mechanic.shop_affiliation || null,
+        shopAffiliation: workshopName,
         completedSessions: mechanic.completed_sessions || 0,
       },
     })

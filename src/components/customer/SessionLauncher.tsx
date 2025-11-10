@@ -219,14 +219,23 @@ export default function SessionLauncher({
 
     fetchActiveSession()
 
-    // Poll every 5 seconds to detect ended sessions quickly
-    const intervalId = setInterval(fetchActiveSession, 5000)
+    // Poll every 1 second for near-instant updates (matches ActiveSessionBanner)
+    let intervalId = setInterval(fetchActiveSession, 1000)
 
-    // Listen for session-ended event from ActiveSessionBanner
+    // Listen for session-ended event from ActiveSessionBanner for instant updates
     const handleSessionEnded = () => {
-      console.log('[SessionLauncher] Received session-ended event, refreshing active session state')
+      console.log('[SessionLauncher] Received session-ended event, clearing immediately')
       setInternalActiveSession(null) // Clear immediately
-      fetchActiveSession() // Then re-fetch to confirm
+      setInternalLoadingActiveSession(false) // Ensure not stuck in loading state
+
+      // Clear the current interval and restart with fresh fetch
+      clearInterval(intervalId)
+
+      // Wait 100ms for database to settle, then start fresh polling cycle
+      setTimeout(() => {
+        fetchActiveSession()
+        intervalId = setInterval(fetchActiveSession, 1000)
+      }, 100)
     }
 
     window.addEventListener('session-ended', handleSessionEnded)

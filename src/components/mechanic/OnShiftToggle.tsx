@@ -143,7 +143,7 @@ export default function OnShiftToggle({ onStatusChange }: OnShiftToggleProps) {
               <div className="mt-1 flex items-center gap-2 text-sm text-slate-400">
                 {isOnShift ? (
                   <>
-                    <span>Available for micro-sessions</span>
+                    <span>Available to accept sessions</span>
                     {status.workshop_name && (
                       <>
                         <span>•</span>
@@ -152,7 +152,7 @@ export default function OnShiftToggle({ onStatusChange }: OnShiftToggleProps) {
                     )}
                   </>
                 ) : (
-                  <span>Clock in to accept micro-sessions</span>
+                  <span>Clock in to accept sessions</span>
                 )}
               </div>
             </div>
@@ -187,28 +187,6 @@ export default function OnShiftToggle({ onStatusChange }: OnShiftToggleProps) {
           </button>
         </div>
 
-        {/* Micro-Session Usage */}
-        {isOnShift && (
-          <div className="mt-4 rounded-lg border border-white/5 bg-white/5 p-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Micro-Session Minutes Today</span>
-              <span className="font-semibold text-white">
-                {status.daily_micro_minutes_used} / {status.daily_micro_minutes_cap} min
-              </span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                style={{
-                  width: `${Math.min((status.daily_micro_minutes_used / status.daily_micro_minutes_cap) * 100, 100)}%`,
-                }}
-              ></div>
-            </div>
-            <div className="mt-1 text-xs text-slate-500">
-              {status.micro_minutes_remaining} minutes remaining
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Success/Error Messages */}
@@ -238,23 +216,6 @@ export default function OnShiftToggle({ onStatusChange }: OnShiftToggleProps) {
         )}
       </AnimatePresence>
 
-      {/* Participation Mode Info */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Participation Mode</span>
-          <span className="font-medium capitalize text-slate-300">
-            {status.participation_mode?.replace('_', ' ')}
-          </span>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          {status.participation_mode === 'both' &&
-            'You can accept both micro-sessions (on-shift) and full sessions (anytime)'}
-          {status.participation_mode === 'micro_only' &&
-            'You can only accept quick micro-sessions while on-shift'}
-          {status.participation_mode === 'full_only' &&
-            'You can only accept full diagnostic sessions (no micro-sessions)'}
-        </p>
-      </div>
     </div>
   )
 }

@@ -20,7 +20,7 @@ interface VirtualSessionCardProps {
     scheduled_end?: string
   }
   onAccept?: (sessionId: string) => void
-  onView?: (sessionId: string) => void
+  onView?: (sessionId: string, sessionType: 'chat' | 'video' | 'upgraded_from_chat') => void
 }
 
 export default function VirtualSessionCard({ session, onAccept, onView }: VirtualSessionCardProps) {
@@ -235,7 +235,7 @@ export default function VirtualSessionCard({ session, onAccept, onView }: Virtua
 
             {onView && (
               <button
-                onClick={() => onView(session.id)}
+                onClick={() => onView(session.id, session.session_type)}
                 className="py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200"
               >
                 View Details
@@ -246,7 +246,7 @@ export default function VirtualSessionCard({ session, onAccept, onView }: Virtua
 
         {session.status === 'accepted' && onView && (
           <button
-            onClick={() => onView(session.id)}
+            onClick={() => onView(session.id, session.session_type)}
             className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
             Go to Session

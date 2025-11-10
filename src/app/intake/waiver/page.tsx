@@ -151,15 +151,12 @@ export default function IntakeWaiverPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-orange-800/40 via-slate-900 to-slate-950 px-4 py-12 text-white">
       <div className="mx-auto max-w-5xl">
-        {/* Phase 2 Header */}
+        {/* Header */}
         <div className="mb-6 sm:mb-10 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-red-500/10 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-orange-300 uppercase tracking-wide">
-                Phase 2: Finalize Request
-              </p>
               <p className="text-base sm:text-lg text-white font-bold">
-                Step 2 of 2: Safety Agreement
+                Review & Accept Safety Agreement
               </p>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
                 Quick agreement • Takes 30 seconds
@@ -167,7 +164,7 @@ export default function IntakeWaiverPage() {
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-400 mb-1">
-                After this:
+                Next Step:
               </p>
               <p className="text-xs sm:text-sm font-semibold text-orange-300">
                 {intakeData?.plan === 'free' || intakeData?.plan === 'trial'

@@ -69,12 +69,13 @@ export async function POST(req: NextRequest) {
         timestamp: clockInTime
       }))
 
-      // Update mechanic status
+      // Update mechanic status - also set is_available to true
       const { error: updateError } = await supabaseAdmin
         .from('mechanics')
         .update({
           currently_on_shift: true,
-          last_clock_in: clockInTime
+          last_clock_in: clockInTime,
+          is_available: true
         })
         .eq('id', mechanicId)
 
@@ -119,12 +120,13 @@ export async function POST(req: NextRequest) {
 
       const clockOutTime = new Date().toISOString()
 
-      // Update mechanic status
+      // Update mechanic status - also set is_available to false
       const { error: updateError } = await supabaseAdmin
         .from('mechanics')
         .update({
           currently_on_shift: false,
-          last_clock_out: clockOutTime
+          last_clock_out: clockOutTime,
+          is_available: false
         })
         .eq('id', mechanicId)
 

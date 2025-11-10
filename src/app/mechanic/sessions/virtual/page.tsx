@@ -110,8 +110,12 @@ export default function VirtualSessionsPage() {
     }
   }
 
-  const handleViewSession = (sessionId: string) => {
-    router.push(`/mechanic/session/${sessionId}`)
+  const handleViewSession = (sessionId: string, sessionType: 'chat' | 'video' | 'upgraded_from_chat') => {
+    // Route to appropriate session page based on type
+    const route = sessionType === 'video' || sessionType === 'upgraded_from_chat'
+      ? `/video/${sessionId}`
+      : `/chat/${sessionId}`
+    router.push(route)
   }
 
   const getFilterStats = () => {

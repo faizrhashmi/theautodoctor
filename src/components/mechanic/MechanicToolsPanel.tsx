@@ -5,18 +5,20 @@ import {
   Wrench,
   MessageSquare,
   FileText,
-  Clock,
   Car,
   Mic,
   X,
-  ChevronRight
+  ChevronRight,
+  Camera,
+  Lightbulb,
+  Calculator,
+  Search
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QuickResponseTemplates from './QuickResponseTemplates'
 import QuoteBuilderDrawer from './QuoteBuilderDrawer'
 import VINDecoderModal from './VINDecoderModal'
 import VoiceInputButton from './VoiceInputButton'
-import SessionTimer from '@/components/session/SessionTimer'
 
 interface MechanicToolsPanelProps {
   sessionId: string
@@ -36,6 +38,7 @@ export default function MechanicToolsPanel({
   isSessionActive
 }: MechanicToolsPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isDesktopPanelOpen, setIsDesktopPanelOpen] = useState(true)
   const [activeModal, setActiveModal] = useState<'quote' | 'vin' | null>(null)
 
   // Draggable button state
@@ -178,12 +181,51 @@ export default function MechanicToolsPanel({
       onClick: () => setActiveModal('vin')
     },
     {
-      id: 'timer',
-      icon: Clock,
-      label: 'Session Timer',
-      color: 'text-orange-400',
-      bgColor: 'bg-orange-500/10',
-      hoverColor: 'hover:bg-orange-500/20'
+      id: 'diagnostic',
+      icon: Camera,
+      label: 'Request Photos',
+      color: 'text-cyan-400',
+      bgColor: 'bg-cyan-500/10',
+      hoverColor: 'hover:bg-cyan-500/20',
+      onClick: () => {
+        onInsertTemplate('Please upload clear photos of the affected area so I can inspect the issue in detail. Multiple angles would be helpful.')
+      }
+    },
+    {
+      id: 'dtc',
+      icon: Search,
+      label: 'DTC Lookup',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/10',
+      hoverColor: 'hover:bg-yellow-500/20',
+      onClick: () => {
+        const code = prompt('Enter DTC code (e.g., P0300):')
+        if (code) {
+          window.open(`https://www.obd-codes.com/trouble_codes/${code.toLowerCase()}.php`, '_blank')
+        }
+      }
+    },
+    {
+      id: 'suggestions',
+      icon: Lightbulb,
+      label: 'AI Suggestions',
+      color: 'text-amber-400',
+      bgColor: 'bg-amber-500/10',
+      hoverColor: 'hover:bg-amber-500/20',
+      onClick: () => {
+        onInsertTemplate('Based on the symptoms you described, here are some potential causes I\'d like to investigate...')
+      }
+    },
+    {
+      id: 'labor',
+      icon: Calculator,
+      label: 'Labor Estimate',
+      color: 'text-indigo-400',
+      bgColor: 'bg-indigo-500/10',
+      hoverColor: 'hover:bg-indigo-500/20',
+      onClick: () => {
+        onInsertTemplate('Let me calculate the estimated labor time for this repair based on industry standards.')
+      }
     }
   ]
 
@@ -253,13 +295,6 @@ export default function MechanicToolsPanel({
 
               {/* Content */}
               <div className="p-4 space-y-6">
-                {/* Session Timer */}
-                {isSessionActive && sessionStartedAt && (
-                  <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-                    <SessionTimer startedAt={sessionStartedAt} />
-                  </div>
-                )}
-
                 {/* Quick Tools Grid */}
                 <div>
                   <h3 className="text-sm font-semibold text-slate-300 mb-3">Quick Actions</h3>
@@ -303,65 +338,88 @@ export default function MechanicToolsPanel({
       </AnimatePresence>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed right-0 top-16 bottom-0 w-80 border-l border-slate-700 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 overflow-y-auto scrollbar-none">
-        {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 backdrop-blur-md p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
-              <Wrench className="h-5 w-5 text-white" />
+      <AnimatePresence>
+        {isDesktopPanelOpen && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="hidden lg:block fixed right-0 top-16 bottom-0 w-80 border-l border-slate-700 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 overflow-y-auto scrollbar-none"
+          >
+            {/* Header */}
+            <div className="sticky top-0 z-10 border-b border-slate-700 bg-slate-900/95 backdrop-blur-md p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+                    <Wrench className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Mechanic Tools</h2>
+                    <p className="text-xs text-slate-400">Productivity suite</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDesktopPanelOpen(false)}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+                  aria-label="Close tools panel"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Mechanic Tools</h2>
-              <p className="text-xs text-slate-400">Productivity suite</p>
+
+            {/* Content */}
+            <div className="p-4 space-y-6">
+              {/* Quick Tools */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-300 mb-3">Quick Actions</h3>
+                <div className="space-y-2">
+                  {tools.map((tool) => {
+                    const Icon = tool.icon
+                    return (
+                      <button
+                        key={tool.id}
+                        onClick={tool.onClick}
+                        className={`w-full flex items-center gap-3 rounded-xl border border-slate-700 ${tool.bgColor} p-3 transition ${tool.hoverColor}`}
+                      >
+                        <Icon className={`h-5 w-5 ${tool.color}`} />
+                        <span className="flex-1 text-left text-sm font-medium text-slate-200">
+                          {tool.label}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Response Templates */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-300 mb-3">Quick Responses</h3>
+                <QuickResponseTemplates onInsert={onInsertTemplate} />
+              </div>
+
+              {/* Voice Input */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-300 mb-3">Voice Input</h3>
+                <VoiceInputButton onTranscript={onVoiceTranscript} />
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* Content */}
-        <div className="p-4 space-y-6">
-          {/* Session Timer */}
-          {isSessionActive && sessionStartedAt && (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-              <SessionTimer startedAt={sessionStartedAt} />
-            </div>
-          )}
-
-          {/* Quick Tools */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              {tools.map((tool) => {
-                const Icon = tool.icon
-                return (
-                  <button
-                    key={tool.id}
-                    onClick={tool.onClick}
-                    className={`w-full flex items-center gap-3 rounded-xl border border-slate-700 ${tool.bgColor} p-3 transition ${tool.hoverColor}`}
-                  >
-                    <Icon className={`h-5 w-5 ${tool.color}`} />
-                    <span className="flex-1 text-left text-sm font-medium text-slate-200">
-                      {tool.label}
-                    </span>
-                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Quick Response Templates */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">Quick Responses</h3>
-            <QuickResponseTemplates onInsert={onInsertTemplate} />
-          </div>
-
-          {/* Voice Input */}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">Voice Input</h3>
-            <VoiceInputButton onTranscript={onVoiceTranscript} />
-          </div>
-        </div>
-      </div>
+      {/* Floating toggle button for desktop when panel is closed */}
+      {!isDesktopPanelOpen && (
+        <button
+          onClick={() => setIsDesktopPanelOpen(true)}
+          className="hidden lg:flex fixed right-4 bottom-4 z-40 h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-2xl hover:from-orange-600 hover:to-orange-700 transition-colors"
+          aria-label="Open mechanic tools"
+        >
+          <Wrench className="h-6 w-6" />
+        </button>
+      )}
 
       {/* Modals */}
       <AnimatePresence>

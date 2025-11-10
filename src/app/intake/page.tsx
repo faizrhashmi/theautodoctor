@@ -461,39 +461,15 @@ export default function IntakePage() {
     <main className="w-full max-w-[1024px] mx-auto px-3 sm:px-6 md:px-6 lg:px-8 py-4 sm:py-8 space-y-5 sm:space-y-8">
       <div className="sm:rounded-2xl sm:border sm:border-white/10 bg-white/5 sm:bg-white/5 p-0 sm:p-6 md:p-6 sm:shadow-2xl sm:backdrop-blur">
         <div className="flex flex-col space-y-5 sm:space-y-6">
-          {/* Urgent Mode Banner */}
-          {isUrgent && (
-            <div className="rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/30 border border-red-400/50">
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-400/50 text-xs font-bold uppercase tracking-wider text-red-200">
-                      EXPRESS MODE
-                    </span>
-                    Priority Connection Active
-                  </h3>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-200">
-                    Vehicle details are optional - you can provide them during your session. Just tell us your contact info and issue to connect immediately.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Phase 2 Header */}
           <div className="mb-4 sm:mb-6 rounded-xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-red-500/10 p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-orange-300 uppercase tracking-wide">
-                  Phase 2: Finalize Request
+                  Phase 2 of 2: Finalize Request
                 </p>
                 <p className="text-sm sm:text-base text-white font-bold">
-                  Step 1 of 2: Vehicle Details
+                  Vehicle Details & Request
                 </p>
               </div>
               <p className="text-xs text-slate-400">
@@ -502,34 +478,33 @@ export default function IntakePage() {
             </div>
           </div>
 
-          {/* Header Section */}
-          <header className="rounded-xl sm:rounded-2xl border border-white/5 sm:border-white/10 bg-slate-950/30 sm:bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-sm sm:shadow-lg">
-            <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-              <div className="flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200"></p>
-                <h1 className="mt-2 sm:mt-3 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
-                <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-300">
-                  Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
-                </p>
+          {/* Plan Selected Confirmation Banner */}
+          <div className="rounded-xl sm:rounded-2xl border border-green-400/20 sm:border-green-400/30 bg-green-500/10 p-4 sm:p-6">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-400/30">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <div className="w-full lg:w-auto lg:max-w-sm rounded-2xl border border-orange-400/30 bg-orange-500/10 p-4 sm:p-5 md:p-6 text-sm text-orange-100 shadow-xl">
-                <p className="text-xs font-semibold uppercase tracking-wide text-orange-200">Selected plan</p>
-                <p className="mt-2 text-base sm:text-lg font-semibold text-white">{planLabel}</p>
-                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-orange-100">{planDescription}</p>
-                <ul className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2 text-xs text-orange-100">
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> Share your vehicle and concern
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> We route the right mechanic
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-orange-300 flex-shrink-0" /> Join the live session
-                  </li>
-                </ul>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-green-200 mb-2">Plan Selected</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-lg font-bold text-white">{planLabel}</p>
+                  {isUrgent && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-400/40 text-xs font-bold uppercase tracking-wider text-red-200">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Urgent
+                    </span>
+                  )}
+                </div>
+                {isSpecialist && (
+                  <p className="text-sm text-green-300 mt-1">Brand Specialist (+$10 premium)</p>
+                )}
               </div>
             </div>
-          </header>
+          </div>
 
           {/* Contact Details - Show as locked card if pre-filled */}
           {contactPreFilled ? (
@@ -610,6 +585,14 @@ export default function IntakePage() {
                   maxLength={7}
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => setContactPreFilled(true)}
+                disabled={!form.name || !form.email || !form.phone || !form.city}
+                className="mt-4 w-full rounded-lg bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-600 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              >
+                Save Contact Details
+              </button>
             </Section>
           )}
 
@@ -642,7 +625,23 @@ export default function IntakePage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : null}
+
+          {/* Header Section - Tell us about your vehicle */}
+          <header className="rounded-xl sm:rounded-2xl border border-white/5 sm:border-white/10 bg-slate-950/30 sm:bg-slate-950/40 p-4 sm:p-5 md:p-6 lg:p-8 shadow-sm sm:shadow-lg">
+            <div className="flex flex-col gap-4 sm:gap-6">
+              <div className="flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-200"></p>
+                <h1 className="mt-2 sm:mt-3 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-white leading-tight">Tell us about your vehicle</h1>
+                <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-300">
+                  Share the details your mechanic needs. Once you submit this intake we will open your session and email the join link immediately.
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Vehicle Information Form */}
+          {!vehiclePreSelected && (
             <Section title={isUrgent ? "Vehicle information (optional)" : "Vehicle information"}>
               {userVehicles.length > 0 && !loadingProfile && (
                 <div className="rounded-xl border border-orange-400/20 sm:border-orange-400/30 bg-orange-500/10 p-4 sm:p-5">
@@ -734,6 +733,14 @@ export default function IntakePage() {
               <Input label="Odometer (optional)" value={form.odometer} onChange={(value) => setForm((prev) => ({ ...prev, odometer: value }))} />
               <Input label="Plate (optional)" value={form.plate} onChange={(value) => setForm((prev) => ({ ...prev, plate: value }))} />
             </div>
+            <button
+              type="button"
+              onClick={() => setVehiclePreSelected(true)}
+              disabled={isUrgent ? false : (!form.year || !form.make || !form.model)}
+              className="mt-4 w-full rounded-lg bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-600 active:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            >
+              Save Vehicle Details
+            </button>
           </Section>
           )}
 
@@ -845,6 +852,27 @@ export default function IntakePage() {
         {error && (
           <div className="mt-5 sm:mt-6 rounded-xl border border-rose-400/30 sm:border-rose-400/50 bg-rose-500/10 p-4 text-sm text-rose-300">
             {error}
+          </div>
+        )}
+
+        {/* Priority Connection Banner - Shown at bottom when urgent is checked */}
+        {isUrgent && (
+          <div className="mt-5 sm:mt-6 rounded-2xl border-2 border-red-500/50 bg-gradient-to-r from-red-600/30 via-orange-600/30 to-red-600/30 p-4 sm:p-5 shadow-xl animate-pulse-slow">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-500/30 border border-red-400/50">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/30 border border-red-400/50 text-xs font-bold uppercase tracking-wider text-red-200">
+                    EXPRESS MODE
+                  </span>
+                  Priority Connection Active
+                </h3>
+              </div>
+            </div>
           </div>
         )}
 

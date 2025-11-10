@@ -536,7 +536,15 @@ export default function MechanicSessionsPage() {
                         })()}
 
                         <button
-                          onClick={() => router.push(`/mechanic/session/${session.id}`)}
+                          onClick={() => {
+                            // Route to appropriate session page based on type
+                            const route = session.type === 'chat'
+                              ? `/chat/${session.id}`
+                              : session.type === 'video'
+                              ? `/video/${session.id}`
+                              : `/chat/${session.id}` // Default to chat for other types
+                            router.push(route)
+                          }}
                           className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
                         >
                           <Eye className="h-4 w-4" />
