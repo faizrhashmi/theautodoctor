@@ -34,7 +34,10 @@ END $$;
 
 DROP FUNCTION IF EXISTS get_current_workshop_escalation_rate() CASCADE;
 
-RAISE NOTICE '✅ Dropped get_current_workshop_escalation_rate() function';
+DO $$
+BEGIN
+    RAISE NOTICE '✅ Dropped get_current_workshop_escalation_rate() function';
+END $$;
 
 -- =====================================================
 -- STEP 3: Update comments to clarify 2% is ONLY for virtual mechanics
@@ -47,40 +50,52 @@ COMMENT ON TABLE mechanic_referral_earnings IS
 'Tracks referral commissions earned by VIRTUAL mechanics ONLY when customers accept bids on RFQs. Independent mechanics (owners) and workshop employees (salaried) do NOT receive referrals.';
 
 -- =====================================================
--- STEP 4: Add validation to mechanic_referral_earnings
+-- STEP 4: Add validation to mechanic_referral_earnings (if mechanic_type column exists)
 -- =====================================================
 
 -- Add function to validate only virtual mechanics get referrals
-CREATE OR REPLACE FUNCTION validate_virtual_mechanic_referral()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_mechanic_type TEXT;
+-- NOTE: This validation only works if mechanics.mechanic_type column exists
+DO $$
 BEGIN
-    -- Get mechanic type
-    SELECT mechanic_type INTO v_mechanic_type
-    FROM mechanics
-    WHERE id = NEW.mechanic_id;
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'mechanics'
+        AND column_name = 'mechanic_type'
+    ) THEN
+        -- Create validation function
+        CREATE OR REPLACE FUNCTION validate_virtual_mechanic_referral()
+        RETURNS TRIGGER AS $func$
+        DECLARE
+            v_mechanic_type TEXT;
+        BEGIN
+            -- Get mechanic type
+            SELECT mechanic_type INTO v_mechanic_type
+            FROM mechanics
+            WHERE id = NEW.mechanic_id;
 
-    -- Only virtual_only mechanics should get referrals
-    IF v_mechanic_type != 'virtual_only' THEN
-        RAISE EXCEPTION 'Only virtual_only mechanics can receive referral commissions. Mechanic type: %', v_mechanic_type;
+            -- Only virtual_only mechanics should get referrals
+            IF v_mechanic_type != 'virtual_only' THEN
+                RAISE EXCEPTION 'Only virtual_only mechanics can receive referral commissions. Mechanic type: %', v_mechanic_type;
+            END IF;
+
+            RETURN NEW;
+        END;
+        $func$ LANGUAGE plpgsql;
+
+        -- Drop existing trigger if exists
+        DROP TRIGGER IF EXISTS trigger_validate_virtual_mechanic_referral ON mechanic_referral_earnings;
+
+        -- Create trigger to enforce virtual-only referrals
+        CREATE TRIGGER trigger_validate_virtual_mechanic_referral
+            BEFORE INSERT ON mechanic_referral_earnings
+            FOR EACH ROW
+            EXECUTE FUNCTION validate_virtual_mechanic_referral();
+
+        RAISE NOTICE '✅ Created validation trigger for virtual-only mechanic referrals';
+    ELSE
+        RAISE NOTICE '⚠️  Skipping validation trigger - mechanics.mechanic_type column does not exist yet';
     END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Drop existing trigger if exists
-DROP TRIGGER IF EXISTS trigger_validate_virtual_mechanic_referral ON mechanic_referral_earnings;
-
--- Create trigger to enforce virtual-only referrals
-CREATE TRIGGER trigger_validate_virtual_mechanic_referral
-    BEFORE INSERT ON mechanic_referral_earnings
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_virtual_mechanic_referral();
-
-COMMENT ON TRIGGER trigger_validate_virtual_mechanic_referral ON mechanic_referral_earnings IS
-'Ensures only virtual_only mechanics can receive referral commissions (independent mechanics are owners, workshop employees are salaried)';
+END $$;
 
 -- =====================================================
 -- STEP 5: Update get_current_mechanic_referral_rate function comment
@@ -97,19 +112,32 @@ COMMENT ON FUNCTION calculate_referral_commission IS
 -- =====================================================
 
 -- Find and report any non-virtual mechanics with referral earnings
+-- Only run if mechanic_type column exists
 DO $$
 DECLARE
     invalid_count INTEGER;
+    has_mechanic_type BOOLEAN;
 BEGIN
-    SELECT COUNT(*) INTO invalid_count
-    FROM mechanic_referral_earnings mre
-    JOIN mechanics m ON mre.mechanic_id = m.id
-    WHERE m.mechanic_type != 'virtual_only';
+    -- Check if mechanic_type column exists
+    SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'mechanics'
+        AND column_name = 'mechanic_type'
+    ) INTO has_mechanic_type;
 
-    IF invalid_count > 0 THEN
-        RAISE WARNING '⚠️  Found % invalid referral earnings for non-virtual mechanics. Review and clean up manually if needed.', invalid_count;
+    IF has_mechanic_type THEN
+        SELECT COUNT(*) INTO invalid_count
+        FROM mechanic_referral_earnings mre
+        JOIN mechanics m ON mre.mechanic_id = m.id
+        WHERE m.mechanic_type != 'virtual_only';
+
+        IF invalid_count > 0 THEN
+            RAISE WARNING '⚠️  Found % invalid referral earnings for non-virtual mechanics. Review and clean up manually if needed.', invalid_count;
+        ELSE
+            RAISE NOTICE '✅ No invalid referral earnings found';
+        END IF;
     ELSE
-        RAISE NOTICE '✅ No invalid referral earnings found';
+        RAISE NOTICE '⚠️  Skipping referral validation - mechanics.mechanic_type column does not exist yet';
     END IF;
 END $$;
 
