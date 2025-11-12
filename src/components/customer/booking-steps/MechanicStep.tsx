@@ -37,6 +37,7 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
   // 🚨 CRITICAL SECURITY FIX: NEVER pre-select mechanic from wizardData
   // Could contain offline mechanic ID, allowing security bypass
   const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(null)
+  const [favoriteMechanicIds, setFavoriteMechanicIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState({
     onlineOnly: false,
@@ -82,6 +83,25 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
     }
     fetchSpecialistPremium()
   }, [requestedBrand, wizardData.requestedBrand])
+
+  // ✅ NEW: Fetch user's favorites on mount
+  useEffect(() => {
+    async function fetchFavorites() {
+      try {
+        const response = await fetch('/api/customer/mechanics/favorites')
+        if (response.ok) {
+          const data = await response.json()
+          // Use mechanic_id field from the API response
+          const favoriteIds = new Set(data.favorites?.map((fav: any) => fav.mechanic_id || fav.provider_id) || [])
+          setFavoriteMechanicIds(favoriteIds)
+          console.log('Loaded favorites:', Array.from(favoriteIds))
+        }
+      } catch (error) {
+        console.error('Error fetching favorites:', error)
+      }
+    }
+    fetchFavorites()
+  }, [])
 
   // Memoize fetchMechanics to prevent unnecessary re-renders
   const fetchMechanics = useCallback(async () => {
@@ -234,6 +254,19 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
   const cancelSpecialistChange = () => {
     setShowSpecialistChangeModal(false)
     setPendingMechanicType('')
+  }
+
+  // ✅ NEW: Handle favorite changes
+  const handleFavoriteChange = (mechanicId: string, isFavorite: boolean) => {
+    setFavoriteMechanicIds((prev) => {
+      const updated = new Set(prev)
+      if (isFavorite) {
+        updated.add(mechanicId)
+      } else {
+        updated.delete(mechanicId)
+      }
+      return updated
+    })
   }
 
   const handleMechanicSelect = async (mechanicId: string) => {
@@ -710,7 +743,10 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
                 {paginatedMechanics.map((mechanic) => (
                   <MechanicCard
                     key={mechanic.id}
-                    mechanic={mechanic}
+                    mechanic={{
+                      ...mechanic,
+                      isFavorite: favoriteMechanicIds.has(mechanic.id) // ✅ NEW: Pass favorite status
+                    }}
                     isSelected={selectedMechanicId === mechanic.id}
                     onSelect={handleMechanicSelect}
                     onViewProfile={(id) => {
@@ -720,7 +756,9 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
                     showSpecialistPremium={false} // No longer used - premium shown via specialistPremiumAmount
                     specialistPremiumAmount={mechanic.isBrandSpecialist ? currentSpecialistPremium : undefined} // ✅ NEW: Dynamic premium
                     showScheduleButton={true} // ✅ NEW: Enable "Schedule for Later" button
+                    showFavoriteButton={true} // ✅ NEW: Enable "Add to Favorites" button
                     wizardData={wizardData} // ✅ NEW: Pass wizard data for context
+                    onFavoriteChange={handleFavoriteChange} // ✅ NEW: Handle favorite changes
                   />
                 ))}
               </div>

@@ -77,11 +77,8 @@ export default function WorkshopQuotesPage() {
     try {
       setLoading(true)
 
-      // Get workshop_id from session/auth - for now using a placeholder
-      // TODO: Get from authenticated session
-      const workshopId = 'placeholder' // This should come from auth
-
-      const url = `/api/workshop/quotes?workshop_id=${workshopId}${filterStatus !== 'all' ? `&status=${filterStatus}` : ''}`
+      // ✅ Workshop ID is automatically extracted from auth by requireWorkshopAPI in the API route
+      const url = `/api/workshop/quotes${filterStatus !== 'all' ? `?status=${filterStatus}` : ''}`
 
       const response = await fetch(url)
       const data = await response.json()

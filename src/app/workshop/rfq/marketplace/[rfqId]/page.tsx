@@ -1,455 +1,640 @@
-/**
- * RFQ Detail + Bid Submission Page (Workshop View)
- *
- * Shows full RFQ details and allows workshop to submit a bid
- *
- * @route /workshop/rfq/marketplace/[rfqId]
- */
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import Link from 'next/link'
-import { RfqGate } from '@/components/guards/FeatureGate'
-import type { SubmitBidInput } from '@/lib/rfq/bidValidation'
+import { useRouter } from 'next/navigation'
+import { useAuthGuard } from '@/lib/auth/guards'
+import {
+  DollarSign,
+  Clock,
+  Shield,
+  Car,
+  MapPin,
+  Calendar,
+  AlertTriangle,
+  FileText,
+  CheckCircle2,
+  Send,
+  ArrowLeft,
+  AlertCircle,
+  Info
+} from 'lucide-react'
 
-interface RfqDetail {
+interface RFQDetails {
   id: string
   title: string
   description: string
-  issue_category: string
+  diagnosis_summary: string
+  recommended_services: string[] | null
+  mechanic_notes: string | null
   urgency: string
-  vehicle_make: string
-  vehicle_model: string
-  vehicle_year: number
-  vehicle_mileage: number
-  vehicle_vin?: string
-  budget_min?: number
-  budget_max?: number
+  issue_category: string | null
+
+  customer_city: string | null
+  customer_province: string | null
+  customer_postal_code: string | null
+
+  vehicle_make: string | null
+  vehicle_model: string | null
+  vehicle_year: number | null
+  vehicle_mileage: number | null
+  vehicle_vin: string | null
+
+  budget_min: number | null
+  budget_max: number | null
+
   bid_deadline: string
   max_bids: number
   bid_count: number
-  customer_city?: string
-  customer_province?: string
-  diagnosis_summary?: string
-  recommended_services?: string
-  hours_remaining: number
-  is_expiring_soon: boolean
-  bids_remaining: number
-  can_bid: boolean
-  has_existing_bid: boolean
-  existing_bid?: {
-    id: string
-    quote_amount: number
-    status: string
-  }
-  metadata?: {
-    photos?: string[]
-    videos?: string[]
-  }
+  status: string
+
+  diagnostic_photos: any[]
+  additional_photos: string[] | null
+
+  created_at: string
 }
 
-export default function RfqDetailPage() {
+export default function WorkshopRFQDetailPage({ params }: { params: { rfqId: string } }) {
   const router = useRouter()
-  const params = useParams()
-  const rfqId = params.rfqId as string
+  const { isLoading: authLoading, user } = useAuthGuard({ requiredRole: 'workshop_member' })
 
-  const [rfq, setRfq] = useState<RfqDetail | null>(null)
+  const [rfq, setRfq] = useState<RFQDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showBidForm, setShowBidForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const [bidData, setBidData] = useState<Partial<SubmitBidInput>>({
-    quote_amount: undefined,
-    parts_cost: undefined,
-    labor_cost: undefined,
+  // Bid form state
+  const [bidData, setBidData] = useState({
+    // Pricing
+    parts_cost: '',
+    labor_cost: '',
+    shop_supplies_fee: '',
+    environmental_fee: '',
+    tax_amount: '',
+
+    // Service details
     description: '',
-    estimated_completion_days: undefined,
-    parts_warranty_months: 12,
-    labor_warranty_months: 12,
+    parts_needed: '',
+    repair_plan: '',
+    alternative_options: '',
+
+    // Timeline
+    estimated_completion_days: '',
+    estimated_labor_hours: '',
+    earliest_availability_date: '',
+
+    // Warranty
+    parts_warranty_months: '12',
+    labor_warranty_months: '12',
+    warranty_info: '',
+
+    // Value-adds
     can_provide_loaner_vehicle: false,
     can_provide_pickup_dropoff: false,
+    after_hours_service_available: false
   })
 
   useEffect(() => {
-    fetchRfqDetails()
-  }, [rfqId])
+    if (user) {
+      fetchRFQDetails()
+    }
+  }, [user, params.rfqId])
 
-  async function fetchRfqDetails() {
-    setLoading(true)
-    setError(null)
-
+  async function fetchRFQDetails() {
     try {
-      const response = await fetch(`/api/rfq/marketplace/${rfqId}`)
+      setLoading(true)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch RFQ details')
-      }
+      // Track view
+      await fetch(`/api/rfq/marketplace/${params.rfqId}/view`, { method: 'POST' })
+
+      // Fetch RFQ details
+      const response = await fetch(`/api/rfq/marketplace/${params.rfqId}`)
+      if (!response.ok) throw new Error('Failed to load RFQ')
 
       const data = await response.json()
-      setRfq(data)
+      setRfq(data.rfq)
+
     } catch (err) {
+      console.error('Error fetching RFQ:', err)
       setError(err instanceof Error ? err.message : 'Failed to load RFQ')
     } finally {
       setLoading(false)
     }
   }
 
-  const updateBidField = <K extends keyof SubmitBidInput>(key: K, value: SubmitBidInput[K]) => {
-    setBidData(prev => ({ ...prev, [key]: value }))
-  }
+  async function submitBid(e: React.FormEvent) {
+    e.preventDefault()
 
-  async function handleSubmitBid() {
-    if (!rfq) return
-
-    setSubmitting(true)
-    setSubmitError(null)
+    if (!confirm('Are you sure you want to submit this bid? You cannot modify it after submission.')) {
+      return
+    }
 
     try {
-      // Validate required fields
-      if (!bidData.quote_amount || bidData.quote_amount <= 0) {
-        throw new Error('Quote amount is required')
+      setSubmitting(true)
+
+      const partsTotal = parseFloat(bidData.parts_cost) || 0
+      const laborTotal = parseFloat(bidData.labor_cost) || 0
+      const supplies = parseFloat(bidData.shop_supplies_fee) || 0
+      const envFee = parseFloat(bidData.environmental_fee) || 0
+      const tax = parseFloat(bidData.tax_amount) || 0
+
+      const quoteAmount = partsTotal + laborTotal + supplies + envFee + tax
+
+      if (quoteAmount <= 0) {
+        alert('Please enter valid pricing information')
+        return
       }
-      if (!bidData.description || bidData.description.length < 50) {
-        throw new Error('Bid description must be at least 50 characters')
-      }
-      if (!bidData.parts_cost && !bidData.labor_cost) {
-        throw new Error('OCPA compliance: You must provide at least parts cost or labor cost breakdown')
+
+      if (!bidData.description.trim()) {
+        alert('Please provide a description of the repair work')
+        return
       }
 
       const response = await fetch('/api/rfq/bids', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...bidData,
-          rfq_marketplace_id: rfqId,
-          workshop_id: 'AUTO', // Will be filled by server from workshop_role
+          rfq_marketplace_id: params.rfqId,
+          quote_amount: quoteAmount,
+          parts_cost: partsTotal,
+          labor_cost: laborTotal,
+          shop_supplies_fee: supplies || null,
+          environmental_fee: envFee || null,
+          tax_amount: tax || null,
+
+          description: bidData.description,
+          parts_needed: bidData.parts_needed || null,
+          repair_plan: bidData.repair_plan || null,
+          alternative_options: bidData.alternative_options || null,
+
+          estimated_completion_days: parseInt(bidData.estimated_completion_days) || null,
+          estimated_labor_hours: parseFloat(bidData.estimated_labor_hours) || null,
+          earliest_availability_date: bidData.earliest_availability_date || null,
+
+          parts_warranty_months: parseInt(bidData.parts_warranty_months) || null,
+          labor_warranty_months: parseInt(bidData.labor_warranty_months) || null,
+          warranty_info: bidData.warranty_info || null,
+
+          can_provide_loaner_vehicle: bidData.can_provide_loaner_vehicle,
+          can_provide_pickup_dropoff: bidData.can_provide_pickup_dropoff,
+          after_hours_service_available: bidData.after_hours_service_available
         })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to submit bid')
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to submit bid')
       }
 
-      const result = await response.json()
-      router.push(`/workshop/rfq/my-bids?success=true&bid_id=${result.bid_id}`)
+      alert('Bid submitted successfully! The customer will review it shortly.')
+      router.push('/workshop/rfq/my-bids')
+
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to submit bid')
+      console.error('Error submitting bid:', err)
+      alert(err instanceof Error ? err.message : 'Failed to submit bid')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'urgent': return 'bg-red-500/20 text-red-400 border-red-500/30'
-      case 'high': return 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-      case 'normal': return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-      case 'low': return 'bg-slate-500/20 text-slate-400 border-slate-500/30'
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30'
-    }
+  const quoteTotal = (parseFloat(bidData.parts_cost) || 0) +
+                     (parseFloat(bidData.labor_cost) || 0) +
+                     (parseFloat(bidData.shop_supplies_fee) || 0) +
+                     (parseFloat(bidData.environmental_fee) || 0) +
+                     (parseFloat(bidData.tax_amount) || 0)
+
+  const isWithinBudget = rfq?.budget_max ? quoteTotal <= rfq.budget_max : true
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading RFQ...</p>
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <RfqGate fallback={<div className="p-8 text-center">RFQ marketplace is not available</div>}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          {/* Back Button */}
-          <Link
-            href="/workshop/rfq/marketplace"
-            className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6"
+  if (error || !rfq) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-red-600" />
+            <div>
+              <h3 className="font-semibold text-red-900">Error Loading RFQ</h3>
+              <p className="text-red-700">{error || 'RFQ not found'}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 text-red-600 hover:text-red-800 font-medium"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Marketplace
-          </Link>
+            ê Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
 
-          {/* Loading State */}
-          {loading && (
-            <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+  if (rfq.status !== 'open') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-yellow-600" />
+            <div>
+              <h3 className="font-semibold text-yellow-900">RFQ No Longer Accepting Bids</h3>
+              <p className="text-yellow-700">This RFQ is {rfq.status}. Bids can only be submitted on open RFQs.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/workshop/rfq/marketplace')}
+            className="mt-4 text-yellow-600 hover:text-yellow-800 font-medium"
+          >
+            ê Back to Marketplace
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const deadlineDate = new Date(rfq.bid_deadline)
+  const isDeadlineSoon = deadlineDate.getTime() - Date.now() < 24 * 60 * 60 * 1000 // Less than 24 hours
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          onClick={() => router.push('/workshop/rfq/marketplace')}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Marketplace
+        </button>
+
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{rfq.title}</h1>
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-600">
+                {rfq.vehicle_make && (
+                  <div className="flex items-center gap-1">
+                    <Car className="w-4 h-4" />
+                    {rfq.vehicle_year} {rfq.vehicle_make} {rfq.vehicle_model}
+                  </div>
+                )}
+                {rfq.vehicle_mileage && (
+                  <div>{rfq.vehicle_mileage.toLocaleString()} km</div>
+                )}
+                {rfq.customer_city && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {rfq.customer_city}, {rfq.customer_province}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+              rfq.urgency === 'urgent' ? 'bg-red-100 text-red-700' :
+              rfq.urgency === 'high' ? 'bg-orange-100 text-orange-700' :
+              'bg-green-100 text-green-700'
+            }`}>
+              {rfq.urgency?.toUpperCase() || 'NORMAL'} PRIORITY
+            </div>
+          </div>
+
+          <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${
+            isDeadlineSoon ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+          }`}>
+            <Clock className="w-5 h-5" />
+            <div>
+              <span className="font-semibold">Bid Deadline:</span> {deadlineDate.toLocaleString()}
+              {isDeadlineSoon && <span className="ml-2 text-red-900 font-semibold">† URGENT</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-600">Bids Received</p>
+              <p className="text-2xl font-bold">{rfq.bid_count} / {rfq.max_bids}</p>
+            </div>
+            {rfq.budget_min && rfq.budget_max && (
+              <div>
+                <p className="text-sm text-gray-600">Customer Budget</p>
+                <p className="text-lg font-semibold">${rfq.budget_min} - ${rfq.budget_max}</p>
+              </div>
+            )}
+          </div>
+
+          <p className="text-gray-700 mb-4">{rfq.description}</p>
+
+          {rfq.diagnosis_summary && (
+            <div className="bg-blue-50 rounded-lg p-4 mb-4">
+              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Mechanic's Diagnosis
+              </h3>
+              <p className="text-blue-800">{rfq.diagnosis_summary}</p>
+              {rfq.recommended_services && rfq.recommended_services.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-blue-900">Recommended Services:</p>
+                  <ul className="list-disc list-inside text-blue-800">
+                    {rfq.recommended_services.map((service, i) => (
+                      <li key={i}>{service}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Error State */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-6">
-              <p className="text-red-400">{error}</p>
-            </div>
-          )}
-
-          {/* RFQ Details */}
-          {!loading && !error && rfq && (
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex-1">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{rfq.title}</h1>
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
-                      <span>{rfq.vehicle_year} {rfq.vehicle_make} {rfq.vehicle_model}</span>
-                      <span>‚Ä¢</span>
-                      <span>{rfq.vehicle_mileage.toLocaleString()} km</span>
-                      <span>‚Ä¢</span>
-                      <span>{rfq.customer_city}, {rfq.customer_province}</span>
-                    </div>
-                  </div>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getUrgencyColor(rfq.urgency)}`}>
-                    {rfq.urgency}
-                  </span>
-                </div>
-
-                {/* Time & Bids Status */}
-                <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <svg className={`w-5 h-5 ${rfq.is_expiring_soon ? 'text-orange-500' : 'text-slate-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className={rfq.is_expiring_soon ? 'text-orange-500 font-semibold' : 'text-white'}>
-                      {rfq.hours_remaining}h remaining
-                    </span>
-                  </div>
-                  <div className="text-white">
-                    Bids: {rfq.bid_count} / {rfq.max_bids}
-                  </div>
-                  {rfq.budget_min || rfq.budget_max ? (
-                    <div className="text-white">
-                      Budget: ${rfq.budget_min || 0} - ${rfq.budget_max || 'Any'}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-                <h2 className="text-xl font-bold mb-3">Issue Description</h2>
-                <p className="text-slate-300 whitespace-pre-wrap">{rfq.description}</p>
-              </div>
-
-              {/* Diagnosis */}
-              {rfq.diagnosis_summary && (
-                <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-                  <h2 className="text-xl font-bold mb-3">Mechanic's Diagnosis</h2>
-                  <p className="text-slate-300 whitespace-pre-wrap">{rfq.diagnosis_summary}</p>
-                  {rfq.recommended_services && (
-                    <div className="mt-4">
-                      <h3 className="font-semibold text-slate-400 mb-2">Recommended Services:</h3>
-                      <p className="text-slate-300">{rfq.recommended_services}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Existing Bid Notice */}
-              {rfq.has_existing_bid && rfq.existing_bid && (
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-blue-400 mb-2">You've Already Submitted a Bid</h3>
-                  <p className="text-blue-200 mb-3">
-                    Your bid of ${rfq.existing_bid.quote_amount.toLocaleString()} is {rfq.existing_bid.status}.
-                  </p>
-                  <Link
-                    href="/workshop/rfq/my-bids"
-                    className="text-orange-500 hover:text-orange-400 underline"
-                  >
-                    View My Bids ‚Üí
-                  </Link>
-                </div>
-              )}
-
-              {/* Submit Bid Section */}
-              {rfq.can_bid && !rfq.has_existing_bid && (
-                <>
-                  {!showBidForm ? (
-                    <button
-                      onClick={() => setShowBidForm(true)}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition-all shadow-lg hover:shadow-xl"
-                    >
-                      Submit Bid on This RFQ
-                    </button>
-                  ) : (
-                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-                      <h2 className="text-xl font-bold mb-6">Submit Your Bid</h2>
-
-                      <div className="space-y-6">
-                        {/* Quote Amount */}
-                        <div>
-                          <label htmlFor="quote_amount" className="block text-sm font-medium text-slate-300 mb-2">
-                            Total Quote Amount *
-                          </label>
-                          <input
-                            id="quote_amount"
-                            type="number"
-                            value={bidData.quote_amount || ''}
-                            onChange={(e) => updateBidField('quote_amount', parseFloat(e.target.value))}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                            placeholder="0.00"
-                            required
-                          />
-                        </div>
-
-                        {/* OCPA Breakdown */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="parts_cost" className="block text-sm font-medium text-slate-300 mb-2">
-                              Parts Cost * (OCPA)
-                            </label>
-                            <input
-                              id="parts_cost"
-                              type="number"
-                              value={bidData.parts_cost || ''}
-                              onChange={(e) => updateBidField('parts_cost', parseFloat(e.target.value))}
-                              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                              placeholder="0.00"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="labor_cost" className="block text-sm font-medium text-slate-300 mb-2">
-                              Labor Cost * (OCPA)
-                            </label>
-                            <input
-                              id="labor_cost"
-                              type="number"
-                              value={bidData.labor_cost || ''}
-                              onChange={(e) => updateBidField('labor_cost', parseFloat(e.target.value))}
-                              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                              placeholder="0.00"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                          <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">
-                            Bid Description * (min 50 chars)
-                          </label>
-                          <textarea
-                            id="description"
-                            value={bidData.description}
-                            onChange={(e) => updateBidField('description', e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 min-h-[120px]"
-                            placeholder="Describe your proposed repair plan, parts needed, and why your workshop is the best choice..."
-                            required
-                          />
-                          <p className="text-sm text-slate-500 mt-1">{bidData.description?.length || 0} / 50 minimum</p>
-                        </div>
-
-                        {/* Completion Time */}
-                        <div>
-                          <label htmlFor="estimated_completion_days" className="block text-sm font-medium text-slate-300 mb-2">
-                            Estimated Completion (days)
-                          </label>
-                          <input
-                            id="estimated_completion_days"
-                            type="number"
-                            value={bidData.estimated_completion_days || ''}
-                            onChange={(e) => updateBidField('estimated_completion_days', parseInt(e.target.value))}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                            placeholder="3"
-                          />
-                        </div>
-
-                        {/* Warranty */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="parts_warranty_months" className="block text-sm font-medium text-slate-300 mb-2">
-                              Parts Warranty (months)
-                            </label>
-                            <input
-                              id="parts_warranty_months"
-                              type="number"
-                              value={bidData.parts_warranty_months || ''}
-                              onChange={(e) => updateBidField('parts_warranty_months', parseInt(e.target.value))}
-                              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="labor_warranty_months" className="block text-sm font-medium text-slate-300 mb-2">
-                              Labor Warranty (months)
-                            </label>
-                            <input
-                              id="labor_warranty_months"
-                              type="number"
-                              value={bidData.labor_warranty_months || ''}
-                              onChange={(e) => updateBidField('labor_warranty_months', parseInt(e.target.value))}
-                              className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Additional Services */}
-                        <div className="space-y-3">
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={bidData.can_provide_loaner_vehicle}
-                              onChange={(e) => updateBidField('can_provide_loaner_vehicle', e.target.checked)}
-                              className="w-5 h-5 bg-slate-800 border-2 border-slate-700 rounded checked:bg-orange-500"
-                            />
-                            <span className="ml-3 text-slate-300">Can provide loaner vehicle</span>
-                          </label>
-                          <label className="flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={bidData.can_provide_pickup_dropoff}
-                              onChange={(e) => updateBidField('can_provide_pickup_dropoff', e.target.checked)}
-                              className="w-5 h-5 bg-slate-800 border-2 border-slate-700 rounded checked:bg-orange-500"
-                            />
-                            <span className="ml-3 text-slate-300">Can provide pickup/dropoff</span>
-                          </label>
-                        </div>
-
-                        {/* Error */}
-                        {submitError && (
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                            <p className="text-red-400">{submitError}</p>
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setShowBidForm(false)}
-                            disabled={submitting}
-                            className="flex-1 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleSubmitBid}
-                            disabled={submitting}
-                            className="flex-1 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                          >
-                            {submitting ? 'Submitting...' : 'Submit Bid'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Cannot Bid */}
-              {!rfq.can_bid && !rfq.has_existing_bid && (
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 text-center">
-                  <p className="text-slate-400">
-                    {rfq.hours_remaining === 0
-                      ? 'This RFQ has expired'
-                      : 'This RFQ is no longer accepting bids (max bids reached)'}
-                  </p>
-                </div>
-              )}
+          {rfq.mechanic_notes && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-2">Additional Notes</h3>
+              <p className="text-gray-700">{rfq.mechanic_notes}</p>
             </div>
           )}
         </div>
       </div>
-    </RfqGate>
+
+      {/* Bid Submission Form */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit Your Bid</h2>
+
+        <form onSubmit={submitBid} className="space-y-6">
+          {/* Pricing Section */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Pricing Breakdown</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              ñ Ontario Consumer Protection Act requires detailed pricing breakdown
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parts Cost <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={bidData.parts_cost}
+                    onChange={(e) => setBidData({...bidData, parts_cost: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Labor Cost <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={bidData.labor_cost}
+                    onChange={(e) => setBidData({...bidData, labor_cost: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shop Supplies Fee</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={bidData.shop_supplies_fee}
+                    onChange={(e) => setBidData({...bidData, shop_supplies_fee: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Environmental Fee</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={bidData.environmental_fee}
+                    onChange={(e) => setBidData({...bidData, environmental_fee: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Amount</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    value={bidData.tax_amount}
+                    onChange={(e) => setBidData({...bidData, tax_amount: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className={`mt-4 p-4 rounded-lg ${
+              isWithinBudget ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-gray-900">Total Quote Amount:</span>
+                <span className="text-2xl font-bold">${quoteTotal.toFixed(2)}</span>
+              </div>
+              {!isWithinBudget && rfq.budget_max && (
+                <p className="text-red-700 text-sm mt-2">
+                  † Your bid exceeds the customer's budget (${rfq.budget_max.toFixed(2)})
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Repair Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              required
+              rows={4}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="Describe the repair work you'll perform..."
+              value={bidData.description}
+              onChange={(e) => setBidData({...bidData, description: e.target.value})}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Parts Needed</label>
+              <textarea
+                rows={3}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="List the parts required..."
+                value={bidData.parts_needed}
+                onChange={(e) => setBidData({...bidData, parts_needed: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Repair Plan</label>
+              <textarea
+                rows={3}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Detailed repair plan..."
+                value={bidData.repair_plan}
+                onChange={(e) => setBidData({...bidData, repair_plan: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Alternative Options</label>
+            <textarea
+              rows={2}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., repair vs replace options..."
+              value={bidData.alternative_options}
+              onChange={(e) => setBidData({...bidData, alternative_options: e.target.value})}
+            />
+          </div>
+
+          {/* Timeline & Warranty */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Completion Time (days)</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={bidData.estimated_completion_days}
+                onChange={(e) => setBidData({...bidData, estimated_completion_days: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Labor Hours</label>
+              <input
+                type="number"
+                step="0.5"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={bidData.estimated_labor_hours}
+                onChange={(e) => setBidData({...bidData, estimated_labor_hours: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Earliest Availability</label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={bidData.earliest_availability_date}
+                onChange={(e) => setBidData({...bidData, earliest_availability_date: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Parts Warranty (months)</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={bidData.parts_warranty_months}
+                onChange={(e) => setBidData({...bidData, parts_warranty_months: e.target.value})}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Labor Warranty (months)</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={bidData.labor_warranty_months}
+                onChange={(e) => setBidData({...bidData, labor_warranty_months: e.target.value})}
+              />
+            </div>
+          </div>
+
+          {/* Value-Adds */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Services</h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  checked={bidData.can_provide_loaner_vehicle}
+                  onChange={(e) => setBidData({...bidData, can_provide_loaner_vehicle: e.target.checked})}
+                />
+                <span>Can provide loaner vehicle</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  checked={bidData.can_provide_pickup_dropoff}
+                  onChange={(e) => setBidData({...bidData, can_provide_pickup_dropoff: e.target.checked})}
+                />
+                <span>Can provide pickup & dropoff service</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  checked={bidData.after_hours_service_available}
+                  onChange={(e) => setBidData({...bidData, after_hours_service_available: e.target.checked})}
+                />
+                <span>After-hours service available</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-6 border-t">
+            <button
+              type="submit"
+              disabled={submitting || quoteTotal <= 0}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Submitting Bid...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  Submit Bid
+                </>
+              )}
+            </button>
+
+            <p className="text-sm text-gray-600 text-center mt-3">
+              By submitting, you agree to provide the quoted service at the stated price
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }

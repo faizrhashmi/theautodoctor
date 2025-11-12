@@ -188,16 +188,22 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
   }
 
   const submitToIntakeAPI = async (data: typeof wizardData) => {
+    console.log('[BookingWizard] ===== SUBMIT TO INTAKE API CALLED =====')
+    console.log('[BookingWizard] wizardData being submitted:', data)
+
     try {
+      console.log('[BookingWizard] Step 1: Fetching customer profile...')
       // Fetch customer profile only (vehicle data is already in wizardData)
       const profileRes = await fetch('/api/customer/profile')
 
       // Validate profile fetch
       if (!profileRes.ok) {
-        console.error('Failed to fetch profile')
+        console.error('[BookingWizard] Failed to fetch profile, status:', profileRes.status)
         alert('Failed to load your profile. Please try again.')
         return
       }
+
+      console.log('[BookingWizard] Step 2: Profile fetched successfully')
 
       const profileData = await profileRes.json()
       // Use vehicle data from wizardData (passed from VehicleStep)
@@ -358,10 +364,19 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
              wizardData.mechanicPresenceStatus === 'online'
     }
 
-    // Step 4: Concern (minimum length)
+    // Step 4: Concern (minimum length + primary concern)
     if (currentStep === 4) {
-      return !!wizardData.concernDescription &&
+      const isValid = !!wizardData.primaryConcern &&
+             !!wizardData.concernDescription &&
              wizardData.concernDescription.trim().length >= 10
+      console.log('[BookingWizard] Step 4 validation:', {
+        primaryConcern: wizardData.primaryConcern,
+        concernDescription: wizardData.concernDescription,
+        length: wizardData.concernDescription?.length || 0,
+        trimmedLength: wizardData.concernDescription?.trim().length || 0,
+        isValid
+      })
+      return isValid
     }
 
     return false
@@ -513,15 +528,42 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
 
             {/* Next/Finish Button */}
             <button
-              onClick={async () => {
-                if (!canGoNext) return
+              onClick={async (e) => {
+                console.log('[BookingWizard] ===== BUTTON CLICKED =====')
+                console.log('[BookingWizard] Event:', e)
+                console.log('[BookingWizard] canGoNext:', canGoNext)
+                console.log('[BookingWizard] isLastStep:', isLastStep)
+                console.log('[BookingWizard] currentStep:', currentStep)
+
+                if (!canGoNext) {
+                  console.log('[BookingWizard] Button disabled - canGoNext is false')
+                  alert('Validation failed. Check console for details.')
+                  return
+                }
 
                 if (isLastStep) {
                   // Step 4: Submit to intake API
                   console.log('[BookingWizard] Continue clicked on Step 4 - submitting to intake API')
-                  await submitToIntakeAPI(wizardData)
+                  console.log('[BookingWizard] wizardData at button click:', wizardData)
+
+                  // Show loading indicator
+                  const btn = e.currentTarget
+                  const originalText = btn.innerHTML
+                  btn.innerHTML = 'Submitting...'
+                  btn.disabled = true
+
+                  try {
+                    await submitToIntakeAPI(wizardData)
+                  } catch (error) {
+                    console.error('[BookingWizard] Error in submitToIntakeAPI:', error)
+                    alert('Submission failed. Check console for details.')
+                    // Restore button
+                    btn.innerHTML = originalText
+                    btn.disabled = false
+                  }
                 } else {
                   // Other steps: Advance to next step
+                  console.log('[BookingWizard] Advancing to next step')
                   setCurrentStep(currentStep + 1)
                 }
               }}

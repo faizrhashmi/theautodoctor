@@ -43,6 +43,10 @@ export default function ConcernStep({ wizardData, onComplete, onBack }: ConcernS
   // ✅ FIX: Update wizard data when form changes, but DON'T add step to completedSteps
   // The issue was that calling onComplete() marks the step as "complete" (checked)
   // We need to update wizardData for validation, but not mark as visually complete
+  //
+  // 🚨 CRITICAL FIX (2025-11-12): Removed onComplete from dependencies to prevent infinite loop
+  // The onComplete callback changes on every parent render, which was causing this useEffect
+  // to fire continuously. We only care about the form data changes, not the callback itself.
   useEffect(() => {
     if (isFormValid) {
       const concernData = {
@@ -55,7 +59,8 @@ export default function ConcernStep({ wizardData, onComplete, onBack }: ConcernS
       console.log('[ConcernStep] Form data updated, calling onComplete to sync with wizardData')
       onComplete(concernData)
     }
-  }, [primaryConcern, concernCategory, concernDescription, isUrgent, uploads, isFormValid, onComplete])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryConcern, concernCategory, concernDescription, isUrgent, uploads, isFormValid])
 
   const handleConcernSelect = (value: string, category?: string) => {
     setPrimaryConcern(value)

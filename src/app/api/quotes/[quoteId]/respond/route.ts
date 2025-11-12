@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * PATCH /api/quotes/[quoteId]/respond
@@ -35,6 +36,17 @@ export async function PATCH(
       )
     }
 
+    // 🔒 SECURITY: Authenticate user
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      )
+    }
+
     // Load the quote
     const { data: quote, error: quoteError } = await supabaseAdmin
       .from('repair_quotes')
@@ -46,6 +58,23 @@ export async function PATCH(
       return NextResponse.json(
         { error: 'Quote not found' },
         { status: 404 }
+      )
+    }
+
+    // 🔒 SECURITY: Authorize - only customer or admin can respond to quotes
+    const { data: userProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isCustomer = quote.customer_id === user.id
+    const isAdmin = userProfile?.role === 'admin'
+
+    if (!isCustomer && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden - Only the customer can respond to this quote' },
+        { status: 403 }
       )
     }
 

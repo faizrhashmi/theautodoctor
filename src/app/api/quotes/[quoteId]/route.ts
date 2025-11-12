@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/quotes/[quoteId]
@@ -12,6 +13,17 @@ export async function GET(
 ) {
   try {
     const quoteId = params.quoteId
+
+    // 🔒 SECURITY: Authenticate user
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please log in' },
+        { status: 401 }
+      )
+    }
 
     // Load the repair quote with related data
     const { data: quote, error } = await supabaseAdmin
@@ -45,6 +57,35 @@ export async function GET(
       return NextResponse.json(
         { error: 'Quote not found' },
         { status: 404 }
+      )
+    }
+
+    // 🔒 SECURITY: Authorize user access to this quote
+    // User must be: customer, workshop, mechanic on this quote, or admin
+    const { data: userProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const isCustomer = quote.customer_id === user.id
+    const isWorkshop = quote.workshop_id && (
+      await supabaseAdmin
+        .from('organization_members')
+        .select('id')
+        .eq('organization_id', quote.workshop_id)
+        .eq('user_id', user.id)
+        .single()
+    ).data !== null
+    const isMechanic = (quote.mechanic_id && quote.mechanic_id === user.id) ||
+                       (quote.diagnosing_mechanic_id && quote.diagnosing_mechanic_id === user.id) ||
+                       (quote.quoting_user_id && quote.quoting_user_id === user.id)
+    const isAdmin = userProfile?.role === 'admin'
+
+    if (!isCustomer && !isWorkshop && !isMechanic && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden - You do not have access to this quote' },
+        { status: 403 }
       )
     }
 

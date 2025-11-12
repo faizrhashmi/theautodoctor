@@ -37,19 +37,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Get customer's favorites with detailed mechanic information
-    // @ts-ignore - favorites table exists but not yet in generated types
+    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: favorites, error } = await supabase
-      .from('favorites')
+      .from('customer_favorites')
       .select(`
         id,
-        provider_id,
-        provider_type,
-        created_at,
-        provider_name,
+        mechanic_id,
+        added_at,
         total_services,
         total_spent,
         last_service_at,
         mechanics (
+          id,
           user_id,
           years_experience,
           rating,
@@ -63,9 +62,8 @@ export async function GET(request: NextRequest) {
           workshop:organizations (
             name
           ),
-          presence_status (
-            status,
-            last_seen
+          profiles:profiles!mechanics_user_id_fkey (
+            full_name
           )
         )
       `)
@@ -83,10 +81,12 @@ export async function GET(request: NextRequest) {
 
       return {
         id: fav.id,
-        provider_id: fav.provider_id,
-        provider_name: fav.provider_name,
-        provider_type: fav.provider_type,
-        created_at: fav.created_at,
+        provider_id: fav.mechanic_id,
+        mechanic_id: fav.mechanic_id,
+        provider_name: mechanic?.profiles?.full_name || 'Unknown',
+        provider_type: 'independent',
+        created_at: fav.added_at,
+        added_at: fav.added_at,
         total_services: fav.total_services || 0,
         total_spent: fav.total_spent || 0,
         last_service_at: fav.last_service_at,
@@ -100,10 +100,9 @@ export async function GET(request: NextRequest) {
         country: mechanic?.country,
         mechanic_type: mechanic?.mechanic_type,
         workshop_name: mechanic?.workshop?.name,
-        // Presence status
-        is_online: mechanic?.presence_status?.[0]?.status === 'online',
-        last_seen: mechanic?.presence_status?.[0]?.last_seen,
-        presence_status: mechanic?.presence_status?.[0]?.status || 'offline'
+        // Presence status - Need to fetch separately
+        is_online: false,
+        presence_status: 'offline'
       }
     })
 
@@ -151,13 +150,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already favorited
-    // @ts-ignore - favorites table exists but not yet in generated types
+    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: existing } = await supabase
-      .from('favorites')
+      .from('customer_favorites')
       .select('id')
       .eq('customer_id', user.id)
-      .eq('provider_id', mechanic_id)
-      .single()
+      .eq('mechanic_id', mechanic_id)
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json(
@@ -167,14 +166,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to favorites
-    // @ts-ignore - favorites table exists but not yet in generated types
+    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: favorite, error } = await supabase
-      .from('favorites')
+      .from('customer_favorites')
       .insert({
         customer_id: user.id,
-        provider_id: mechanic_id,
-        provider_name: mechanic_name,
-        provider_type: 'independent', // Default, will be updated by trigger
+        mechanic_id: mechanic_id,
         total_services: 0,
         total_spent: 0
       })
@@ -230,12 +227,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Remove from favorites
-    // @ts-ignore - favorites table exists but not yet in generated types
+    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { error } = await supabase
-      .from('favorites')
+      .from('customer_favorites')
       .delete()
       .eq('customer_id', user.id)
-      .eq('provider_id', mechanic_id)
+      .eq('mechanic_id', mechanic_id)
 
     if (error) {
       console.error('[favorites] Delete error:', error)

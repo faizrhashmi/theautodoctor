@@ -105,7 +105,7 @@ export default function CustomerQuotesPage() {
       }
 
       // Refresh quotes
-      await fetchQuotes()
+      await fetchAllQuotes()
     } catch (err) {
       console.error('Response error:', err)
       alert('Failed to respond to quote. Please try again.')
