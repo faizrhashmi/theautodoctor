@@ -39,6 +39,9 @@ export default async function ThankYou({
   let inferredType = searchParams?.type ?? null
   let plan: string | null = searchParams?.plan ?? null
   let amountTotal: number | null = null
+  let planPrice: number | null = null
+  let preferredMechanicId: string | null = null
+  let preferredMechanicName: string | null = null
 
   let sessionRoute: string | null = null
   let sessionType: SessionType | null = (['chat', 'video', 'diagnostic'] as SessionType[]).includes(
@@ -51,7 +54,16 @@ export default async function ThankYou({
   if (directSessionId && supabaseAdmin) {
     const { data: sessionRecord } = await supabaseAdmin
       .from('sessions')
-      .select('id, type, plan')
+      .select(`
+        id,
+        type,
+        plan,
+        final_price,
+        session_participants!inner(
+          mechanic_id,
+          mechanic:profiles!session_participants_mechanic_id_fkey(full_name)
+        )
+      `)
       .eq('id', directSessionId)
       .maybeSingle()
 
@@ -61,6 +73,17 @@ export default async function ThankYou({
       sessionType = resolvedType
       sessionRoute = `${ROUTE_BY_TYPE[resolvedType]}/${sessionRecord.id}`
       plan = plan ?? (sessionRecord.plan as string | null) ?? plan
+      planPrice = (sessionRecord as any).final_price
+
+      // Extract preferred mechanic info
+      const participants = (sessionRecord as any).session_participants
+      if (participants && Array.isArray(participants) && participants.length > 0) {
+        const participant = participants[0]
+        if (participant.mechanic_id) {
+          preferredMechanicId = participant.mechanic_id
+          preferredMechanicName = participant.mechanic?.full_name || null
+        }
+      }
     }
   }
 
@@ -140,7 +163,15 @@ export default async function ThankYou({
   }
 
   const planName = resolvePlanName(plan)
-  const formattedAmount = amountTotal ? `$${(amountTotal / 100).toFixed(2)}` : null
+
+  // Calculate display amount - prioritize planPrice (from final_price), fallback to stripe amount
+  const displayAmount = planPrice !== null && planPrice !== undefined
+    ? `$${planPrice.toFixed(2)}`
+    : amountTotal
+    ? `$${(amountTotal / 100).toFixed(2)}`
+    : planName === 'Complimentary Session' || plan === 'free' || plan === 'trial'
+    ? '$0.00'
+    : null
   const startHref =
     sessionRoute ?? (stripeSessionId ? `/signup?session_id=${encodeURIComponent(stripeSessionId)}` : '/signup')
 
@@ -153,9 +184,9 @@ export default async function ThankYou({
           <p className="mt-3 text-sm text-slate-300">
             {planName ? (
               <>
-                {amountTotal !== null ? 'Payment confirmed for ' : 'Booked plan '}
+                {displayAmount !== null && displayAmount !== '$0.00' ? 'Payment confirmed for ' : 'Booked plan '}
                 <span className="font-semibold text-white">{planName}</span>
-                {formattedAmount ? ` - ${formattedAmount}` : ''}. We have emailed your receipt and session details.
+                {displayAmount ? ` - ${displayAmount}` : ''}. We have emailed your {displayAmount && displayAmount !== '$0.00' ? 'receipt and ' : ''}session details.
               </>
             ) : (
               'We have received your booking. A confirmation email is on its way with everything you need to join.'
@@ -178,7 +209,11 @@ export default async function ThankYou({
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 h-2 w-2 rounded-full bg-orange-300" />
-                  Share the mechanic invite link with your trusted technician if you want them to attend alongside you.
+                  {preferredMechanicId ? (
+                    <>Your selected mechanic will join the session when it starts. You'll receive a notification when they're ready.</>
+                  ) : (
+                    <>Share the mechanic invite link below with your trusted technician so they can join the session with you.</>
+                  )}
                 </li>
               </ul>
             </div>
@@ -205,13 +240,32 @@ export default async function ThankYou({
 
         {dbSessionId && (
           <section className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 shadow-sm backdrop-blur-sm">
-            <h2 className="text-lg font-semibold text-white">Invite your mechanic</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {preferredMechanicId ? 'Session Ready' : 'Invite Your Mechanic'}
+            </h2>
             <p className="mt-2 text-sm text-slate-300">
-              Share this secure join link so a certified mechanic or trusted shop can jump into the live workspace with you.
+              {preferredMechanicId ? (
+                <>
+                  Your selected mechanic{' '}
+                  {preferredMechanicName && (
+                    <strong className="text-white">{preferredMechanicName}</strong>
+                  )}{' '}
+                  has been notified and will join when the session starts. You'll receive a notification when they're ready.
+                </>
+              ) : (
+                <>
+                  Share this secure join link with your trusted mechanic or shop.{' '}
+                  <strong className="text-orange-300">
+                    Only authorized mechanics with this link can join.
+                  </strong>
+                </>
+              )}
             </p>
-            <div className="mt-4">
-              <MechanicInvite sessionId={dbSessionId} />
-            </div>
+            {!preferredMechanicId && (
+              <div className="mt-4">
+                <MechanicInvite sessionId={dbSessionId} />
+              </div>
+            )}
           </section>
         )}
       </div>

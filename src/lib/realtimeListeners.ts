@@ -342,3 +342,82 @@ export function listenCustomerActiveSession(
     client.removeChannel(channel)
   }
 }
+
+/**
+ * 🚀 MECHANIC REVIEWS LISTENER (2025-11-12)
+ *
+ * Listen to session_reviews table changes for a specific mechanic.
+ * This enables real-time updates for the reviews page without polling.
+ *
+ * Use case: Mechanic viewing their reviews page needs instant updates when:
+ * - New review is submitted (INSERT)
+ * - Review is updated (UPDATE)
+ * - Review is deleted (DELETE)
+ *
+ * This replaces periodic polling with event-driven updates.
+ *
+ * @param mechanicId - The mechanic's user ID to filter reviews
+ * @param onReviewUpdate - Callback fired when a review changes
+ * @returns Cleanup function to call on component unmount
+ *
+ * @example
+ * useEffect(() => {
+ *   const cleanup = listenMechanicReviews(mechanicId, (event) => {
+ *     if (event.eventType === 'INSERT') {
+ *       // New review received - refresh stats
+ *       refreshReviews()
+ *     }
+ *   })
+ *   return cleanup
+ * }, [mechanicId])
+ */
+export function listenMechanicReviews(
+  mechanicId: string,
+  onReviewUpdate: (event: SessionAssignmentEvent) => void
+): () => void {
+  const client = supabaseBrowser()
+
+  console.log(`[realtimeListeners] 🔌 Setting up reviews listener for mechanic ${mechanicId}...`)
+
+  const channel = client
+    .channel(`mechanic-reviews-${mechanicId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'session_reviews',
+        filter: `mechanic_id=eq.${mechanicId}`
+      },
+      (payload) => {
+        console.log('[realtimeListeners] 📨 Review event:', {
+          eventType: payload.eventType,
+          reviewId: (payload.new as any)?.id || (payload.old as any)?.id,
+          rating: (payload.new as any)?.rating
+        })
+
+        onReviewUpdate({
+          eventType: payload.eventType?.toUpperCase() as 'INSERT' | 'UPDATE' | 'DELETE',
+          new: payload.new,
+          old: payload.old,
+          schema: payload.schema,
+          table: payload.table
+        })
+      }
+    )
+    .subscribe((status) => {
+      console.log(`[realtimeListeners] Reviews subscription status for mechanic ${mechanicId}:`, status)
+
+      if (status === 'SUBSCRIBED') {
+        console.log(`[realtimeListeners] ✅ Successfully subscribed to mechanic ${mechanicId} reviews`)
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.error(`[realtimeListeners] ❌ Mechanic ${mechanicId} reviews subscription failed:`, status)
+      }
+    })
+
+  // Return cleanup function
+  return () => {
+    console.log(`[realtimeListeners] 🔌 Cleaning up mechanic ${mechanicId} reviews listener`)
+    client.removeChannel(channel)
+  }
+}

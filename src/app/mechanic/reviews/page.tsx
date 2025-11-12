@@ -6,6 +6,8 @@ import {
   Star, TrendingUp, Award, MessageSquare, RefreshCw,
   Filter, Calendar, ThumbsUp, AlertCircle
 } from 'lucide-react'
+import { listenMechanicReviews } from '@/lib/realtimeListeners'
+import { supabaseBrowser } from '@/lib/supabase'
 
 type Review = {
   id: string
@@ -39,6 +41,7 @@ export default function MechanicReviewsPage() {
   const [stats, setStats] = useState<RatingStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mechanicId, setMechanicId] = useState<string | null>(null)
 
   // Filters
   const [ratingFilter, setRatingFilter] = useState<string>('all')
@@ -48,6 +51,34 @@ export default function MechanicReviewsPage() {
   const [page, setPage] = useState(0)
   const [limit] = useState(20)
   const [hasMore, setHasMore] = useState(true)
+
+  // Get mechanic ID on mount
+  useEffect(() => {
+    async function getMechanicId() {
+      const client = supabaseBrowser()
+      const { data: { user } } = await client.auth.getUser()
+      if (user) {
+        setMechanicId(user.id)
+      }
+    }
+    getMechanicId()
+  }, [])
+
+  // Set up realtime listener
+  useEffect(() => {
+    if (!mechanicId) return
+
+    console.log('[ReviewsPage] Setting up realtime listener for mechanic:', mechanicId)
+
+    const cleanup = listenMechanicReviews(mechanicId, (event) => {
+      console.log('[ReviewsPage] Review event received:', event.eventType)
+
+      // Refresh reviews when any change occurs
+      fetchReviews()
+    })
+
+    return cleanup
+  }, [mechanicId])
 
   useEffect(() => {
     fetchReviews()

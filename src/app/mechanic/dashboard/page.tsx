@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase'
 import RecentSessions from '@/components/dashboard/RecentSessions'
 import SessionCard from '@/components/sessions/SessionCard'
 import { ActiveSessionBanner } from '@/components/shared/ActiveSessionBanner'
+import MechanicSessionDetailsModal from '@/components/mechanic/MechanicSessionDetailsModal'
 import { ensureNotificationPermission } from '@/lib/browserNotifications'
 import { primeAudio } from '@/lib/notificationSound'
 import { triggerMechanicNewRequestAlert } from '@/lib/newRequestAlertsBridge'
@@ -146,6 +147,8 @@ export default function MechanicDashboardPage() {
   const [mechanicData, setMechanicData] = useState<any>(null)
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([])
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([])
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [queue, setQueue] = useState<{
     unassigned: QueueAssignment[]
     mine: QueueAssignment[]
@@ -708,6 +711,11 @@ export default function MechanicDashboardPage() {
                       partnerName="Customer"
                       partnerRole="customer"
                       userRole="mechanic"
+                      showViewButton={true}
+                      onViewDetails={(id) => {
+                        setSelectedSessionId(id)
+                        setShowDetailsModal(true)
+                      }}
                       cta={{
                         action: 'Accept Request',
                         onClick: async () => {
@@ -821,6 +829,17 @@ export default function MechanicDashboardPage() {
         </div>
       </div>
       </div>
+
+      {/* View Details Modal */}
+      {showDetailsModal && selectedSessionId && (
+        <MechanicSessionDetailsModal
+          sessionId={selectedSessionId}
+          onClose={() => {
+            setShowDetailsModal(false)
+            setSelectedSessionId(null)
+          }}
+        />
+      )}
     </>
   )
 }
