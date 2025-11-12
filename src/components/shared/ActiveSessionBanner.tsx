@@ -428,7 +428,7 @@ export function ActiveSessionBanner({
   return (
     <div className={`sticky top-0 z-40 border-b backdrop-blur-md shadow-lg transition-all duration-300 ${
       activeSession.status === 'live' || activeSession.status === 'waiting'
-        ? 'border-emerald-500/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-800/95 animate-[breathe_3s_ease-in-out_infinite]'
+        ? 'border-emerald-500/40 bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-800/95 animate-[breathe_3s_ease-in-out_infinite,pulse-border_2s_ease-in-out_infinite]'
         : 'border-slate-700/50 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800/95'
     }`}>
       <style jsx>{`
@@ -437,7 +437,15 @@ export function ActiveSessionBanner({
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           }
           50% {
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2), 0 4px 6px -2px rgba(16, 185, 129, 0.15), 0 0 20px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3), 0 4px 6px -2px rgba(16, 185, 129, 0.25), 0 0 30px rgba(16, 185, 129, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.1);
+          }
+        }
+        @keyframes pulse-border {
+          0%, 100% {
+            border-color: rgba(16, 185, 129, 0.4);
+          }
+          50% {
+            border-color: rgba(16, 185, 129, 0.8);
           }
         }
       `}</style>
@@ -455,6 +463,9 @@ export function ActiveSessionBanner({
               }`} />
               {activeSession.status === 'live' && (
                 <div className="absolute h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />
+              )}
+              {activeSession.status === 'waiting' && (
+                <div className="absolute h-3 w-3 rounded-full bg-blue-500 animate-pulse opacity-60" />
               )}
             </div>
 
