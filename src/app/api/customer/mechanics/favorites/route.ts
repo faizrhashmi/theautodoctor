@@ -37,36 +37,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get customer's favorites with detailed mechanic information
+    // Get customer's favorites (without joining mechanics - RLS would block that)
     const { data: favorites, error } = await supabase
       .from('customer_favorites')
-      .select(`
-        id,
-        mechanic_id,
-        added_at,
-        total_services,
-        total_spent,
-        last_service_at,
-        mechanics (
-          id,
-          user_id,
-          years_experience,
-          rating,
-          completed_sessions,
-          red_seal_certified,
-          brand_specializations,
-          city,
-          country,
-          mechanic_type,
-          workshop_id,
-          workshop:organizations (
-            name
-          ),
-          profiles:profiles!mechanics_user_id_fkey (
-            full_name
-          )
-        )
-      `)
+      .select('id, mechanic_id, added_at, total_services, total_spent, last_service_at')
       .eq('customer_id', user.id)
       .order('last_service_at', { ascending: false, nullsFirst: false })
 
@@ -75,15 +49,68 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 })
     }
 
+    if (!favorites || favorites.length === 0) {
+      return NextResponse.json({
+        success: true,
+        favorites: [],
+        count: 0
+      })
+    }
+
+    // Use admin client to fetch mechanic details (RLS bypass needed)
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    const mechanicIds = favorites.map(f => f.mechanic_id)
+
+    const { data: mechanics, error: mechanicsError } = await supabaseAdmin
+      .from('mechanics')
+      .select(`
+        id,
+        user_id,
+        years_of_experience,
+        rating,
+        completed_sessions,
+        red_seal_certified,
+        brand_specializations,
+        city,
+        country,
+        currently_on_shift,
+        shop_affiliation,
+        workshop_id,
+        organizations:workshop_id (name)
+      `)
+      .in('id', mechanicIds)
+
+    if (mechanicsError) {
+      console.error('[favorites] Error fetching mechanics:', mechanicsError)
+    }
+
+    // Fetch profiles for mechanic names
+    const userIds = mechanics?.map(m => m.user_id).filter(Boolean) || []
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userIds)
+
+    // Create lookup maps
+    const mechanicsMap = new Map(mechanics?.map(m => [m.id, m]) || [])
+    const profilesMap = new Map(profiles?.map(p => [p.id, p]) || [])
+
     // Transform data to match UI needs
     const transformedFavorites = favorites.map((fav: any) => {
-      const mechanic = fav.mechanics
+      const mechanic = mechanicsMap.get(fav.mechanic_id)
+      const profile = mechanic ? profilesMap.get(mechanic.user_id) : null
 
       return {
         id: fav.id,
         provider_id: fav.mechanic_id,
         mechanic_id: fav.mechanic_id,
-        provider_name: mechanic?.profiles?.full_name || 'Unknown',
+        provider_name: profile?.full_name || 'Unknown',
         provider_type: 'independent',
         created_at: fav.added_at,
         added_at: fav.added_at,
@@ -91,18 +118,17 @@ export async function GET(request: NextRequest) {
         total_spent: fav.total_spent || 0,
         last_service_at: fav.last_service_at,
         // Mechanic details
-        years_experience: mechanic?.years_experience || 0,
+        years_experience: mechanic?.years_of_experience || 0,
         rating: mechanic?.rating || 0,
         completed_sessions: mechanic?.completed_sessions || 0,
         red_seal_certified: mechanic?.red_seal_certified || false,
         brand_specializations: mechanic?.brand_specializations || [],
         city: mechanic?.city,
         country: mechanic?.country,
-        mechanic_type: mechanic?.mechanic_type,
-        workshop_name: mechanic?.workshop?.name,
-        // Presence status - Need to fetch separately
-        is_online: false,
-        presence_status: 'offline'
+        workshop_name: (mechanic as any)?.organizations?.name || mechanic?.shop_affiliation,
+        // Presence status
+        is_online: mechanic?.currently_on_shift || false,
+        presence_status: mechanic?.currently_on_shift ? 'online' : 'offline'
       }
     })
 
