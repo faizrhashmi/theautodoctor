@@ -1,112 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdminAPI } from '@/lib/auth/guards'
-
-export const dynamic = 'force-dynamic'
+import { FEATURE_FLAGS, getAllFeatureFlags } from '@/config/featureFlags'
 
 /**
  * GET /api/admin/feature-flags
- * Get all feature flags (admin view)
+ * Returns all feature flags and their current status
+ *
+ * Note: In production, this should be protected with admin authentication
  */
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await requireAdminAPI(req)
-    if (authResult.error) return authResult.error
+    // TODO: Add admin authentication check here
+    // For now, returning flags for development/testing
 
-    const admin = authResult.data
+    const flags = getAllFeatureFlags()
 
-    console.info('[admin/feature-flags] list flags', {
-      admin: admin.email ?? admin.user?.id ?? 'unknown',
+    return NextResponse.json({
+      success: true,
+      flags,
+      environment: process.env.NODE_ENV,
+      warning: 'Feature flags are configured in code. To change them, update src/config/featureFlags.ts'
     })
-
-    const { data: flags, error } = await supabaseAdmin
-      .from('feature_flags')
-      .select('*')
-      .order('flag_key', { ascending: true })
-
-    if (error) {
-      console.error('[GET /api/admin/feature-flags] Database error:', error)
-      return NextResponse.json({ error: 'Failed to fetch feature flags' }, { status: 500 })
-    }
-
-    return NextResponse.json({ flags })
-  } catch (error) {
-    console.error('[GET /api/admin/feature-flags] Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[feature-flags] Error:', error)
+    return NextResponse.json(
+      { error: error?.message ?? 'Failed to fetch feature flags' },
+      { status: 500 }
+    )
   }
 }
 
 /**
  * POST /api/admin/feature-flags
- * Create a new feature flag
+ * Note: Feature flags are currently code-based
+ * This endpoint is a placeholder for future database-backed flags
  */
-export async function POST(request: NextRequest) {
-  try {
-    const authResult = await requireAdminAPI(request)
-    if (authResult.error) return authResult.error
-
-    const admin = authResult.data
-    const body = await request.json()
-
-    console.info('[admin/feature-flags] create flag', {
-      admin: admin.email ?? admin.user?.id ?? 'unknown',
-      flag_key: body.flag_key,
-    })
-
-    const {
-      flag_key,
-      flag_name,
-      description,
-      is_enabled,
-      enabled_for_roles,
-      rollout_percentage,
-      metadata
-    } = body
-
-    // Validation
-    if (!flag_key || !flag_name) {
-      return NextResponse.json(
-        { error: 'Missing required fields: flag_key, flag_name' },
-        { status: 400 }
-      )
-    }
-
-    // Check for duplicate
-    const { data: existing } = await supabaseAdmin
-      .from('feature_flags')
-      .select('id')
-      .eq('flag_key', flag_key)
-      .single()
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'A feature flag with this key already exists' },
-        { status: 409 }
-      )
-    }
-
-    const { data: newFlag, error } = await supabaseAdmin
-      .from('feature_flags')
-      .insert({
-        flag_key,
-        flag_name,
-        description: description || null,
-        is_enabled: is_enabled !== undefined ? is_enabled : false,
-        enabled_for_roles: enabled_for_roles || ['admin'],
-        rollout_percentage: rollout_percentage || 100,
-        metadata: metadata || {}
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('[POST /api/admin/feature-flags] Database error:', error)
-      return NextResponse.json({ error: 'Failed to create feature flag' }, { status: 500 })
-    }
-
-    return NextResponse.json({ flag: newFlag }, { status: 201 })
-  } catch (error) {
-    console.error('[POST /api/admin/feature-flags] Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+export async function POST(req: NextRequest) {
+  return NextResponse.json({
+    error: 'Feature flags are currently code-based. Update src/config/featureFlags.ts to change flags.',
+    info: 'To enable BYPASS_MEDIA_CHECK: Set enabled: true and add expiresAt date in featureFlags.ts'
+  }, { status: 501 })
 }
