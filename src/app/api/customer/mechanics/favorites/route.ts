@@ -163,6 +163,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify mechanic exists
+    const { data: mechanicExists } = await supabase
+      .from('mechanics')
+      .select('id')
+      .eq('id', mechanic_id)
+      .maybeSingle()
+
+    if (!mechanicExists) {
+      console.error(`[favorites] Mechanic not found: ${mechanic_id}`)
+      return NextResponse.json(
+        { error: `Mechanic with ID ${mechanic_id} not found. This might be a user_id instead of mechanic_id.` },
+        { status: 404 }
+      )
+    }
+
     // Add to favorites
     const { data: favorite, error } = await supabase
       .from('customer_favorites')
@@ -177,7 +192,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[favorites] Add error:', error)
-      return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 })
+      console.error('[favorites] Error details:', JSON.stringify(error, null, 2))
+      return NextResponse.json({
+        error: 'Failed to add favorite',
+        details: error.message,
+        hint: error.hint
+      }, { status: 500 })
     }
 
     return NextResponse.json({
