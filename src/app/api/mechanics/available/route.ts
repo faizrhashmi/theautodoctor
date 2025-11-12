@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     const customerCity = searchParams.get('customer_city')
     const customerPostalCode = searchParams.get('customer_postal_code')
     const preferLocalMechanic = searchParams.get('prefer_local_mechanic') === 'true'
+    const sessionType = searchParams.get('sessionType') as 'online' | 'in_person' | null
     const limit = parseInt(searchParams.get('limit') || '10', 10)
 
     // Base query - only approved mechanics who can accept sessions
@@ -52,15 +53,30 @@ export async function GET(req: NextRequest) {
         suspended_until,
         workshop_id,
         shop_affiliation,
+        mechanic_type,
+        can_perform_physical_work,
         organizations:workshop_id (
           id,
-          name
+          name,
+          address_line1,
+          city,
+          state_province,
+          postal_code,
+          country
         )
       `)
       .eq('application_status', 'approved')
       .eq('account_status', 'active')
       .eq('can_accept_sessions', true)
       .gte('profile_completion_score', 80) // Only mechanics with 80%+ profile completion
+
+    // Filter by session type - CRITICAL for in-person visits
+    if (sessionType === 'in_person') {
+      // For in-person visits, exclude virtual-only mechanics
+      query = query.neq('mechanic_type', 'virtual_only')
+      // Require workshop for in-person bookings
+      query = query.not('workshop_id', 'is', null)
+    }
 
     // Filter by request type
     if (requestType === 'brand_specialist') {
@@ -237,6 +253,16 @@ export async function GET(req: NextRequest) {
         completedSessions: completedSessions,
         redSealCertified: mechanic.red_seal_certified || false,
         workshopName: workshopName,
+        mechanicType: mechanic.mechanic_type || null,
+        canPerformPhysicalWork: mechanic.can_perform_physical_work || false,
+        workshopId: mechanic.workshop_id || null,
+        workshopAddress: (mechanic as any).organizations ? {
+          address: (mechanic as any).organizations.address_line1 || null,
+          city: (mechanic as any).organizations.city || null,
+          province: (mechanic as any).organizations.state_province || null,
+          postal: (mechanic as any).organizations.postal_code || null,
+          country: (mechanic as any).organizations.country || null
+        } : null,
         matchScore: score,
         matchReasons,
         profileCompletionScore: mechanic.profile_completion_score || 0

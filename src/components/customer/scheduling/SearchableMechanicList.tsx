@@ -163,9 +163,37 @@ export default function SearchableMechanicList({
   }
 
   const handleSelect = (mechanic: Mechanic) => {
+    // Validate mechanic can handle session type
+    if (sessionType === 'in_person') {
+      // Check if mechanic is virtual-only
+      if ((mechanic as any).mechanic_type === 'virtual_only' && !(mechanic as any).can_perform_physical_work) {
+        alert('⚠️ This mechanic only offers online diagnostics.\n\nPlease select an in-person capable mechanic or change to online session.')
+        return
+      }
+
+      // Check if mechanic has workshop address
+      if (!(mechanic as any).workshop_address?.address) {
+        alert('⚠️ This mechanic has no workshop address on file.\n\nPlease select a mechanic with a physical location.')
+        return
+      }
+    }
+
+    // Pass workshop data if in-person
+    const workshopData = sessionType === 'in_person' && (mechanic as any).workshop_address ? {
+      workshopName: (mechanic as any).workshop?.name || mechanic.shop_name || 'Workshop',
+      workshopAddress: {
+        address: (mechanic as any).workshop_address.address,
+        city: (mechanic as any).workshop_address.city,
+        province: (mechanic as any).workshop_address.province,
+        postal: (mechanic as any).workshop_address.postal,
+        country: (mechanic as any).workshop_address.country
+      }
+    } : {}
+
     onComplete({
       mechanicId: mechanic.user_id,
-      mechanicName: mechanic.full_name
+      mechanicName: mechanic.full_name,
+      ...workshopData
     })
   }
 

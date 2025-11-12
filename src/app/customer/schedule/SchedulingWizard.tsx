@@ -49,6 +49,9 @@ export default function SchedulingWizard() {
     planPrice: null,
     mechanicId: null,
     mechanicName: null,
+    mechanicType: null, // NEW: Type of mechanic (virtual_only, independent_workshop, etc.)
+    workshopName: null, // NEW: Workshop name for in-person visits
+    workshopAddress: null, // NEW: Workshop address object for in-person visits
     scheduledFor: null,
     // NEW: Scheduled session intake fields (from ScheduledSessionIntakeStep)
     serviceType: null, // 'diagnostic', 'repair', 'maintenance', 'inspection', 'consultation'

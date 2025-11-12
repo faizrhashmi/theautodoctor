@@ -110,7 +110,7 @@ export default function CreateRfqPage() {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/rfq/create', {
+      const response = await fetch('/api/mechanic/rfq/create-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -578,7 +578,7 @@ export default function CreateRfqPage() {
                   <div className="flex-1">
                     <h4 className="text-white font-semibold mb-2">Referral Fee Disclosure</h4>
                     <p className="text-sm text-blue-200 leading-relaxed">
-                      Your mechanic will earn a <strong>5% referral fee</strong> from the workshop you choose. This fee is already included in the quotes you receive and does not increase the price you pay.
+                      Your mechanic will earn a <strong>2% referral fee</strong> from the workshop you choose. This fee is already included in the quotes you receive and does not increase the price you pay.
                     </p>
                   </div>
                 </div>

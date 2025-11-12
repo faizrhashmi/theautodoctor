@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react'
-import { Calendar, Car, Clock, DollarSign, User, FileText, Loader2, CheckCircle } from 'lucide-react'
+import { Calendar, Car, Clock, DollarSign, User, FileText, Loader2, CheckCircle, MapPin, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ReviewAndPaymentStepProps {
@@ -202,6 +202,37 @@ export default function ReviewAndPaymentStep({
             <div className="flex-1">
               <div className="text-xs text-slate-500 uppercase">Vehicle</div>
               <div className="text-white font-semibold">{wizardData.vehicleName}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Workshop Address (in-person only) */}
+        {wizardData.sessionType === 'in_person' && wizardData.workshopAddress && (
+          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-semibold text-amber-200 uppercase mb-1">Service Location</div>
+                <div className="text-white font-semibold">{wizardData.workshopName || 'Workshop'}</div>
+                <div className="text-sm text-slate-300 mt-2">
+                  {wizardData.workshopAddress.address}<br/>
+                  {wizardData.workshopAddress.city}, {wizardData.workshopAddress.province} {wizardData.workshopAddress.postal}
+                  {wizardData.workshopAddress.country && <><br/>{wizardData.workshopAddress.country}</>}
+                </div>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent(
+                    `${wizardData.workshopAddress.address}, ${wizardData.workshopAddress.city}, ${wizardData.workshopAddress.province}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-3 text-sm text-amber-400 hover:text-amber-300 hover:underline transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Get Directions
+                </a>
+              </div>
             </div>
           </div>
         )}

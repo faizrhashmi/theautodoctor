@@ -127,8 +127,16 @@ export async function POST(
       .eq('id', bid_id)
       .single()
 
-    // Calculate referral fee (5% of quote amount)
-    const referralFeePercent = 5.0
+    // Calculate referral fee using dynamic rate from database
+    // Fetch current referral rate from platform_fee_settings
+    const { data: feeSettings } = await supabase
+      .from('platform_fee_settings')
+      .select('mechanic_referral_percent')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .single()
+
+    // Use dynamic rate, fallback to 2% if not found
+    const referralFeePercent = feeSettings?.mechanic_referral_percent || 2.0
     const referralFeeAmount = acceptedBid
       ? (acceptedBid.quote_amount * referralFeePercent) / 100
       : 0
