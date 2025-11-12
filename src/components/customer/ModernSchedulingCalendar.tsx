@@ -25,6 +25,14 @@ type SessionEvent = {
   type: string
 }
 
+type TimeSlot = {
+  time: string
+  startTime: string
+  endTime: string
+  available: boolean
+  reason?: string
+}
+
 type ModernSchedulingCalendarProps = {
   initialEvents?: Array<{
     id: string
@@ -44,6 +52,10 @@ type ModernSchedulingCalendarProps = {
     scheduled_end?: string
     created_at: string
   } | null
+  // NEW: Required for availability checking
+  mechanicId?: string
+  serviceType?: 'online' | 'in_person'
+  onTimeSelect?: (date: Date) => void
 }
 
 const PLAN_LABELS: Record<PlanKey, string> = {
@@ -81,6 +93,9 @@ export default function ModernSchedulingCalendar({
   plan,
   onSessionCreated,
   activeSession,
+  mechanicId,
+  serviceType,
+  onTimeSelect,
 }: ModernSchedulingCalendarProps) {
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -90,6 +105,9 @@ export default function ModernSchedulingCalendar({
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  // NEW: Availability state
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [hasActiveSession, setHasActiveSession] = useState(false)
   const [checkingActiveSessions, setCheckingActiveSessions] = useState(true)
   const activeSessionCheckRef = useRef(false)
@@ -153,6 +171,48 @@ export default function ModernSchedulingCalendar({
     }
     setLoading(false)
   }, [initialEvents])
+
+  // NEW: Fetch availability when date is selected (only if mechanicId provided)
+  useEffect(() => {
+    if (!selectedDate || !mechanicId || !serviceType) {
+      setAvailableSlots([])
+      return
+    }
+
+    async function fetchAvailability() {
+      setLoadingSlots(true)
+      try {
+        const dateString = selectedDate.toISOString().split('T')[0] // YYYY-MM-DD
+
+        const response = await fetch('/api/availability/check-slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mechanicId,
+            date: dateString,
+            serviceType
+          })
+        })
+
+        if (!response.ok) {
+          console.error('[Calendar] Failed to fetch availability:', response.status)
+          setAvailableSlots([])
+          return
+        }
+
+        const data = await response.json()
+        console.log('[Calendar] Availability fetched:', data.slots?.length, 'slots')
+        setAvailableSlots(data.slots || [])
+      } catch (error) {
+        console.error('[Calendar] Error fetching availability:', error)
+        setAvailableSlots([])
+      } finally {
+        setLoadingSlots(false)
+      }
+    }
+
+    fetchAvailability()
+  }, [selectedDate, mechanicId, serviceType])
 
   // Get calendar days for current month
   const getCalendarDays = () => {
@@ -249,6 +309,16 @@ export default function ModernSchedulingCalendar({
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time)
+
+    // NEW: If onTimeSelect callback provided (scheduling mode), call it immediately
+    if (onTimeSelect && selectedDate && mechanicId) {
+      const slot = availableSlots.find(s => s.time === time)
+      if (slot && slot.startTime) {
+        const selectedDateTime = new Date(slot.startTime)
+        console.log('[Calendar] Time selected, calling onTimeSelect:', selectedDateTime)
+        onTimeSelect(selectedDateTime)
+      }
+    }
   }
 
   const handleConfirmBooking = () => {
@@ -454,26 +524,70 @@ export default function ModernSchedulingCalendar({
 
           {/* Time Slots Grid */}
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
-            {TIME_SLOTS.map((time) => {
-              const isSelected = selectedTime === time
+            {loadingSlots ? (
+              // Loading skeleton
+              Array.from({ length: 24 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-10 sm:h-12 rounded-xl bg-slate-800/50 animate-pulse"
+                />
+              ))
+            ) : mechanicId && serviceType ? (
+              // Availability-aware rendering (for scheduling flow)
+              TIME_SLOTS.map((time) => {
+                const slot = availableSlots.find(s => s.time === time)
+                const isAvailable = slot?.available ?? false
+                const isSelected = selectedTime === time
 
-              return (
-                <button
-                  key={time}
-                  onClick={() => handleTimeSelect(time)}
-                  className={`
-                    px-3 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium
-                    transition-all duration-200
-                    ${isSelected
-                      ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg scale-105'
-                      : 'bg-slate-900/50 text-slate-300 hover:bg-white/10 border border-white/10'
-                    }
-                  `}
-                >
-                  {time}
-                </button>
-              )
-            })}
+                return (
+                  <button
+                    key={time}
+                    onClick={() => isAvailable && handleTimeSelect(time)}
+                    disabled={!isAvailable}
+                    title={slot?.reason || (isAvailable ? 'Available' : 'Not available')}
+                    className={`
+                      px-3 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium
+                      transition-all duration-200 relative
+                      ${isSelected
+                        ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg scale-105'
+                        : isAvailable
+                        ? 'bg-slate-900/50 text-slate-300 hover:bg-green-500/20 border-2 border-green-500/40 hover:border-green-500 cursor-pointer hover:text-white'
+                        : 'bg-slate-800/30 text-slate-600 cursor-not-allowed opacity-50 line-through border border-red-500/20'
+                      }
+                    `}
+                  >
+                    {time}
+                    {!isAvailable && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <X className="h-4 w-4 text-red-400" />
+                      </span>
+                    )}
+                  </button>
+                )
+              })
+            ) : (
+              // Legacy rendering (for non-scheduling use)
+              TIME_SLOTS.map((time) => {
+                const isSelected = selectedTime === time
+
+                return (
+                  <button
+                    key={time}
+                    onClick={() => handleTimeSelect(time)}
+                    className={`
+                      px-3 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium
+                      transition-all duration-200
+                      ${isSelected
+                        ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg scale-105'
+                        : 'bg-slate-900/50 text-slate-300 hover:bg-white/10 border border-white/10'
+                      }
+                    `}
+                  >
+                    {time}
+                  </button>
+                )
+              })
+            )}
           </div>
 
           {/* Book Button */}

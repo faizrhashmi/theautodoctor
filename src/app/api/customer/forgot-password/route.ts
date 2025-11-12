@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { passwordResetRateLimiter } from '@/lib/ratelimit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +11,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
+      )
+    }
+
+    // Rate limiting: 3 attempts per hour per email
+    const identifier = `reset:${email.toLowerCase()}`
+    const { success, remaining } = await passwordResetRateLimiter.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: `Too many reset attempts. Please try again in 1 hour. (${remaining} attempts remaining)`,
+          retryAfter: 3600 // 1 hour in seconds
+        },
+        { status: 429 }
       )
     }
 

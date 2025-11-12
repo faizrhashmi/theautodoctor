@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-scheduled-sessions",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/release-expired-reservations",
+      "schedule": "*/5 * * * *",
+      "comment": "Release expired slot reservations every 5 minutes"
+    }
+  ]
+}

@@ -170,10 +170,10 @@ export async function GET(req: NextRequest) {
         score += 10
       }
 
-      // Red Seal certification
+      // Professional certification (Red Seal, Provincial, ASE, CPA, etc.)
       if (mechanic.red_seal_certified) {
         score += 10
-        matchReasons.push('Red Seal Certified')
+        matchReasons.push('Professionally Certified')
       }
 
       // Brand specialist bonus

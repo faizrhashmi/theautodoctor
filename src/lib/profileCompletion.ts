@@ -193,7 +193,7 @@ function generateNextSteps(missingFields: MissingField[]): string[] {
   }
 
   if (missingFields.some(f => f.field === 'certifications_uploaded')) {
-    steps.push('Upload your certifications (Red Seal, manufacturer certifications, etc.)')
+    steps.push('Upload your professional certifications (Red Seal, Provincial, ASE, manufacturer, etc.)')
   }
 
   if (missingFields.some(f => f.field === 'specializations')) {

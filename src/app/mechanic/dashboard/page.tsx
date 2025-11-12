@@ -8,6 +8,7 @@ import OnShiftToggle from '@/components/mechanic/OnShiftToggle'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PresenceChip } from '@/components/ui/PresenceChip'
 import { ConnectionQuality } from '@/components/ui/ConnectionQuality'
+import PriorityBadge from '@/components/mechanic/PriorityBadge'
 import { createClient } from '@/lib/supabase'
 import RecentSessions from '@/components/dashboard/RecentSessions'
 import SessionCard from '@/components/sessions/SessionCard'
@@ -102,12 +103,22 @@ type QueueSession = {
 
 type QueueAssignment = {
   id: string;
-  status: 'queued' | 'accepted' | 'joined' | 'in_progress' | 'ended' | 'cancelled';
+  status: 'queued' | 'offered' | 'accepted' | 'joined' | 'in_progress' | 'ended' | 'cancelled';
   mechanic_id: string | null;
   session_id: string;
   created_at: string;
   updated_at: string | null;
-  sessions: QueueSession; // joined session
+  match_score?: number | null;
+  match_reasons?: string[] | null;
+  priority?: string | null;
+  expires_at?: string | null;
+  metadata?: {
+    match_type?: 'targeted' | 'broadcast';
+    is_brand_specialist?: boolean;
+    is_local_match?: boolean;
+    [key: string]: any;
+  } | null;
+  session?: QueueSession; // joined session (API uses 'session' singular)
 };
 
 type QueueResponse = {
@@ -679,23 +690,32 @@ export default function MechanicDashboardPage() {
                 if (!s) return null;
 
                 return (
-                  <SessionCard
-                    key={item.id}
-                    sessionId={item.session_id}
-                    type={s.type as any}
-                    status={s.status as any}
-                    plan={s.plan}
-                    createdAt={s.created_at}
-                    partnerName="Customer"
-                    partnerRole="customer"
-                    userRole="mechanic"
-                    cta={{
-                      action: 'Accept Request',
-                      onClick: async () => {
-                        await handleAcceptAssignment(item.id, s.type || 'chat')
-                      }
-                    }}
-                  />
+                  <div key={item.id} className="space-y-2">
+                    {/* Priority Badge - Show match score and reasons */}
+                    <PriorityBadge
+                      matchScore={item.match_score}
+                      matchReasons={item.match_reasons}
+                      priority={item.priority}
+                      metadata={item.metadata}
+                    />
+
+                    <SessionCard
+                      sessionId={item.session_id}
+                      type={s.type as any}
+                      status={s.status as any}
+                      plan={s.plan}
+                      createdAt={s.created_at}
+                      partnerName="Customer"
+                      partnerRole="customer"
+                      userRole="mechanic"
+                      cta={{
+                        action: 'Accept Request',
+                        onClick: async () => {
+                          await handleAcceptAssignment(item.id, s.type || 'chat')
+                        }
+                      }}
+                    />
+                  </div>
                 );
               })}
             </div>

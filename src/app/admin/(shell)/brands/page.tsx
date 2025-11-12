@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { AlertCircle, CheckCircle, RefreshCw, Plus, Edit2, Trash2, Star, Wrench } from 'lucide-react'
+import { AlertCircle, CheckCircle, RefreshCw, Plus, Edit2, Trash2, Star, Wrench, DollarSign, Crown } from 'lucide-react'
 
 interface Brand {
   id: string
@@ -15,6 +15,7 @@ interface Brand {
   is_luxury: boolean
   requires_certification: boolean
   active: boolean
+  specialist_premium: number
 }
 
 interface ServiceKeyword {
@@ -33,6 +34,8 @@ export default function BrandManagementAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [editingPremiumId, setEditingPremiumId] = useState<string | null>(null)
+  const [editPremiumValue, setEditPremiumValue] = useState<string>('')
 
   const supabase = createClient()
 
@@ -90,6 +93,72 @@ export default function BrandManagementAdminPage() {
 
       setKeywords(keywords.map(k => k.id === keywordId ? { ...k, active: !currentState } : k))
       setSuccess(`Keyword ${!currentState ? 'activated' : 'deactivated'}`)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const startEditingPremium = (brandId: string, currentPremium: number) => {
+    setEditingPremiumId(brandId)
+    setEditPremiumValue(currentPremium.toString())
+  }
+
+  const cancelEditingPremium = () => {
+    setEditingPremiumId(null)
+    setEditPremiumValue('')
+  }
+
+  const saveSpecialistPremium = async (brandId: string) => {
+    try {
+      const premium = parseFloat(editPremiumValue)
+      if (isNaN(premium) || premium < 0) {
+        setError('Premium must be a positive number')
+        return
+      }
+
+      const { error } = await supabase
+        .from('brand_specializations')
+        .update({ specialist_premium: premium })
+        .eq('id', brandId)
+
+      if (error) throw error
+
+      setBrands(brands.map(b => b.id === brandId ? { ...b, specialist_premium: premium } : b))
+      setSuccess(`Specialist premium updated to $${premium.toFixed(2)}`)
+      setEditingPremiumId(null)
+      setEditPremiumValue('')
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const bulkUpdateStandardPremium = async (premium: number) => {
+    try {
+      const { error } = await supabase
+        .from('brand_specializations')
+        .update({ specialist_premium: premium })
+        .eq('is_luxury', false)
+
+      if (error) throw error
+
+      setBrands(brands.map(b => !b.is_luxury ? { ...b, specialist_premium: premium } : b))
+      setSuccess(`All standard brand premiums updated to $${premium.toFixed(2)}`)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const bulkUpdateLuxuryPremium = async (premium: number) => {
+    try {
+      const { error } = await supabase
+        .from('brand_specializations')
+        .update({ specialist_premium: premium })
+        .eq('is_luxury', true)
+
+      if (error) throw error
+
+      setBrands(brands.map(b => b.is_luxury ? { ...b, specialist_premium: premium } : b))
+      setSuccess(`All luxury brand premiums updated to $${premium.toFixed(2)}`)
     } catch (err: any) {
       setError(err.message)
     }
@@ -178,28 +247,62 @@ export default function BrandManagementAdminPage() {
 
       {/* Brands Tab */}
       {activeTab === 'brands' && (
-        <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-100 dark:bg-slate-700">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
-                    Brand Name
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
-                    Luxury
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
-                    Cert Required
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
-                    Active
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+        <div className="space-y-4">
+          {/* Bulk Update Controls */}
+          <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Crown className="h-5 w-5 text-orange-400" />
+              <h3 className="text-white font-semibold">Bulk Update Specialist Premiums</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-300">Standard Brands:</span>
+                <button
+                  onClick={() => bulkUpdateStandardPremium(15)}
+                  className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                >
+                  Set All to $15.00
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-300">Luxury Brands:</span>
+                <button
+                  onClick={() => bulkUpdateLuxuryPremium(25)}
+                  className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <Crown className="h-3.5 w-3.5" />
+                  Set All to $25.00
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Brands Table */}
+          <div className="bg-slate-800/50 backdrop-blur-sm dark:bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-100 dark:bg-slate-700">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Brand Name
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Luxury
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Cert Required
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Specialist Premium
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Active
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-200 dark:text-slate-300 uppercase">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {brands.map((brand) => (
                   <tr key={brand.id} className="hover:bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 dark:hover:bg-slate-700/50">
@@ -227,6 +330,50 @@ export default function BrandManagementAdminPage() {
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {editingPremiumId === brand.id ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center bg-slate-900 rounded-lg px-2 py-1">
+                            <DollarSign className="h-4 w-4 text-slate-400" />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editPremiumValue}
+                              onChange={(e) => setEditPremiumValue(e.target.value)}
+                              className="w-20 bg-transparent text-white text-sm focus:outline-none"
+                              autoFocus
+                            />
+                          </div>
+                          <button
+                            onClick={() => saveSpecialistPremium(brand.id)}
+                            className="p-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            title="Save"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={cancelEditingPremium}
+                            className="p-1 bg-slate-600 hover:bg-slate-700 text-white rounded transition-colors"
+                            title="Cancel"
+                          >
+                            <AlertCircle className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <span className={`font-semibold ${brand.is_luxury ? 'text-orange-400' : 'text-green-400'}`}>
+                            ${brand.specialist_premium?.toFixed(2) || '0.00'}
+                          </span>
+                          <button
+                            onClick={() => startEditingPremium(brand.id, brand.specialist_premium || 0)}
+                            className="p-1 hover:bg-slate-700 rounded transition-colors"
+                            title="Edit premium"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-slate-400 hover:text-white" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => toggleBrandActive(brand.id, brand.active)}
@@ -243,7 +390,7 @@ export default function BrandManagementAdminPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="text-sm text-slate-400">
-                        View only
+                        {brand.is_luxury && <Crown className="h-4 w-4 inline text-yellow-500" />}
                       </span>
                     </td>
                   </tr>
@@ -251,6 +398,7 @@ export default function BrandManagementAdminPage() {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
 

@@ -107,7 +107,8 @@ export async function findMatchingMechanics(
     const matchReasons: string[] = []
 
     // Base score for availability (highest priority)
-    if (mechanic.is_available) {
+    // SINGLE SOURCE OF TRUTH: Use currently_on_shift (not is_available)
+    if (mechanic.currently_on_shift) {
       score += 50
       matchReasons.push('Available now')
     } else {
@@ -165,10 +166,10 @@ export async function findMatchingMechanics(
       score += 5
     }
 
-    // Red Seal certification
+    // Professional certification (Red Seal, Provincial, ASE, CPA, etc.)
     if (mechanic.red_seal_certified) {
       score += 10
-      matchReasons.push('Red Seal Certified')
+      matchReasons.push('Professionally Certified')
     }
 
     // Profile completion bonus (higher completion = more reliable)
@@ -200,21 +201,49 @@ export async function findMatchingMechanics(
         score += 25
         matchReasons.push(`Located in ${mechanic.country}`)
 
-        // Postal code FSA matching (highest priority for local matching)
+        // Postal code proximity matching (highest priority for local matching)
+        // Supports: Canadian (A1A 1A1), US (12345), UK (SW1A 1AA), Australian (2000)
         if (criteria.customerPostalCode && mechanic.postal_code) {
-          const customerFSA = criteria.customerPostalCode.replace(/\s+/g, '').substring(0, 3).toUpperCase()
-          const mechanicFSA = mechanic.postal_code.replace(/\s+/g, '').substring(0, 3).toUpperCase()
+          const customerPostal = criteria.customerPostalCode.replace(/\s+/g, '').toUpperCase()
+          const mechanicPostal = mechanic.postal_code.replace(/\s+/g, '').toUpperCase()
 
-          if (customerFSA === mechanicFSA) {
-            score += 40
-            matchReasons.push(`Same area (${mechanicFSA})`)
-            isLocalMatch = true
+          // Extract postal code prefix based on country format
+          let customerPrefix = ''
+          let mechanicPrefix = ''
+
+          if (mechanic.country?.toLowerCase() === 'canada') {
+            // Canadian FSA: First 3 characters (A1A)
+            customerPrefix = customerPostal.substring(0, 3)
+            mechanicPrefix = mechanicPostal.substring(0, 3)
+          } else if (mechanic.country?.toLowerCase() === 'united states') {
+            // US ZIP: First 3 digits of 5-digit code (123 from 12345)
+            customerPrefix = customerPostal.substring(0, 3)
+            mechanicPrefix = mechanicPostal.substring(0, 3)
+          } else if (mechanic.country?.toLowerCase() === 'united kingdom') {
+            // UK Outward code: Everything before space (SW1A from SW1A 1AA)
+            const customerParts = criteria.customerPostalCode.trim().split(/\s+/)
+            const mechanicParts = mechanic.postal_code.trim().split(/\s+/)
+            customerPrefix = customerParts[0]?.toUpperCase() || customerPostal.substring(0, 4)
+            mechanicPrefix = mechanicParts[0]?.toUpperCase() || mechanicPostal.substring(0, 4)
+          } else if (mechanic.country?.toLowerCase() === 'australia') {
+            // Australian postcode: Full 4-digit code, match first 2 for region
+            customerPrefix = customerPostal.substring(0, 2)
+            mechanicPrefix = mechanicPostal.substring(0, 2)
           } else {
-            // Same first character (same province/region) - smaller bonus
-            if (customerFSA[0] === mechanicFSA[0]) {
-              score += 15
-              matchReasons.push(`Same region (${mechanicFSA[0]})`)
-            }
+            // Generic: Use first 3 characters
+            customerPrefix = customerPostal.substring(0, 3)
+            mechanicPrefix = mechanicPostal.substring(0, 3)
+          }
+
+          // Exact prefix match (same neighborhood/area)
+          if (customerPrefix && mechanicPrefix && customerPrefix === mechanicPrefix) {
+            score += 40
+            matchReasons.push(`Same area (${mechanicPrefix})`)
+            isLocalMatch = true
+          } else if (customerPrefix && mechanicPrefix && customerPrefix[0] === mechanicPrefix[0]) {
+            // Same first character (same province/region/state) - smaller bonus
+            score += 15
+            matchReasons.push(`Same region (${mechanicPrefix[0]})`)
           }
         }
 
@@ -243,7 +272,7 @@ export async function findMatchingMechanics(
       profilePhoto: null, // TODO: Add profile photo field to mechanics table
       matchScore: score,
       matchReasons,
-      availability: mechanic.is_available ? 'online' : 'offline',
+      availability: mechanic.currently_on_shift ? 'online' : 'offline',
       yearsExperience: experience,
       rating,
       isBrandSpecialist: mechanic.is_brand_specialist || false,

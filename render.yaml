@@ -38,7 +38,7 @@ services:
       - key: NEXT_PUBLIC_APP_URL
         sync: false
 
-  # Cron job for session monitoring
+  # Cron job for session monitoring and slot cleanup
   - type: cron
     name: session-monitor-cron
     env: node

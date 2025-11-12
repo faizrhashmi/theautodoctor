@@ -477,11 +477,24 @@ export default function MechanicSignup() {
       <main className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-600">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
             <Wrench className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Become a Mechanic</h1>
-          <p className="mt-2 text-slate-300">Professional credential verification</p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-blue-300 border border-blue-500/20 mb-4">
+            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+            Professional Platform
+          </div>
+          <h1 className="text-4xl font-bold text-white md:text-5xl">
+            Join Canada's Leading
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-blue-500">
+              Mechanic Network
+            </span>
+          </h1>
+          <p className="mt-4 text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
+            Help drivers remotely while growing your expertise and reputation
+          </p>
         </div>
 
         {/* Progress Steps */}
@@ -500,7 +513,7 @@ export default function MechanicSignup() {
                         isCompleted
                           ? 'border-green-500 bg-green-500'
                           : isActive
-                          ? 'border-orange-500 bg-orange-500'
+                          ? 'border-blue-500 bg-blue-500'
                           : 'border-slate-600 bg-slate-800'
                       }`}
                     >
@@ -508,7 +521,7 @@ export default function MechanicSignup() {
                     </div>
                     <span
                       className={`mt-2 text-xs font-medium ${
-                        isActive ? 'text-orange-400' : isCompleted ? 'text-green-400' : 'text-slate-500'
+                        isActive ? 'text-blue-400' : isCompleted ? 'text-green-400' : 'text-slate-500'
                       }`}
                     >
                       {step.name}
@@ -602,12 +615,12 @@ export default function MechanicSignup() {
         <div className="mt-6 text-center">
           <p className="text-sm text-slate-400">
             Already have an account?{' '}
-            <Link href="/mechanic/login" className="font-semibold text-orange-400 hover:text-orange-300">
+            <Link href="/mechanic/login" className="font-semibold text-blue-400 hover:text-blue-300">
               Log in
             </Link>
           </p>
           <Link href="/" className="mt-3 inline-block text-sm text-slate-400 hover:text-white">
-            Back to homepage
+            ← Back to homepage
           </Link>
         </div>
       </main>
@@ -638,6 +651,7 @@ function Step1Personal({
           icon={User}
           placeholder="John Smith"
           required
+          pattern={/[^a-zA-Z\s'-]/g}
         />
         <TextField
           label="Email"
@@ -655,6 +669,7 @@ function Step1Personal({
           icon={Phone}
           placeholder="+1 (555) 123-4567"
           required
+          pattern={/[^0-9\-\s()+]/g}
         />
         <TextField
           label="Date of Birth"
@@ -1121,6 +1136,7 @@ function TextField({
   icon: Icon,
   placeholder,
   required = false,
+  pattern,
 }: {
   label: string;
   value: string;
@@ -1129,6 +1145,7 @@ function TextField({
   icon?: React.ComponentType<{ className?: string }>;
   placeholder?: string;
   required?: boolean;
+  pattern?: RegExp;
 }) {
   return (
     <label className="block">
@@ -1144,9 +1161,12 @@ function TextField({
         <input
           type={type}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            const newValue = pattern ? e.target.value.replace(pattern, '') : e.target.value;
+            onChange(newValue);
+          }}
           placeholder={placeholder}
-          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60 ${Icon ? 'pl-10' : ''}`}
+          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/60 ${Icon ? 'pl-10' : ''}`}
         />
       </div>
     </label>

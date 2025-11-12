@@ -106,7 +106,6 @@ export default function WorkshopSignupPage() {
     coveragePostalCodes: [],
     serviceRadiusKm: 25,
     mechanicCapacity: 10,
-    commissionRate: WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE,
     termsAccepted: false,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -227,29 +226,48 @@ export default function WorkshopSignupPage() {
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-orange-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600">
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <span className="text-xl font-bold text-white">AskAutoDoctor for Workshops</span>
             </Link>
-            <Link href="/login" className="text-sm text-slate-400 hover:text-white">
-              Already have an account? <span className="font-semibold text-orange-400">Sign In</span>
+            <Link href="/workshop/login" className="text-sm text-slate-400 hover:text-white">
+              Already have an account? <span className="font-semibold text-purple-400">Log in</span>
             </Link>
           </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-purple-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-purple-300 border border-purple-500/20 mb-4">
+            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+            Enterprise Solution
+          </div>
+          <h1 className="text-3xl font-bold text-white md:text-4xl lg:text-5xl">
+            Scale Your Shop with
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600">
+              Virtual Services
+            </span>
+          </h1>
+          <p className="mt-4 text-base text-slate-300 leading-relaxed max-w-2xl mx-auto md:text-lg">
+            Manage your mechanics, expand your reach, and grow your business
+          </p>
+        </div>
+
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between max-w-2xl mx-auto">
             {[1, 2, 3, 4].map((step, idx) => (
-              <div key={step} className="flex flex-1 items-center">
+              <div key={step} className="flex items-center">
                 <div className="relative flex flex-col items-center">
                   <motion.div
                     initial={false}
                     animate={{
-                      backgroundColor: step <= currentStep ? '#ea580c' : '#334155',
+                      backgroundColor: step <= currentStep ? '#8b5cf6' : '#334155',
                       scale: step === currentStep ? 1.1 : 1,
                     }}
                     className="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white shadow-lg"
@@ -260,18 +278,18 @@ export default function WorkshopSignupPage() {
                       step
                     )}
                   </motion.div>
-                  <span className="mt-2 text-xs font-medium text-slate-400">
+                  <span className="mt-2 text-xs font-medium text-slate-400 whitespace-nowrap">
                     {step === 1 ? 'Basic' : step === 2 ? 'Business' : step === 3 ? 'Coverage' : 'Review'}
                   </span>
                 </div>
                 {idx < 3 && (
-                  <div className="relative mx-2 flex-1">
+                  <div className="relative mx-2 w-16 md:w-24">
                     <div className="h-1 bg-slate-700"></div>
                     <motion.div
                       initial={false}
                       animate={{ width: step < currentStep ? '100%' : '0%' }}
                       transition={{ duration: 0.3 }}
-                      className="absolute left-0 top-0 h-1 bg-orange-600"
+                      className="absolute left-0 top-0 h-1 bg-purple-600"
                     ></motion.div>
                   </div>
                 )}
@@ -358,7 +376,7 @@ export default function WorkshopSignupPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-orange-500 hover:to-orange-600"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-purple-400 hover:via-purple-500 hover:to-purple-600"
                 >
                   Continue
                   <ChevronRight className="h-4 w-4" />
@@ -368,7 +386,7 @@ export default function WorkshopSignupPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-500 via-green-600 to-green-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-green-400 hover:via-green-500 hover:to-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-purple-400 hover:via-purple-500 hover:to-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? 'Submitting...' : 'Submit Application'}
                   <CheckCircle2 className="h-4 w-4" />
@@ -379,16 +397,21 @@ export default function WorkshopSignupPage() {
         </motion.div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-slate-500">
-          By creating an account, you agree to our{' '}
-          <Link href="/terms" className="text-orange-400 hover:underline">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link href="/privacy" className="text-orange-400 hover:underline">
-            Privacy Policy
+        <div className="mt-6 text-center">
+          <p className="text-xs text-slate-500">
+            By creating an account, you agree to our{' '}
+            <Link href="/terms" className="text-purple-400 hover:underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-purple-400 hover:underline">
+              Privacy Policy
+            </Link>
+          </p>
+          <Link href="/" className="mt-3 inline-block text-sm text-slate-400 hover:text-white">
+            ← Back to homepage
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   )

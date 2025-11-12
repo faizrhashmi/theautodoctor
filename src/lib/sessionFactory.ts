@@ -47,6 +47,16 @@ export interface CreateSessionParams {
   workshopId?: string | null
   slotId?: string | null
 
+  // NEW: Customer location for matching
+  customerCountry?: string | null
+  customerProvince?: string | null
+  customerCity?: string | null
+  customerPostalCode?: string | null
+
+  // NEW: Scheduling fields
+  scheduledFor?: Date | null              // Future appointment time (ISO 8601 UTC)
+  reservationId?: string | null           // If slot was pre-reserved during checkout
+
   // Optional: Skip active session check (for special cases)
   skipActiveCheck?: boolean
 }
@@ -119,6 +129,12 @@ export async function createSessionRecord(
     routingType = 'broadcast',
     workshopId = null,
     slotId = null,
+    customerCountry = null,
+    customerProvince = null,
+    customerCity = null,
+    customerPostalCode = null,
+    scheduledFor = null,
+    reservationId = null,
     skipActiveCheck = false
   } = params
 
@@ -152,14 +168,28 @@ export async function createSessionRecord(
   if (workshopId) metadata.workshop_id = workshopId
   if (slotId) metadata.slot_id = slotId
 
+  // NEW: Store customer location for matching
+  if (customerCountry) metadata.customer_country = customerCountry
+  if (customerProvince) metadata.customer_province = customerProvince
+  if (customerCity) metadata.customer_city = customerCity
+  if (customerPostalCode) metadata.customer_postal_code = customerPostalCode
+
+  // NEW: Store scheduling metadata
+  if (scheduledFor) {
+    metadata.scheduled_for_original = scheduledFor.toISOString()
+    metadata.is_scheduled = true
+  }
+  if (reservationId) metadata.reservation_id = reservationId
+
   // Step 3: Create session record
   const { data: session, error: sessionError } = await supabaseAdmin
     .from('sessions')
     .insert({
       customer_user_id: customerId,
       type,
-      status: 'pending',
+      status: scheduledFor ? 'scheduled' : 'pending', // 'scheduled' for future appointments
       plan,
+      scheduled_for: scheduledFor ? scheduledFor.toISOString() : null, // ⭐ POPULATE THIS FIELD
       intake_id: intakeId,
       stripe_session_id: stripeSessionId,
       ended_at: null, // Explicitly set to null to ensure session is open
@@ -194,47 +224,149 @@ export async function createSessionRecord(
     console.log(`[sessionFactory] Created participant for session ${sessionId}`)
   }
 
-  // Step 5: Create session assignment (queued for mechanics)
-  // IMPORTANT: Free sessions skip assignment creation - it's created after waiver signing
-  const shouldCreateAssignment = paymentMethod !== 'free'
-  let assignment: any = null
+  // Step 5: SMART MATCHING - Run matching algorithm for ALL session types
+  // Changed: Always create assignments (including free sessions) - matching happens at same point
+  console.log(`[sessionFactory] Running smart matching for session ${sessionId}`)
 
-  if (shouldCreateAssignment) {
-    const assignmentMetadata: Record<string, Json> = {}
-    if (preferredMechanicId) {
-      assignmentMetadata.preferred_mechanic_id = preferredMechanicId
-    }
-    if (workshopId) {
-      assignmentMetadata.workshop_id = workshopId
-    }
+  let matches: any[] = []
+  const targetedAssignments: any[] = []
 
-    const { data: assignmentData, error: assignmentError } = await supabaseAdmin
-      .from('session_assignments')
-      .insert({
-        session_id: sessionId,
-        status: 'queued',
-        offered_at: new Date().toISOString(),
-        ...(Object.keys(assignmentMetadata).length > 0 && { metadata: assignmentMetadata })
-      })
-      .select('id')
+  try {
+    const { findMatchingMechanics, extractKeywordsFromDescription } = await import('./mechanicMatching')
+
+    // Fetch intake data for concern and vehicle info
+    const { data: intake } = await supabaseAdmin
+      .from('intakes')
+      .select('concern, year, make, model, vin')
+      .eq('id', intakeId)
       .single()
 
-    if (assignmentError) {
-      console.error('[sessionFactory] Failed to create assignment:', assignmentError)
-      // Don't fail the whole flow - assignment can be created later
-    } else {
-      assignment = assignmentData
-      console.log(`[sessionFactory] Created assignment for session ${sessionId}`)
+    if (!intake) {
+      throw new Error('Intake not found')
     }
-  } else {
-    console.log(`[sessionFactory] ⏭️  Skipping assignment creation for free session - will be created after waiver`)
+
+    // Extract keywords from concern description
+    const extractedKeywords = extractKeywordsFromDescription(intake.concern || '')
+
+    // Build matching criteria
+    const matchingCriteria = {
+      requestType: isSpecialist ? ('brand_specialist' as const) : ('general' as const),
+      requestedBrand: metadata.requested_brand as string | undefined,
+      extractedKeywords,
+      customerCountry: customerCountry || undefined,
+      customerCity: customerCity || undefined,
+      customerPostalCode: customerPostalCode || undefined,
+      preferLocalMechanic: true,
+      urgency: urgent ? ('immediate' as const) : ('scheduled' as const),
+    }
+
+    console.log(`[sessionFactory] Matching criteria:`, {
+      requestType: matchingCriteria.requestType,
+      brand: matchingCriteria.requestedBrand,
+      keywordCount: extractedKeywords.length,
+      location: matchingCriteria.customerCity,
+      postalCode: matchingCriteria.customerPostalCode,
+    })
+
+    // Find top matching mechanics
+    matches = await findMatchingMechanics(matchingCriteria)
+
+    console.log(`[sessionFactory] Found ${matches.length} matching mechanics`)
+    if (matches.length > 0) {
+      console.log(`[sessionFactory] Top 3 matches:`, matches.slice(0, 3).map((m: any) => ({
+        name: m.mechanicName,
+        score: m.matchScore,
+        availability: m.availability,
+        reasons: m.matchReasons
+      })))
+    }
+
+    // Store match results in metadata
+    metadata.matching_results = {
+      total_matches: matches.length,
+      top_scores: matches.slice(0, 3).map((m: any) => ({
+        mechanic_id: m.mechanicId,
+        score: m.matchScore,
+        reasons: m.matchReasons
+      })),
+      extracted_keywords: extractedKeywords
+    }
+
+    // Create TARGETED assignments for top 3 matches
+    if (matches.length > 0) {
+      console.log(`[sessionFactory] Creating targeted assignments for top 3 mechanics`)
+
+      const topMatches = matches.slice(0, 3)
+
+      for (const match of topMatches) {
+        try {
+          const { data: assignment, error: assignError } = await supabaseAdmin
+            .from('session_assignments')
+            .insert({
+              session_id: sessionId,
+              mechanic_id: match.mechanicId,
+              status: 'offered',
+              offered_at: new Date().toISOString(),
+              metadata: {
+                match_type: 'targeted',
+                match_score: match.matchScore,
+                match_reasons: match.matchReasons,
+                is_brand_specialist: match.isBrandSpecialist,
+                is_local_match: match.isLocalMatch,
+              }
+            })
+            .select('id')
+            .single()
+
+          if (!assignError && assignment) {
+            targetedAssignments.push(assignment)
+            console.log(`[sessionFactory] ✓ Created targeted assignment for ${match.mechanicName} (score: ${match.matchScore})`)
+          }
+        } catch (err) {
+          console.error(`[sessionFactory] Failed to create targeted assignment:`, err)
+        }
+      }
+    }
+
+  } catch (matchError) {
+    console.error('[sessionFactory] Matching failed, continuing with broadcast only:', matchError)
+    // Don't fail session creation if matching fails
   }
 
-  // Step 5.5: Broadcast new assignment to mechanics in real-time
-  // IMPORTANT: Skip broadcast for FREE sessions - they broadcast after waiver acceptance
-  const shouldBroadcast = paymentMethod !== 'free'
+  // Create BROADCAST assignment as fallback (always, even if targeted assignments exist)
+  console.log(`[sessionFactory] Creating broadcast assignment for remaining mechanics`)
 
-  if (shouldBroadcast) {
+  const { data: broadcastAssignment, error: broadcastError } = await supabaseAdmin
+    .from('session_assignments')
+    .insert({
+      session_id: sessionId,
+      mechanic_id: null, // null = broadcast to all
+      status: 'queued',
+      offered_at: new Date().toISOString(),
+      metadata: {
+        match_type: 'broadcast',
+        reason: matches.length > 0 ? 'fallback_if_no_targeted_accepts' : 'no_matches_found',
+      }
+    })
+    .select('id')
+    .single()
+
+  if (broadcastError) {
+    console.error('[sessionFactory] Failed to create broadcast assignment:', broadcastError)
+  } else {
+    console.log(`[sessionFactory] ✓ Created broadcast assignment`)
+  }
+
+  // Assignment summary
+  const totalAssignments = targetedAssignments.length + (broadcastAssignment ? 1 : 0)
+  console.log(`[sessionFactory] Created ${totalAssignments} total assignments (${targetedAssignments.length} targeted, ${broadcastAssignment ? 1 : 0} broadcast)`)
+
+  // Step 5.5: Broadcast new assignments to mechanics in real-time
+  // Broadcast TARGETED assignments to specific mechanics (high priority)
+  // General broadcast happens via mechanic queue polling
+  const shouldBroadcast = true // Always broadcast (changed from paymentMethod !== 'free')
+
+  if (shouldBroadcast && targetedAssignments.length > 0) {
     try {
       const { broadcastSessionAssignment } = await import('./realtimeChannels')
 
@@ -249,24 +381,33 @@ export async function createSessionRecord(
         ? `VIN: ${intake.vin}`
         : `${intake?.year || ''} ${intake?.make || ''} ${intake?.model || ''}`.trim()
 
-      await broadcastSessionAssignment('new_assignment', {
-        assignmentId: assignment?.id,
-        sessionId: sessionId,
-        requestId: sessionId, // For backward compatibility
-        customerName: intake?.name || 'Customer',
-        vehicleSummary: vehicleSummary || 'Vehicle',
-        vehicle: vehicleSummary || 'Vehicle',
-        concern: intake?.concern || '',
-        urgent: urgent || false,
-      })
+      // Broadcast to each TARGETED mechanic individually (high priority notifications)
+      for (let i = 0; i < targetedAssignments.length; i++) {
+        const assignment = targetedAssignments[i]
+        const match = matches[i]
 
-      console.log(`[sessionFactory] ✅ Broadcasted new assignment for session ${sessionId}`)
+        await broadcastSessionAssignment('new_targeted_assignment', {
+          assignmentId: assignment.id,
+          sessionId: sessionId,
+          mechanicId: match.mechanicId,
+          customerName: intake?.name || 'Customer',
+          vehicleSummary: vehicleSummary || 'Vehicle',
+          vehicle: vehicleSummary || 'Vehicle',
+          concern: intake?.concern || '',
+          urgent: urgent || false,
+          matchScore: match.matchScore,
+          matchReasons: match.matchReasons,
+          priority: 'high',
+        })
+      }
+
+      console.log(`[sessionFactory] ✅ Broadcasted ${targetedAssignments.length} targeted assignments for session ${sessionId}`)
     } catch (broadcastError) {
-      console.error('[sessionFactory] Failed to broadcast assignment:', broadcastError)
-      // Don't fail session creation if broadcast fails - it's a nice-to-have
+      console.error('[sessionFactory] Failed to broadcast assignments:', broadcastError)
+      // Don't fail session creation if broadcast fails
     }
-  } else {
-    console.log(`[sessionFactory] ⏭️  Skipping broadcast for free session - will broadcast after waiver`)
+  } else if (shouldBroadcast && targetedAssignments.length === 0) {
+    console.log(`[sessionFactory] No targeted assignments to broadcast - mechanics will see via queue polling`)
   }
 
   // Step 6: Log session creation event

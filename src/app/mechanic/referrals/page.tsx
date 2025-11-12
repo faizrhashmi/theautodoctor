@@ -60,9 +60,11 @@ export default function ReferralsPage() {
       const data = await meResponse.json()
       setMechanicData(data)
 
-      // ✅ BUSINESS RULE: Only Virtual-Only and Independent Workshop mechanics get referral commissions
-      // Workshop-affiliated employees do NOT get referrals (workshop gets paid, not them)
-      const hasAccess = canAccessEarnings({
+      // ✅ BUSINESS RULE: Only Virtual-Only mechanics get referral commissions
+      // - Virtual-Only: YES (earn 2% on RFQs they create)
+      // - Independent Workshop: NO (create quotes directly, no referrals)
+      // - Workshop Employees: NO (no direct earnings)
+      const type = getMechanicType({
         service_tier: data.service_tier,
         account_type: data.account_type,
         workshop_id: data.workshop_id,
@@ -70,7 +72,7 @@ export default function ReferralsPage() {
         can_perform_physical_work: data.can_perform_physical_work
       })
 
-      if (!hasAccess) {
+      if (type !== MechanicType.VIRTUAL_ONLY) {
         setAccessDenied(true)
         setLoading(false)
         return
@@ -125,8 +127,10 @@ export default function ReferralsPage() {
             </div>
             <h1 className="text-3xl font-bold text-white mb-4">Access Restricted</h1>
             <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
-              Referral commissions are only available to Virtual-Only and Independent Workshop mechanics.
-              As a workshop-affiliated mechanic, you receive compensation through your workshop.
+              Referral commissions are only available to Virtual-Only mechanics who create RFQs for customers.
+              {mechanicData?.workshop_id
+                ? ' As a workshop-affiliated mechanic, you create quotes directly instead of earning referral commissions.'
+                : ' Workshop mechanics receive compensation through different channels.'}
             </p>
             <button
               onClick={() => router.push('/mechanic/dashboard')}

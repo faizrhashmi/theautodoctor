@@ -30,15 +30,14 @@ export default function BookSessionPage() {
       if (!isAuthenticated) return
 
       try {
-        const response = await fetch('/api/customer/active-sessions')
+        const response = await fetch('/api/customer/sessions/active')
         if (response.ok) {
           const data = await response.json()
-          if (data.activeSessions && data.activeSessions.length > 0) {
-            const session = data.activeSessions[0]
+          if (data.activeSession) {
             setActiveSessionModal({
-              sessionId: session.id,
-              sessionType: session.type || 'chat',
-              sessionStatus: session.status || 'pending'
+              sessionId: data.activeSession.id,
+              sessionType: data.activeSession.type || 'chat',
+              sessionStatus: data.activeSession.status || 'pending'
             })
           }
         }

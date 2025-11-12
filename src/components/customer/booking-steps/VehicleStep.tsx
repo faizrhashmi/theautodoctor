@@ -7,8 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Car, Plus, Check, AlertCircle, X, Loader2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Car, Plus, Check, AlertCircle, X, Loader2, Crown } from 'lucide-react'
 import SmartYearSelector from '@/components/intake/SmartYearSelector'
 import SmartBrandSelector from '@/components/intake/SmartBrandSelector'
 
@@ -34,6 +33,7 @@ export default function VehicleStep({ wizardData, onComplete }: VehicleStepProps
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(wizardData.vehicleId)
+  const [isAdviceOnly, setIsAdviceOnly] = useState<boolean>(wizardData.isAdviceOnly || false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,10 +59,12 @@ export default function VehicleStep({ wizardData, onComplete }: VehicleStepProps
 
   const handleVehicleSelect = (vehicle: Vehicle) => {
     setSelectedVehicleId(vehicle.id)
+    setIsAdviceOnly(false) // Clear advice-only flag when selecting a vehicle
     console.log('[VehicleStep] Selected vehicle:', vehicle)
     onComplete({
       vehicleId: vehicle.id,
       vehicleName: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      isAdviceOnly: false, // Clear the flag
       // Pass full vehicle data - only year, make, model are mandatory
       vehicleData: {
         year: vehicle.year?.toString() || '',
@@ -101,9 +103,14 @@ export default function VehicleStep({ wizardData, onComplete }: VehicleStepProps
   }
 
   const handleSkip = () => {
+    setSelectedVehicleId(null) // Clear vehicle selection
+    setIsAdviceOnly(true) // Set advice-only flag
+    console.log('[VehicleStep] Skip - Just Advice selected')
     onComplete({
       vehicleId: null,
-      vehicleName: 'General Advice',
+      vehicleName: 'General Advice (No Vehicle)',
+      vehicleData: null,
+      isAdviceOnly: true, // Flag for later steps to handle advice-only flow
     })
   }
 
@@ -114,6 +121,20 @@ export default function VehicleStep({ wizardData, onComplete }: VehicleStepProps
         <h3 className="text-2xl font-bold text-white mb-2">Select Your Vehicle</h3>
         <p className="text-slate-400">Choose which vehicle needs service, or skip if you just need advice</p>
       </div>
+
+      {/* Specialist Context Banner */}
+      {wizardData.requestedBrand && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Crown className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-orange-200">
+              🏆 Looking for a <strong>{wizardData.requestedBrand}</strong> specialist?
+              {' '}Select your {wizardData.requestedBrand} vehicle below, or click{' '}
+              <strong>"Skip - Just Advice"</strong> if you don't own one yet.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Vehicles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -167,15 +188,33 @@ export default function VehicleStep({ wizardData, onComplete }: VehicleStepProps
         {/* Skip Vehicle Card - Just need advice */}
         <button
           onClick={handleSkip}
-          className="rounded-lg border-2 border-dashed border-blue-700/50 bg-blue-900/20 hover:border-blue-500/50 hover:bg-blue-900/30 p-4 transition-all"
+          className={`
+            relative rounded-lg border-2 border-dashed p-4 transition-all
+            ${isAdviceOnly
+              ? 'border-blue-500 bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-transparent shadow-lg shadow-blue-500/20'
+              : 'border-blue-700/50 bg-blue-900/20 hover:border-blue-500/50 hover:bg-blue-900/30'
+            }
+          `}
         >
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="h-10 w-10 rounded-lg bg-blue-700/30 flex items-center justify-center mb-3">
-              <AlertCircle className="h-5 w-5 text-blue-400" />
+            <div className={`
+              h-10 w-10 rounded-lg flex items-center justify-center mb-3
+              ${isAdviceOnly ? 'bg-blue-500/30' : 'bg-blue-700/30'}
+            `}>
+              <AlertCircle className={`h-5 w-5 ${isAdviceOnly ? 'text-blue-300' : 'text-blue-400'}`} />
             </div>
             <h4 className="font-semibold text-white text-sm mb-1">Skip - Just Advice</h4>
             <p className="text-xs text-blue-300">General consultation</p>
           </div>
+
+          {/* Selected Indicator */}
+          {isAdviceOnly && (
+            <div className="absolute top-2 right-2">
+              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                <Check className="h-3 w-3 text-white" />
+              </div>
+            </div>
+          )}
         </button>
 
         {/* Add Vehicle Card */}

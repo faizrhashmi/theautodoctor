@@ -49,11 +49,13 @@ export async function GET(request: NextRequest) {
 
     // Unassigned (public queue) — use user client for assignments, admin for sessions
     // assignments visible via RLS
+    // NEW: Include match_score, match_reasons, priority, expires_at for smart matching
     const { data: unassignedA } = await supabase
       .from('session_assignments')
-      .select('id, status, mechanic_id, session_id, created_at, updated_at')
+      .select('id, status, mechanic_id, session_id, created_at, updated_at, match_score, match_reasons, priority, expires_at, metadata')
       .is('mechanic_id', null)
       .eq('status', 'queued')
+      .order('priority', { ascending: false }) // High priority first
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -73,11 +75,13 @@ export async function GET(request: NextRequest) {
     })).filter(a => a.session); // drop if session not eligible
 
     // Mine (my active work) — same pattern
+    // NEW: Include match_score, match_reasons, priority, expires_at for smart matching
     const { data: mineA } = await supabase
       .from('session_assignments')
-      .select('id, status, mechanic_id, session_id, created_at, updated_at')
+      .select('id, status, mechanic_id, session_id, created_at, updated_at, match_score, match_reasons, priority, expires_at, metadata')
       .eq('mechanic_id', mech?.id ?? '00000000-0000-0000-0000-000000000000')
-      .in('status', ['accepted','joined','in_progress'])
+      .in('status', ['offered','accepted','joined','in_progress'])
+      .order('priority', { ascending: false }) // High priority first
       .order('created_at', { ascending: false })
       .limit(50);
 

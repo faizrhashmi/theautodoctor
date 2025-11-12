@@ -74,14 +74,17 @@ CREATE POLICY "Anyone can read platform fee settings"
   USING (true);
 
 -- Policy: Only admins can update settings
+-- Note: This will be restrictive until profiles table exists with role column
 CREATE POLICY "Only admins can update platform fee settings"
   ON platform_fee_settings FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      -- Will need to be updated when profiles.role column is added
+      -- For now, rely on service role key for updates
     )
+    AND false -- Temporarily disabled until admin role system is in place
   );
 
 -- ============================================================================
@@ -90,7 +93,7 @@ CREATE POLICY "Only admins can update platform fee settings"
 
 CREATE TABLE IF NOT EXISTS workshop_fee_overrides (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workshop_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  workshop_id UUID NOT NULL, -- REFERENCES organizations(id) ON DELETE CASCADE (will be added later),
 
   -- Custom Session Fees (overrides global defaults)
   custom_session_platform_fee DECIMAL(5,2)
@@ -130,31 +133,16 @@ CREATE TABLE IF NOT EXISTS workshop_fee_overrides (
 ALTER TABLE workshop_fee_overrides ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Workshops can read their own overrides
+-- Temporarily disabled until organization_members table exists
 CREATE POLICY "Workshops can read their own fee overrides"
   ON workshop_fee_overrides FOR SELECT
-  USING (
-    workshop_id IN (
-      SELECT organization_id FROM organization_members
-      WHERE user_id = auth.uid()
-    )
-    OR
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  USING (false); -- Will be updated when organization_members table is available
 
 -- Policy: Only admins can create/update/delete overrides
+-- Temporarily disabled until admin role system is in place
 CREATE POLICY "Only admins can manage workshop fee overrides"
   ON workshop_fee_overrides FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  USING (false); -- Will be updated when profiles.role column is added
 
 -- Index for fast workshop lookups
 CREATE INDEX idx_workshop_fee_overrides_workshop ON workshop_fee_overrides(workshop_id) WHERE is_active = true;
@@ -165,7 +153,7 @@ CREATE INDEX idx_workshop_fee_overrides_workshop ON workshop_fee_overrides(works
 
 CREATE TABLE IF NOT EXISTS mechanic_fee_overrides (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  mechanic_id UUID NOT NULL REFERENCES mechanics(id) ON DELETE CASCADE,
+  mechanic_id UUID NOT NULL, -- REFERENCES mechanics(id) ON DELETE CASCADE (will be added later),
 
   -- Custom Referral Fee (overrides global default)
   custom_referral_fee_percent DECIMAL(5,2) NOT NULL
@@ -199,26 +187,13 @@ ALTER TABLE mechanic_fee_overrides ENABLE ROW LEVEL SECURITY;
 -- Policy: Mechanics can read their own override
 CREATE POLICY "Mechanics can read their own fee override"
   ON mechanic_fee_overrides FOR SELECT
-  USING (
-    mechanic_id = auth.uid()
-    OR
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  USING (mechanic_id = auth.uid());
 
 -- Policy: Only admins can create/update/delete overrides
+-- Temporarily disabled until admin role system is in place
 CREATE POLICY "Only admins can manage mechanic fee overrides"
   ON mechanic_fee_overrides FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  USING (false); -- Will be updated when profiles.role column is added
 
 -- Index for fast mechanic lookups
 CREATE INDEX idx_mechanic_fee_overrides_mechanic ON mechanic_fee_overrides(mechanic_id) WHERE is_active = true;
@@ -255,15 +230,10 @@ CREATE TABLE IF NOT EXISTS fee_change_log (
 ALTER TABLE fee_change_log ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Only admins can read audit log
+-- Temporarily disabled until admin role system is in place
 CREATE POLICY "Only admins can read fee change log"
   ON fee_change_log FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  USING (false); -- Will be updated when profiles.role column is added
 
 -- Policy: Only system can insert (via trigger)
 CREATE POLICY "Only system can insert fee changes"

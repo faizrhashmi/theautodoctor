@@ -75,9 +75,9 @@ export async function POST(
       .from('sessions')
       .update({
         status: 'scheduled',
+        scheduled_for: newTime.toISOString(), // ⭐ FIXED: Use the actual scheduled_for column
         metadata: {
           ...metadata,
-          scheduled_for: new_scheduled_time,
           reschedule_history: [
             ...rescheduleHistory,
             {

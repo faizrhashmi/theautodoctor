@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase";
 import WaiverModal from "@/components/customer/WaiverModal";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import { routeFor } from "@/lib/routes";
+import { ImprovedLocationSelector } from "@/components/shared/ImprovedLocationSelector";
 
 type SignupFormState = {
   firstName: string;
@@ -17,7 +18,10 @@ type SignupFormState = {
   dateOfBirth: string;
   address: string;
   city: string;
+  province: string;
+  postalCode: string;
   country: string;
+  timezone: string;
 };
 
 const EMPTY_FORM: SignupFormState = {
@@ -28,7 +32,10 @@ const EMPTY_FORM: SignupFormState = {
   dateOfBirth: "",
   address: "",
   city: "",
+  province: "",
+  postalCode: "",
   country: "Canada",
+  timezone: "America/Toronto",
 };
 
 function isAdult(value: string): boolean {
@@ -48,11 +55,20 @@ function hasOnlyLetters(value: string): boolean {
   return /^[a-zA-Z\s'-]+$/.test(value);
 }
 
-function isValidPassword(password: string): boolean {
-  if (password.length < 8) return false;
-  const hasLetter = /[a-zA-Z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  return hasLetter && hasNumber;
+function isValidPassword(password: string): { valid: boolean; message: string } {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters" };
+  }
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+    return { valid: false, message: "Must include uppercase and lowercase letters" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: "Must include at least one number" };
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    return { valid: false, message: "Must include at least one special character" };
+  }
+  return { valid: true, message: "" };
 }
 
 interface SignupGateProps {
@@ -147,6 +163,8 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       form.dateOfBirth &&
       form.address.trim() &&
       form.city.trim() &&
+      form.province.trim() &&
+      form.postalCode.trim() &&
       form.country.trim() &&
       email.trim() &&
       password
@@ -159,10 +177,13 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     if (!form.phone.trim()) return false;
     if (!form.address.trim()) return false;
     if (!form.city.trim()) return false;
+    if (!form.province.trim()) return false;
+    if (!form.postalCode.trim()) return false;
     if (!form.country.trim()) return false;
     if (!isAdult(form.dateOfBirth)) return false;
     if (!email.trim()) return false;
-    if (!isValidPassword(password)) return false;
+    const passwordValidation = isValidPassword(password);
+    if (!passwordValidation.valid) return false;
     if (!waiverAccepted) return false;
     return true;
   }, [form, email, password, waiverAccepted]);
@@ -179,8 +200,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     }
 
     if (name === "password") {
-      if (value && !isValidPassword(value)) {
-        errors[name] = "Minimum 8 characters with letters and numbers";
+      const validation = isValidPassword(value);
+      if (value && !validation.valid) {
+        errors[name] = validation.message;
       } else {
         delete errors[name];
       }
@@ -195,6 +217,28 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
     }
 
     setFieldErrors(errors);
+  };
+
+  // Auto-scroll to first error field
+  const scrollToFirstError = () => {
+    // Wait for DOM to update
+    setTimeout(() => {
+      // Priority order for scrolling (top to bottom of form)
+      const fieldOrder = [
+        'firstName', 'lastName', 'phone', 'vehicle', 'dateOfBirth',
+        'address', 'city', 'postalCode', 'country', 'province',
+        'email', 'password', 'confirmPassword'
+      ];
+
+      for (const fieldName of fieldOrder) {
+        const element = document.getElementById(fieldName);
+        if (element && (!form[fieldName as keyof typeof form] || fieldErrors[fieldName])) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.focus();
+          break;
+        }
+      }
+    }, 100);
   };
 
   async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
@@ -228,8 +272,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
       if (!email.trim()) {
         validationErrors.push("Email is required");
       }
-      if (!isValidPassword(password)) {
-        validationErrors.push("Password must be at least 8 characters with letters and numbers");
+      const passwordValidation = isValidPassword(password);
+      if (!passwordValidation.valid) {
+        validationErrors.push(passwordValidation.message);
       }
       if (!waiverAccepted) {
         validationErrors.push("You must accept the Terms of Service");
@@ -237,6 +282,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
 
       setError(validationErrors.join(". ") + ".");
       console.error("Validation errors:", validationErrors);
+
+      // Auto-scroll to first error field
+      scrollToFirstError();
       return;
     }
 
@@ -262,7 +310,10 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
           date_of_birth: form.dateOfBirth,
           address: form.address.trim(),
           city: form.city.trim(),
+          state_province: form.province.trim(),
+          postal_zip_code: form.postalCode.trim(),
           country: form.country.trim(),
+          timezone: form.timezone,
         },
         emailRedirectTo: redirectURL,
       },
@@ -351,8 +402,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                   required
                   value={form.firstName}
                   onChange={(e) => {
-                    setForm((prev) => ({ ...prev, firstName: e.target.value }));
-                    validateField("firstName", e.target.value);
+                    const value = e.target.value.replace(/[^a-zA-Z\s'-]/g, '');
+                    setForm((prev) => ({ ...prev, firstName: value }));
+                    validateField("firstName", value);
                   }}
                   className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                   placeholder="John"
@@ -370,8 +422,9 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                   required
                   value={form.lastName}
                   onChange={(e) => {
-                    setForm((prev) => ({ ...prev, lastName: e.target.value }));
-                    validateField("lastName", e.target.value);
+                    const value = e.target.value.replace(/[^a-zA-Z\s'-]/g, '');
+                    setForm((prev) => ({ ...prev, lastName: value }));
+                    validateField("lastName", value);
                   }}
                   className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                   placeholder="Doe"
@@ -391,7 +444,10 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
                   type="tel"
                   required
                   value={form.phone}
-                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9\-\s()]/g, '');
+                    setForm((prev) => ({ ...prev, phone: value }));
+                  }}
                   placeholder="416-555-0123"
                   className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
                 />
@@ -430,35 +486,26 @@ export default function SignupGate({ redirectTo }: SignupGateProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-semibold text-slate-200">
-                  City <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={form.city}
-                  onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
-                  placeholder="Toronto"
-                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-200">
-                  Country <span className="text-rose-400">*</span>
-                </label>
-                <select
-                  required
-                  value={form.country}
-                  onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 backdrop-blur transition focus:border-orange-400 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-orange-400/30"
-                >
-                  <option value="Canada" className="bg-slate-900 text-white">Canada</option>
-                  <option value="United States" className="bg-slate-900 text-white">United States</option>
-                  <option value="Other" className="bg-slate-900 text-white">Other</option>
-                </select>
-              </div>
+            {/* Location Selector - Country, Province, City, Postal Code */}
+            <div className="space-y-4">
+              <ImprovedLocationSelector
+                country={form.country}
+                city={form.city}
+                province={form.province}
+                postalCode={form.postalCode}
+                onCountryChange={(country, timezone) => {
+                  setForm(prev => ({ ...prev, country, timezone }));
+                }}
+                onCityChange={(city, province, timezone) => {
+                  setForm(prev => ({ ...prev, city, province, timezone }));
+                }}
+                onProvinceChange={(province) => {
+                  setForm(prev => ({ ...prev, province }));
+                }}
+                onPostalCodeChange={(postalCode) => {
+                  setForm(prev => ({ ...prev, postalCode }));
+                }}
+              />
             </div>
 
             <div>

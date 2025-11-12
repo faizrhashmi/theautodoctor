@@ -239,14 +239,14 @@ export default function ClientNavbar() {
           <div className="hidden lg:flex items-center gap-2">
             <button
               onClick={handleMechanicLogin}
-              className="group relative flex items-center gap-2 rounded-lg border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-3 py-2 text-xs font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:bg-orange-500/20 hover:shadow-lg hover:shadow-orange-500/20"
+              className="group relative flex items-center gap-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-3 py-2 text-xs font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:bg-blue-500/20 hover:shadow-lg hover:shadow-blue-500/20"
             >
               <Wrench className="h-3.5 w-3.5" />
               <span>For Mechanics</span>
             </button>
             <button
               onClick={handleWorkshopLogin}
-              className="group relative flex items-center gap-2 rounded-lg border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-3 py-2 text-xs font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:bg-blue-500/20 hover:shadow-lg hover:shadow-blue-500/20"
+              className="group relative flex items-center gap-2 rounded-lg border border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-purple-600/5 px-3 py-2 text-xs font-semibold text-purple-400 transition-all hover:border-purple-400/50 hover:bg-purple-500/20 hover:shadow-lg hover:shadow-purple-500/20"
             >
               <Building2 className="h-3.5 w-3.5" />
               <span>For Workshops</span>
@@ -354,7 +354,7 @@ function MobileMenu({
                   setOpen(false)
                   onMechanicLogin()
                 }}
-                className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-orange-600/5 px-4 py-3 text-sm font-semibold text-orange-400 transition-all hover:border-orange-400/50 hover:from-orange-500/20 hover:to-orange-600/10 focus:outline-none w-full"
+                className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-4 py-3 text-sm font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:from-blue-500/20 hover:to-blue-600/10 focus:outline-none w-full"
               >
                 <Wrench className="h-4 w-4" />
                 For Mechanics
@@ -366,7 +366,7 @@ function MobileMenu({
                   setOpen(false)
                   onWorkshopLogin()
                 }}
-                className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-600/5 px-4 py-3 text-sm font-semibold text-blue-400 transition-all hover:border-blue-400/50 hover:from-blue-500/20 hover:to-blue-600/10 focus:outline-none w-full"
+                className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-purple-600/5 px-4 py-3 text-sm font-semibold text-purple-400 transition-all hover:border-purple-400/50 hover:from-purple-500/20 hover:to-purple-600/10 focus:outline-none w-full"
               >
                 <Building2 className="h-4 w-4" />
                 For Workshops

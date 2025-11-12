@@ -14,8 +14,8 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Check, ChevronRight, ChevronLeft, Car, DollarSign, UserCheck, FileText } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Check, ChevronRight, ChevronLeft, Car, DollarSign, UserCheck, FileText, Crown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Step components
@@ -50,6 +50,8 @@ const STEPS: StepConfigWithTooltip[] = [
 
 export default function BookingWizard({ onComplete, onCancel }: BookingWizardProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const specialistBrandFromUrl = searchParams.get('specialist')
 
   // Restore wizard state from sessionStorage if available
   const [currentStep, setCurrentStep] = useState(() => {
@@ -63,7 +65,35 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
   const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('bookingWizardCompletedSteps')
-      return saved ? JSON.parse(saved) : []
+      const wizardDataStr = sessionStorage.getItem('bookingWizardData')
+
+      if (saved && wizardDataStr) {
+        const steps = JSON.parse(saved)
+        const data = JSON.parse(wizardDataStr)
+
+        // ✅ Validate each completed step has required data
+        const validatedSteps = steps.filter((stepId: number) => {
+          if (stepId === 1) {
+            // Step 1: Vehicle (unless advice-only)
+            return data.isAdviceOnly || data.vehicleId
+          }
+          if (stepId === 2) {
+            // Step 2: Plan - ✅ FIX: Accept any valid plan slug
+            return data.planType && typeof data.planType === 'string' && data.planType.trim().length > 0
+          }
+          if (stepId === 3) {
+            // Step 3: Mechanic
+            return data.mechanicId && data.mechanicPresenceStatus === 'online'
+          }
+          if (stepId === 4) {
+            // Step 4: Concern
+            return data.concernDescription && data.concernDescription.length >= 10
+          }
+          return false
+        })
+
+        return validatedSteps
+      }
     }
     return []
   })
@@ -117,6 +147,17 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
     }
     fetchProfile()
   }, [])
+
+  // Detect specialist request from URL
+  useEffect(() => {
+    if (specialistBrandFromUrl && !wizardData.requestedBrand) {
+      setWizardData(prev => ({
+        ...prev,
+        mechanicType: 'brand_specialist',
+        requestedBrand: specialistBrandFromUrl
+      }))
+    }
+  }, [specialistBrandFromUrl])
 
   // Auto-scroll to top on step change
   useEffect(() => {
@@ -194,6 +235,12 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
         city: data.city || profileData.profile.city || '',
         postalCode: data.postalCode || profileData.profile.postal_code || '',
 
+        // NEW: Customer location for matching (explicit fields)
+        customer_country: data.country || profileData.profile.country || '',
+        customer_province: data.province || profileData.profile.province || '',
+        customer_city: data.city || profileData.profile.city || '',
+        customer_postal_code: data.postalCode || profileData.profile.postal_code || '',
+
         // Vehicle info from selected vehicle - use data from wizardData
         vin: vehicleData?.vin || '',
         year: vehicleData?.year || '',
@@ -269,14 +316,57 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
   }
 
   const handleStepClick = (stepId: number) => {
-    // Allow clicking any completed step OR the next uncompleted step
-    if (completedSteps.includes(stepId) || stepId === Math.min(...STEPS.map(s => s.id).filter(id => !completedSteps.includes(id)))) {
+    // Only allow clicking PREVIOUS steps to go back and edit
+    // Never allow jumping FORWARD without validation
+    if (stepId < currentStep && completedSteps.includes(stepId)) {
+      // Going backwards is OK
       setCurrentStep(stepId)
+
+      // Clear all future steps to force re-validation
+      setCompletedSteps(prev => prev.filter(s => s < stepId))
     }
+    // Otherwise, user must use Continue button with validation
   }
 
   const canGoBack = true // Always allow back (either to previous step or dashboard)
-  const canGoNext = completedSteps.includes(currentStep)
+
+  // 🚨 CRITICAL SECURITY: Validate ACTUAL data, not just completedSteps array
+  const canGoNext = (() => {
+    // Step 1: Vehicle (unless advice-only)
+    if (currentStep === 1) {
+      if (wizardData.isAdviceOnly === true) return true
+      return !!wizardData.vehicleId
+    }
+
+    // Step 2: Plan (and specialist premium consent if applicable)
+    if (currentStep === 2) {
+      // ✅ FIX: Accept ANY plan with a value, not just specific slugs
+      // Plan IDs are slugs from database (e.g., 'free', 'quick', 'standard', 'diagnostic')
+      const hasValidPlan = !!wizardData.planType && typeof wizardData.planType === 'string' && wizardData.planType.trim().length > 0
+
+      // If specialist requested, must accept premium
+      if (wizardData.requestedBrand || wizardData.specialistPremium > 0) {
+        return hasValidPlan && wizardData.specialistPremiumAccepted === true
+      }
+
+      return hasValidPlan
+    }
+
+    // Step 3: Mechanic (must be online)
+    if (currentStep === 3) {
+      return !!wizardData.mechanicId &&
+             wizardData.mechanicPresenceStatus === 'online'
+    }
+
+    // Step 4: Concern (minimum length)
+    if (currentStep === 4) {
+      return !!wizardData.concernDescription &&
+             wizardData.concernDescription.trim().length >= 10
+    }
+
+    return false
+  })()
+
   const isLastStep = currentStep === 4
 
   const handleBack = () => {
@@ -359,6 +449,23 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
       <div className="max-w-5xl mx-auto px-4 py-8 pb-32">
         {/* Booking Guide */}
         <BookingGuide currentStep={currentStep} onDismiss={() => {}} />
+
+        {/* Specialist Request Banner - Show on all steps */}
+        {wizardData.requestedBrand && (
+          <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Crown className="h-6 w-6 text-orange-400" />
+              <div>
+                <h3 className="text-white font-bold">
+                  {wizardData.requestedBrand} Specialist Selected
+                </h3>
+                <p className="text-sm text-slate-300">
+                  You'll be matched with certified {wizardData.requestedBrand} experts
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           <motion.div

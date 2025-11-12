@@ -9,8 +9,7 @@ import { logInfo } from '@/lib/log'
 import { sendSessionEndedEmail } from '@/lib/email/templates'
 import { trackInteraction, generateUpsellsForSession } from '@/lib/crm'
 import { getSessionPaymentDestination } from '@/types/mechanic'
-
-const MECHANIC_SHARE = 0.7 // 70% to mechanic, 30% to platform
+import { calculateMechanicEarnings, getPlatformFees } from '@/lib/platformFees'
 
 /**
  * Calculate duration in minutes between two ISO timestamps
@@ -197,14 +196,17 @@ export async function POST(
   // Calculate mechanic earnings (only for sessions that actually happened)
   const planKey = session.plan as PlanKey
   const planPrice = PRICING[planKey]?.priceCents || 0
-  const mechanicEarningsCents = Math.round(planPrice * MECHANIC_SHARE)
+
+  // Fetch platform fees from database (single source of truth)
+  const fees = await getPlatformFees()
+  const mechanicEarningsCents = await calculateMechanicEarnings(planPrice)
 
   let payoutMetadata: any = {
     amount_cents: mechanicEarningsCents,
     amount_dollars: (mechanicEarningsCents / 100).toFixed(2),
     plan: session.plan,
     plan_price_cents: planPrice,
-    mechanic_share_percent: MECHANIC_SHARE * 100,
+    mechanic_share_percent: fees.sessionMechanicPercent,
     calculated_at: now,
   }
 

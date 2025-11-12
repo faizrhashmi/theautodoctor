@@ -66,6 +66,11 @@ export async function POST(req: NextRequest) {
     plan = 'trial',
     name, email, phone, city,
     postalCode = null, // Postal code for location-based matching
+    // NEW: Customer location fields for matching
+    customer_country = null,
+    customer_province = null,
+    customer_city = null,
+    customer_postal_code = null,
     vin = '', year = '', make = '', model = '',
     odometer = '', plate = '',
     concern,
@@ -77,6 +82,9 @@ export async function POST(req: NextRequest) {
     // Phase 3: Favorites Priority Flow
     preferred_mechanic_id = null,
     routing_type = null,
+    // Scheduling support
+    scheduled_for = null, // ISO 8601 UTC timestamp for scheduled appointments
+    mechanic_id = null, // Mechanic ID for scheduled sessions
   } = body || {};
 
   // Strict server-side validation mirrors the client
@@ -197,8 +205,15 @@ export async function POST(req: NextRequest) {
         creditCost,
         urgent,
         isSpecialist: is_specialist,
-        preferredMechanicId: preferred_mechanic_id,
-        routingType: routing_type as any
+        preferredMechanicId: preferred_mechanic_id || mechanic_id, // Use mechanic_id for scheduled sessions
+        routingType: routing_type as any,
+        // NEW: Pass customer location for matching
+        customerCountry: customer_country,
+        customerProvince: customer_province,
+        customerCity: customer_city,
+        customerPostalCode: customer_postal_code,
+        // Scheduling support
+        scheduledFor: scheduled_for ? new Date(scheduled_for) : null,
       });
 
       const sessionId = result.sessionId;
@@ -274,8 +289,15 @@ export async function POST(req: NextRequest) {
         paymentMethod: 'free',
         urgent,
         isSpecialist: is_specialist,
-        preferredMechanicId: preferred_mechanic_id,
-        routingType: routing_type as any
+        preferredMechanicId: preferred_mechanic_id || mechanic_id, // Use mechanic_id for scheduled sessions
+        routingType: routing_type as any,
+        // NEW: Pass customer location for matching
+        customerCountry: customer_country,
+        customerProvince: customer_province,
+        customerCity: customer_city,
+        customerPostalCode: customer_postal_code,
+        // Scheduling support
+        scheduledFor: scheduled_for ? new Date(scheduled_for) : null,
       });
 
       console.log(`[INTAKE] ✓ Free session created via factory: ${result.sessionId}`);

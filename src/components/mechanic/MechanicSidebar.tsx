@@ -240,17 +240,20 @@ export default function MechanicSidebar() {
                   return false
                 }
 
-                // Once loaded, apply actual filtering for WORKSHOP EMPLOYEES ONLY
-                // Workshop employees (account_type='workshop_mechanic') cannot see:
-                // - Earnings (they don't get paid directly)
-                // - Referrals (they don't get referral commissions - workshop does)
-                // - Analytics (business metrics)
-                // - CRM (customer management)
-                // - Availability (managed by workshop)
+                // Once loaded, apply actual filtering based on mechanic type
 
+                // ✅ REFERRALS: Only Virtual-Only mechanics (they earn 2% on RFQs they create)
+                // - Virtual-Only: YES (earn 2% referral commissions)
+                // - Independent Workshop: NO (create quotes directly, no referrals)
+                // - Workshop Employees: NO (no direct earnings)
+                if (item.href.includes('/referrals')) {
+                  return mechanicType === MechanicType.VIRTUAL_ONLY
+                }
+
+                // ✅ EARNINGS, ANALYTICS, CRM, AVAILABILITY: Virtual + Independent only (NOT employees)
+                // Workshop employees cannot see these (workshop gets paid, not them)
                 const restrictedForEmployees = [
                   '/earnings',
-                  '/referrals',
                   '/analytics',
                   '/crm',
                   '/availability'

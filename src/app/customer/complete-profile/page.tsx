@@ -23,7 +23,8 @@ export default function CompleteProfilePage() {
     dateOfBirth: '',
     address: '',
     city: '',
-    country: 'Canada'
+    country: 'Canada',
+    postalCode: ''
   })
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function CompleteProfilePage() {
           address: form.address,
           city: form.city,
           country: form.country,
+          postal_code: form.postalCode,
           onboarding_completed: true,
           waiver_accepted: true,
           waiver_accepted_at: new Date().toISOString(),
@@ -202,6 +204,22 @@ export default function CompleteProfilePage() {
                     <option value="United States">United States</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Postal Code */}
+              <div>
+                <label className="block text-sm font-medium text-slate-200 mb-2">
+                  Postal Code
+                </label>
+                <input
+                  type="text"
+                  value={form.postalCode}
+                  onChange={(e) => setForm({ ...form, postalCode: e.target.value.toUpperCase() })}
+                  placeholder={form.country === 'Canada' ? 'A1A 1A1' : '12345'}
+                  maxLength={10}
+                  className="w-full rounded-xl border border-slate-600 bg-slate-900/60 px-4 py-3 text-white placeholder-slate-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition"
+                />
+                <p className="mt-1 text-xs text-slate-500">Helps match you with nearby mechanics</p>
               </div>
 
               {/* Waiver Section */}

@@ -31,7 +31,7 @@ import {
   Heart,
   Building2
 } from 'lucide-react'
-import OnboardingChecklist from '@/components/customer/OnboardingChecklist'
+import BookingGuide from '@/components/customer/BookingGuide'
 import VehiclePrompt from '@/components/customer/VehiclePrompt'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PresenceChip } from '@/components/ui/PresenceChip'
@@ -39,6 +39,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard'
 import ThemeSettingsModal from '@/components/customer/ThemeSettingsModal'
 import { useAccentColor } from '@/components/providers/ClientThemeProvider'
 import RecentSessions from '@/components/dashboard/RecentSessions'
+import MyMechanicsDashboardCard from '@/components/customer/MyMechanicsDashboardCard'
 
 // ✅ P0 FIX: Add subscription data to interface
 interface DashboardStats {
@@ -547,8 +548,8 @@ export default function CustomerDashboardPage() {
 
   const renderOverviewTab = () => (
     <>
-      {/* Phase 2.1: Onboarding Checklist - Shows for new customers */}
-      <OnboardingChecklist />
+      {/* Phase 2.1: Booking Guide - Shows for new customers with step 0 (dashboard mode) */}
+      <BookingGuide currentStep={0} />
 
       {/* ✅ P0 FIX: Credit Balance Widget */}
       {stats?.subscription.has_active && (
@@ -894,67 +895,8 @@ export default function CustomerDashboardPage() {
         </div>
       </div>
 
-      {/* My Favorites */}
-      {favorites.length > 0 && (
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
-            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
-              My Favorite Mechanics
-            </h2>
-            <div className="text-sm text-slate-400">
-              {favorites.length} {favorites.length === 1 ? 'favorite' : 'favorites'}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {favorites.map((favorite) => (
-              <div
-                key={favorite.id}
-                className="bg-slate-900/50 rounded-lg border border-slate-700 hover:border-orange-500/50 transition-all p-4"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-1">{favorite.provider_name}</h3>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      {favorite.provider_type === 'independent' ? (
-                        <Wrench className="w-3 h-3" />
-                      ) : (
-                        <Building2 className="w-3 h-3" />
-                      )}
-                      <span className="capitalize">{favorite.provider_type}</span>
-                    </div>
-                  </div>
-                  <Heart className="w-4 h-4 text-red-400 fill-current" />
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Services:</span>
-                    <span className="text-white font-medium">{favorite.total_services || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Total Spent:</span>
-                    <span className="text-white font-medium">${(favorite.total_spent || 0).toFixed(2)}</span>
-                  </div>
-                  {favorite.last_service_at && (
-                    <div className="text-xs text-slate-500">
-                      Last: {new Date(favorite.last_service_at).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleBookFavorite(favorite)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-medium transition-all"
-                >
-                  <Zap className="w-4 h-4" />
-                  Book Again
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* My Mechanics - Compact Dashboard Card */}
+      <MyMechanicsDashboardCard />
 
       {/* Recent Activity */}
       {recentSessions.length > 0 ? (

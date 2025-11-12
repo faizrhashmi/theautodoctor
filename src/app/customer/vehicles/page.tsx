@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { Trash2, Star, Plus, Edit2, History, ArrowLeft } from 'lucide-react'
+import { Trash2, Star, Plus, Edit2, History, ArrowLeft, Crown } from 'lucide-react'
 import type { Vehicle } from '@/types/supabase'
 import { AuthGuard } from '@/components/AuthGuard'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
@@ -17,6 +17,7 @@ function VehiclesPageContent() {
   const returnTo = searchParams?.get('returnTo')
   const supabase = createClient()
   const { user } = useAuthGuard({ requiredRole: 'customer' })
+  const [wizardContext, setWizardContext] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -42,6 +43,20 @@ function VehiclesPageContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
+
+  // Load wizard context from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedContext = sessionStorage.getItem('wizardContext')
+      if (savedContext) {
+        try {
+          setWizardContext(JSON.parse(savedContext))
+        } catch (e) {
+          console.error('Failed to parse wizard context:', e)
+        }
+      }
+    }
+  }, [])
 
   async function loadVehicles() {
     if (!user) return
@@ -120,10 +135,16 @@ function VehiclesPageContent() {
         if (insertError) throw insertError
 
         // Context-aware redirect for NEW vehicles only
-        if (returnTo && insertedVehicle) {
+        const finalReturnTo = returnTo || wizardContext?.returnTo
+        if (finalReturnTo && insertedVehicle) {
+          // Clear wizard context from sessionStorage
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('wizardContext')
+          }
+
           // Add vehicle_id to return URL
-          const separator = returnTo.includes('?') ? '&' : '?'
-          const redirectUrl = `${returnTo}${separator}vehicle_id=${insertedVehicle.id}`
+          const separator = finalReturnTo.includes('?') ? '&' : '?'
+          const redirectUrl = `${finalReturnTo}${separator}vehicle_id=${insertedVehicle.id}`
           console.log('[Vehicles] Redirecting to:', redirectUrl)
           router.push(redirectUrl)
         } else {
@@ -291,16 +312,34 @@ function VehiclesPageContent() {
         )}
 
         {/* Context Banner - Show when coming from another flow */}
-        {returnTo && (
-          <div className="mb-4 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm">
+        {(returnTo || wizardContext) && (
+          <div className={`mb-4 rounded-xl border p-4 text-sm ${
+            wizardContext?.specialistRequest
+              ? 'border-orange-400/20 bg-orange-500/10'
+              : 'border-blue-400/20 bg-blue-500/10'
+          }`}>
             <div className="flex items-start gap-3">
-              <ArrowLeft className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              {wizardContext?.specialistRequest ? (
+                <Crown className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
+              ) : (
+                <ArrowLeft className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              )}
               <div>
-                <p className="text-blue-300 font-medium mb-1">
-                  You'll return after adding your vehicle
+                <p className={`font-medium mb-1 ${
+                  wizardContext?.specialistRequest ? 'text-orange-300' : 'text-blue-300'
+                }`}>
+                  {wizardContext?.specialistRequest
+                    ? `Adding vehicle for ${wizardContext.specialistRequest} Specialist`
+                    : "You'll return after adding your vehicle"
+                  }
                 </p>
-                <p className="text-blue-400/80 text-xs">
-                  After saving your vehicle, you'll be redirected back to continue where you left off.
+                <p className={`text-xs ${
+                  wizardContext?.specialistRequest ? 'text-orange-400/80' : 'text-blue-400/80'
+                }`}>
+                  {wizardContext?.specialistRequest
+                    ? `After saving your ${wizardContext.specialistRequest} vehicle, you'll return to the booking wizard.`
+                    : "After saving your vehicle, you'll be redirected back to continue where you left off."
+                  }
                 </p>
               </div>
             </div>

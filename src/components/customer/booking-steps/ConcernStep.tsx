@@ -40,8 +40,9 @@ export default function ConcernStep({ wizardData, onComplete, onBack }: ConcernS
   // Form validation - user must click Continue to submit
   const isFormValid = primaryConcern && concernDescription.trim().length >= 10
 
-  // Update wizard data when form data changes (to keep it in sync)
-  // This enables the Continue button but doesn't auto-submit
+  // ✅ FIX: Update wizard data when form changes, but DON'T add step to completedSteps
+  // The issue was that calling onComplete() marks the step as "complete" (checked)
+  // We need to update wizardData for validation, but not mark as visually complete
   useEffect(() => {
     if (isFormValid) {
       const concernData = {
@@ -51,10 +52,10 @@ export default function ConcernStep({ wizardData, onComplete, onBack }: ConcernS
         isUrgent,
         uploadedFiles: uploads.filter(u => u.status === 'done').map(u => u.path),
       }
-      console.log('[ConcernStep] Form data updated, syncing with wizard')
+      console.log('[ConcernStep] Form data updated, calling onComplete to sync with wizardData')
       onComplete(concernData)
     }
-  }, [primaryConcern, concernCategory, concernDescription, isUrgent, uploads])
+  }, [primaryConcern, concernCategory, concernDescription, isUrgent, uploads, isFormValid, onComplete])
 
   const handleConcernSelect = (value: string, category?: string) => {
     setPrimaryConcern(value)

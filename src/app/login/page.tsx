@@ -161,6 +161,15 @@ export default function CustomerLogin() {
               autoComplete="current-password"
             />
 
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
             {error && (
               <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3">
                 <div className="flex items-start gap-2">

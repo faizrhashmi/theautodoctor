@@ -1,34 +1,40 @@
 /**
  * Workshop Pricing Configuration
  *
- * Centralized commission rate constants for the Workshop layer.
- * All commission rates are percentages (0-100).
+ * ⚠️ DEPRECATED: This file contains outdated business model concepts.
+ *
+ * CORRECT BUSINESS MODEL:
+ * - Platform: 30% (fixed)
+ * - Workshop: 70% (fixed)
+ * - Workshop manages mechanic payments internally (platform not involved)
+ *
+ * Use src/lib/platformFees.ts for all pricing calculations.
+ *
+ * UPDATED: 2025-11-11 - Values changed to match database (70/30 split)
  */
 
 export const WORKSHOP_PRICING = {
   /**
-   * Default commission rate for new workshops (percentage)
-   * This is the workshop's cut from each session.
+   * @deprecated Workshop commission rate doesn't exist in current business model
+   * Workshops receive 70% of session payment (fixed split)
    */
-  DEFAULT_COMMISSION_RATE: 10.0,
+  DEFAULT_COMMISSION_RATE: 70.0,
 
   /**
-   * Platform commission rate (percentage)
-   * Fixed platform fee applied to all transactions.
+   * Platform fee rate (percentage)
+   * UPDATED: 2025-11-11 - Changed from 15% to 30%
    */
-  PLATFORM_COMMISSION_RATE: 15.0,
+  PLATFORM_COMMISSION_RATE: 30.0,
 
   /**
-   * Minimum allowed commission rate for workshops (percentage)
+   * @deprecated Not used in current business model
    */
-  MIN_COMMISSION_RATE: 0.0,
+  MIN_COMMISSION_RATE: 70.0,
 
   /**
-   * Maximum allowed commission rate for workshops (percentage)
-   * Capped to ensure mechanics receive fair compensation.
-   * Formula: 100 - PLATFORM_COMMISSION_RATE = 85%
+   * @deprecated Not used in current business model
    */
-  MAX_COMMISSION_RATE: 85.0,
+  MAX_COMMISSION_RATE: 70.0,
 } as const
 
 /**

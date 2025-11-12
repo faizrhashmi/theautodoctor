@@ -52,7 +52,7 @@ export default function WorkshopLogin() {
       <main className="w-full max-w-md">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-600">
               <Building2 className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white">Workshop Login</h1>
@@ -77,6 +77,15 @@ export default function WorkshopLogin() {
               placeholder="Your password"
             />
 
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
             {error && (
               <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 {error}
@@ -86,7 +95,7 @@ export default function WorkshopLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-400 hover:via-indigo-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-purple-400 hover:via-purple-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -95,7 +104,7 @@ export default function WorkshopLogin() {
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-400">
               Don&apos;t have an account?{' '}
-              <Link href="/workshop/signup" className="font-semibold text-blue-400 hover:text-blue-300">
+              <Link href="/workshop/signup" className="font-semibold text-purple-400 hover:text-purple-300">
                 Sign up
               </Link>
             </p>
@@ -141,7 +150,7 @@ function Field({
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/60 ${Icon ? 'pl-10' : ''}`}
+          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/60 ${Icon ? 'pl-10' : ''}`}
         />
       </div>
     </label>

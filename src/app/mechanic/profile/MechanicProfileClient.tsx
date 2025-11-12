@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { BrandSelector } from '@/components/mechanic/BrandSelector'
 import { ServiceKeywordsSelector } from '@/components/mechanic/ServiceKeywordsSelector'
-import { LocationSelector } from '@/components/mechanic/LocationSelector'
+import { ImprovedLocationSelector } from '@/components/shared/ImprovedLocationSelector'
 import { ProfileCompletionBanner } from '@/components/mechanic/ProfileCompletionBanner'
 import type { ProfileCompletion } from '@/lib/profileCompletion'
 import Link from 'next/link'
@@ -44,6 +44,7 @@ interface MechanicProfile {
   country: string
   city: string
   state_province: string
+  postal_code: string
   timezone: string
   years_of_experience: number // ✅ Fixed: was 'years_experience'
   red_seal_certified: boolean // ✅ Fixed: was 'is_red_seal'
@@ -245,7 +246,7 @@ function BasicInfoTab({ profile, setProfile }: any) {
         <input
           type="text"
           value={profile.name || ''}
-          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+          onChange={(e) => setProfile((prev: any) => ({ ...prev, name: e.target.value }))}
           className="w-full px-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
           placeholder="John Mechanic"
         />
@@ -258,7 +259,7 @@ function BasicInfoTab({ profile, setProfile }: any) {
         <input
           type="tel"
           value={profile.phone || ''}
-          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+          onChange={(e) => setProfile((prev: any) => ({ ...prev, phone: e.target.value }))}
           className="w-full px-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
           placeholder="(555) 123-4567"
         />
@@ -270,7 +271,7 @@ function BasicInfoTab({ profile, setProfile }: any) {
         </label>
         <textarea
           value={profile.about_me || ''}
-          onChange={(e) => setProfile({ ...profile, about_me: e.target.value })}
+          onChange={(e) => setProfile((prev: any) => ({ ...prev, about_me: e.target.value }))}
           rows={5}
           className="w-full px-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 resize-none transition touch-manipulation"
           placeholder="Tell customers about your experience and expertise..."
@@ -287,7 +288,7 @@ function BasicInfoTab({ profile, setProfile }: any) {
         <input
           type="text"
           value={profile.shop_affiliation || ''}
-          onChange={(e) => setProfile({ ...profile, shop_affiliation: e.target.value })}
+          onChange={(e) => setProfile((prev: any) => ({ ...prev, shop_affiliation: e.target.value }))}
           className="w-full px-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
           placeholder="ABC Auto Repair"
         />
@@ -302,7 +303,7 @@ function BasicInfoTab({ profile, setProfile }: any) {
           <input
             type="number"
             value={profile.hourly_rate || ''}
-            onChange={(e) => setProfile({ ...profile, hourly_rate: parseFloat(e.target.value) || 0 })}
+            onChange={(e) => setProfile((prev: any) => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
             className="w-full pl-10 pr-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
             placeholder="50.00"
             min="0"
@@ -350,7 +351,7 @@ function SpecializationsTab({ profile, setProfile }: any) {
 
   const handleTierChange = (tier: string) => {
     setSelectedTier(tier)
-    setProfile({ ...profile, specialist_tier: tier })
+    setProfile((prev: any) => ({ ...prev, specialist_tier: tier }))
   }
 
   return (
@@ -396,7 +397,7 @@ function SpecializationsTab({ profile, setProfile }: any) {
         </p>
         <BrandSelector
           value={profile.brand_specializations || []}
-          onChange={(brands) => setProfile({ ...profile, brand_specializations: brands })}
+          onChange={(brands) => setProfile((prev: any) => ({ ...prev, brand_specializations: brands }))}
         />
       </div>
 
@@ -408,7 +409,7 @@ function SpecializationsTab({ profile, setProfile }: any) {
         </p>
         <ServiceKeywordsSelector
           value={profile.service_keywords || []}
-          onChange={(keywords) => setProfile({ ...profile, service_keywords: keywords })}
+          onChange={(keywords) => setProfile((prev: any) => ({ ...prev, service_keywords: keywords }))}
         />
       </div>
     </div>
@@ -426,18 +427,58 @@ function LocationTab({ profile, setProfile }: any) {
         </p>
       </div>
 
-      <LocationSelector
+      <ImprovedLocationSelector
         country={profile.country || ''}
         city={profile.city || ''}
-        stateProvince={profile.state_province || ''}
-        timezone={profile.timezone || 'America/Toronto'}
+        province={profile.state_province || ''}
         onCountryChange={(country, timezone) => {
-          setProfile({ ...profile, country, timezone })
+          setProfile((prev: any) => ({ ...prev, country, timezone }))
         }}
-        onCityChange={(city, stateProvince, timezone) => {
-          setProfile({ ...profile, city, state_province: stateProvince, timezone })
+        onCityChange={(city, province, timezone) => {
+          setProfile((prev: any) => ({ ...prev, city, state_province: province, timezone }))
+        }}
+        onProvinceChange={(province) => {
+          setProfile((prev: any) => ({ ...prev, state_province: province }))
         }}
       />
+
+      <div>
+        <label className="block text-sm font-medium text-slate-200 mb-2">
+          Full Address <span className="text-red-400">*</span>
+        </label>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+          <textarea
+            value={profile.full_address || ''}
+            onChange={(e) => setProfile((prev: any) => ({ ...prev, full_address: e.target.value }))}
+            rows={3}
+            className="w-full pl-10 pr-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 resize-none transition touch-manipulation"
+            placeholder="123 Main Street&#10;Apt 4B"
+            required
+          />
+        </div>
+        <p className="text-xs text-slate-500 mt-2">
+          Enter your complete street address including apartment/unit number
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-200 mb-2">
+          Postal Code <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="text"
+          value={profile.postal_code || ''}
+          onChange={(e) => setProfile((prev: any) => ({ ...prev, postal_code: e.target.value.toUpperCase() }))}
+          maxLength={10}
+          className="w-full px-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
+          placeholder={profile.country?.toLowerCase() === 'canada' ? 'A1A 1A1' : profile.country?.toLowerCase() === 'united states' ? '12345' : 'Postal code'}
+          required
+        />
+        <p className="text-xs text-slate-500 mt-2">
+          Used for accurate customer matching
+        </p>
+      </div>
 
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
         <div className="flex gap-3">
@@ -488,9 +529,9 @@ function CredentialsTab({ profile, setProfile }: any) {
             className="h-5 w-5 rounded border-slate-600 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900 mt-0.5 flex-shrink-0"
           />
           <div>
-            <span className="font-medium text-white">Red Seal Certified</span>
+            <span className="font-medium text-white">Professionally Certified</span>
             <p className="text-sm text-slate-400 mt-1">
-              I am Red Seal/310S/310T/CPA certified in my trade (only ONE required for approval)
+              I hold a professional automotive certification (Red Seal, Provincial 310S/310T, CPA Quebec, ASE, or Manufacturer specialist)
             </p>
           </div>
         </label>
@@ -500,7 +541,7 @@ function CredentialsTab({ profile, setProfile }: any) {
         <div className="space-y-4 pl-0 sm:pl-8 pt-2">
           <div>
             <label className="block text-sm font-medium text-slate-200 mb-2">
-              Red Seal Number
+              Certification Number
             </label>
             <input
               type="text"
@@ -513,7 +554,7 @@ function CredentialsTab({ profile, setProfile }: any) {
 
           <div>
             <label className="block text-sm font-medium text-slate-200 mb-2">
-              Province/Territory
+              Issuing Province/Region
             </label>
             <input
               type="text"
@@ -526,7 +567,7 @@ function CredentialsTab({ profile, setProfile }: any) {
 
           <div>
             <label className="block text-sm font-medium text-slate-200 mb-2">
-              Expiry Date (if applicable)
+              Certification Expiry Date (if applicable)
             </label>
             <input
               type="date"

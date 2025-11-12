@@ -5,9 +5,10 @@
  * Shows plan cards with pricing - DYNAMICALLY from database
  */
 
-import { useState } from 'react'
-import { Check, Zap, Clock, Search, Gift } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, Zap, Clock, Search, Gift, Crown } from 'lucide-react'
 import { usePlansContext } from '@/contexts/PlansContext'
+import { createClient } from '@/lib/supabase'
 
 interface PlanStepProps {
   wizardData: any
@@ -32,8 +33,77 @@ const PLAN_COLORS: Record<string, string> = {
 }
 
 export default function PlanStep({ wizardData, onComplete }: PlanStepProps) {
+  const supabase = createClient()
   const { plans, loading } = usePlansContext()
   const [selectedPlan, setSelectedPlan] = useState<string | null>(wizardData.planType)
+  const [specialistPremium, setSpecialistPremium] = useState<number>(0)
+  const [acceptedSpecialistPremium, setAcceptedSpecialistPremium] = useState(false)
+  const [favoriteMechanicData, setFavoriteMechanicData] = useState<{
+    id: string
+    name: string
+    isBrandSpecialist: boolean
+    certifiedBrands: string[]
+    specialistPremium: number
+  } | null>(null)
+
+  // Fetch specialist premium from database
+  useEffect(() => {
+    async function fetchSpecialistPremium() {
+      // Source 1: User came from specialists page
+      if (wizardData.requestedBrand) {
+        const { data: brand } = await supabase
+          .from('brand_specializations')
+          .select('specialist_premium')
+          .eq('brand_name', wizardData.requestedBrand)
+          .single()
+
+        if (brand?.specialist_premium) {
+          setSpecialistPremium(brand.specialist_premium)
+        }
+      }
+
+      // Source 2: User selected favorite specialist
+      else if (wizardData.mechanicId && wizardData.mechanicType === 'favorite') {
+        const { data: mechanic } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            certifications (
+              brand,
+              certification_type
+            )
+          `)
+          .eq('id', wizardData.mechanicId)
+          .single()
+
+        if (mechanic && mechanic.certifications && mechanic.certifications.length > 0) {
+          const certifiedBrands = mechanic.certifications.map((c: any) => c.brand)
+
+          // Get premium for first certified brand
+          const { data: brand } = await supabase
+            .from('brand_specializations')
+            .select('specialist_premium')
+            .eq('brand_name', certifiedBrands[0])
+            .single()
+
+          const premium = brand?.specialist_premium || 15
+
+          setFavoriteMechanicData({
+            id: mechanic.id,
+            name: mechanic.full_name,
+            isBrandSpecialist: true,
+            certifiedBrands,
+            specialistPremium: premium
+          })
+
+          setSpecialistPremium(premium)
+        }
+      }
+    }
+
+    fetchSpecialistPremium()
+  }, [wizardData.requestedBrand, wizardData.mechanicId, wizardData.mechanicType])
 
   const handlePlanSelect = (planId: string) => {
     const planData = plans.find((p) => p.id === planId || p.slug === planId)
@@ -43,6 +113,8 @@ export default function PlanStep({ wizardData, onComplete }: PlanStepProps) {
     onComplete({
       planType: planId,
       planPrice: planData.priceValue,
+      specialistPremium: specialistPremium,
+      specialistPremiumAccepted: acceptedSpecialistPremium,
     })
   }
 
@@ -164,6 +236,62 @@ export default function PlanStep({ wizardData, onComplete }: PlanStepProps) {
           )
         })}
       </div>
+
+      {/* Specialist Pricing Breakdown */}
+      {selectedPlan && (wizardData.requestedBrand || favoriteMechanicData) && (
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 max-w-2xl mx-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <Crown className="h-5 w-5 text-orange-400" />
+            <h3 className="text-lg font-semibold text-white">Pricing Summary</h3>
+          </div>
+
+          <div className="space-y-2 text-sm mb-4">
+            <div className="flex justify-between text-slate-300">
+              <span>{plans.find(p => p.id === selectedPlan || p.slug === selectedPlan)?.name || 'Plan'}</span>
+              <span>${(plans.find(p => p.id === selectedPlan || p.slug === selectedPlan)?.priceValue || 0).toFixed(2)}</span>
+            </div>
+
+            <div className="flex justify-between text-orange-300">
+              <span>
+                {wizardData.requestedBrand
+                  ? `${wizardData.requestedBrand} Specialist Premium`
+                  : `${favoriteMechanicData?.certifiedBrands[0]} Specialist Premium (${favoriteMechanicData?.name})`
+                }
+              </span>
+              <span>+${specialistPremium.toFixed(2)}</span>
+            </div>
+
+            <div className="border-t border-slate-700 pt-2 mt-2 flex justify-between text-white font-bold text-lg">
+              <span>Total</span>
+              <span>${((plans.find(p => p.id === selectedPlan || p.slug === selectedPlan)?.priceValue || 0) + specialistPremium).toFixed(2)} CAD</span>
+            </div>
+          </div>
+
+          {/* Consent Checkbox */}
+          <label className="flex items-start gap-3 cursor-pointer p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg hover:bg-orange-500/15 transition-colors">
+            <input
+              type="checkbox"
+              checked={acceptedSpecialistPremium}
+              onChange={(e) => setAcceptedSpecialistPremium(e.target.checked)}
+              className="mt-1 h-5 w-5 rounded border-orange-500 bg-slate-900 text-orange-500 focus:ring-orange-500 focus:ring-offset-slate-900"
+              required
+            />
+            <span className="text-sm text-slate-200">
+              I understand {favoriteMechanicData?.name ? `${favoriteMechanicData.name} is` : 'there is'} a{' '}
+              <strong>{wizardData.requestedBrand || favoriteMechanicData?.certifiedBrands[0]}</strong>{' '}
+              specialist with an additional <strong>${specialistPremium.toFixed(2)}</strong> premium,
+              and I agree to this charge.
+            </span>
+          </label>
+
+          {/* Option to Switch */}
+          <div className="mt-4 pt-4 border-t border-slate-700">
+            <p className="text-xs text-slate-400">
+              💡 Want a standard mechanic instead? You can change in the next step (Mechanic Selection).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Help Text */}
       <div className="text-center text-sm text-slate-400 mt-8">

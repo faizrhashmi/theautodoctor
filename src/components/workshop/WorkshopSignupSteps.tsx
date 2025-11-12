@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import {
   User,
   Mail,
@@ -90,6 +91,7 @@ export function Step1Basic({ formData, updateForm, errors }: StepProps) {
           placeholder="John Smith"
           error={errors.contactName}
           required
+          pattern={/[^a-zA-Z\s'-]/g}
         />
       </div>
 
@@ -112,6 +114,7 @@ export function Step1Basic({ formData, updateForm, errors }: StepProps) {
           placeholder="+1 (555) 123-4567"
           error={errors.phone}
           required
+          pattern={/[^0-9\-\s()+]/g}
         />
       </div>
 
@@ -138,16 +141,16 @@ export function Step1Basic({ formData, updateForm, errors }: StepProps) {
         />
       </div>
 
-      <div className="rounded-xl border border-blue-400/30 bg-blue-500/10 p-4">
+      <div className="rounded-xl border border-purple-400/30 bg-purple-500/10 p-4">
         <div className="flex gap-3">
-          <Info className="h-5 w-5 flex-shrink-0 text-blue-400" />
-          <div className="text-sm text-blue-200">
+          <Info className="h-5 w-5 flex-shrink-0 text-purple-400" />
+          <div className="text-sm text-purple-200">
             <p className="font-semibold">What you'll get:</p>
             <ul className="mt-2 space-y-1 text-xs">
-              <li>• Access to certified mechanics in your area</li>
               <li>• Workshop admin dashboard to manage your team</li>
-              <li>• Invite and manage your own mechanics</li>
-              <li>• Earn 10% commission on all sessions</li>
+              <li>• Invite and onboard your own mechanics</li>
+              <li>• Appointment calendar system for your mechanics</li>
+              <li>• Team performance tracking and analytics</li>
             </ul>
           </div>
         </div>
@@ -219,13 +222,13 @@ export function Step2Business({ formData, updateForm, errors }: StepProps) {
         placeholder="https://www.abcautorepair.com"
       />
 
-      <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-4">
+      <div className="rounded-xl border border-purple-400/30 bg-purple-500/10 p-4">
         <div className="flex gap-3">
-          <Info className="h-5 w-5 flex-shrink-0 text-orange-400" />
-          <div className="text-sm text-orange-200">
+          <Info className="h-5 w-5 flex-shrink-0 text-purple-400" />
+          <div className="text-sm text-purple-200">
             <p className="font-semibold">Payment Setup</p>
             <p className="mt-1 text-xs">
-              After approval, you'll complete Stripe Connect onboarding to receive payouts. Your commission will be paid out weekly.
+              After approval, you'll complete Stripe Connect onboarding to enable your mechanics to receive session payments through the platform.
             </p>
           </div>
         </div>
@@ -391,28 +394,6 @@ export function Step3Coverage({
           className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
         />
       </div>
-
-      {/* Commission Rate */}
-      <div>
-        <label className="block text-sm font-semibold text-slate-200">
-          Workshop Commission Rate (%)
-        </label>
-        <p className="mt-1 text-xs text-slate-400">
-          Your share of each session fee (Default: 10%)
-        </p>
-        <input
-          type="number"
-          min="0"
-          max="50"
-          step="0.5"
-          value={formData.commissionRate}
-          onChange={(e) => updateForm({ commissionRate: parseFloat(e.target.value) || WORKSHOP_PRICING.DEFAULT_COMMISSION_RATE })}
-          className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2.5 text-sm text-white focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60"
-        />
-        <p className="mt-1 text-xs text-slate-400">
-          Platform: 15% | Workshop: {formData.commissionRate}% | Mechanic: {85 - formData.commissionRate}%
-        </p>
-      </div>
     </motion.div>
   )
 }
@@ -451,7 +432,6 @@ export function Step4Review({ formData, updateForm, errors, setCurrentStep }: St
         <ReviewItem label="Coverage Areas" value={formData.coveragePostalCodes.join(', ')} />
         <ReviewItem label="Service Radius" value={`${formData.serviceRadiusKm} km`} />
         <ReviewItem label="Mechanic Capacity" value={formData.mechanicCapacity.toString()} />
-        <ReviewItem label="Commission Rate" value={`${formData.commissionRate}%`} />
       </ReviewSection>
 
       {/* Terms & Conditions */}
@@ -461,7 +441,7 @@ export function Step4Review({ formData, updateForm, errors, setCurrentStep }: St
             type="checkbox"
             checked={formData.termsAccepted}
             onChange={(e) => updateForm({ termsAccepted: e.target.checked })}
-            className="mt-1 h-5 w-5 rounded border-white/10 bg-slate-700 text-orange-500 focus:ring-2 focus:ring-orange-500"
+            className="mt-1 h-5 w-5 rounded border-white/10 bg-slate-700 text-purple-500 focus:ring-2 focus:ring-purple-500"
           />
           <div className="flex-1">
             <span className="text-sm font-medium text-white">
@@ -504,9 +484,10 @@ interface TextFieldProps {
   error?: string
   required?: boolean
   helpText?: string
+  pattern?: RegExp
 }
 
-function TextField({ label, value, onChange, type = 'text', icon: Icon, placeholder, error, required = false, helpText = '' }: TextFieldProps) {
+function TextField({ label, value, onChange, type = 'text', icon: Icon, placeholder, error, required = false, helpText = '', pattern }: TextFieldProps) {
   return (
     <label className="block">
       <span className="text-sm font-semibold text-slate-200">
@@ -522,9 +503,12 @@ function TextField({ label, value, onChange, type = 'text', icon: Icon, placehol
         <input
           type={type}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            const newValue = pattern ? e.target.value.replace(pattern, '') : e.target.value;
+            onChange(newValue);
+          }}
           placeholder={placeholder}
-          className={`block w-full rounded-xl border px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 ${Icon ? 'pl-10' : ''} ${error ? 'border-rose-400/50 bg-rose-500/10 focus:border-rose-400 focus:ring-rose-400/60' : 'border-white/10 bg-slate-900/60 focus:border-orange-400 focus:ring-orange-400/60'}`}
+          className={`block w-full rounded-xl border px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 ${Icon ? 'pl-10' : ''} ${error ? 'border-rose-400/50 bg-rose-500/10 focus:border-rose-400 focus:ring-rose-400/60' : 'border-white/10 bg-slate-900/60 focus:border-purple-500 focus:ring-purple-500/60'}`}
         />
       </div>
       {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}

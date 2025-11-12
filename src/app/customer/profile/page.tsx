@@ -10,9 +10,12 @@ interface ProfileData {
   full_name: string
   email: string
   phone: string
+  address_line1: string
+  address_line2: string
   country: string
   province: string
   city: string
+  postal_code: string
 }
 
 export default function CustomerProfilePage() {
@@ -21,15 +24,30 @@ export default function CustomerProfilePage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     email: '',
     phone: '',
+    address_line1: '',
+    address_line2: '',
     country: '',
     province: '',
     city: '',
+    postal_code: '',
+  })
+  const [originalProfile, setOriginalProfile] = useState<ProfileData>({
+    full_name: '',
+    email: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    country: '',
+    province: '',
+    city: '',
+    postal_code: '',
   })
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
@@ -49,14 +67,19 @@ export default function CustomerProfilePage() {
         throw new Error('Failed to fetch profile')
       }
       const data = await response.json()
-      setProfile({
+      const profileData = {
         full_name: data.profile.full_name || '',
         email: data.profile.email || '',
         phone: data.profile.phone || '',
+        address_line1: data.profile.address_line1 || '',
+        address_line2: data.profile.address_line2 || '',
         country: data.profile.country || '',
         province: data.profile.province || '',
         city: data.profile.city || '',
-      })
+        postal_code: data.profile.postal_code || '',
+      }
+      setProfile(profileData)
+      setOriginalProfile(profileData) // Store original for cancel functionality
     } catch (err) {
       console.error('Profile error:', err)
       setError('Failed to load profile')
@@ -122,6 +145,8 @@ export default function CustomerProfilePage() {
       }
 
       setSuccess('Profile updated successfully!')
+      setOriginalProfile(profile) // Update original to reflect saved changes
+      setIsEditing(false) // Exit edit mode after successful save
       setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('Update error:', err)
@@ -129,6 +154,12 @@ export default function CustomerProfilePage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleCancelEdit() {
+    setProfile(originalProfile) // Revert to original values
+    setIsEditing(false)
+    setError(null)
   }
 
   async function fetchOnboardingStatus() {
@@ -164,11 +195,11 @@ export default function CustomerProfilePage() {
       }
 
       setOnboardingDismissed(false)
-      setSuccess('Onboarding guide restored! It will appear on your dashboard.')
+      setSuccess('Booking guide restored! It will appear on your dashboard.')
       setTimeout(() => setSuccess(null), 5000)
     } catch (err) {
       console.error('[Profile] Error restoring onboarding:', err)
-      setError('Failed to restore onboarding guide. Please try again.')
+      setError('Failed to restore booking guide. Please try again.')
     } finally {
       setRestoringOnboarding(false)
     }
@@ -216,11 +247,21 @@ export default function CustomerProfilePage() {
         <div className="space-y-4 sm:space-y-6">
           {/* Profile Information */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4 sm:p-6">
-            <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
-              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-orange-500/20">
-                <User className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+            <div className="flex items-center justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-orange-500/20">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-white">Personal Information</h2>
               </div>
-              <h2 className="text-lg sm:text-xl font-bold text-white">Personal Information</h2>
+              {!isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded-lg text-xs sm:text-sm font-semibold transition-colors"
+                >
+                  Edit Profile
+                </button>
+              )}
             </div>
 
             {/* Required fields notice */}
@@ -250,8 +291,13 @@ export default function CustomerProfilePage() {
                   <input
                     type="text"
                     value={profile.full_name}
-                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
+                    onChange={(e) => setProfile(prev => ({ ...prev, full_name: e.target.value }))}
+                    disabled={!isEditing}
+                    className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-slate-700 rounded-lg ${
+                      isEditing
+                        ? 'bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none'
+                        : 'bg-slate-900/30 text-slate-400 cursor-not-allowed'
+                    }`}
                     placeholder="John Doe"
                     required
                   />
@@ -283,8 +329,13 @@ export default function CustomerProfilePage() {
                   <input
                     type="tel"
                     value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:border-orange-500 focus:outline-none"
+                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                    disabled={!isEditing}
+                    className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-slate-700 rounded-lg ${
+                      isEditing
+                        ? 'bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none'
+                        : 'bg-slate-900/30 text-slate-400 cursor-not-allowed'
+                    }`}
                     placeholder="+1 (555) 123-4567"
                     required
                   />
@@ -299,22 +350,113 @@ export default function CustomerProfilePage() {
                   country={profile.country}
                   province={profile.province}
                   city={profile.city}
-                  onCountryChange={(country) => setProfile({ ...profile, country })}
-                  onCityChange={(city, province) => setProfile({ ...profile, city, province })}
-                  onProvinceChange={(province) => setProfile({ ...profile, province })}
+                  disabled={!isEditing}
+                  onCountryChange={(country, timezone) => {
+                    console.log('[CustomerProfile] onCountryChange called, setting country to:', country)
+                    setProfile(prev => {
+                      const updated = { ...prev, country }
+                      console.log('[CustomerProfile] Profile state updated to:', updated)
+                      return updated
+                    })
+                  }}
+                  onCityChange={(city, province, timezone) => {
+                    console.log('[CustomerProfile] onCityChange called:', { city, province })
+                    setProfile(prev => ({ ...prev, city, province }))
+                  }}
+                  onProvinceChange={(province) => {
+                    console.log('[CustomerProfile] onProvinceChange called:', province)
+                    setProfile(prev => ({ ...prev, province }))
+                  }}
                 />
-                <p className="text-xs text-slate-500 mt-1">Country, Province/State, and City are all required</p>
+                <p className="text-xs text-slate-500 mt-1">Select your country, province/state, and city.</p>
               </div>
 
-              <div className="pt-3 sm:pt-4">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
+                  Street Address <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
+                  <input
+                    type="text"
+                    value={profile.address_line1}
+                    onChange={(e) => setProfile(prev => ({ ...prev, address_line1: e.target.value }))}
+                    disabled={!isEditing}
+                    className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-slate-700 rounded-lg ${
+                      isEditing
+                        ? 'bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none'
+                        : 'bg-slate-900/30 text-slate-400 cursor-not-allowed'
+                    }`}
+                    placeholder="123 Main Street"
+                    required
+                  />
+                </div>
               </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
+                  Apartment, Suite, etc. (Optional)
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
+                  <input
+                    type="text"
+                    value={profile.address_line2}
+                    onChange={(e) => setProfile(prev => ({ ...prev, address_line2: e.target.value }))}
+                    disabled={!isEditing}
+                    className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-slate-700 rounded-lg ${
+                      isEditing
+                        ? 'bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none'
+                        : 'bg-slate-900/30 text-slate-400 cursor-not-allowed'
+                    }`}
+                    placeholder="Apt 4B, Unit 2, etc."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-slate-300 mb-1.5 sm:mb-2">
+                  Postal Code <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-500" />
+                  <input
+                    type="text"
+                    value={profile.postal_code}
+                    onChange={(e) => setProfile(prev => ({ ...prev, postal_code: e.target.value.toUpperCase() }))}
+                    disabled={!isEditing}
+                    className={`w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border border-slate-700 rounded-lg ${
+                      isEditing
+                        ? 'bg-slate-900/50 text-white focus:border-orange-500 focus:outline-none'
+                        : 'bg-slate-900/30 text-slate-400 cursor-not-allowed'
+                    }`}
+                    placeholder={profile.country?.toLowerCase() === 'canada' ? 'A1A 1A1' : profile.country?.toLowerCase() === 'united states' ? '12345' : 'Postal code'}
+                    maxLength={10}
+                    required
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Used for accurate mechanic matching.</p>
+              </div>
+
+              {isEditing && (
+                <div className="pt-3 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 sm:flex-initial px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
+                    className="flex-1 sm:flex-initial px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </form>
           </div>
 
@@ -407,11 +549,11 @@ export default function CustomerProfilePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-white">Onboarding Guide</p>
+                  <p className="text-sm font-medium text-white">Booking Guide</p>
                   <p className="text-xs text-slate-400 mt-1">
                     {onboardingDismissed
-                      ? 'Show step-by-step getting started checklist on dashboard'
-                      : 'Getting started checklist is currently visible on your dashboard'
+                      ? 'Show step-by-step booking guide from dashboard through all booking steps'
+                      : 'Booking guide is currently visible and will guide you through the booking process'
                     }
                   </p>
                 </div>

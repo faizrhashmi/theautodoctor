@@ -133,7 +133,7 @@ export default function MechanicLogin() {
       <main className="w-full max-w-md">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
           <div className="mb-6 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-600">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600">
               <Wrench className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white">Mechanic Login</h1>
@@ -160,6 +160,15 @@ export default function MechanicLogin() {
               disabled={loading}
             />
 
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
             {error && (
               <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                 {error}
@@ -169,7 +178,7 @@ export default function MechanicLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-orange-400 hover:via-orange-500 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -178,7 +187,7 @@ export default function MechanicLogin() {
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-400">
               Don&apos;t have an account?{' '}
-              <Link href="/mechanic/signup" className="font-semibold text-orange-400 hover:text-orange-300">
+              <Link href="/mechanic/signup" className="font-semibold text-blue-400 hover:text-blue-300">
                 Sign up
               </Link>
             </p>
@@ -227,7 +236,7 @@ function Field({
           onChange={e=>onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/60 disabled:opacity-50 disabled:cursor-not-allowed ${Icon ? 'pl-10' : ''}`}
+          className={`block w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/60 disabled:opacity-50 disabled:cursor-not-allowed ${Icon ? 'pl-10' : ''}`}
         />
       </div>
     </label>

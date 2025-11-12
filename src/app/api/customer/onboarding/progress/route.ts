@@ -1,8 +1,8 @@
 /**
  * Customer Onboarding Progress API
- * Phase 2.1: Onboarding checklist
+ * Tracks booking journey from dashboard through step 4
  *
- * Returns onboarding checklist progress for authenticated customer
+ * Returns onboarding/booking guide progress for authenticated customer
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
     }
 
-    // Check if user has manually dismissed the checklist
+    // Check if user has manually dismissed the guide
     if (profile?.onboarding_dismissed) {
       return NextResponse.json({
         dismissed: true,
@@ -49,87 +49,75 @@ export async function GET(req: NextRequest) {
     // Step 1: Account created (always true if authenticated)
     const accountCreated = true
 
-    // Step 2: Has added vehicle
+    // Step 2: Has started booking (navigated to book-session page)
+    // We'll consider this true if they have any vehicle or any session
     const { count: vehicleCount } = await supabase
       .from('vehicles')
       .select('id', { count: 'exact', head: true })
       .eq('customer_id', user.id)
 
+    const { count: sessionCount } = await supabase
+      .from('sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_user_id', user.id)
+
+    const hasStartedBooking = (vehicleCount ?? 0) > 0 || (sessionCount ?? 0) > 0
+
+    // Step 3: Has selected vehicle (has vehicle in garage)
     const hasVehicle = (vehicleCount ?? 0) > 0
 
-    // Step 3: Has completed first session
-    const { count: completedSessionCount } = await supabase
-      .from('chat_sessions')
+    // Step 4: Has chosen plan (has created a session)
+    const hasChosenPlan = (sessionCount ?? 0) > 0
+
+    // Step 5: Has completed concern (has session with intake_id)
+    const { count: sessionWithIntakeCount } = await supabase
+      .from('sessions')
       .select('id', { count: 'exact', head: true })
-      .eq('customer_id', user.id)
-      .eq('status', 'completed')
+      .eq('customer_user_id', user.id)
+      .not('intake_id', 'is', null)
 
-    const hasCompletedSession = (completedSessionCount ?? 0) > 0
-
-    // Step 4: Has viewed session summary
-    // (We check if any session has summary_data OR status completed)
-    const { count: summaryViewCount } = await supabase
-      .from('chat_sessions')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', user.id)
-      .or('status.eq.completed,summary_data.not.is.null')
-
-    const hasViewedSummary = (summaryViewCount ?? 0) > 0
-
-    // Step 5: Has requested first quote
-    // Check both repair_quotes and workshop_rfq_marketplace
-    const { count: quoteCount } = await supabase
-      .from('repair_quotes')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', user.id)
-
-    const { count: rfqCount } = await supabase
-      .from('workshop_rfq_marketplace')
-      .select('id', { count: 'exact', head: true })
-      .eq('customer_id', user.id)
-
-    const hasRequestedQuote = (quoteCount ?? 0) > 0 || (rfqCount ?? 0) > 0
+    const hasCompletedConcern = (sessionWithIntakeCount ?? 0) > 0
 
     // Build steps array
     const steps = [
       {
         id: 'account_created',
-        label: 'Account created',
-        description: 'You successfully created your account',
+        label: 'Welcome',
+        description: 'Account created successfully',
         completed: accountCreated,
         icon: 'check_circle',
       },
       {
-        id: 'add_vehicle',
-        label: 'Add vehicle information',
-        description: 'Add your first vehicle to get started',
+        id: 'start_booking',
+        label: 'Start booking',
+        description: 'Click "Book a Session" to begin',
+        completed: hasStartedBooking,
+        icon: 'directions_car',
+        action: '/customer/book-session',
+      },
+      {
+        id: 'select_vehicle',
+        label: 'Select vehicle',
+        description: 'Choose your vehicle or skip',
         completed: hasVehicle,
         icon: 'directions_car',
-        action: '/customer/vehicles',
+        action: !hasStartedBooking ? null : '/customer/book-session',
       },
       {
-        id: 'complete_session',
-        label: 'Complete first session',
-        description: 'Start your first diagnostic session',
-        completed: hasCompletedSession,
-        icon: 'videocam',
-        action: '/customer/dashboard',
-      },
-      {
-        id: 'view_summary',
-        label: 'Review session summary',
-        description: 'View your diagnostic report',
-        completed: hasViewedSummary,
-        icon: 'description',
-        action: hasCompletedSession ? '/customer/sessions' : null,
-      },
-      {
-        id: 'request_quote',
-        label: 'Request first quote',
-        description: 'Get pricing for recommended repairs',
-        completed: hasRequestedQuote,
+        id: 'choose_plan',
+        label: 'Choose plan',
+        description: 'Select your service plan',
+        completed: hasChosenPlan,
         icon: 'request_quote',
-        action: hasViewedSummary ? '/customer/rfq/create' : null,
+        action: !hasVehicle ? null : '/customer/book-session',
+      },
+      {
+        id: 'describe_concern',
+        label: 'Describe concern',
+        description: 'Tell us what you need help with',
+        completed: hasCompletedConcern,
+        icon: 'description',
+        action: !hasChosenPlan ? null : '/customer/book-session',
       },
     ]
 
@@ -188,12 +176,12 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Onboarding checklist dismissed',
+        message: 'Booking guide dismissed',
       })
     }
 
     if (action === 'restore') {
-      // Restore onboarding checklist
+      // Restore onboarding guide
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -209,7 +197,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Onboarding checklist restored',
+        message: 'Booking guide restored',
       })
     }
 

@@ -17,3 +17,9 @@ export type { SessionEndedEmailParams } from './sessionEnded'
 
 export { sendSummaryDeliveredEmail } from './summaryDelivered'
 export type { SummaryDeliveredEmailParams } from './summaryDelivered'
+
+export { sendWaitlistJoinedEmail } from './waitlistJoined'
+export type { WaitlistJoinedEmailParams } from './waitlistJoined'
+
+export { sendMechanicOnlineAlertEmail } from './mechanicOnlineAlert'
+export type { MechanicOnlineAlertEmailParams } from './mechanicOnlineAlert'

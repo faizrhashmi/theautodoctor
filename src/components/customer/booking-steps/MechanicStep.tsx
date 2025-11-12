@@ -6,10 +6,11 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, AlertCircle, Info, DollarSign, Star, Heart, HelpCircle, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
+import { Search, AlertCircle, Info, DollarSign, Star, Heart, HelpCircle, ChevronLeft, ChevronRight, MapPin, Crown, Check } from 'lucide-react'
 import MechanicCard, { type MechanicCardData } from '../MechanicCard'
 import MechanicProfileModal from '../../MechanicProfileModal'
 import { ImprovedLocationSelector } from '../../shared/ImprovedLocationSelector'
+import AllMechanicsOfflineCard from '../AllMechanicsOfflineCard'
 import { createClient } from '@/lib/supabase'
 
 const MECHANICS_PER_PAGE = 10
@@ -21,8 +22,9 @@ interface MechanicStepProps {
 }
 
 export default function MechanicStep({ wizardData, onComplete }: MechanicStepProps) {
-  const [mechanicType, setMechanicType] = useState<'standard' | 'brand_specialist' | 'favorite'>(
-    wizardData.mechanicType || 'standard'
+  const supabase = createClient()
+  const [mechanicType, setMechanicType] = useState<'standard' | 'brand_specialist'>(
+    wizardData.requestedBrand ? 'brand_specialist' : (wizardData.mechanicType || 'standard')
   )
   const [requestedBrand, setRequestedBrand] = useState<string>(wizardData.requestedBrand || '')
   const [country, setCountry] = useState<string>(wizardData.country || '')
@@ -32,7 +34,9 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
   const [mechanics, setMechanics] = useState<MechanicCardData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(wizardData.mechanicId)
+  // 🚨 CRITICAL SECURITY FIX: NEVER pre-select mechanic from wizardData
+  // Could contain offline mechanic ID, allowing security bypass
+  const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState({
     onlineOnly: false,
@@ -43,7 +47,14 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [showLocationEditor, setShowLocationEditor] = useState(false)
+  const [showLocationEditor, setShowLocationEditor] = useState(false) // ✅ FIXED: Collapsed by default
+  const [hasSearched, setHasSearched] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [currentSpecialistPremium, setCurrentSpecialistPremium] = useState<number>(15)
+  const [showSpecialistChangeModal, setShowSpecialistChangeModal] = useState(false)
+  const [pendingMechanicType, setPendingMechanicType] = useState<string>('')
+  const [showFavoriteSpecialistModal, setShowFavoriteSpecialistModal] = useState(false)
+  const [selectedFavoriteSpecialist, setSelectedFavoriteSpecialist] = useState<any>(null)
 
   // Sync location from wizardData when profile is loaded
   useEffect(() => {
@@ -52,6 +63,25 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
     if (wizardData.city && !city) setCity(wizardData.city)
     if (wizardData.postalCode && !postalCode) setPostalCode(wizardData.postalCode)
   }, [wizardData.country, wizardData.province, wizardData.city, wizardData.postalCode])
+
+  // Fetch specialist premium from database
+  useEffect(() => {
+    async function fetchSpecialistPremium() {
+      if (requestedBrand || wizardData.requestedBrand) {
+        const brand = requestedBrand || wizardData.requestedBrand
+        const { data } = await supabase
+          .from('brand_specializations')
+          .select('specialist_premium')
+          .eq('brand_name', brand)
+          .single()
+
+        if (data?.specialist_premium) {
+          setCurrentSpecialistPremium(data.specialist_premium)
+        }
+      }
+    }
+    fetchSpecialistPremium()
+  }, [requestedBrand, wizardData.requestedBrand])
 
   // Memoize fetchMechanics to prevent unnecessary re-renders
   const fetchMechanics = useCallback(async () => {
@@ -76,6 +106,10 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
         params.append('customer_city', city)
       }
 
+      if (postalCode) {
+        params.append('customer_postal_code', postalCode)
+      }
+
       const response = await fetch(`/api/mechanics/available?${params}`)
       if (!response.ok) throw new Error('Failed to fetch mechanics')
 
@@ -87,20 +121,13 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
     } finally {
       setLoading(false)
     }
-  }, [mechanicType, requestedBrand, country, city])
+  }, [mechanicType, requestedBrand, country, city, postalCode])
 
+  // ✅ Real-time subscription for live status updates (no polling to avoid UX issues)
   useEffect(() => {
-    fetchMechanics()
-
-    // Set up polling to refresh mechanic availability every 30 seconds
-    // This ensures customers see updated status when mechanics clock in/out
-    const intervalId = setInterval(() => {
-      fetchMechanics()
-    }, 30000) // 30 seconds
-
-    // Set up Supabase real-time subscription for instant updates
-    // Listen for changes to mechanics table (clock in/out updates)
     const supabase = createClient()
+
+    // Real-time subscription - listens for mechanic table updates
     const channel = supabase
       .channel('mechanic-status-updates')
       .on(
@@ -112,18 +139,30 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
           filter: 'application_status=eq.approved'
         },
         (payload) => {
-          console.log('[Mechanic Status] Real-time update:', payload)
-          // Refresh mechanics list when any mechanic's status changes
-          fetchMechanics()
+          console.log('[Mechanic Status] Real-time update received:', payload)
+          // Only refresh if we've already searched (don't auto-fetch on mount)
+          if (hasSearched) {
+            console.log('[Mechanic Status] Refreshing mechanics list due to real-time update')
+            fetchMechanics()
+          }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[Mechanic Status] Subscription status:', status)
+      })
 
     return () => {
-      clearInterval(intervalId)
       supabase.removeChannel(channel)
     }
-  }, [fetchMechanics])
+  }, [fetchMechanics, hasSearched])
+
+  // Manual search handler
+  const handleSearch = async () => {
+    setSearching(true)
+    setHasSearched(true)
+    await fetchMechanics()
+    setSearching(false)
+  }
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -173,16 +212,89 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
 
   const totalPages = Math.ceil(filteredMechanics.length / MECHANICS_PER_PAGE)
 
-  const handleMechanicSelect = (mechanicId: string) => {
+  // Handle tab change with confirmation modal if switching away from specialist
+  const handleTabChange = (newType: 'standard' | 'brand_specialist') => {
+    // If switching FROM specialist TO something else, show confirmation
+    if (wizardData.requestedBrand && mechanicType === 'brand_specialist' && newType !== 'brand_specialist') {
+      setPendingMechanicType(newType)
+      setShowSpecialistChangeModal(true)
+    } else {
+      setMechanicType(newType)
+      setSelectedMechanicId(null) // Clear selection when switching tabs
+    }
+  }
+
+  const confirmSpecialistChange = () => {
+    setMechanicType(pendingMechanicType as 'standard' | 'brand_specialist')
+    setSelectedMechanicId(null)
+    setShowSpecialistChangeModal(false)
+    setPendingMechanicType('')
+  }
+
+  const cancelSpecialistChange = () => {
+    setShowSpecialistChangeModal(false)
+    setPendingMechanicType('')
+  }
+
+  const handleMechanicSelect = async (mechanicId: string) => {
     const mechanic = mechanics.find((m) => m.id === mechanicId)
     if (!mechanic) return
 
-    // Dynamic pricing: Apply specialist premium if:
-    // 1. User selected "Specialist" tab, OR
-    // 2. User selected "Favorites" tab AND the mechanic is a brand specialist
-    const applySpecialistPremium =
-      mechanicType === 'brand_specialist' ||
-      (mechanicType === 'favorite' && mechanic.isBrandSpecialist)
+    // ✅ CRITICAL FIX: BookingWizard is for INSTANT sessions - only online mechanics allowed
+    if (mechanic.presenceStatus !== 'online') {
+      alert('This mechanic is currently offline. Please use "Schedule for Later" to book with this mechanic, or choose an online mechanic for an instant session.')
+      return
+    }
+
+    // Check if this is a specialist (no favorites tab anymore)
+    if (mechanic.isBrandSpecialist && mechanicType === 'brand_specialist') {
+      // Fetch the specialist premium for this mechanic's brands
+      const { data: mechData } = await supabase
+        .from('profiles')
+        .select(`
+          certifications (
+            brand
+          )
+        `)
+        .eq('id', mechanicId)
+        .single()
+
+      if (mechData && mechData.certifications && mechData.certifications.length > 0) {
+        const certifiedBrand = (mechData.certifications[0] as any).brand
+
+        const { data: brand } = await supabase
+          .from('brand_specializations')
+          .select('specialist_premium')
+          .eq('brand_name', certifiedBrand)
+          .single()
+
+        const premium = brand?.specialist_premium || 15
+
+        setSelectedFavoriteSpecialist({
+          ...mechanic,
+          certifiedBrand,
+          specialistPremium: premium
+        })
+        setShowFavoriteSpecialistModal(true)
+        return
+      }
+    }
+
+    // Dynamic pricing: Apply specialist premium if user selected "Specialist" tab
+    const applySpecialistPremium = mechanicType === 'brand_specialist'
+
+    // Fetch actual premium for specialist
+    let actualPremium = 0
+    if (applySpecialistPremium) {
+      if (mechanicType === 'brand_specialist' && requestedBrand) {
+        const { data: brand } = await supabase
+          .from('brand_specializations')
+          .select('specialist_premium')
+          .eq('brand_name', requestedBrand)
+          .single()
+        actualPremium = brand?.specialist_premium || 15
+      }
+    }
 
     setSelectedMechanicId(mechanicId)
     onComplete({
@@ -190,13 +302,40 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
       mechanicName: mechanic.name,
       mechanicType: applySpecialistPremium ? 'brand_specialist' : 'standard',
       requestedBrand: mechanicType === 'brand_specialist' ? requestedBrand : null,
-      specialistPremium: applySpecialistPremium ? 15 : 0,
+      specialistPremium: actualPremium,
       isBrandSpecialist: mechanic.isBrandSpecialist,
+      mechanicPresenceStatus: mechanic.presenceStatus, // ✅ CRITICAL: Include presence status for Continue button validation
       country,
       province,
       city,
       postalCode,
     })
+  }
+
+  const confirmFavoriteSpecialist = () => {
+    if (!selectedFavoriteSpecialist) return
+
+    setSelectedMechanicId(selectedFavoriteSpecialist.id)
+    onComplete({
+      mechanicId: selectedFavoriteSpecialist.id,
+      mechanicName: selectedFavoriteSpecialist.name,
+      mechanicType: 'brand_specialist',
+      requestedBrand: selectedFavoriteSpecialist.certifiedBrand,
+      specialistPremium: selectedFavoriteSpecialist.specialistPremium,
+      isBrandSpecialist: true,
+      mechanicPresenceStatus: selectedFavoriteSpecialist.presenceStatus,
+      country,
+      province,
+      city,
+      postalCode,
+    })
+    setShowFavoriteSpecialistModal(false)
+    setSelectedFavoriteSpecialist(null)
+  }
+
+  const cancelFavoriteSpecialist = () => {
+    setShowFavoriteSpecialistModal(false)
+    setSelectedFavoriteSpecialist(null)
   }
 
   return (
@@ -226,21 +365,28 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
                   <strong className="text-blue-100">Brand Specialist:</strong> Expert in specific vehicle brands (e.g., BMW, Toyota). <span className="text-yellow-300 font-semibold">+$15 premium charge</span>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Heart className="h-3.5 w-3.5 text-pink-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-blue-100">My Favorites:</strong> Mechanics you've worked with before and saved. <span className="text-slate-300">Note: If your favorite is a brand specialist, the +$15 premium still applies.</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Banner for Specialist Request */}
+      {wizardData.requestedBrand && mechanicType === 'brand_specialist' && (
+        <div className="max-w-3xl mx-auto bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Crown className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-orange-200">
+              🎯 Showing <strong>{wizardData.requestedBrand}</strong> specialists only.
+              {' '}Switch to "Standard Mechanic" or "My Favorites" to see all available mechanics.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mechanic Type Selector (Segmented Control) */}
       <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
         <button
-          onClick={() => setMechanicType('standard')}
+          onClick={() => handleTabChange('standard')}
           className={`group relative flex-1 px-4 py-3 rounded-lg font-semibold transition ${
             mechanicType === 'standard'
               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
@@ -255,7 +401,7 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
           <div className="text-[10px] opacity-70 mt-0.5">Included</div>
         </button>
         <button
-          onClick={() => setMechanicType('brand_specialist')}
+          onClick={() => handleTabChange('brand_specialist')}
           className={`group relative flex-1 px-4 py-3 rounded-lg font-semibold transition ${
             mechanicType === 'brand_specialist'
               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
@@ -264,26 +410,12 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
           title="Specialists for specific vehicle brands - Premium service"
         >
           <div className="flex items-center justify-center gap-2">
-            <DollarSign className="h-4 w-4" />
+            <Crown className="h-4 w-4" />
             <span>Brand Specialist</span>
           </div>
-          <div className="text-[10px] opacity-70 mt-0.5">+$15</div>
+          <div className="text-[10px] opacity-70 mt-0.5">Premium Service</div>
         </button>
-        <button
-          onClick={() => setMechanicType('favorite')}
-          className={`group relative flex-1 px-4 py-3 rounded-lg font-semibold transition ${
-            mechanicType === 'favorite'
-              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-          }`}
-          title="Your saved favorite mechanics"
-        >
-          <div className="flex items-center justify-center gap-2">
-            <Heart className="h-4 w-4" />
-            <span>My Favorites</span>
-          </div>
-          <div className="text-[10px] opacity-70 mt-0.5">Included</div>
-        </button>
+        {/* ✅ Favorites tab removed - Users can access favorites via dashboard card or /customer/my-mechanics page */}
       </div>
 
       {/* Brand Input for Specialist */}
@@ -294,145 +426,161 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
             type="text"
             value={requestedBrand}
             onChange={(e) => setRequestedBrand(e.target.value)}
-            onBlur={() => requestedBrand && fetchMechanics()}
             className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             placeholder="e.g., Toyota, Honda, Ford"
           />
         </div>
       )}
 
+      {/* ✅ NEW: Manual Search Button */}
+      <div className="max-w-3xl mx-auto">
+        <button
+          onClick={handleSearch}
+          disabled={searching || !city}
+          className={`w-full px-6 py-4 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-3 ${
+            searching || !city
+              ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg shadow-orange-500/30 active:scale-98'
+          }`}
+        >
+          {searching ? (
+            <>
+              <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Searching for Mechanics...</span>
+            </>
+          ) : (
+            <>
+              <Search className="h-5 w-5" />
+              <span>Find Available Mechanics</span>
+            </>
+          )}
+        </button>
+        {!city && !hasSearched && (
+          <p className="text-sm text-amber-400 mt-2 text-center">
+            💡 Please set your location below to search for mechanics
+          </p>
+        )}
+        {hasSearched && mechanics.length === 0 && (
+          <p className="text-sm text-slate-400 mt-2 text-center">
+            No mechanics found. Try adjusting your location or filters.
+          </p>
+        )}
+      </div>
+
       {/* Compact Location Display */}
       <div className="max-w-3xl mx-auto">
-        {!showLocationEditor ? (
-          // Compact Summary View
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-500/30">
-                  <MapPin className="h-5 w-5 text-green-400" />
+        {/* Compact Summary View */}
+        <div className={`bg-slate-800/50 border border-slate-700 rounded-lg p-4 ${showLocationEditor ? 'hidden' : 'block'}`}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/20 border border-green-500/30">
+                <MapPin className="h-5 w-5 text-green-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-slate-300">Your Location</span>
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    From profile
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-slate-300">Your Location</span>
-                    <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Info className="h-3 w-3" />
-                      From profile
+                <div className="text-base font-semibold text-white">
+                  {city && province && country ? (
+                    <span>
+                      {city}, {province}, {country}
+                      {postalCode && <span className="text-slate-400"> • {postalCode}</span>}
                     </span>
-                  </div>
-                  <div className="text-base font-semibold text-white">
-                    {city && province && country ? (
-                      <span>{city}, {province}, {country}</span>
-                    ) : (
-                      <span className="text-slate-400">Not set - Click "Change" to add location</span>
-                    )}
-                  </div>
-                  {postalCode && (
-                    <div className="text-xs text-slate-400 mt-1">Postal Code: {postalCode}</div>
+                  ) : (
+                    <span className="text-slate-400">Not set - Click "Change" to add location</span>
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowLocationEditor(true)}
-                className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded-lg text-sm font-semibold transition-colors flex-shrink-0"
-              >
-                Change
-              </button>
             </div>
+            <button
+              onClick={() => setShowLocationEditor(true)}
+              className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded-lg text-sm font-semibold transition-colors flex-shrink-0"
+            >
+              Change
+            </button>
           </div>
-        ) : (
-          // Expanded Editor View
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-white">Update Your Location</h4>
-              <button
-                onClick={() => setShowLocationEditor(false)}
-                className="text-xs text-slate-400 hover:text-white transition-colors"
-              >
-                Collapse
-              </button>
-            </div>
+        </div>
 
-            {/* Location Info */}
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <HelpCircle className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-green-200/80">
-                  We use your location to find mechanics near you and show the closest matches first.
-                </p>
-              </div>
-            </div>
+        {/* Expanded Editor View - Always rendered, just hidden */}
+        <div className={`bg-slate-800/50 border border-slate-700 rounded-lg p-6 space-y-4 ${showLocationEditor ? 'block' : 'hidden'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-white">Update Your Location</h4>
+            <button
+              onClick={() => setShowLocationEditor(false)}
+              className="text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              Collapse
+            </button>
+          </div>
 
-            {/* Location Selector */}
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-2 block">
-                Country, Province/State, City
-              </label>
-              <ImprovedLocationSelector
-                country={country}
-                city={city}
-                province={province}
-                onCountryChange={(country, timezone) => setCountry(country)}
-                onCityChange={(city, province, timezone) => {
-                  setCity(city)
-                  setProvince(province)
-                }}
-                onProvinceChange={(province) => setProvince(province)}
-              />
-            </div>
-
-            {/* Postal Code */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                Postal Code <span className="text-slate-500">(Optional)</span>
-                <span className="text-xs text-blue-400 flex items-center gap-1" title="Postal code helps us find the absolute closest mechanics">
-                  <HelpCircle className="h-3.5 w-3.5" />
-                  For precise matching
-                </span>
-              </label>
-              <input
-                type="text"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value.toUpperCase())}
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="e.g., M5H 2N2"
-                maxLength={7}
-              />
-              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                <Info className="h-3 w-3" />
-                Adding postal code prioritizes mechanics in your exact neighborhood
+          {/* Location Info */}
+          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <HelpCircle className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-green-200/80">
+                We use your location to find mechanics near you and show the closest matches first.
               </p>
             </div>
-
-            {/* Apply Button */}
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => {
-                  // Don't call onComplete here - just update local state and re-fetch
-                  // Location changes will be saved when user selects a mechanic
-                  setShowLocationEditor(false)
-                  // Re-fetch mechanics with new location
-                  fetchMechanics()
-                }}
-                className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-colors"
-              >
-                Apply
-              </button>
-              <button
-                onClick={() => {
-                  // Revert changes by restoring from wizardData
-                  setCountry(wizardData.country || '')
-                  setProvince(wizardData.province || '')
-                  setCity(wizardData.city || '')
-                  setPostalCode(wizardData.postalCode || '')
-                  setShowLocationEditor(false)
-                }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
-        )}
+
+          {/* Location Selector with Postal Code */}
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-2 block">
+              Country, Province/State, City & Postal Code
+            </label>
+            <ImprovedLocationSelector
+              country={country}
+              city={city}
+              province={province}
+              postalCode={postalCode}
+              onCountryChange={(country, timezone) => setCountry(country)}
+              onCityChange={(city, province, timezone) => {
+                setCity(city)
+                setProvince(province)
+              }}
+              onProvinceChange={(province) => setProvince(province)}
+              onPostalCodeChange={(postalCode) => setPostalCode(postalCode)}
+            />
+          </div>
+
+          {/* Apply Button */}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={() => {
+                // Save location changes to wizard data immediately
+                onComplete({
+                  ...wizardData,
+                  country,
+                  province,
+                  city,
+                  postalCode,
+                })
+                setShowLocationEditor(false)
+                // ✅ FIXED: Don't auto-fetch, user must click "Find Available Mechanics" button
+              }}
+              className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Apply
+            </button>
+            <button
+              onClick={() => {
+                // Revert changes by restoring from wizardData
+                setCountry(wizardData.country || '')
+                setProvince(wizardData.province || '')
+                setCity(wizardData.city || '')
+                setPostalCode(wizardData.postalCode || '')
+                setShowLocationEditor(false)
+              }}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -528,6 +676,18 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
         </div>
       )}
 
+      {/* All Mechanics Offline State - Phase 6 */}
+      {!loading && !error && mechanics.length > 0 && mechanics.every((m) => m.presenceStatus !== 'online') && (
+        <AllMechanicsOfflineCard
+          wizardData={wizardData}
+          onBrowseMechanics={() => {
+            // Show offline mechanics by disabling onlineOnly filter
+            setFilters({ ...filters, onlineOnly: false })
+          }}
+          className="mb-6"
+        />
+      )}
+
       {/* Mechanics Grid */}
       {!loading && !error && (
         <>
@@ -557,7 +717,10 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
                       setSelectedProfileId(id)
                       setShowProfileModal(true)
                     }}
-                    showSpecialistPremium={mechanicType === 'favorite'}
+                    showSpecialistPremium={false} // No longer used - premium shown via specialistPremiumAmount
+                    specialistPremiumAmount={mechanic.isBrandSpecialist ? currentSpecialistPremium : undefined} // ✅ NEW: Dynamic premium
+                    showScheduleButton={true} // ✅ NEW: Enable "Schedule for Later" button
+                    wizardData={wizardData} // ✅ NEW: Pass wizard data for context
                   />
                 ))}
               </div>
@@ -646,6 +809,109 @@ export default function MechanicStep({ wizardData, onComplete }: MechanicStepPro
             setSelectedProfileId(null)
           }}
         />
+      )}
+
+      {/* Specialist Change Confirmation Modal */}
+      {showSpecialistChangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="h-12 w-12 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                <Crown className="h-6 w-6 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-1">
+                  Switch from {wizardData.requestedBrand} Specialist?
+                </h3>
+                <p className="text-sm text-slate-300">
+                  You initially requested a <strong>{wizardData.requestedBrand}</strong> specialist.
+                  {' '}Are you sure you want to switch to {pendingMechanicType === 'standard' ? 'Standard Mechanics' : 'My Favorites'}?
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mb-4">
+              <p className="text-xs text-orange-200">
+                💡 <strong>Note:</strong> You'll lose the specialist filter and see all available mechanics.
+                {' '}You can always switch back to "Brand Specialist" tab.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmSpecialistChange}
+                className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Yes, Switch
+              </button>
+              <button
+                onClick={cancelSpecialistChange}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Favorite Specialist Confirmation Modal */}
+      {showFavoriteSpecialistModal && selectedFavoriteSpecialist && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="h-12 w-12 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+                <Crown className="h-6 w-6 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white mb-1">
+                  Specialist Premium Applies
+                </h3>
+                <p className="text-sm text-slate-300">
+                  <strong>{selectedFavoriteSpecialist.name}</strong> is a certified{' '}
+                  <strong>{selectedFavoriteSpecialist.certifiedBrand}</strong> specialist.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-orange-200">Specialist Premium:</span>
+                <span className="text-lg font-bold text-orange-300">
+                  +${selectedFavoriteSpecialist.specialistPremium.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-xs text-orange-200/80">
+                This will be added to your plan price for this session.
+              </p>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-200">
+                  <strong>Why the premium?</strong> Specialists have extensive training and certifications
+                  {' '}for your vehicle brand, providing expert-level service.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmFavoriteSpecialist}
+                className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Continue with Specialist
+              </button>
+              <button
+                onClick={cancelFavoriteSpecialist}
+                className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

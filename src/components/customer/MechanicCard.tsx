@@ -7,7 +7,8 @@
  * Beautiful card showing mechanic details with online status
  */
 
-import { Star, MapPin, Award, Clock, Eye, Briefcase } from 'lucide-react'
+import { Star, MapPin, Award, Clock, Eye, Briefcase, Calendar } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export interface MechanicCardData {
   id: string
@@ -34,10 +35,19 @@ interface MechanicCardProps {
   onSelect: (mechanicId: string) => void
   onViewProfile: (mechanicId: string) => void
   isSelected?: boolean
-  showSpecialistPremium?: boolean // Show +$15 badge for specialists in Favorites
+  showSpecialistPremium?: boolean // DEPRECATED: Use specialistPremiumAmount instead
+  specialistPremiumAmount?: number // Dynamic premium amount for brand specialists
+  showScheduleButton?: boolean // ✅ NEW: Show "Schedule for Later" button
+  wizardData?: any // Pass wizard data for context pre-filling
 }
 
-export default function MechanicCard({ mechanic, onSelect, onViewProfile, isSelected, showSpecialistPremium }: MechanicCardProps) {
+export default function MechanicCard({ mechanic, onSelect, onViewProfile, isSelected, showSpecialistPremium, specialistPremiumAmount, showScheduleButton, wizardData }: MechanicCardProps) {
+  const router = useRouter()
+
+  // Determine if we should show premium badge
+  const shouldShowPremium = mechanic.isBrandSpecialist && (specialistPremiumAmount || showSpecialistPremium)
+  const premiumAmount = specialistPremiumAmount || 15 // Default to $15 if not specified
+
   const statusColor = {
     online: 'bg-green-500',
     away: 'bg-yellow-500',
@@ -49,6 +59,27 @@ export default function MechanicCard({ mechanic, onSelect, onViewProfile, isSele
     away: 'ring-yellow-400/50',
     offline: 'ring-slate-400/50'
   }[mechanic.presenceStatus]
+
+  // ✅ NEW: Handle "Schedule for Later" button click
+  const handleScheduleForLater = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    // Store context for SchedulingWizard
+    const schedulingContext = {
+      mechanicId: mechanic.id,
+      mechanicName: mechanic.name,
+      mechanicType: mechanic.isBrandSpecialist ? 'brand_specialist' : 'standard',
+      vehicleId: wizardData?.vehicleId,
+      vehicleName: wizardData?.vehicleName, // ✅ ISSUE #6: Include vehicle name for banner
+      planType: wizardData?.planType,
+      source: 'booking_wizard_mechanic_card',
+      timestamp: new Date().toISOString()
+    }
+    sessionStorage.setItem('schedulingContext', JSON.stringify(schedulingContext))
+
+    // Navigate to scheduling page
+    router.push('/customer/schedule')
+  }
 
   return (
     <div
@@ -63,10 +94,10 @@ export default function MechanicCard({ mechanic, onSelect, onViewProfile, isSele
       onClick={() => onSelect(mechanic.id)}
     >
       {/* Specialist Premium Badge */}
-      {showSpecialistPremium && mechanic.isBrandSpecialist && (
+      {shouldShowPremium && (
         <div className="absolute top-3 right-3">
           <div className="px-2 py-1 bg-orange-500 text-white rounded-md text-xs font-semibold shadow-lg">
-            +$15
+            +${premiumAmount.toFixed(2)}
           </div>
         </div>
       )}
@@ -177,29 +208,49 @@ export default function MechanicCard({ mechanic, onSelect, onViewProfile, isSele
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-3 pt-3 border-t border-slate-700/50">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onViewProfile(mechanic.userId || mechanic.id)
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-sm font-medium transition-colors"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          View
-        </button>
-        <button
-          onClick={() => onSelect(mechanic.id)}
-          className={`
-            flex-1 px-3 py-2 rounded text-sm font-medium transition-colors
-            ${isSelected
-              ? 'bg-orange-500 text-white'
-              : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30'
+      <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-700/50">
+        {/* ✅ NEW: Schedule for Later button (when mechanic is offline) */}
+        {showScheduleButton && mechanic.presenceStatus !== 'online' && (
+          <button
+            onClick={handleScheduleForLater}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded text-sm font-medium transition-colors"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            Schedule for Later with {mechanic.name.split(' ')[0]}
+          </button>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewProfile(mechanic.userId || mechanic.id)
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-sm font-medium transition-colors"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View
+          </button>
+          <button
+            onClick={() => onSelect(mechanic.id)}
+            disabled={mechanic.presenceStatus !== 'online'}
+            className={`
+              flex-1 px-3 py-2 rounded text-sm font-medium transition-colors
+              ${mechanic.presenceStatus !== 'online'
+                ? 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/50'
+                : isSelected
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30'
+              }
+            `}
+            title={mechanic.presenceStatus !== 'online' ? 'Mechanic is offline - Use "Schedule for Later" instead' : ''}
+          >
+            {mechanic.presenceStatus !== 'online'
+              ? '🔴 Offline'
+              : isSelected ? '✓ Selected' : 'Select'
             }
-          `}
-        >
-          {isSelected ? '✓ Selected' : 'Select'}
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* Selection indicator */}

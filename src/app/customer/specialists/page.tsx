@@ -173,7 +173,7 @@ export default function SpecialistsPage() {
             {filteredBrands.map((brand) => (
               <Link
                 key={brand.id}
-                href={`/intake?specialist=true&brand=${encodeURIComponent(brand.brand_name)}`}
+                href={`/customer/book-session?specialist=${encodeURIComponent(brand.brand_name)}`}
                 className="group bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-5 hover:border-orange-500/50 hover:bg-slate-800/70 transition-all"
               >
                 <div className="flex flex-col h-full">

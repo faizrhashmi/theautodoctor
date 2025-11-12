@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { trackSignupEvent, EventTimer } from '@/lib/analytics/workshopEvents'
-import { WORKSHOP_PRICING } from '@/config/workshopPricing'
 import { sendEmail } from '@/lib/email/emailService'
 import { workshopSignupConfirmationEmail } from '@/lib/email/workshopTemplates'
 import { adminWorkshopSignupNotification } from '@/lib/email/internalTemplates'
-import { parseCommissionRateWithFallback } from '@/lib/validation/workshopValidation'
 
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status })
@@ -46,10 +44,10 @@ export async function POST(req: NextRequest) {
       city,
       province,
       postalCode,
+      country,
       coveragePostalCodes,
       serviceRadiusKm,
       mechanicCapacity,
-      commissionRate,
     } = body
 
     console.log('[WORKSHOP SIGNUP] New application from:', email)
@@ -95,16 +93,6 @@ export async function POST(req: NextRequest) {
       })
       return bad('At least one coverage postal code is required')
     }
-
-    // Validate and parse commission rate (with fallback to default)
-    const validatedCommissionRate = parseCommissionRateWithFallback(
-      commissionRate,
-      'workshop_signup'
-    )
-
-    console.log(
-      `[WORKSHOP SIGNUP] Commission rate validation: input=${commissionRate}, validated=${validatedCommissionRate}`
-    )
 
     // Generate unique slug from workshop name
     let baseSlug = generateSlug(workshopName)
@@ -170,14 +158,13 @@ export async function POST(req: NextRequest) {
         city,
         province,
         postal_code: postalCode,
-        country: 'Canada',
+        country: country || 'Canada', // Use provided country or default to Canada
         business_registration_number: businessRegistrationNumber,
         tax_id: taxId,
         industry,
         coverage_postal_codes: coveragePostalCodes,
         service_radius_km: serviceRadiusKm || 25,
         mechanic_capacity: mechanicCapacity || 10,
-        commission_rate: validatedCommissionRate,
         subscription_status: 'none', // Workshops don't have subscriptions
         status: 'pending', // Requires admin approval
         verification_status: 'pending',
