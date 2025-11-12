@@ -164,16 +164,40 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify mechanic exists
-    const { data: mechanicExists } = await supabase
+    const { data: mechanicExists, error: mechanicCheckError } = await supabase
       .from('mechanics')
-      .select('id')
+      .select('id, user_id, name, email')
       .eq('id', mechanic_id)
       .maybeSingle()
 
+    console.log(`[favorites] Mechanic check for ID ${mechanic_id}:`, {
+      found: !!mechanicExists,
+      data: mechanicExists,
+      error: mechanicCheckError
+    })
+
     if (!mechanicExists) {
-      console.error(`[favorites] Mechanic not found: ${mechanic_id}`)
+      // Try to find by user_id to provide better error message
+      const { data: mechanicByUserId } = await supabase
+        .from('mechanics')
+        .select('id, user_id, name')
+        .eq('user_id', mechanic_id)
+        .maybeSingle()
+
+      if (mechanicByUserId) {
+        console.error(`[favorites] Found mechanic by user_id. Correct mechanic_id is: ${mechanicByUserId.id}`)
+        return NextResponse.json(
+          {
+            error: `Wrong ID type provided. You sent user_id (${mechanic_id}) but need mechanic_id (${mechanicByUserId.id}).`,
+            suggestion: `Use mechanic_id: "${mechanicByUserId.id}" instead`
+          },
+          { status: 400 }
+        )
+      }
+
+      console.error(`[favorites] Mechanic not found by id or user_id: ${mechanic_id}`)
       return NextResponse.json(
-        { error: `Mechanic with ID ${mechanic_id} not found. This might be a user_id instead of mechanic_id.` },
+        { error: `Mechanic with ID ${mechanic_id} not found in database.` },
         { status: 404 }
       )
     }
