@@ -1,5 +1,5 @@
 # CORRECTED DATABASE USER AUDIT REPORT
-**Generated:** 11/12/2025, 4:02:32 PM
+**Generated:** 11/12/2025, 4:55:03 PM
 **Status:** Using CORRECT table names (mechanics, organizations, profiles)
 
 ---
@@ -10,7 +10,7 @@
 |--------|-------|--------|--------|
 | Total Users | 21 | - | ℹ️ |
 | Customers | 6 | 5 | ✅ |
-| Mechanics | 7 | 15 | ❌ |
+| Mechanics | 12 | 15 | ❌ |
 | Workshop Admins | 6 | - | ℹ️ |
 | Workshops (Organizations) | 11 | 5 | ✅ |
 | Admins | 2 | - | ℹ️ |
@@ -21,7 +21,7 @@
 
 ## DATA QUALITY ISSUES
 
-- **Customers with missing data:** 6
+- **Customers with missing data:** 1
 - **Mechanics with missing data:** 3
 - **Organizations with missing data:** 3
 
@@ -29,17 +29,22 @@
 
 | ID | Email | Name | Phone | City | Province | Postal Code | Lat/Lng | Status |
 |---|---|---|---|---|---|---|---|---|
-| 607a9b1f... | ktest@askautodoctor.com | N/A | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
-| 65acc199... | faizrhashmi@gmail.com | N/A | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
-| 8dda8cb3... | cust3@test.com | Customer 3 | 416-555-0102 | ❌ | ❌ | ❌ | ❌ | ⚠️ |
-| c060b46b... | cust2@test.com | Customer B | 5146592776 | Toronto | ❌ | ❌ | ❌ | ⚠️ |
-| 0af3d300... | cust1@test.com | Customer A | 416-555-0100 | Toronto | ❌ | ❌ | ❌ | ⚠️ |
+| 607a9b1f... | ktest@askautodoctor.com | Kelly Test | 613-555-0150 | Ottawa | ON | K1P5G4 | ✅ | ✅ |
+| 65acc199... | faizrhashmi@gmail.com | Faiz Hashmi | 403-555-0180 | Calgary | AB | T2P3M3 | ✅ | ✅ |
+| 8dda8cb3... | cust3@test.com | Customer 3 | 416-555-0102 | Montreal | QC | H3B4W8 | ✅ | ✅ |
+| c060b46b... | cust2@test.com | Customer B | 5146592776 | Toronto | ON | M5A1T1 | ✅ | ✅ |
+| 0af3d300... | cust1@test.com | Customer A | 416-555-0100 | Toronto | ON | M1P0G3 | ✅ | ✅ |
 | c1838c27... | N/A | Deleted User | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
 
 ## MECHANICS DETAIL
 
 | ID | Email | Name | Account Type | Workshop ID | Experience | Red Seal | City | Province | Postal | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
+| cd822d90... | sophie.solo@europeancar.com | Sophie Solo | individual_mechanic | Independent | 14 | ❌ | Montreal | QC | H2Y1M6 | ✅ |
+| 34aed3de... | frank.indie@autorepair.com | Frank Independent | individual_mechanic | Independent | 20 | ✅ | Toronto | ON | M4B1B3 | ✅ |
+| a5b460eb... | lisa.tech@quickfix.com | Lisa Tech | workshop_mechanic | 78db0e30... | 8 | ✅ | Vancouver | BC | V6B2W9 | ✅ |
+| 518f7af6... | tom.workshop@expertmotors.com | Tom Workshop | workshop_mechanic | 2ec0070c... | 13 | ✅ | Calgary | AB | T2P0Y3 | ✅ |
+| 43e2047a... | marie.atelier@montrealgarage.com | Marie Atelier | workshop_mechanic | 98aeac24... | 15 | ✅ | Montreal | QC | H3A1A1 | ✅ |
 | 1f718999... | independent.test@theautodoctor.com | Independent Workshop Owner Test | individual_mechanic | 00000000... | 12 | ❌ | Toronto | ON | M4B1B3 | ✅ |
 | f3986e44... | employee.test@theautodoctor.com | Workshop Employee Test | workshop_mechanic | 00000000... | 5 | ❌ | Toronto | ON | M5V3A8 | ✅ |
 | a38623ae... | virtual.test@theautodoctor.com | Virtual Test Mechanic | individual_mechanic | Independent | 8 | ❌ | Toronto | ON | M5V3A8 | ✅ |
@@ -87,11 +92,6 @@
 
 | ID | Email | Missing Fields |
 |---|---|---|
-| 607a9b1f... | ktest@askautodoctor.com | phone, city, province, postal_code, lat/lng |
-| 65acc199... | faizrhashmi@gmail.com | phone, city, province, postal_code, lat/lng |
-| 8dda8cb3... | cust3@test.com | city, province, postal_code, lat/lng |
-| c060b46b... | cust2@test.com | province, postal_code, lat/lng |
-| 0af3d300... | cust1@test.com | province, postal_code, lat/lng |
 | c1838c27... | N/A | phone, city, province, postal_code, lat/lng |
 
 ## MECHANICS WITH MISSING DATA
@@ -115,13 +115,13 @@
 ### Immediate Priorities
 
 1. ❌ **RFQ/Quotes System**: Tables are missing or not accessible. Run latest migrations.
-2. ⚠️ **Fix 6 customer(s)** with missing location data
+2. ⚠️ **Fix 1 customer(s)** with missing location data
 3. ⚠️ **Fix 3 mechanic(s)** with missing data
 4. ⚠️ **Fix 3 organization(s)** with missing data
 
 ### Testing Readiness
 
 - Customers: ✅ (have 6, need 5)
-- Mechanics: ❌ (have 7, need 15)
+- Mechanics: ❌ (have 12, need 15)
 - Workshops: ✅ (have 11, need 5)
 - Sessions: ❌ (have 0, need 15)

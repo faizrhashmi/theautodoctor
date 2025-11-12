@@ -77,22 +77,23 @@ platform_fee_settings (
   -- Workshop Quotes/Repairs (RFQ system)
   default_workshop_quote_platform_fee: 15.00
 
-  -- Mechanic Referrals (virtual mechanics → RFQ)
+  -- Mechanic Referrals (VIRTUAL mechanics ONLY → RFQ)
   default_referral_fee_percent: 2.00
-
-  -- Workshop Escalations (mechanic refers to workshop)
-  workshop_escalation_referral_percent: 5.00
 )
 ```
 
 **YOUR CLEAR FEE STRUCTURE:**
 
-| Revenue Stream | Platform Fee | Service Provider Gets |
-|---|---|---|
-| **Online Diagnostics** | **30%** | Mechanic gets **70%** |
-| **Workshop Quotes** | **15%** | Workshop gets **85%** |
-| **RFQ Referrals** | **2%** | Referring mechanic gets **2%** of bid |
-| **Workshop Escalations** | **5%** | Escalating mechanic gets **5%** |
+| Revenue Stream | Platform Fee | Service Provider Gets | Who Gets Paid |
+|---|---|---|---|
+| **Online Diagnostics** | **30%** | Mechanic gets **70%** | Any mechanic |
+| **Workshop Quotes** | **15%** | Workshop gets **85%** | Workshop |
+| **RFQ Referrals** | **2%** | Referring mechanic gets **2%** of bid | **VIRTUAL MECHANICS ONLY** |
+
+**Important Clarifications:**
+- ✅ **Virtual mechanics** get 2% referral when customer accepts RFQ bid
+- ❌ **Independent mechanics** do NOT get referral (they own the business, get 85% of repair)
+- ❌ **Workshop employees** do NOT get referral (they are salaried by workshop)
 
 ---
 
@@ -267,9 +268,9 @@ Platform releases payment:
     → $120 to platform (15%)
 ```
 
-**Option 2B: Mechanic Refers to Workshop (If too complex)**
+**Option 2B: Virtual Mechanic Creates RFQ for Customer**
 ```
-Mechanic creates RFQ for customer
+VIRTUAL mechanic creates RFQ after online diagnostic
     ↓
 Workshop bids $1000
     ↓
@@ -280,10 +281,12 @@ Customer pays $1000 via platform
 Workshop completes repair
     ↓
 Platform releases payment:
-    → $50 to mechanic (5% escalation referral)
+    → $20 to virtual mechanic (2% RFQ referral)
     → $850 to workshop (85% of $1000)
-    → $100 to platform (10% net commission)
+    → $130 to platform (13% net commission)
 ```
+
+**Note:** Only VIRTUAL mechanics get 2% referral. Independent mechanics (owners) and workshop employees (salaried) do NOT receive referrals.
 
 ---
 
@@ -294,7 +297,7 @@ Platform releases payment:
 | **In-Person Inspection** | $50 | 30% ($15) | 70% ($35) | Non-refundable booking fee |
 | **Independent Mechanic Repair** | Quote amount | 15% | 85% | If mechanic does repair |
 | **Workshop Repair (Direct)** | Quote amount | 15% | 85% | Workshop completes repair |
-| **Workshop Repair (Referred)** | Quote amount | 10% + 5% referral | Workshop: 85%, Mechanic: 5% | Mechanic referred customer |
+| **Workshop Repair (Virtual Referral)** | Quote amount | 13% + 2% referral | Workshop: 85%, Virtual Mechanic: 2% | **VIRTUAL mechanics ONLY** |
 
 **KEY INSIGHT:** This is actually SAME as your online model:
 - Inspection = Diagnostic session (30% platform fee)

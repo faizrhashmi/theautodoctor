@@ -1,0 +1,218 @@
+{
+  "timestamp": "2025-11-12T21:53:21.182Z",
+  "summary": {
+    "customers": 5,
+    "mechanics": 7,
+    "workshops": 11,
+    "sessionRequests": 43,
+    "rfqs": 0,
+    "quotes": 0
+  },
+  "results": [
+    {
+      "phase": "Customer: Customer A (cust1@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Customer: Customer B (cust2@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Customer: Customer 3 (cust3@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Customer: Kelly Test (ktest@askautodoctor.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Customer: Faiz Hashmi (faizrhashmi@gmail.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Mechanic: Test Mechanic (mechanic@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Mechanic: Mechanic 2 (mech1@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Mechanic: Mechanic 1 (mech@test.com)",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Workshop: Test Workshop 1",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Workshop: Test Workshop 2",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "Workshop: Test Workshop 3",
+      "success": true,
+      "details": "Updated successfully"
+    },
+    {
+      "phase": "New Mechanic: Emma Online",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (fab5bcb9-2562-46b7-bb74-363fd729f057, 2025-11-12 21:53:18.756089+00, Emma Online, emma.online@virtualmechanic.com, 416-555-0401, null, f, f, f, f, t, RS-ON-2022-745123, ON, null, null, {}, 9, {\"Hybrid Systems\",\"EV Diagnostics\",\"Battery Systems\"}, null, null, null, null, null, null, Toronto, ON, M4B2K9, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:18.756089+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, virtual_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: David Remote",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (752040e8-c32e-4bd0-b338-5ee3dc6ab359, 2025-11-12 21:53:18.837368+00, David Remote, david.remote@virtualmechanic.com, 604-555-0401, null, f, f, f, f, t, RS-BC-2021-892341, BC, null, null, {}, 11, {Honda,Acura,\"Asian Imports\"}, null, null, null, null, null, null, Vancouver, BC, V6B1A1, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:18.837368+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, virtual_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: Marie Atelier",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (1e18ebd3-eb7c-4405-8da0-bbd7c336de7f, 2025-11-12 21:53:18.922789+00, Marie Atelier, marie.atelier@montrealgarage.com, 514-555-0401, null, f, f, f, f, t, RS-QC-2019-567234, QC, null, null, {}, 15, {\"General Repair\",\"French Vehicles\",\"European Cars\"}, null, null, null, null, null, null, Montreal, QC, H3A1A1, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:18.922789+00, workshop_mechanic, 98aeac24-8fe8-45d9-9838-a632bfcea85a, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, workshop_and_virtual, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: Tom Workshop",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST204",
+        "details": null,
+        "hint": null,
+        "message": "Could not find the 'interprovincial_certified' column of 'mechanics' in the schema cache"
+      }
+    },
+    {
+      "phase": "New Mechanic: Lisa Tech",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (6205ba6a-ebb1-43c4-90cb-1370f1f6410f, 2025-11-12 21:53:19.084582+00, Lisa Tech, lisa.tech@quickfix.com, 604-555-0301, null, f, f, f, f, t, RS-BC-2023-234567, BC, null, null, {}, 8, {Nissan,Infiniti,\"Asian Imports\",Diagnostics}, null, null, null, null, null, null, Vancouver, BC, V6B2W9, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:19.084582+00, workshop_mechanic, 78db0e30-5e16-4092-a6fd-ba9bd31b6b84, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, workshop_and_virtual, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: Frank Independent",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (b36febd2-a077-4085-a19e-d3a01f91c3d1, 2025-11-12 21:53:19.172356+00, Frank Independent, frank.indie@autorepair.com, 416-555-0501, null, f, f, f, f, t, RS-ON-2015-345678, ON, null, null, {}, 20, {Ford,Lincoln,\"Domestic Vehicles\"}, null, null, null, null, null, null, Toronto, ON, M4B1B3, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:19.172356+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, physical_and_virtual, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: Sophie Solo",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST204",
+        "details": null,
+        "hint": null,
+        "message": "Could not find the 'interprovincial_certified' column of 'mechanics' in the schema cache"
+      }
+    },
+    {
+      "phase": "New Mechanic: Chris Mobile",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (3b75d049-28fc-43f6-b3e0-9dae1616108c, 2025-11-12 21:53:19.31674+00, Chris Mobile, chris.mobile@onthego.com, 403-555-0501, null, f, f, f, f, t, RS-AB-2022-678901, AB, null, null, {}, 10, {\"Mobile Service\",\"General Repair\",\"GM Vehicles\"}, null, null, null, null, null, null, Calgary, AB, T2G0P6, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:53:19.31674+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, AB-MOBILE-2024-001, null, null, physical_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "RFQ: Honda Civic",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.profiles'",
+        "message": "Could not find the table 'public.rfqs' in the schema cache"
+      }
+    },
+    {
+      "phase": "RFQ: Toyota Camry",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.profiles'",
+        "message": "Could not find the table 'public.rfqs' in the schema cache"
+      }
+    },
+    {
+      "phase": "RFQ: Ford F-150",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.profiles'",
+        "message": "Could not find the table 'public.rfqs' in the schema cache"
+      }
+    },
+    {
+      "phase": "RFQ: Mazda CX-5",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.profiles'",
+        "message": "Could not find the table 'public.rfqs' in the schema cache"
+      }
+    },
+    {
+      "phase": "RFQ: BMW 328i",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.profiles'",
+        "message": "Could not find the table 'public.rfqs' in the schema cache"
+      }
+    },
+    {
+      "phase": "Quotes",
+      "success": false,
+      "details": "No RFQs available to create quotes for"
+    }
+  ],
+  "success": 11,
+  "failed": 14
+}

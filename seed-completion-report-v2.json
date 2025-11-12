@@ -1,0 +1,82 @@
+{
+  "timestamp": "2025-11-12T21:54:50.997Z",
+  "summary": {
+    "customers": 5,
+    "mechanics": 12,
+    "workshops": 11,
+    "sessionRequests": 43
+  },
+  "results": [
+    {
+      "phase": "New Mechanic: Emma Online",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (82100cb9-4db9-42bf-85bc-dfe7cd3eed2f, 2025-11-12 21:54:49.665546+00, Emma Online, emma.online@virtualmechanic.com, 416-555-0401, null, f, f, f, f, t, RS-ON-2022-745123, ON, null, null, {}, 9, {\"Hybrid Systems\",\"EV Diagnostics\",\"Battery Systems\"}, null, null, null, null, null, null, Toronto, ON, M4B2K9, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:54:49.665546+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, virtual_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: David Remote",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (04827199-4407-4b63-8e19-9153468f6543, 2025-11-12 21:54:49.757574+00, David Remote, david.remote@virtualmechanic.com, 604-555-0401, null, f, f, f, f, t, RS-BC-2021-892341, BC, null, null, {}, 11, {Honda,Acura,\"Asian Imports\"}, null, null, null, null, null, null, Vancouver, BC, V6B1A1, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:54:49.757574+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, null, null, null, virtual_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "New Mechanic: Marie Atelier",
+      "success": true,
+      "details": "Created successfully"
+    },
+    {
+      "phase": "New Mechanic: Tom Workshop",
+      "success": true,
+      "details": "Created successfully"
+    },
+    {
+      "phase": "New Mechanic: Lisa Tech",
+      "success": true,
+      "details": "Created successfully"
+    },
+    {
+      "phase": "New Mechanic: Frank Independent",
+      "success": true,
+      "details": "Created successfully"
+    },
+    {
+      "phase": "New Mechanic: Sophie Solo",
+      "success": true,
+      "details": "Created successfully"
+    },
+    {
+      "phase": "New Mechanic: Chris Mobile",
+      "success": false,
+      "details": "Failed to create",
+      "error": {
+        "code": "23514",
+        "details": "Failing row contains (2ff49aab-2625-4280-9f5a-60a1de628f99, 2025-11-12 21:54:50.348333+00, Chris Mobile, chris.mobile@onthego.com, 403-555-0501, null, f, f, f, f, t, RS-AB-2022-678901, AB, null, null, {}, 10, {\"Mobile Service\",\"General Repair\",\"GM Vehicles\"}, null, null, null, null, null, null, Calgary, AB, T2G0P6, Canada, null, f, null, null, null, f, null, null, null, f, draft, pending, null, null, null, null, null, null, 1, 2025-11-12 21:54:50.348333+00, individual_mechanic, null, direct, t, null, f, null, null, null, t, 0.00, 0, f, {}, {}, 0, f, general, null, America/Toronto, virtual_only, null, {}, f, t, f, AB-MOBILE-2024-001, null, null, physical_only, f, null, null, 30, 0, 2025-11-12, null, contractor, null, f, null, null, {}, null, f, null, null, null, f, null, null, 2000000.00, null, t, t, f, t, f, null, null, active, null, null, null, null, null, null, null, f, null, f, null).",
+        "hint": null,
+        "message": "new row for relation \"mechanics\" violates check constraint \"mechanics_participation_mode_check\""
+      }
+    },
+    {
+      "phase": "Brand Certifications",
+      "success": false,
+      "details": "Table does not exist - skipping",
+      "error": {
+        "code": "PGRST205",
+        "details": null,
+        "hint": "Perhaps you meant the table 'public.brand_specializations'",
+        "message": "Could not find the table 'public.brand_specialist_certifications' in the schema cache"
+      }
+    }
+  ],
+  "success": 5,
+  "failed": 4
+}

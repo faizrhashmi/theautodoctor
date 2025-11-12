@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Car, Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { routeFor, apiRouteFor } from '@/lib/routes'
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons'
 
 export default function CustomerLogin() {
   const [email, setEmail] = useState('')
@@ -137,6 +138,22 @@ export default function CustomerLogin() {
             </div>
             <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
             <p className="mt-2 text-sm text-slate-300">Sign in to your AskAutoDoctor account</p>
+          </div>
+
+          {/* Social Auth Buttons */}
+          <SocialAuthButtons
+            mode="login"
+            redirectTo={next}
+            onError={(err) => setError(err)}
+          />
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-700"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white/5 px-2 text-slate-500">or continue with email</span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
