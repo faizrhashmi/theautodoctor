@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { Database } from '@/types/supabase'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -163,8 +164,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify mechanic exists
-    const { data: mechanicExists, error: mechanicCheckError } = await supabase
+    // Verify mechanic exists - use admin client to bypass RLS
+    // (RLS policies may prevent customers from directly querying mechanics table)
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    const { data: mechanicExists, error: mechanicCheckError } = await supabaseAdmin
       .from('mechanics')
       .select('id, user_id, name, email')
       .eq('id', mechanic_id)
@@ -178,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     if (!mechanicExists) {
       // Try to find by user_id to provide better error message
-      const { data: mechanicByUserId } = await supabase
+      const { data: mechanicByUserId } = await supabaseAdmin
         .from('mechanics')
         .select('id, user_id, name')
         .eq('user_id', mechanic_id)

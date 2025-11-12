@@ -217,7 +217,7 @@ export async function GET(req: NextRequest) {
       // Get workshop name from organizations join or fallback to shop_affiliation
       const workshopName = (mechanic as any).organizations?.name || mechanic.shop_affiliation || null
 
-      return {
+      const result = {
         id: mechanic.id,
         userId: mechanic.user_id,
         name: mechanic.name || 'Mechanic',
@@ -241,6 +241,18 @@ export async function GET(req: NextRequest) {
         matchReasons,
         profileCompletionScore: mechanic.profile_completion_score || 0
       }
+
+      // Log for debugging favorites issue
+      if (mechanic.name === 'Alex Thompson') {
+        console.log('[available-mechanics] Alex Thompson mechanic data:', {
+          id: mechanic.id,
+          user_id: mechanic.user_id,
+          name: mechanic.name,
+          email: mechanic.email
+        })
+      }
+
+      return result
     })
 
     // Sort by score (descending), then by availability, then by rating
