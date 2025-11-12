@@ -25,6 +25,15 @@ interface ReviewAndPaymentStepProps {
     preparationNotes?: string
     specialRequests?: string
     uploadedFiles?: string[]
+    // Workshop fields for in-person visits
+    workshopName?: string
+    workshopAddress?: {
+      address: string
+      city: string
+      province: string
+      postal: string
+      country?: string
+    }
   }
   onComplete: () => void
   onBack?: () => void
@@ -237,19 +246,14 @@ export default function ReviewAndPaymentStep({
           </div>
         )}
 
-        {/* Concern */}
+        {/* Service Description */}
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
             <FileText className="h-5 w-5 text-red-400" />
           </div>
           <div className="flex-1">
-            <div className="text-xs text-slate-500 uppercase">Issue Description</div>
-            <div className="text-white text-sm">{wizardData.concernDescription}</div>
-            {wizardData.isUrgent && (
-              <div className="mt-1 inline-block px-2 py-0.5 bg-red-500/20 text-red-300 text-xs rounded">
-                ⚠️ Urgent
-              </div>
-            )}
+            <div className="text-xs text-slate-500 uppercase">Service Description</div>
+            <div className="text-white text-sm">{wizardData.serviceDescription}</div>
           </div>
         </div>
 
