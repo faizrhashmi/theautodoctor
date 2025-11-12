@@ -14,7 +14,8 @@ import {
   Wrench,
   Car,
   ArrowRight,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react'
 
 /**
@@ -67,6 +68,8 @@ export interface SessionCardProps {
 
   // Optional callbacks
   onEnd?: () => Promise<void>
+  onViewDetails?: (sessionId: string) => void
+  showViewButton?: boolean
 }
 
 const STATUS_CONFIG = {
@@ -124,7 +127,9 @@ export default function SessionCard({
   presence,
   cta,
   userRole,
-  onEnd
+  onEnd,
+  onViewDetails,
+  showViewButton = false
 }: SessionCardProps) {
   const [isEnding, setIsEnding] = useState(false)
   const [isCtaLoading, setIsCtaLoading] = useState(false)
@@ -273,6 +278,20 @@ export default function SessionCard({
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* View Details Button (for pending sessions) */}
+        {showViewButton && onViewDetails && status === 'pending' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewDetails(sessionId)
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </button>
+        )}
+
         {/* Primary CTA */}
         {cta && isActive && (
           cta.onClick ? (

@@ -164,6 +164,37 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [currentStep])
 
+  // Detect vehicle-specialist brand mismatch
+  useEffect(() => {
+    if (wizardData.vehicleId && wizardData.requestedBrand && wizardData.vehicleData) {
+      const vehicleMake = wizardData.vehicleData.make?.toLowerCase()
+      const requestedBrand = wizardData.requestedBrand.toLowerCase()
+
+      if (vehicleMake && vehicleMake !== requestedBrand) {
+        const shouldReset = window.confirm(
+          `⚠️ Brand Mismatch Detected\n\n` +
+          `You selected a ${wizardData.vehicleData.make} vehicle but requested a ${wizardData.requestedBrand} specialist.\n\n` +
+          `Would you like to:\n` +
+          `• YES: Reset to standard mechanic search\n` +
+          `• NO: Continue with ${wizardData.requestedBrand} specialist (they may decline)`
+        )
+
+        if (shouldReset) {
+          setWizardData(prev => ({
+            ...prev,
+            mechanicType: 'standard',
+            requestedBrand: null,
+            mechanicId: null,
+            mechanicName: '',
+            specialistPremium: 0,
+            specialistPremiumAccepted: false
+          }))
+          setCompletedSteps(prev => prev.filter(s => s <= 1))
+        }
+      }
+    }
+  }, [wizardData.vehicleId, wizardData.vehicleData, wizardData.requestedBrand])
+
   // Save wizard state to sessionStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -386,6 +417,17 @@ export default function BookingWizard({ onComplete, onCancel }: BookingWizardPro
 
   const handleBack = () => {
     if (currentStep === 1) {
+      // Check for unsaved progress before leaving
+      const hasProgress = wizardData.vehicleId || wizardData.planType || wizardData.mechanicId
+
+      if (hasProgress) {
+        const confirmed = window.confirm(
+          'You have selections in progress. They will be saved if you return later.\n\n' +
+          'Continue to dashboard?'
+        )
+        if (!confirmed) return
+      }
+
       // On first step, go back to dashboard
       router.push('/customer/dashboard')
     } else {

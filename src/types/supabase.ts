@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       account_deletion_queue: {
@@ -14482,6 +14507,46 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_quote_offers_v: {
+        Row: {
+          alternative_options: string | null
+          can_provide_loaner_vehicle: boolean | null
+          can_provide_pickup_dropoff: boolean | null
+          created_at: string | null
+          customer_id: string | null
+          customer_responded_at: string | null
+          customer_response: string | null
+          description: string | null
+          earliest_availability_date: string | null
+          estimated_completion_days: number | null
+          estimated_completion_hours: number | null
+          line_items: Json | null
+          mechanic_id: string | null
+          offer_id: string | null
+          platform_fee: number | null
+          platform_fee_percent: number | null
+          price_labor: number | null
+          price_parts: number | null
+          price_subtotal: number | null
+          price_total: number | null
+          rfq_id: string | null
+          sent_at: string | null
+          session_id: string | null
+          source: string | null
+          status: string | null
+          vehicle_id: string | null
+          viewed_at: string | null
+          warranty_days: number | null
+          warranty_months_labor: number | null
+          warranty_months_parts: number | null
+          workshop_city: string | null
+          workshop_id: string | null
+          workshop_name: string | null
+          workshop_rating: number | null
+          workshop_years_in_business: number | null
+        }
+        Relationships: []
+      }
       data_access_request_audit: {
         Row: {
           audit_id: string | null
@@ -16099,6 +16164,18 @@ export type Database = {
           total_sessions: number
         }[]
       }
+      get_customer_offers: {
+        Args: { p_customer_id: string; p_status?: string }
+        Returns: {
+          created_at: string
+          offer_id: string
+          price_total: number
+          rfq_id: string
+          source: string
+          status: string
+          workshop_name: string
+        }[]
+      }
       get_customer_session_trend: {
         Args: { p_customer_id: string }
         Returns: {
@@ -16552,6 +16629,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       invite_status: ["pending", "consumed", "expired", "revoked"],

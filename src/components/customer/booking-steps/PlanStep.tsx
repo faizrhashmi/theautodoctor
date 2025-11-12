@@ -110,11 +110,15 @@ export default function PlanStep({ wizardData, onComplete }: PlanStepProps) {
     if (!planData) return
 
     setSelectedPlan(planId)
+
+    // Clear specialist premium if free plan selected
+    const isFree = planId === 'free' || planData.priceValue === 0
+
     onComplete({
       planType: planId,
       planPrice: planData.priceValue,
-      specialistPremium: specialistPremium,
-      specialistPremiumAccepted: acceptedSpecialistPremium,
+      specialistPremium: isFree ? 0 : specialistPremium,
+      specialistPremiumAccepted: isFree ? false : acceptedSpecialistPremium,
     })
   }
 

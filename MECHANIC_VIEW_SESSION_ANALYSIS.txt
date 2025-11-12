@@ -1,0 +1,169 @@
+MECHANIC-SIDE SESSION REQUEST VIEWING ARCHITECTURE
+===================================================
+
+SUMMARY OF FINDINGS
+===================
+
+1. REQUEST CARDS/LISTS - Dashboard Queue Display
+Location: src/components/sessions/SessionCard.tsx
+Lines: 277-305 (Action buttons)
+
+The SessionCard component displays incoming session requests to mechanics with:
+- Session type (chat, video, diagnostic)
+- Status badge
+- Partner name (customer)
+- Vehicle info
+- Concern summary
+- Primary CTA button ("Accept Request")
+
+2. MECHANIC DASHBOARD - Where Requests Are Listed
+Location: src/app/mechanic/dashboard/page.tsx
+Lines: 658-731 (Pending Requests section)
+
+Key areas:
+- Line 664-665: Available Sessions section with queue.unassigned items
+- Line 682-683: Count of waiting sessions
+- Line 687-721: Map through unassigned queue items
+- Line 702-717: SessionCard rendered with "Accept Request" button
+- Line 734-766: Active Sessions section showing live sessions
+
+Real-time Updates:
+- Lines 511-581: Event listeners for mechanic:assignments:update and mechanic:sessions:update
+- Lines 183-209: fetchQueue() function calling /api/mechanic/queue
+
+3. REQUEST DETAIL MODALS - Full Session Details View
+Location: src/components/mechanic/MechanicSessionDetailsModal.tsx
+
+Key sections with View functionality:
+- Lines 105-148: fetchSessionDetails() function
+  - Loads session data via /api/mechanic/sessions/[sessionId]
+  - Fetches files via /api/sessions/[sessionId]/files
+  
+Display Sections:
+- Lines 285-298: Status and type badges
+- Lines 300-330: Timeline (created, started, ended, duration)
+- Lines 332-341: Customer information
+- Lines 343-365: Vehicle information
+- Lines 367-378: Concern/diagnosis summary
+- Lines 414-444: Shared files section with external links and downloads
+
+View/Action Buttons:
+- Lines 451-463: Create RFQ button (Virtual-Only mechanics)
+- Lines 466-477: Create Quote button (Independent Workshop)
+- Lines 480-496: Download PDF button
+- Lines 499-504: Close button
+
+4. ALTERNATIVE: Enhanced Request Detail Modal
+Location: src/components/mechanic/EnhancedRequestDetailModal.tsx
+
+Tabbed interface with:
+- Lines 52-57: Tab definitions (overview, vehicle, concern, attachments)
+- Lines 87-112: Tab navigation
+
+Tab contents:
+- Lines 118-189: Overview tab with customer info and stats
+- Lines 191-234: Vehicle tab with detailed vehicle info
+- Lines 236-279: Concern tab with detailed issue description
+- Lines 281-377: Attachments tab with file grid
+
+File handling in attachments:
+- Lines 295-367: File grid with image previews
+- Lines 301-324: Image preview with hover actions
+- Lines 342-363: File action buttons (View, Download, Play video)
+
+File preview modal:
+- Lines 444-462: Full-screen preview for images and videos
+
+5. SESSION DETAILS API - Backend Data Provider
+Location: src/app/api/mechanic/sessions/[sessionId]/route.ts
+
+GET request returns:
+- Lines 28-44: Session data (id, type, status, plan, created_at, started_at, ended_at)
+- Lines 60-65: Customer profile (id, full_name, email)
+- Lines 67-84: Vehicle details from session_requests join
+- Lines 95-121: Full response object with all details
+
+6. SESSION FILES API - Attachment Data
+Location: src/app/api/sessions/[id]/files/route.ts
+
+GET request (Lines 101-168):
+- Lines 134-138: Query session_files by session_id
+- Lines 145-153: Calculate file summary with counts and total size
+
+Returns array with:
+- file_id, file_name, file_url, file_type, file_size
+- uploaded_by, created_at, file_category
+- transcript, tags, metadata
+
+7. MECHANIC QUEUE API - Available Sessions
+Location: src/app/api/mechanic/queue/route.ts
+
+Returns two lists:
+- Lines 53-75: Unassigned (queued) sessions not yet taken
+  - Select session_assignments with mechanic_id IS NULL
+  - Include match_score, match_reasons, priority, expires_at
+- Lines 78-100: My assignments (offered, accepted, joined, in_progress)
+
+8. VIEW BUTTON FLOW IN SESSION HISTORY
+
+Location: src/app/mechanic/sessions/page.tsx
+
+Lines with View button:
+- Line 543-552: "View" button in session row
+  - Line 545: setSelectedSessionId(session.id)
+  - Line 546: setShowDetailsModal(true)
+
+Modal integration:
+- Lines 617-639: MechanicSessionDetailsModal component
+- Line 624: sessionId prop
+- Lines 626-627: Callbacks for RFQ/Quote creation
+
+9. ATTACHMENT DISPLAY LOCATIONS
+
+In MechanicSessionDetailsModal (Lines 414-444):
+- File count and list
+- Download links for each file
+- External link icon to open in new tab
+
+In EnhancedRequestDetailModal (Lines 281-377):
+- Tabbed attachments section
+- Image grid with thumbnails
+- Video play button
+- Full-screen preview modal
+
+10. KEY FILE PATHS WITH LINE NUMBERS
+
+Component Files:
+- src/components/sessions/SessionCard.tsx - Lines 277-305 (action buttons)
+- src/components/mechanic/MechanicSessionDetailsModal.tsx - Lines 105-444 (details modal)
+- src/components/mechanic/EnhancedRequestDetailModal.tsx - Lines 281-462 (enhanced modal)
+- src/components/mechanic/RequestDetailModal.tsx - Lines 156-196 (attachment display)
+
+Page Files:
+- src/app/mechanic/dashboard/page.tsx - Lines 658-731 (request list)
+- src/app/mechanic/sessions/page.tsx - Lines 543-552 (history view button)
+
+API Files:
+- src/app/api/mechanic/sessions/[sessionId]/route.ts - Lines 28-121 (session details)
+- src/app/api/sessions/[id]/files/route.ts - Lines 134-153 (files list)
+- src/app/api/mechanic/queue/route.ts - Lines 53-100 (available sessions)
+
+CRITICAL LINES FOR VIEW FUNCTIONALITY
+
+Dashboard Request Cards:
+src/app/mechanic/dashboard/page.tsx:702-717 - SessionCard with "Accept Request" CTA
+
+Session Details Modal Trigger:
+src/app/mechanic/sessions/page.tsx:543-552 - View button implementation
+
+Details Modal Content:
+src/components/mechanic/MechanicSessionDetailsModal.tsx:105-444 - Full modal with all details
+
+Attachment Display:
+src/components/mechanic/MechanicSessionDetailsModal.tsx:414-444 - Files section
+src/components/mechanic/EnhancedRequestDetailModal.tsx:281-377 - Attachments tab
+
+API Data Flow:
+/api/mechanic/queue -> Get available sessions
+/api/mechanic/sessions/[sessionId] -> Get full session details
+/api/sessions/[id]/files -> Get session attachments

@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get customer's favorites with detailed mechanic information
-    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: favorites, error } = await supabase
       .from('customer_favorites')
       .select(`
@@ -150,7 +149,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already favorited
-    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: existing } = await supabase
       .from('customer_favorites')
       .select('id')
@@ -166,7 +164,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to favorites
-    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { data: favorite, error } = await supabase
       .from('customer_favorites')
       .insert({
@@ -227,7 +224,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Remove from favorites
-    // @ts-ignore - customer_favorites table exists but not yet in generated types
     const { error } = await supabase
       .from('customer_favorites')
       .delete()

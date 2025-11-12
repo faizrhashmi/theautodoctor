@@ -27,21 +27,27 @@ export default function AddToFavorites({
 
     try {
       if (favorited) {
-        // Remove from favorites
-        // Note: We'd need to store the favorite_id to do this properly
-        // For now, this is a placeholder
-        alert('Remove from favorites functionality needs favorite_id')
-        setLoading(false)
-        return
+        // Remove from favorites - now uses mechanic_id
+        const response = await fetch(
+          `/api/customer/mechanics/favorites?mechanic_id=${providerId}`,
+          { method: 'DELETE' }
+        )
+
+        if (response.ok) {
+          setFavorited(false)
+          onFavoriteChange?.(false)
+        } else {
+          const error = await response.json()
+          alert(`Failed to remove from favorites: ${error.error || 'Unknown error'}`)
+        }
       } else {
-        // Add to favorites
-        const response = await fetch('/api/customer/favorites', {
+        // Add to favorites - migrated to Route 2
+        const response = await fetch('/api/customer/mechanics/favorites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_id: customerId,
-            provider_id: providerId,
-            provider_type: providerType
+            mechanic_id: providerId,
+            mechanic_name: providerName
           })
         })
 
@@ -50,7 +56,7 @@ export default function AddToFavorites({
           onFavoriteChange?.(true)
         } else {
           const error = await response.json()
-          alert(error.error || 'Failed to add to favorites')
+          alert(`Failed to add to favorites: ${error.error || 'Unknown error'}`)
         }
       }
     } catch (error) {

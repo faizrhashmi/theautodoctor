@@ -80,92 +80,28 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/customer/favorites
  *
- * Add a mechanic/workshop to favorites
- *
- * Body:
- * {
- *   provider_id: string,
- *   provider_type: 'workshop' | 'independent'
- * }
+ * DEPRECATED: This endpoint is no longer supported
+ * Please migrate to /api/customer/mechanics/favorites
  */
 export async function POST(req: NextRequest) {
-  try {
-    // ✅ SECURITY: Require customer authentication
-    const authResult = await requireCustomerAPI(req)
-    if (authResult.error) return authResult.error
-
-    const customer = authResult.data
-    console.log(`[CUSTOMER] ${customer.email} adding favorite`)
-
-    const body = await req.json()
-
-    const {
-      provider_id,
-      provider_type
-    } = body
-
-    // Validate required fields
-    if (!provider_id || !provider_type) {
-      return NextResponse.json(
-        { error: 'provider_id and provider_type are required' },
-        { status: 400 }
-      )
-    }
-
-    if (!['workshop', 'independent'].includes(provider_type)) {
-      return NextResponse.json(
-        { error: 'provider_type must be "workshop" or "independent"' },
-        { status: 400 }
-      )
-    }
-
-    // Check if already favorited
-    const { data: existing } = await supabaseAdmin
-      .from('customer_favorites')
-      .select('id')
-      .eq('customer_id', customer.id)
-      .eq(provider_type === 'workshop' ? 'workshop_id' : 'mechanic_id', provider_id)
-      .single()
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'This provider is already in your favorites' },
-        { status: 400 }
-      )
-    }
-
-    // Add to favorites
-    const { data: favorite, error: insertError } = await supabaseAdmin
-      .from('customer_favorites')
-      .insert({
-        customer_id: customer.id,
-        mechanic_id: provider_type === 'independent' ? provider_id : null,
-        workshop_id: provider_type === 'workshop' ? provider_id : null,
-        total_services: 0,
-        total_spent: 0
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Error adding favorite:', insertError)
-      return NextResponse.json(
-        { error: 'Failed to add favorite' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      favorite_id: favorite.id,
-      message: 'Provider added to favorites'
-    })
-
-  } catch (error: any) {
-    console.error('Error in POST favorites:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to add favorite' },
-      { status: 500 }
-    )
-  }
+  return NextResponse.json(
+    {
+      error: 'DEPRECATED: This endpoint is no longer supported',
+      migration: {
+        message: 'This route has been replaced with a more specific endpoint',
+        newEndpoint: '/api/customer/mechanics/favorites',
+        method: 'POST',
+        requiredBody: {
+          mechanic_id: 'string (UUID)',
+          mechanic_name: 'string'
+        },
+        example: {
+          mechanic_id: '123e4567-e89b-12d3-a456-426614174000',
+          mechanic_name: 'John Smith'
+        },
+        documentation: 'See CRITICAL_FIXES_2025-11-12.md for full migration guide'
+      }
+    },
+    { status: 410 } // 410 Gone - Resource permanently removed
+  )
 }

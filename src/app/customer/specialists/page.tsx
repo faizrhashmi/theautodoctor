@@ -20,17 +20,30 @@ export default function SpecialistsPage() {
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [showLuxuryOnly, setShowLuxuryOnly] = useState(false)
+  const [pricingRange, setPricingRange] = useState<{ min: number; max: number } | null>(null)
 
   useEffect(() => {
-    async function fetchBrands() {
+    async function fetchData() {
       try {
-        const response = await fetch('/api/brands')
-        if (!response.ok) {
+        // Fetch brands and pricing range in parallel
+        const [brandsResponse, pricingResponse] = await Promise.all([
+          fetch('/api/brands'),
+          fetch('/api/brands/pricing-range')
+        ])
+
+        if (!brandsResponse.ok) {
           throw new Error('Failed to fetch brands')
         }
-        const data = await response.json()
-        setBrands(data)
-        setFilteredBrands(data)
+
+        const brandsData = await brandsResponse.json()
+        setBrands(brandsData)
+        setFilteredBrands(brandsData)
+
+        // Pricing range fetch (non-critical)
+        if (pricingResponse.ok) {
+          const pricingData = await pricingResponse.json()
+          setPricingRange(pricingData)
+        }
       } catch (err) {
         setError((err as Error).message)
       } finally {
@@ -38,7 +51,7 @@ export default function SpecialistsPage() {
       }
     }
 
-    fetchBrands()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -126,9 +139,12 @@ export default function SpecialistsPage() {
           </div>
           <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl p-4">
             <div className="text-2xl sm:text-3xl font-bold text-orange-400 mb-1">
-              $29.99+
+              {pricingRange
+                ? `$${pricingRange.min.toFixed(2)} - $${pricingRange.max.toFixed(2)}`
+                : 'Loading...'
+              }
             </div>
-            <div className="text-xs sm:text-sm text-slate-400">Starting Price</div>
+            <div className="text-xs sm:text-sm text-slate-400">Specialist Premium Range</div>
           </div>
         </div>
 
