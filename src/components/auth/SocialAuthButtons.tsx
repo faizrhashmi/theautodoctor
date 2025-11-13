@@ -22,10 +22,16 @@ export default function SocialAuthButtons({
     try {
       setLoadingProvider(provider)
 
+      // Build the callback URL with optional redirect parameter
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      if (redirectTo) {
+        callbackUrl.searchParams.set('next', redirectTo)
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: redirectTo || `${window.location.origin}/auth/callback${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`,
+          redirectTo: callbackUrl.toString(),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

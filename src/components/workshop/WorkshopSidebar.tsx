@@ -33,6 +33,12 @@ const NAV_ITEMS = [
     description: 'Overview & insights'
   },
   {
+    label: 'Team',
+    href: '/workshop/team',
+    icon: Users,
+    description: 'Manage mechanics & specialists'
+  },
+  {
     label: 'Diagnostics',
     href: '/workshop/diagnostics',
     icon: Wrench,

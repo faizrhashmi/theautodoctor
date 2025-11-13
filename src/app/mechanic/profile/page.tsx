@@ -21,7 +21,7 @@ export default async function MechanicProfilePage() {
 
   // Fetch mechanic profile from mechanics table using admin client to bypass RLS
   // Only select columns that actually exist in the schema (types/supabase.ts)
-  const { data: mechanic, error: mechanicError } = await supabaseAdmin
+  const { data: mechanic, error: mechanicError} = await supabaseAdmin
     .from('mechanics')
     .select(`
       id,
@@ -47,7 +47,9 @@ export default async function MechanicProfilePage() {
       profile_completion_score,
       can_accept_sessions,
       rating,
-      completed_sessions
+      completed_sessions,
+      workshop_id,
+      account_type
     `)
     .eq('id', authMechanic.id)
     .single()
@@ -100,6 +102,16 @@ export default async function MechanicProfilePage() {
 
   console.log('[Mechanic Profile] Successfully loaded profile for:', mechanic.email)
 
+  // Determine mechanic type
+  let mechanicType: 'virtual_only' | 'independent_workshop' | 'workshop_affiliated' = 'virtual_only'
+  if (mechanic.workshop_id) {
+    if (mechanic.account_type === 'workshop_mechanic') {
+      mechanicType = 'workshop_affiliated'
+    } else {
+      mechanicType = 'independent_workshop'
+    }
+  }
+
   // Build profile object with all fields the client expects
   // Provide defaults for fields that don't exist in the DB schema
   const profileForClient = {
@@ -128,5 +140,9 @@ export default async function MechanicProfilePage() {
     shop_affiliation: mechanic.shop_affiliation ?? '',
   }
 
-  return <MechanicProfileClient initialProfile={profileForClient} mechanicId={authMechanic.id} />
+  return <MechanicProfileClient
+    initialProfile={profileForClient}
+    mechanicId={authMechanic.id}
+    mechanicType={mechanicType}
+  />
 }

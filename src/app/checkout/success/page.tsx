@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 type ResolveResponse = {
@@ -11,7 +11,7 @@ type ResolveResponse = {
 
 type Status = 'loading' | 'redirecting' | 'error'
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<Status>('loading')
@@ -138,5 +138,24 @@ export default function CheckoutSuccessPage() {
         )}
       </div>
     </main>
+  )
+}
+
+// Wrap with Suspense boundary for useSearchParams
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-xl font-semibold text-slate-900">Finalizing your booking</h1>
+          <p className="mt-3 text-sm text-slate-600">Hold tight while we confirm payment and prepare your session.</p>
+          <div className="mt-6 flex justify-center">
+            <span className="h-10 w-10 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+          </div>
+        </div>
+      </main>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
   )
 }

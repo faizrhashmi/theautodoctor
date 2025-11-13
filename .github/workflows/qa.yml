@@ -1,0 +1,89 @@
+name: QA Orchestrator
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+  workflow_dispatch:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install QA dependencies
+        run: pnpm -C qa install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm -C qa dlx playwright install --with-deps
+
+      - name: Create QA environment file
+        run: |
+          cd qa
+          cp .env.example .env.qa
+          echo "QA_START_DEV=1" >> .env.qa
+          echo "QA_BASE_URL=http://localhost:3000" >> .env.qa
+          # Add secrets from GitHub if available
+          if [ -n "${{ secrets.QA_CUSTOMER_EMAIL }}" ]; then
+            echo "QA_CUSTOMER_EMAIL=${{ secrets.QA_CUSTOMER_EMAIL }}" >> .env.qa
+            echo "QA_CUSTOMER_PASSWORD=${{ secrets.QA_CUSTOMER_PASSWORD }}" >> .env.qa
+          fi
+          if [ -n "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env.qa
+            echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.qa
+          fi
+
+      - name: Run QA Orchestrator
+        run: pnpm -C qa run qa
+        env:
+          CI: true
+          QA_START_DEV: 1
+          QA_BASE_URL: http://localhost:3000
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+
+      - name: Upload QA Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports
+          path: qa/reports/**
+          retention-days: 30
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: qa/playwright/playwright-report/**
+          retention-days: 30
+
+      - name: Upload Test Videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: qa/playwright/test-results/**/*.webm
+          retention-days: 7

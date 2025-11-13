@@ -22,7 +22,8 @@ export interface FavoriteMechanic {
   brand_specializations: string[]
   city?: string
   country?: string
-  mechanic_type: string
+  mechanic_type?: string // Computed display value, not from database column
+  can_perform_physical_work?: boolean
   workshop_name?: string
   is_online: boolean
   last_seen?: string

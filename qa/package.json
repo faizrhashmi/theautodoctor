@@ -1,0 +1,31 @@
+{
+  "name": "@theautodoctor/qa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "QA orchestrator for The Auto Doctor platform",
+  "scripts": {
+    "qa": "tsx orchestrator/index.ts",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "record:customer": "playwright test playwright/specs/auth.login.customer.setup.spec.ts",
+    "record:mechanic": "playwright test playwright/specs/auth.login.mechanic.setup.spec.ts",
+    "record:admin": "playwright test playwright/specs/auth.login.admin.setup.spec.ts",
+    "report:open": "playwright show-report playwright/playwright-report",
+    "health": "tsx scripts/ensure-health.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.8.3",
+    "@playwright/test": "^1.40.1",
+    "@types/node": "^20.10.6",
+    "axios": "^1.6.5",
+    "playwright": "^1.40.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

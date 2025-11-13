@@ -61,9 +61,10 @@ interface MechanicProfile {
 interface MechanicProfileClientProps {
   initialProfile: MechanicProfile
   mechanicId: string
+  mechanicType?: 'virtual_only' | 'independent_workshop' | 'workshop_affiliated'
 }
 
-export function MechanicProfileClient({ initialProfile, mechanicId }: MechanicProfileClientProps) {
+export function MechanicProfileClient({ initialProfile, mechanicId, mechanicType = 'virtual_only' }: MechanicProfileClientProps) {
   const router = useRouter()
 
   const [activeTab, setActiveTab] = useState<Tab>('basic')
@@ -210,10 +211,10 @@ export function MechanicProfileClient({ initialProfile, mechanicId }: MechanicPr
           {/* Tab Content */}
           <div className="p-4 sm:p-6">
             {activeTab === 'basic' && (
-              <BasicInfoTab profile={profile} setProfile={setProfile} />
+              <BasicInfoTab profile={profile} setProfile={setProfile} mechanicType={mechanicType} />
             )}
             {activeTab === 'specializations' && (
-              <SpecializationsTab profile={profile} setProfile={setProfile} />
+              <SpecializationsTab profile={profile} setProfile={setProfile} mechanicType={mechanicType} />
             )}
             {activeTab === 'location' && (
               <LocationTab profile={profile} setProfile={setProfile} />
@@ -229,7 +230,10 @@ export function MechanicProfileClient({ initialProfile, mechanicId }: MechanicPr
 }
 
 // Basic Info Tab - Dark Theme
-function BasicInfoTab({ profile, setProfile }: any) {
+function BasicInfoTab({ profile, setProfile, mechanicType }: any) {
+  // Only independent mechanics with workshops should see hourly rate field
+  const showHourlyRate = mechanicType === 'independent_workshop'
+
   return (
     <div className="space-y-5 sm:space-y-6 max-w-2xl">
       <div>
@@ -294,30 +298,55 @@ function BasicInfoTab({ profile, setProfile }: any) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-200 mb-2">
-          Hourly Rate (CAD)
-        </label>
-        <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <input
-            type="number"
-            value={profile.hourly_rate || ''}
-            onChange={(e) => setProfile((prev: any) => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
-            className="w-full pl-10 pr-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
-            placeholder="50.00"
-            min="0"
-            step="0.01"
-          />
+      {/* Hourly Rate Field - Only for Independent Mechanics with Workshop */}
+      {showHourlyRate ? (
+        <div>
+          <label className="block text-sm font-medium text-slate-200 mb-2">
+            Hourly Rate (CAD) <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <input
+              type="number"
+              value={profile.hourly_rate || ''}
+              onChange={(e) => setProfile((prev: any) => ({ ...prev, hourly_rate: parseFloat(e.target.value) || 0 }))}
+              className="w-full pl-10 pr-4 py-3 border border-slate-600 bg-slate-900/60 text-white rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-slate-500 transition touch-manipulation"
+              placeholder="50.00"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            Required for in-person visits at your workshop
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-blue-300 mb-1">Hourly Rate Not Applicable</h4>
+              <p className="text-xs text-blue-200/80">
+                {mechanicType === 'virtual_only'
+                  ? 'As a virtual mechanic, you earn 70% of the session price (currently $29.99). Hourly rates only apply to in-person visits at independent workshops.'
+                  : 'As a workshop employee, rates are managed by your workshop. Contact your workshop owner for rate information.'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Specializations Tab - Dark Theme
-function SpecializationsTab({ profile, setProfile }: any) {
+function SpecializationsTab({ profile, setProfile, mechanicType }: any) {
   const [selectedTier, setSelectedTier] = useState(profile.specialist_tier || 'general')
+
+  // Check if workshop employee
+  const isWorkshopEmployee = mechanicType === 'workshop_affiliated'
+  const shopAffiliation = profile.shop_affiliation || 'your workshop'
 
   const tiers = [
     {
@@ -350,10 +379,101 @@ function SpecializationsTab({ profile, setProfile }: any) {
   ]
 
   const handleTierChange = (tier: string) => {
+    // Prevent workshop employees from changing tier
+    if (isWorkshopEmployee && tier !== 'general') {
+      alert(
+        '⚠️ Specialist Designation Managed by Workshop\n\n' +
+        `Your specialist status is managed by ${shopAffiliation}. ` +
+        'If you believe you should be designated as a specialist, ' +
+        'please speak with your workshop owner.\n\n' +
+        'Want to be an independent specialist? You can leave your workshop ' +
+        'and create your own account after the 30-day cooling period.'
+      )
+      return
+    }
+
     setSelectedTier(tier)
     setProfile((prev: any) => ({ ...prev, specialist_tier: tier }))
   }
 
+  // If workshop employee, show read-only specialist status
+  if (isWorkshopEmployee) {
+    return (
+      <div className="space-y-6 sm:space-y-8 max-w-4xl">
+        {/* Read-Only Specialist Status for Workshop Employees */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
+            Your Specialist Status
+          </h3>
+          <p className="text-sm text-slate-400 mb-6">
+            Managed by {shopAffiliation}
+          </p>
+
+          <div className="flex items-start gap-4">
+            {profile.is_brand_specialist ? (
+              <>
+                <div className="flex-shrink-0">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-3xl">
+                    ⭐
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="text-xl font-bold text-white mb-1">
+                    {profile.specialist_tier === 'master' ? 'Master Technician' : 'Brand Specialist'}
+                  </div>
+                  {profile.brand_specializations && profile.brand_specializations.length > 0 ? (
+                    <div className="text-sm text-slate-300 mb-3">
+                      Certified for: {profile.brand_specializations.join(', ')}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-slate-400 mb-3">
+                      No specific brands designated
+                    </div>
+                  )}
+                  <div className="text-xs text-slate-500">
+                    Designated by workshop owner • Contact {shopAffiliation} to modify
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-shrink-0">
+                  <div className="h-16 w-16 rounded-full bg-slate-700 flex items-center justify-center text-3xl">
+                    🔧
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="text-xl font-bold text-white mb-1">
+                    General Mechanic
+                  </div>
+                  <div className="text-sm text-slate-400 mb-3">
+                    Not currently designated as specialist
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Contact your workshop owner if you believe you should be designated as a specialist
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Service Keywords - Always editable */}
+        <div>
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Service Keywords</h3>
+          <p className="text-sm text-slate-400 mb-4">
+            Select the types of services you offer. This helps match you with relevant customer requests.
+          </p>
+          <ServiceKeywordsSelector
+            value={profile.service_keywords || []}
+            onChange={(keywords) => setProfile((prev: any) => ({ ...prev, service_keywords: keywords }))}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Independent mechanics - full editing capability
   return (
     <div className="space-y-6 sm:space-y-8 max-w-4xl">
       {/* Specialist Tier Selection */}

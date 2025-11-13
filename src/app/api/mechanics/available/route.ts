@@ -53,14 +53,14 @@ export async function GET(req: NextRequest) {
         suspended_until,
         workshop_id,
         shop_affiliation,
-        mechanic_type,
         can_perform_physical_work,
+        participation_mode,
         organizations:workshop_id (
           id,
           name,
-          address_line1,
+          address,
           city,
-          state_province,
+          province,
           postal_code,
           country
         )
@@ -72,8 +72,8 @@ export async function GET(req: NextRequest) {
 
     // Filter by session type - CRITICAL for in-person visits
     if (sessionType === 'in_person') {
-      // For in-person visits, exclude virtual-only mechanics
-      query = query.neq('mechanic_type', 'virtual_only')
+      // For in-person visits, exclude virtual-only mechanics (can_perform_physical_work must be true)
+      query = query.eq('can_perform_physical_work', true)
       // Require workshop for in-person bookings
       query = query.not('workshop_id', 'is', null)
     }
@@ -253,13 +253,13 @@ export async function GET(req: NextRequest) {
         completedSessions: completedSessions,
         redSealCertified: mechanic.red_seal_certified || false,
         workshopName: workshopName,
-        mechanicType: mechanic.mechanic_type || null,
+        mechanicType: mechanic.participation_mode || null,
         canPerformPhysicalWork: mechanic.can_perform_physical_work || false,
         workshopId: mechanic.workshop_id || null,
         workshopAddress: (mechanic as any).organizations ? {
-          address: (mechanic as any).organizations.address_line1 || null,
+          address: (mechanic as any).organizations.address || null,
           city: (mechanic as any).organizations.city || null,
-          province: (mechanic as any).organizations.state_province || null,
+          province: (mechanic as any).organizations.province || null,
           postal: (mechanic as any).organizations.postal_code || null,
           country: (mechanic as any).organizations.country || null
         } : null,

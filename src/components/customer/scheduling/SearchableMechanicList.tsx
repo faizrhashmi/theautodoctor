@@ -14,27 +14,36 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Search, Filter, X, Loader2 } from 'lucide-react'
 
+// Mechanic interface matching /api/mechanics/available response
 interface Mechanic {
-  user_id: string
-  full_name: string
+  userId: string
+  name: string
   email?: string
-  currently_on_shift: boolean
-  mechanic_type: 'virtual_only' | 'independent_workshop' | 'workshop_affiliated'
+  isAvailable: boolean
+  mechanicType: string | null // participation_mode from database
+  canPerformPhysicalWork: boolean
   rating: number
-  total_sessions: number
+  completedSessions: number
   city?: string
-  state_province?: string
-  postal_code?: string
-  specialties?: string[]
-  brand_specialties?: string[]
-  certifications?: Array<{ type: string; name: string }>
-  is_favorite?: boolean
-  workshop?: {
-    name: string
-    address_line1: string
-    city: string
-    state_province: string
-  }
+  country?: string
+  postalCode?: string
+  brandSpecializations?: string[]
+  serviceKeywords?: string[]
+  redSealCertified?: boolean
+  isBrandSpecialist?: boolean
+  workshopId?: string | null
+  workshopName?: string | null
+  workshopAddress?: {
+    address: string | null
+    city: string | null
+    province: string | null
+    postal: string | null
+    country: string | null
+  } | null
+  presenceStatus?: 'online' | 'offline' | 'away'
+  lastSeenText?: string
+  matchScore?: number
+  matchReasons?: string[]
 }
 
 interface SearchableMechanicListProps {
@@ -96,13 +105,13 @@ export default function SearchableMechanicList({
       const query = searchQuery.toLowerCase()
       result = result.filter(mechanic => {
         const searchableText = [
-          mechanic.full_name,
-          mechanic.workshop?.name || '',
-          mechanic.specialties?.join(' ') || '',
+          mechanic.name,
+          mechanic.workshopName || '',
+          mechanic.serviceKeywords?.join(' ') || '',
+          mechanic.brandSpecializations?.join(' ') || '',
           mechanic.city || '',
-          mechanic.state_province || '',
-          mechanic.postal_code || '',
-          mechanic.certifications?.map(c => c.name).join(' ') || ''
+          mechanic.country || '',
+          mechanic.postalCode || ''
         ].join(' ').toLowerCase()
 
         return searchableText.includes(query)
@@ -111,27 +120,25 @@ export default function SearchableMechanicList({
 
     // 2. Online/Offline Filter
     if (filters.onlineOnly) {
-      result = result.filter(m => m.currently_on_shift === true)
+      result = result.filter(m => m.isAvailable === true)
     }
     if (filters.offlineOnly) {
-      result = result.filter(m => m.currently_on_shift === false)
+      result = result.filter(m => m.isAvailable === false)
     }
 
-    // 3. Favorites Filter
+    // 3. Favorites Filter (Note: API doesn't currently return this field)
     if (filters.favoritesOnly) {
-      result = result.filter(m => m.is_favorite === true)
+      result = result.filter(m => (m as any).is_favorite === true)
     }
 
     // 4. Brand Specialist Filter
     if (filters.brandSpecialist) {
-      result = result.filter(m => m.brand_specialties && m.brand_specialties.length > 0)
+      result = result.filter(m => m.isBrandSpecialist === true)
     }
 
     // 5. Red Seal Certification Filter
     if (filters.redSealOnly) {
-      result = result.filter(m =>
-        m.certifications?.some(c => c.type === 'red_seal')
-      )
+      result = result.filter(m => m.redSealCertified === true)
     }
 
     // 6. Sort
@@ -140,9 +147,9 @@ export default function SearchableMechanicList({
         case 'rating':
           return b.rating - a.rating
         case 'sessions':
-          return b.total_sessions - a.total_sessions
+          return b.completedSessions - a.completedSessions
         case 'name':
-          return a.full_name.localeCompare(b.full_name)
+          return a.name.localeCompare(b.name)
         default:
           return 0
       }
@@ -154,45 +161,45 @@ export default function SearchableMechanicList({
   // STATS
   const stats = {
     total: mechanics.length,
-    online: mechanics.filter(m => m.currently_on_shift).length,
-    offline: mechanics.filter(m => !m.currently_on_shift).length,
-    favorites: mechanics.filter(m => m.is_favorite).length,
-    brandSpecialists: mechanics.filter(m => m.brand_specialties?.length > 0).length,
-    redSeal: mechanics.filter(m => m.certifications?.some(c => c.type === 'red_seal')).length,
+    online: mechanics.filter(m => m.isAvailable).length,
+    offline: mechanics.filter(m => !m.isAvailable).length,
+    favorites: mechanics.filter(m => (m as any).is_favorite).length,
+    brandSpecialists: mechanics.filter(m => m.isBrandSpecialist).length,
+    redSeal: mechanics.filter(m => m.redSealCertified).length,
     filtered: filteredMechanics.length
   }
 
   const handleSelect = (mechanic: Mechanic) => {
     // Validate mechanic can handle session type
     if (sessionType === 'in_person') {
-      // Check if mechanic is virtual-only
-      if ((mechanic as any).mechanic_type === 'virtual_only' && !(mechanic as any).can_perform_physical_work) {
+      // Check if mechanic can perform physical work
+      if (!mechanic.canPerformPhysicalWork) {
         alert('⚠️ This mechanic only offers online diagnostics.\n\nPlease select an in-person capable mechanic or change to online session.')
         return
       }
 
       // Check if mechanic has workshop address
-      if (!(mechanic as any).workshop_address?.address) {
+      if (!mechanic.workshopAddress?.address) {
         alert('⚠️ This mechanic has no workshop address on file.\n\nPlease select a mechanic with a physical location.')
         return
       }
     }
 
     // Pass workshop data if in-person
-    const workshopData = sessionType === 'in_person' && (mechanic as any).workshop_address ? {
-      workshopName: (mechanic as any).workshop?.name || mechanic.shop_name || 'Workshop',
+    const workshopData = sessionType === 'in_person' && mechanic.workshopAddress ? {
+      workshopName: mechanic.workshopName || 'Workshop',
       workshopAddress: {
-        address: (mechanic as any).workshop_address.address,
-        city: (mechanic as any).workshop_address.city,
-        province: (mechanic as any).workshop_address.province,
-        postal: (mechanic as any).workshop_address.postal,
-        country: (mechanic as any).workshop_address.country
+        address: mechanic.workshopAddress.address,
+        city: mechanic.workshopAddress.city,
+        province: mechanic.workshopAddress.province,
+        postal: mechanic.workshopAddress.postal,
+        country: mechanic.workshopAddress.country
       }
     } : {}
 
     onComplete({
-      mechanicId: mechanic.user_id,
-      mechanicName: mechanic.full_name,
+      mechanicId: mechanic.userId,
+      mechanicName: mechanic.name,
       ...workshopData
     })
   }
@@ -447,12 +454,12 @@ function MechanicCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-white text-base sm:text-lg">
-            {mechanic.full_name}
+            {mechanic.name}
           </h3>
 
           {/* Online Status */}
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {mechanic.currently_on_shift ? (
+            {mechanic.isAvailable ? (
               <>
                 <span className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></span>
                 <span className="text-xs text-green-400">Online now</span>
@@ -464,20 +471,25 @@ function MechanicCard({
               </>
             )}
 
-            {/* Mechanic Type Badge */}
-            {mechanic.mechanic_type === 'virtual_only' && (
+            {/* Mechanic Type Badges */}
+            {!mechanic.canPerformPhysicalWork && (
               <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
-                💻 Virtual
+                💻 Virtual Only
               </span>
             )}
-            {mechanic.mechanic_type === 'independent_workshop' && (
-              <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">
-                🏪 Independent
-              </span>
-            )}
-            {mechanic.mechanic_type === 'workshop_affiliated' && (
+            {mechanic.workshopId && (
               <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
                 🏢 Workshop
+              </span>
+            )}
+            {mechanic.isBrandSpecialist && (
+              <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
+                ⭐ Specialist
+              </span>
+            )}
+            {mechanic.redSealCertified && (
+              <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/50">
+                🏆 Red Seal
               </span>
             )}
           </div>
@@ -488,67 +500,71 @@ function MechanicCard({
           <div className="text-yellow-400 text-sm font-semibold flex items-center gap-1">
             ★ {mechanic.rating.toFixed(1)}
           </div>
-          <div className="text-xs text-slate-500">{mechanic.total_sessions} sessions</div>
+          <div className="text-xs text-slate-500">{mechanic.completedSessions} sessions</div>
         </div>
       </div>
 
       {/* Workshop Info (for in-person) */}
-      {sessionType === 'in_person' && mechanic.workshop && (
+      {sessionType === 'in_person' && mechanic.workshopAddress && (
         <div className="mb-3 p-2 bg-slate-700/30 rounded text-sm">
           <div className="font-semibold text-slate-300">
-            📍 {mechanic.workshop.name}
+            📍 {mechanic.workshopName || 'Workshop'}
           </div>
           <div className="text-slate-400 text-xs mt-1">
-            {mechanic.workshop.address_line1}, {mechanic.workshop.city}, {mechanic.workshop.state_province}
+            {mechanic.workshopAddress.address}, {mechanic.workshopAddress.city}, {mechanic.workshopAddress.province}
           </div>
         </div>
       )}
 
-      {/* Specialties */}
-      {mechanic.specialties && mechanic.specialties.length > 0 && (
+      {/* Brand Specializations */}
+      {mechanic.brandSpecializations && mechanic.brandSpecializations.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs text-slate-500 mb-1">Specialties:</div>
+          <div className="text-xs text-slate-500 mb-1">Brand Specializations:</div>
           <div className="flex flex-wrap gap-1">
-            {mechanic.specialties.slice(0, 5).map((specialty, idx) => (
+            {mechanic.brandSpecializations.slice(0, 5).map((brand, idx) => (
               <span
                 key={idx}
-                className="text-xs bg-slate-700/50 text-slate-300 px-2 py-0.5 rounded"
+                className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded"
               >
-                {specialty}
+                {brand}
               </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Certifications */}
-      {mechanic.certifications && mechanic.certifications.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1">
-          {mechanic.certifications.map((cert, idx) => (
-            <span
-              key={idx}
-              className={`
-                text-xs px-2 py-0.5 rounded
-                ${cert.type === 'red_seal'
-                  ? 'bg-red-500/20 text-red-300 border border-red-500/50'
-                  : 'bg-blue-500/20 text-blue-300'
-                }
-              `}
-            >
-              {cert.type === 'red_seal' ? '🏆 Red Seal' : cert.name}
-            </span>
-          ))}
+      {/* Service Keywords */}
+      {mechanic.serviceKeywords && mechanic.serviceKeywords.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-slate-500 mb-1">Services:</div>
+          <div className="flex flex-wrap gap-1">
+            {mechanic.serviceKeywords.slice(0, 5).map((keyword, idx) => (
+              <span
+                key={idx}
+                className="text-xs bg-slate-700/50 text-slate-300 px-2 py-0.5 rounded"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Location */}
       <div className="text-xs text-slate-500">
-        📍 {mechanic.city}, {mechanic.state_province}
-        {mechanic.postal_code && ` • ${mechanic.postal_code}`}
+        📍 {mechanic.city}, {mechanic.country}
+        {mechanic.postalCode && ` • ${mechanic.postalCode}`}
       </div>
 
+      {/* Match Reasons */}
+      {mechanic.matchReasons && mechanic.matchReasons.length > 0 && (
+        <div className="mt-2 text-xs text-green-400">
+          ✓ {mechanic.matchReasons.join(' • ')}
+        </div>
+      )}
+
       {/* Helpful message for online mechanics */}
-      {mechanic.currently_on_shift && (
+      {mechanic.isAvailable && (
         <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/30 rounded text-xs text-blue-300">
           💡 This mechanic is online now. You can also book them immediately via "Book Now" if you need help right away.
         </div>
